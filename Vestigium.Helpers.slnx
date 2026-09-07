@@ -1,9 +1,4 @@
 <Solution>
-  <Configurations>
-    <BuildType Name="Debug" />
-    <BuildType Name="Release" />
-    <Platform Name="Any CPU" />
-  </Configurations>
   <Project Path="src/Vestigium.Helpers/Vestigium.Helpers.csproj" />
   <Folder Name="/Library/">
     <Project Path="src/Vestigium.Helpers.ClosedXml/Vestigium.Helpers.ClosedXml.csproj" />
@@ -29,6 +24,9 @@
     <Project Path="src/Vestigium.Helpers.Services.Demo/Vestigium.Helpers.Services.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Analytics.Demo/Vestigium.Helpers.Analytics.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Network.Demo/Vestigium.Helpers.Network.Demo.csproj" />
+  </Folder>
+  <Folder Name="/Logging/">
+    <Project Path="../Vestigium.Logging/src/Vestigium.Logging/Vestigium.Logging.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
