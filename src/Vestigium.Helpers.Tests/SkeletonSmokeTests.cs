@@ -1,5 +1,6 @@
 namespace Vestigium.Helpers.Tests;
 
+[Collection("Logger")]
 public sealed class SkeletonSmokeTests
 {
     [Fact]

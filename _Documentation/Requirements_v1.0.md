@@ -1,8 +1,8 @@
 # Vestigium.Helpers — Requirements Specification
 
 **Document ID:** VEST-HLP-SRS-000  
-**Version:** 1.0  
-**Status:** Skeleton  
+**Version:** 1.1  
+**Status:** Active  
 **Date:** 7 September 2026
 
 ## 1. Purpose
@@ -11,15 +11,15 @@ Provide small, independently referenced helper libraries for the Vestigium suite
 
 ## 2. Scope
 
-In scope for this milestone: solution skeleton, project files, public type placeholders, umbrella documentation, CI build.
+In scope for this milestone: solution skeleton, project files, `HelperLog` façade, one CLI demo per library, xUnit contracts for logging, umbrella documentation, CI build.
 
-Out of scope until a per-library SRS is accepted: real algorithm work, NuGet publish, demo hosts.
+Out of scope until a per-library SRS is accepted: real algorithm work, NuGet publish.
 
 ## 3. Projects
 
 | ID | Project | TFM | Notes |
 |---|---|---|---|
-| HLP-CORE | Vestigium.Helpers | net10.0 | Shared guards only |
+| HLP-CORE | Vestigium.Helpers | net10.0 | Guards, `HelperLog`, `HelperDemoHost` |
 | HLP-XLS | Vestigium.Helpers.ClosedXml | net10.0 | Wraps ClosedXML 0.105.1 |
 | HLP-ENC | Vestigium.Helpers.Encryption | net10.0 | No custom crypto primitives |
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
@@ -30,16 +30,27 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-SVC | Vestigium.Helpers.Services | net10.0 | SCM / hosted services |
 | HLP-ANL | Vestigium.Helpers.Analytics | net10.0 | In-process only in v1 |
 | HLP-NET | Vestigium.Helpers.Network | net10.0 | |
+| HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
 
-## 4. Non-functional
+Each library has a matching `*.Demo` console project.
+
+## 4. Logging
+
+- Disk format is Vestigium.Logging JSON Lines. No `.log` / CSV path.
+- Path: `%ProgramData%\Vestigium\Logs\{APPID}\vestigium-{APPID}-*.json`.
+- Libraries never call `VestigiumLogger.Initialize`. `HelperLog` is a no-op until the host initializes.
+- Each CLI initializes with that helper's APPID so each demo writes its own folder.
+- Tests must not hit live ProgramData; they pass a temp `LogDirectory`.
+
+## 5. Non-functional
 
 - .NET 10 LTS, C# latest, nullable enabled.
-- Packable class libraries (`IsPackable=true`) except Tests.
+- Packable class libraries (`IsPackable=true`) except Tests and Demos.
 - Deterministic builds.
 - Helpers do not reference WPF, Themes, or Controls.
-- Helpers do not write log files. Callers use Vestigium.Logging.
+- `WinReg` stays on `net10.0-windows`.
 
-## 5. Open items
+## 6. Open items
 
 - Exact ClosedXML surface (read-only vs write, template workbooks).
 - Encryption key-storage contract (DPAPI vs raw key material).

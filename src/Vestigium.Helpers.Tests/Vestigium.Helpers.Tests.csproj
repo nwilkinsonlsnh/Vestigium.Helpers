@@ -27,4 +27,8 @@
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
+

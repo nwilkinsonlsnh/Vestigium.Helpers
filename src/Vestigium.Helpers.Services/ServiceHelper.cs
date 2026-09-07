@@ -1,12 +1,19 @@
+using Vestigium.Helpers;
+using Vestigium.Logging;
 namespace Vestigium.Helpers.Services;
 
 /// <summary>
-/// Windows Service and hosted-service control helpers. Skeleton surface — behaviour is specified in this project's SRS.
+/// Windows Service and hosted-service control helpers.
 /// </summary>
 public static class ServiceHelper
 {
-    /// <summary>
-    /// Returns the assembly identity so hosts and tests can prove the library loaded.
-    /// </summary>
     public static string Identity => "Vestigium.Helpers.Services";
+
+    public static string Probe()
+    {
+        var app = HelperLog.AppIds.Services;
+        HelperLog.Information(app, VestigiumStatus.Pending, app, "Enumerating service-control surface.");
+        HelperLog.Information(app, VestigiumStatus.Success, app, "Service probe complete. Identity=" + Identity);
+        return Identity;
+    }
 }

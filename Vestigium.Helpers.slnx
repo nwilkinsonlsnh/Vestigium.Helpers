@@ -17,6 +17,19 @@
     <Project Path="src/Vestigium.Helpers.Analytics/Vestigium.Helpers.Analytics.csproj" />
     <Project Path="src/Vestigium.Helpers.Network/Vestigium.Helpers.Network.csproj" />
   </Folder>
+  <Folder Name="/Demo/">
+    <Project Path="src/Vestigium.Helpers.Demo/Vestigium.Helpers.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.ClosedXml.Demo/Vestigium.Helpers.ClosedXml.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Encryption.Demo/Vestigium.Helpers.Encryption.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.WinReg.Demo/Vestigium.Helpers.WinReg.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Json.Demo/Vestigium.Helpers.Json.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Xml.Demo/Vestigium.Helpers.Xml.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.FileIo.Demo/Vestigium.Helpers.FileIo.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Processes.Demo/Vestigium.Helpers.Processes.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Services.Demo/Vestigium.Helpers.Services.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Analytics.Demo/Vestigium.Helpers.Analytics.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Network.Demo/Vestigium.Helpers.Network.Demo.csproj" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
   </Folder>

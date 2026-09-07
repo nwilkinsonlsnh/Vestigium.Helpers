@@ -12,4 +12,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(VestigiumLoggingProject)" />
+  </ItemGroup>
 </Project>

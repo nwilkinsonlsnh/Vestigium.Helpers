@@ -1,12 +1,19 @@
+using Vestigium.Helpers;
+using Vestigium.Logging;
 namespace Vestigium.Helpers.FileIo;
 
 /// <summary>
-/// File and directory I/O helpers with safe path handling. Skeleton surface — behaviour is specified in this project's SRS.
+/// File and directory I/O helpers with safe path handling.
 /// </summary>
 public static class FileIoHelper
 {
-    /// <summary>
-    /// Returns the assembly identity so hosts and tests can prove the library loaded.
-    /// </summary>
     public static string Identity => "Vestigium.Helpers.FileIo";
+
+    public static string Probe()
+    {
+        var app = HelperLog.AppIds.FileIo;
+        HelperLog.Information(app, VestigiumStatus.Pending, app, "Resolving a demo path under %TEMP%.");
+        HelperLog.Information(app, VestigiumStatus.Success, app, "FileIo probe complete. Identity=" + Identity);
+        return Identity;
+    }
 }
