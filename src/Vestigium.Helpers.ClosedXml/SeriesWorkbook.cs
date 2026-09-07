@@ -22,6 +22,192 @@ internal static class SeriesWorkbook
             TabColor = "3D4F66",
             TableStyle = style
         });
+        if (book.IncludeCharts)
+            AddCharts(book, series, prefix, populationSize);
+    }
+
+    private static void AddCharts(WorkbookSession book, NumericSeries series, string? prefix, int? populationSize)
+    {
+        var style = book.TableStyle;
+        var chartsName = Name(prefix, "Charts");
+        var histName = Name(prefix, "Histogram");
+        var bandsName = Name(prefix, "Bands");
+        var sampleName = Name(prefix, "Sample");
+        var means = MeanIntervals(series, populationSize);
+
+        book.Sheet(chartsName).WriteTable(
+            SheetTable.Create(
+                ["Level", "Estimate", "Lower", "Upper"],
+                means.Select(m => (IReadOnlyList<object?>)[m.Level, m.Estimate, m.Lower, m.Upper]),
+                "Charts"),
+            AnalyticsOptions("5A6F8C", style));
+        book.SetSheetPosition(chartsName, 2);
+
+        var hist = series.Full.Frequency.Histogram;
+        if (hist.Count > 0)
+        {
+            var last = 1 + hist.Count;
+            var histogram = new SheetChart
+            {
+                Sheet = chartsName,
+                Title = "Histogram",
+                Kind = ChartKind.Column,
+                CategoriesFormula = ExcelNames.A1Range(histName, 2, 2, 2, last),
+                Categories = hist.Select(b => ((double)b.LowerInclusive).ToString("G6")).ToArray(),
+                NumericCategories = true,
+                Series =
+                [
+                    new ChartSeries
+                    {
+                        Name = "Count",
+                        ValuesFormula = ExcelNames.A1Range(histName, 5, 2, 5, last),
+                        Values = hist.Select(b => (double)b.Count).ToArray(),
+                        Color = "4C6B8A"
+                    }
+                ],
+                FromColumn = 5,
+                FromRow = 1,
+                ToColumn = 14,
+                ToRow = 16,
+                Color = "4C6B8A"
+            };
+            book.AddChart(histogram);
+            book.AddChart(new SheetChart
+            {
+                Sheet = histName,
+                Title = histogram.Title,
+                Kind = histogram.Kind,
+                CategoriesFormula = histogram.CategoriesFormula,
+                Categories = histogram.Categories,
+                NumericCategories = true,
+                Series = histogram.Series,
+                FromColumn = 7,
+                FromRow = 1,
+                ToColumn = 16,
+                ToRow = 18,
+                Color = "4C6B8A"
+            });
+        }
+
+        var bandRows = series.Bands;
+        if (bandRows.Count > 0)
+        {
+            var last = 1 + bandRows.Count;
+            book.AddChart(new SheetChart
+            {
+                Sheet = chartsName,
+                Title = "Band means",
+                Kind = ChartKind.Column,
+                CategoriesFormula = ExcelNames.A1Range(bandsName, 1, 2, 1, last),
+                Categories = bandRows.Select(b => b.Kind.ToString()).ToArray(),
+                Series =
+                [
+                    new ChartSeries
+                    {
+                        Name = "Mean",
+                        ValuesFormula = ExcelNames.A1Range(bandsName, 6, 2, 6, last),
+                        Values = bandRows.Select(b => b.Mean ?? 0d).ToArray(),
+                        Color = "2A6F97"
+                    }
+                ],
+                FromColumn = 15,
+                FromRow = 1,
+                ToColumn = 24,
+                ToRow = 16,
+                Color = "2A6F97"
+            });
+        }
+
+        if (means.Count > 0)
+        {
+            var last = 1 + means.Count;
+            book.AddChart(new SheetChart
+            {
+                Sheet = chartsName,
+                Title = "Mean confidence",
+                Kind = ChartKind.Column,
+                CategoriesFormula = ExcelNames.A1Range(chartsName, 1, 2, 1, last),
+                Categories = means.Select(m => m.Level).ToArray(),
+                Series =
+                [
+                    new ChartSeries
+                    {
+                        Name = "Estimate",
+                        ValuesFormula = ExcelNames.A1Range(chartsName, 2, 2, 2, last),
+                        Values = means.Select(m => m.Estimate).ToArray(),
+                        Color = "3E8E7E"
+                    },
+                    new ChartSeries
+                    {
+                        Name = "Lower",
+                        ValuesFormula = ExcelNames.A1Range(chartsName, 3, 2, 3, last),
+                        Values = means.Select(m => m.Lower).ToArray(),
+                        Color = "2A6F97"
+                    },
+                    new ChartSeries
+                    {
+                        Name = "Upper",
+                        ValuesFormula = ExcelNames.A1Range(chartsName, 4, 2, 4, last),
+                        Values = means.Select(m => m.Upper).ToArray(),
+                        Color = "1F4E79"
+                    }
+                ],
+                FromColumn = 5,
+                FromRow = 18,
+                ToColumn = 14,
+                ToRow = 34,
+                Color = "3E8E7E"
+            });
+        }
+
+        var n = series.Count;
+        if (n > 0)
+        {
+            book.AddChart(new SheetChart
+            {
+                Sheet = chartsName,
+                Title = "Sample",
+                Kind = ChartKind.Line,
+                CategoriesFormula = ExcelNames.A1Range(sampleName, 1, 2, 1, 1 + n),
+                Categories = Enumerable.Range(0, n).Select(i => i.ToString()).ToArray(),
+                NumericCategories = true,
+                Series =
+                [
+                    new ChartSeries
+                    {
+                        Name = "Value",
+                        ValuesFormula = ExcelNames.A1Range(sampleName, 2, 2, 2, 1 + n),
+                        Values = series.Values.Select(v => (double)v).ToArray(),
+                        Color = "3D4F66"
+                    }
+                ],
+                FromColumn = 15,
+                FromRow = 18,
+                ToColumn = 24,
+                ToRow = 34,
+                Color = "3D4F66"
+            });
+        }
+    }
+
+    private static List<(string Level, double Estimate, double Lower, double Upper)> MeanIntervals(
+        NumericSeries series,
+        int? populationSize)
+    {
+        var list = new List<(string, double, double, double)>(4);
+        void Add(string label, ConfidenceInterval iv)
+        {
+            if (!iv.IsDefined)
+                return;
+            list.Add((label, iv.Estimate ?? 0, iv.Lower ?? 0, iv.Upper ?? 0));
+        }
+
+        Add("90%", series.Confidence(0.90).Mean);
+        Add("95%", series.Confidence(0.95).Mean);
+        Add("99%", series.Confidence(0.99).Mean);
+        if (populationSize is { } n)
+            Add("95% FPC", series.Confidence(0.95, n).Mean);
+        return list;
     }
 
     private static SheetWriteOptions AnalyticsOptions(string tab, string? tableStyle)
