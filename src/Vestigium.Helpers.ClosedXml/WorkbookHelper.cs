@@ -12,6 +12,8 @@ public static class WorkbookHelper
 {
     public static string Identity => "Vestigium.Helpers.ClosedXml";
 
+    public static IReadOnlyList<string> TableStyles => ExcelTableStyles.Ids;
+
     public static string Probe()
     {
         var app = HelperLog.AppIds.ClosedXml;
@@ -64,9 +66,13 @@ public static class WorkbookHelper
         {
             var safe = ExcelNames.Sanitize(firstSheetName);
             if (session.SheetNames.Count == 1 && session.SheetNames[0] != safe)
+            {
                 wb.Worksheet(1).Name = safe;
+            }
             else
+            {
                 session.Sheet(safe);
+            }
         }
 
         return session;
@@ -108,6 +114,11 @@ public static class WorkbookHelper
         WorkbookSession book,
         NumericSeries series,
         string? prefix = null,
-        int? populationSize = null)
-        => SeriesWorkbook.Write(book, series, prefix, populationSize);
+        int? populationSize = null,
+        string? tableStyle = null)
+    {
+        if (tableStyle is not null)
+            book.TableStyle = tableStyle;
+        SeriesWorkbook.Write(book, series, prefix, populationSize);
+    }
 }
