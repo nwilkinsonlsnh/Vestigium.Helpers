@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers.ClosedXml\Vestigium.Helpers.ClosedXml.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
   </ItemGroup>
 </Project>

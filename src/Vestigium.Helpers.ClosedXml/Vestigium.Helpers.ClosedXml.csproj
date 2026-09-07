@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.ClosedXml</RootNamespace>
     <AssemblyName>Vestigium.Helpers.ClosedXml</AssemblyName>
-    <Description>ClosedXML wrappers for reading and writing Excel workbooks.</Description>
+    <Description>ClosedXML write-first Excel workbooks for Vestigium hosts.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
   </ItemGroup>
 </Project>
