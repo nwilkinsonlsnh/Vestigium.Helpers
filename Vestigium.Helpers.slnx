@@ -1,0 +1,23 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <Platform Name="Any CPU" />
+  </Configurations>
+  <Project Path="src/Vestigium.Helpers/Vestigium.Helpers.csproj" />
+  <Folder Name="/Library/">
+    <Project Path="src/Vestigium.Helpers.ClosedXml/Vestigium.Helpers.ClosedXml.csproj" />
+    <Project Path="src/Vestigium.Helpers.Encryption/Vestigium.Helpers.Encryption.csproj" />
+    <Project Path="src/Vestigium.Helpers.WinReg/Vestigium.Helpers.WinReg.csproj" />
+    <Project Path="src/Vestigium.Helpers.Json/Vestigium.Helpers.Json.csproj" />
+    <Project Path="src/Vestigium.Helpers.Xml/Vestigium.Helpers.Xml.csproj" />
+    <Project Path="src/Vestigium.Helpers.FileIo/Vestigium.Helpers.FileIo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Processes/Vestigium.Helpers.Processes.csproj" />
+    <Project Path="src/Vestigium.Helpers.Services/Vestigium.Helpers.Services.csproj" />
+    <Project Path="src/Vestigium.Helpers.Analytics/Vestigium.Helpers.Analytics.csproj" />
+    <Project Path="src/Vestigium.Helpers.Network/Vestigium.Helpers.Network.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
+  </Folder>
+</Solution>
