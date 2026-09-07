@@ -7,7 +7,7 @@ Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, 
 **Target:** .NET 10 LTS / Visual Studio 2026  
 **Shape:** class libraries + one CLI demo per library  
 **Windows-only project:** `Vestigium.Helpers.WinReg`  
-**Logging:** [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) JSON Lines
+**Logging:** [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) JSON Lines (sibling repo, solution folder `/Logging/`)
 
 Umbrella requirements: [`_Documentation/Requirements_v1.0.md`](_Documentation/Requirements_v1.0.md)  
 Umbrella developer notes: [`_Documentation/DevelopersGuide_v1.0.md`](_Documentation/DevelopersGuide_v1.0.md)
@@ -29,14 +29,16 @@ C:\ProgramData\Vestigium\Logs\ClosedXml\vestigium-ClosedXml-20260907.json
 C:\ProgramData\Vestigium\Logs\Encryption\vestigium-Encryption-20260907.json
 ```
 
-Clone [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) as a **sibling** of this repo:
+Clone [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) as a **sibling** of this repo. The solution already references it:
 
 ```
 Vestigium.Helpers/
 Vestigium.Logging/
 ```
 
-CI checks Logging out into `_deps/Vestigium.Logging`.
+`Vestigium.Helpers.slnx` loads `../Vestigium.Logging/src/Vestigium.Logging/Vestigium.Logging.csproj` under the **Logging** folder. The padlock in Solution Explorer is expected — the project lives outside this repo.
+
+CI checks both repositories out as siblings so the same slnx path restores.
 
 ## Libraries
 
@@ -77,3 +79,4 @@ dotnet test src/Vestigium.Helpers.Tests
 - Disk format is JSON Lines from Vestigium.Logging. No `.log` / CSV path.
 - `WinReg` stays on `net10.0-windows`.
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory`.
+- `Vestigium.Logging` stays a sibling repo. Do not vendor its source into Helpers.

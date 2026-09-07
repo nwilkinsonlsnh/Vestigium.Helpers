@@ -1,7 +1,7 @@
 # Vestigium.Helpers — Developers Guide
 
 **Document ID:** VEST-HLP-DEV-000  
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Active  
 **Date:** 7 September 2026
 
@@ -9,7 +9,7 @@
 
 1. Clone `https://github.com/nwilkinsonlsnh/Vestigium.Helpers`.
 2. Clone `https://github.com/nwilkinsonlsnh/Vestigium.Logging` next to it (sibling folder).
-3. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
+3. Open `Vestigium.Helpers.slnx` in Visual Studio 2026. Logging appears under the **Logging** folder (padlock is expected).
 4. Set any `*.Demo` project as startup and F5. JSONL lands under `%ProgramData%\Vestigium\Logs\{APPID}\`.
 5. Run `Vestigium.Helpers.Tests`. Tests use a temp `LogDirectory` and never write live ProgramData.
 
@@ -23,6 +23,7 @@
 | Excel wrapper | `src/Vestigium.Helpers.ClosedXml/WorkbookHelper.cs` |
 | Registry wrapper | `src/Vestigium.Helpers.WinReg/RegistryHelper.cs` |
 | Per-library CLI | `src/Vestigium.Helpers.*.Demo/` |
+| Logging library | sibling `../Vestigium.Logging` (solution folder `/Logging/`) |
 | Umbrella SRS | `_Documentation/Requirements_v1.0.md` |
 | Per-library docs | `src/Vestigium.Helpers.*/_Documentation/` |
 
@@ -39,7 +40,7 @@
 - `Directory.Build.props` sets nullable, implicit usings, latest C#
 - MIT license, same copyright line as Logging / Controls / Themes
 - GitHub Actions `windows-latest` + `dotnet-version: 10.0.x`
-- CI checks Logging out into `_deps/Vestigium.Logging`
+- CI checks Helpers and Logging out as **siblings** so `../Vestigium.Logging` in the slnx restores
 
 ## Adding a helper later
 
