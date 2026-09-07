@@ -11,6 +11,7 @@
     <Project Path="src/Vestigium.Helpers.Services/Vestigium.Helpers.Services.csproj" />
     <Project Path="src/Vestigium.Helpers.Analytics/Vestigium.Helpers.Analytics.csproj" />
     <Project Path="src/Vestigium.Helpers.Network/Vestigium.Helpers.Network.csproj" />
+    <Project Path="src/Vestigium.Helpers.Csv/Vestigium.Helpers.Csv.csproj" />
   </Folder>
   <Folder Name="/Demo/">
     <Project Path="src/Vestigium.Helpers.Demo/Vestigium.Helpers.Demo.csproj" />
@@ -24,6 +25,7 @@
     <Project Path="src/Vestigium.Helpers.Services.Demo/Vestigium.Helpers.Services.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Analytics.Demo/Vestigium.Helpers.Analytics.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Network.Demo/Vestigium.Helpers.Network.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Csv.Demo/Vestigium.Helpers.Csv.Demo.csproj" />
   </Folder>
   <Folder Name="/Logging/">
     <Project Path="../Vestigium.Logging/src/Vestigium.Logging/Vestigium.Logging.csproj" />

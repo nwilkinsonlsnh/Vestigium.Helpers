@@ -1,5 +1,6 @@
 using Vestigium.Helpers.Analytics;
 using Vestigium.Helpers.ClosedXml;
+using Vestigium.Helpers.Csv;
 using Vestigium.Helpers.Encryption;
 using Vestigium.Helpers.FileIo;
 using Vestigium.Helpers.Json;
@@ -35,5 +36,6 @@ public sealed class SkeletonSmokeTests
         Assert.Equal("Vestigium.Helpers.Services", ServiceHelper.Identity);
         Assert.Equal("Vestigium.Helpers.Analytics", AnalyticsHelper.Identity);
         Assert.Equal("Vestigium.Helpers.Network", NetworkHelper.Identity);
+        Assert.Equal("Vestigium.Helpers.Csv", CsvHelper.Identity);
     }
 }

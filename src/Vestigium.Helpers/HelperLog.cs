@@ -24,6 +24,7 @@ public static class HelperLog
         public const string Services = "Services";
         public const string Analytics = "Analytics";
         public const string Network = "Network";
+        public const string Csv = "Csv";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -38,7 +39,8 @@ public static class HelperLog
         AppIds.Processes,
         AppIds.Services,
         AppIds.Analytics,
-        AppIds.Network
+        AppIds.Network,
+        AppIds.Csv
     ];
 
     public static VestigiumTaxonomy Taxonomy { get; } = CreateTaxonomy();
