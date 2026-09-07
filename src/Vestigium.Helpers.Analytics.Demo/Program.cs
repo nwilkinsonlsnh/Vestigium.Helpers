@@ -46,17 +46,17 @@ internal static class AnalyticsDemo
         WriteBands(series);
         WriteFrequency(full);
         WriteHistogram(full);
-        WriteConfidence("90%", ci90);
-        WriteConfidence("95%  (default)", ci95);
-        WriteConfidence("99%", ci99);
-        WriteConfidence($"95%  with FPC  N={PopulationSize:N0}", ciFpc);
+        WriteConfidence("90 percent", ci90);
+        WriteConfidence("95 percent  (default)", ci95);
+        WriteConfidence("99 percent", ci99);
+        WriteConfidence($"95 percent  with FPC  N={PopulationSize:N0}", ciFpc);
         WriteInterval("Wilson  P(X > pop median)", abovePopMedian);
-        WriteInterval("Wilson  P(X ≥ sample P95)", atLeastP95);
+        WriteInterval("Wilson  P(X >= sample P95)", atLeastP95);
         Blank();
         WriteHeading("INFERENCE  (H0: mean = population mean of 1..N)");
         WriteKv("hypothesized mean", hypothesizedMean);
-        WriteKv("two-sided t p-value", pValue);
-        WriteKv("just-covering γ  (1 − p)", covering);
+        WriteKv("two-sided t p-value", FmtNum(pValue));
+        WriteKv("just-covering gamma (1 - p)", FmtNum(covering));
         WriteKv("n for mean margin ±1000 at 95%", nForMargin);
         Blank();
         WriteHeading("TIME SLICE");
@@ -138,7 +138,7 @@ internal static class AnalyticsDemo
 
     private static void WriteNamedPercentiles(SeriesSlice slice)
     {
-        WriteHeading("NAMED PERCENTILES  (PERCENTILE.INC)  — not confidence");
+        WriteHeading("NAMED PERCENTILES  (PERCENTILE.INC)  - not confidence");
         foreach (var kv in slice.NamedPercentiles())
         {
             var label = kv.Key switch
@@ -148,7 +148,7 @@ internal static class AnalyticsDemo
                 0.75 => "P75 = Q3",
                 _ => $"P{kv.Key * 100:0}"
             };
-            WriteKv(label, kv.Value);
+            WriteKv(label, FmtDec(kv.Value));
         }
 
         Blank();
@@ -168,11 +168,11 @@ internal static class AnalyticsDemo
         }
 
         Blank();
-        Console.WriteLine("  Q1: values ≤ series Q1     (left tail of the sample)");
-        Console.WriteLine("  Q2: Q1 < v ≤ median");
-        Console.WriteLine("  Q3: median < v ≤ Q3");
-        Console.WriteLine("  Q4: v > series Q3          (right tail — the slow RTTs)");
-        Console.WriteLine("  IQR: Q1 ≤ v ≤ Q3           (middle 50%)");
+        Console.WriteLine("  Q1: values <= series Q1    (left tail of the sample)");
+        Console.WriteLine("  Q2: Q1 < v <= median");
+        Console.WriteLine("  Q3: median < v <= Q3");
+        Console.WriteLine("  Q4: v > series Q3          (right tail - the slow RTTs)");
+        Console.WriteLine("  IQR: Q1 <= v <= Q3         (middle 50%)");
         Blank();
     }
 
@@ -182,7 +182,7 @@ internal static class AnalyticsDemo
         WriteHeading("FREQUENCY");
         WriteKv("distinct values", f.DistinctCount);
         WriteKv("unique mode?", f.HasUniqueMode);
-        WriteKv("mode", f.Mode is { } m ? m.ToString(CultureInfo.InvariantCulture) : "(none — every drawn value appears once)");
+        WriteKv("mode", f.Mode is { } m ? m.ToString(CultureInfo.InvariantCulture) : "(none - every drawn value appears once)");
         WriteKv("modal values", f.Modes.Count == 0 ? "(none)" : $"{f.Modes.Count} value(s) tied at the top count");
         WriteKv("Shannon entropy (nats)", FmtNum(f.EntropyNats));
         WriteKv("top exact frequencies", Join(f.Frequencies.Take(5).Select(b => $"{b.Value}×{b.Count}")));
@@ -191,7 +191,7 @@ internal static class AnalyticsDemo
 
     private static void WriteHistogram(SeriesSlice slice)
     {
-        WriteHeading("HISTOGRAM  (Freedman–Diaconis, value axis — not time)");
+        WriteHeading("HISTOGRAM  (Freedman-Diaconis, value axis - not time)");
         Console.WriteLine($"  {"#",3}  {"lower",12}  {"upper",12}  {"n",5}  {"rel",8}  closed?");
         var i = 0;
         foreach (var bin in slice.Frequency.Histogram)
@@ -206,7 +206,7 @@ internal static class AnalyticsDemo
 
     private static void WriteConfidence(string title, ConfidenceReport report)
     {
-        WriteHeading($"CONFIDENCE INTERVALS  γ = {title}");
+        WriteHeading($"CONFIDENCE INTERVALS  level = {title}");
         WriteKv("chosen level", report.Level);
         WriteInterval("mean", report.Mean);
         WriteInterval("median", report.Median);
@@ -217,7 +217,7 @@ internal static class AnalyticsDemo
 
     private static void WriteChartReady(NumericSeries series)
     {
-        WriteHeading("CHART-READY POINTS  (numbers only — no charting in this library)");
+        WriteHeading("CHART-READY POINTS  (numbers only - no charting in this library)");
         WriteKv("sample-order points", series.SampleOrderPoints().Count);
         WriteKv("sorted points", series.SortedPoints().Count);
         var ecdf = series.EcdfPoints();
@@ -251,7 +251,7 @@ internal static class AnalyticsDemo
 
         WriteKv(
             label,
-            $"est={FmtNum(iv.Estimate)}  [{FmtNum(iv.Lower)}, {FmtNum(iv.Upper)}]  width={FmtNum(iv.Width)}  {iv.Method}  γ={iv.Level:P0}");
+            $"est={FmtNum(iv.Estimate)}  [{FmtNum(iv.Lower)}, {FmtNum(iv.Upper)}]  width={FmtNum(iv.Width)}  {iv.Method}  level={iv.Level:P0}");
     }
 
     private static void WriteHeading(string title)
@@ -271,7 +271,7 @@ internal static class AnalyticsDemo
         if (values.Count == 0)
             return "(none)";
         var head = string.Join(", ", values.Take(12).Select(v => v.ToString("G", CultureInfo.InvariantCulture)));
-        return values.Count <= 12 ? $"{values.Count}: {head}" : $"{values.Count}: {head}, …";
+        return values.Count <= 12 ? $"{values.Count}: {head}" : $"{values.Count}: {head}, ...";
     }
 
     private static string Join<T>(IEnumerable<T> items) =>
@@ -281,14 +281,19 @@ internal static class AnalyticsDemo
         value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture);
 
     private static string FmtTime(DateTimeOffset? value) =>
-        value is { } at ? FmtTime(at) : "—";
+        value is { } at ? FmtTime(at) : "-";
 
-    private static string FmtDec(decimal value) =>
-        value.ToString("G", CultureInfo.InvariantCulture);
+    private static string FmtDec(decimal value)
+    {
+        var rounded = decimal.Round(value, 4, MidpointRounding.AwayFromZero);
+        return rounded == decimal.Truncate(rounded)
+            ? rounded.ToString("N0", CultureInfo.InvariantCulture)
+            : rounded.ToString("N4", CultureInfo.InvariantCulture);
+    }
 
     private static string FmtDec(decimal? value) =>
-        value is { } v ? FmtDec(v) : "—";
+        value is { } v ? FmtDec(v) : "-";
 
     private static string FmtNum(double? value) =>
-        value is { } v ? v.ToString("G6", CultureInfo.InvariantCulture) : "—";
+        value is { } v ? v.ToString("N4", CultureInfo.InvariantCulture) : "-";
 }

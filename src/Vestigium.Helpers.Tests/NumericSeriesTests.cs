@@ -40,6 +40,19 @@ public sealed class NumericSeriesTests
     }
 
     [Fact]
+    public void Percentile_interpolation_stays_in_decimal()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 1000));
+
+        Assert.Equal(1m, series.Full.Percentile(0));
+        Assert.Equal(1000m, series.Full.Percentile(1));
+        Assert.Equal(50.95m, series.Full.Percentile(0.05));
+        Assert.Equal(900.10m, series.Full.Percentile(0.90));
+        var text = series.Full.Percentile(0.05).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        Assert.DoesNotContain("000000", text);
+    }
+
+    [Fact]
     public void Quartile_bands_split_on_full_series_fences()
     {
         var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
