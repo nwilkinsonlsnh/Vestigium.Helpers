@@ -49,6 +49,7 @@ public sealed class SheetSession
                 if (CellWriter.Write(_sheet.Cell(r, c + 1), value, opts))
                     neutralized++;
             }
+
             r++;
         }
 
@@ -68,15 +69,21 @@ public sealed class SheetSession
         ArgumentNullException.ThrowIfNull(rows);
         var opts = options ?? SheetWriteOptions.Default;
         var last = _sheet.LastRowUsed()?.RowNumber() ?? 0;
-        var r = Math.Max(1, last + 1);
+        var colCount = _sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
+        var r = last + 1;
+        if (r < 1)
+            r = 1;
+
         var count = 0;
         foreach (var row in rows)
         {
+            colCount = Math.Max(colCount, row.Count);
             for (var c = 0; c < row.Count; c++)
                 CellWriter.Write(_sheet.Cell(r, c + 1), row[c], opts);
             r++;
             count++;
         }
+
         HelperLog.Information(
             _book.AppId,
             VestigiumStatus.Success,
@@ -88,56 +95,87 @@ public sealed class SheetSession
     {
         _book.ThrowIfDisposed();
         var used = _sheet.RangeUsed();
-        if (used is null) return;
-        if (chrome.BoldHeader) StyleHeader(used.ColumnCount());
-        if (chrome.FreezeHeader) _sheet.SheetView.FreezeRows(1);
-        if (chrome.AutoFilter && !_sheet.Tables.Any()) used.SetAutoFilter();
-        ExcelNames.TryApplyTabColor(_sheet, chrome.TabColor);
+        if (used is null)
+        {
+            ApplyTabColor(chrome.TabColor);
+            return;
+        }
+
+        if (chrome.BoldHeader)
+            StyleHeader(used.ColumnCount());
+        if (chrome.FreezeHeader)
+            _sheet.SheetView.FreezeRows(1);
+        if (chrome.AutoFilter && !_sheet.Tables.Any())
+            used.SetAutoFilter();
+        ApplyTabColor(chrome.TabColor);
     }
 
     private void ApplyChrome(IXLRange range, int lastRow, int colCount, SheetWriteOptions opts, string? tableName)
     {
-        if (opts.HasHeaderRow) StyleHeader(colCount);
+        if (opts.HasHeaderRow)
+            StyleHeader(colCount);
+
         if (opts.CreateExcelTable && opts.HasHeaderRow && lastRow >= 1 && !_sheet.Tables.Any())
         {
             var name = UniqueTableName(ExcelNames.SanitizeTable(tableName, Name + "Table"));
-            range.CreateTable(name);
+            var table = range.CreateTable(name);
+            table.ShowRowStripes = true;
+            table.Theme = ExcelTableStyles.Resolve(opts.TableStyle ?? _book.TableStyle);
         }
         else if (opts.AutoFilter && opts.HasHeaderRow)
         {
             range.SetAutoFilter();
         }
-        if (opts.FreezeHeader && opts.HasHeaderRow) _sheet.SheetView.FreezeRows(1);
+
+        if (opts.FreezeHeader && opts.HasHeaderRow)
+            _sheet.SheetView.FreezeRows(1);
+
         if (opts.Autosize)
         {
             _sheet.Columns(1, colCount).AdjustToContents();
             var cap = opts.AutosizeMaxWidth <= 0 ? 40 : opts.AutosizeMaxWidth;
             for (var c = 1; c <= colCount; c++)
             {
-                if (_sheet.Column(c).Width > cap) _sheet.Column(c).Width = cap;
+                if (_sheet.Column(c).Width > cap)
+                    _sheet.Column(c).Width = cap;
             }
         }
-        ExcelNames.TryApplyTabColor(_sheet, opts.TabColor);
+
+        ApplyTabColor(opts.TabColor);
+    }
+
+    private void ApplyTabColor(string? hex)
+    {
+        var color = ExcelNames.ParseTabColor(hex);
+        if (color is not null)
+            _sheet.TabColor = color;
     }
 
     private void StyleHeader(int colCount)
     {
-        _sheet.Range(1, 1, 1, Math.Max(1, colCount)).Style.Font.Bold = true;
+        var header = _sheet.Range(1, 1, 1, Math.Max(1, colCount));
+        header.Style.Font.Bold = true;
     }
 
-    private void ClearContent() => _sheet.Clear();
+    private void ClearContent()
+    {
+        _sheet.Clear();
+    }
 
     private string UniqueTableName(string name)
     {
         var used = new HashSet<string>(
             _book.Workbook.Worksheets.SelectMany(w => w.Tables.Select(t => t.Name)),
             StringComparer.OrdinalIgnoreCase);
-        if (!used.Contains(name)) return name;
+        if (!used.Contains(name))
+            return name;
         for (var i = 2; i < 1000; i++)
         {
             var candidate = $"{name}_{i}";
-            if (!used.Contains(candidate)) return candidate;
+            if (!used.Contains(candidate))
+                return candidate;
         }
+
         return name + "_" + Guid.NewGuid().ToString("N")[..8];
     }
 }

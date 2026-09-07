@@ -13,6 +13,7 @@ public sealed class WorkbookSession : IDisposable
     private readonly string _appId;
     private string? _path;
     private bool _disposed;
+    private string _tableStyle = ExcelTableStyles.DefaultId;
 
     internal WorkbookSession(XLWorkbook workbook, string? path, string? appId)
     {
@@ -24,7 +25,16 @@ public sealed class WorkbookSession : IDisposable
     }
 
     public string AppId => _appId;
+
     public string? Path => _path;
+
+    /// <summary>Excel table style applied when a sheet does not override it. Default Medium2.</summary>
+    public string TableStyle
+    {
+        get => _tableStyle;
+        set => _tableStyle = ExcelTableStyles.Normalize(value);
+    }
+
     public IReadOnlyList<string> SheetNames =>
         _workbook.Worksheets.Select(w => w.Name).ToArray();
 
@@ -102,6 +112,7 @@ public sealed class WorkbookSession : IDisposable
     }
 
     internal XLWorkbook Workbook => _workbook;
+
     internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     private string UniqueSheetName(string name)
@@ -114,12 +125,14 @@ public sealed class WorkbookSession : IDisposable
             if (!_workbook.TryGetWorksheet(candidate, out _))
                 return candidate;
         }
+
         throw new InvalidOperationException("Could not allocate a unique sheet name.");
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _workbook.Dispose();
     }

@@ -33,6 +33,7 @@ internal static class ClosedXmlDemo
         Console.WriteLine("Workbook written:");
         Console.WriteLine($"  {path}");
         Console.WriteLine($"  sheets : {string.Join(", ", book.SheetNames)}");
+        Console.WriteLine($"  style  : {ExcelTableStyles.ToExcelName(book.TableStyle)}");
         Console.WriteLine($"  n      : {series.Count}");
         Console.WriteLine($"  mean   : {series.Full.Mean}");
         Console.WriteLine($"  P50    : {series.Full.Median}");
