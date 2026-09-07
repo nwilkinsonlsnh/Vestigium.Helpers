@@ -14,6 +14,7 @@ public sealed class WorkbookSession : IDisposable
     private string? _path;
     private bool _disposed;
     private string _tableStyle = ExcelTableStyles.DefaultId;
+    private readonly List<SheetChart> _charts = [];
 
     internal WorkbookSession(XLWorkbook workbook, string? path, string? appId)
     {
@@ -33,6 +34,25 @@ public sealed class WorkbookSession : IDisposable
     {
         get => _tableStyle;
         set => _tableStyle = ExcelTableStyles.Normalize(value);
+    }
+
+    /// <summary>
+    /// When true, queued <see cref="SheetChart"/> specs are written as native Excel
+    /// chart parts on save. ClosedXML itself does not author charts.
+    /// </summary>
+    public bool IncludeCharts { get; set; } = true;
+
+    public IReadOnlyList<SheetChart> Charts => _charts;
+
+    public void AddChart(SheetChart chart)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(chart);
+        if (string.IsNullOrWhiteSpace(chart.Sheet))
+            throw new ArgumentException("A chart needs a sheet name.", nameof(chart));
+        if (chart.Series.Count == 0)
+            throw new ArgumentException("A chart needs at least one series.", nameof(chart));
+        _charts.Add(chart);
     }
 
     public IReadOnlyList<string> SheetNames =>
@@ -83,13 +103,23 @@ public sealed class WorkbookSession : IDisposable
             var dir = System.IO.Path.GetDirectoryName(target);
             if (!string.IsNullOrWhiteSpace(dir))
                 Directory.CreateDirectory(dir);
-            _workbook.SaveAs(target);
+            if (IncludeCharts && _charts.Count > 0)
+            {
+                using var ms = new MemoryStream();
+                _workbook.SaveAs(ms);
+                var bytes = ChartPacker.Embed(ms.ToArray(), _charts);
+                File.WriteAllBytes(target, bytes);
+            }
+            else
+            {
+                _workbook.SaveAs(target);
+            }
             _path = target;
             HelperLog.Information(
                 _appId,
                 VestigiumStatus.Success,
                 HelperLog.AppIds.ClosedXml,
-                $"Saved workbook path={target} sheets={_workbook.Worksheets.Count}");
+                $"Saved workbook path={target} sheets={_workbook.Worksheets.Count} charts={(IncludeCharts ? _charts.Count : 0)}");
             return target;
         }
         catch (Exception ex)
@@ -108,7 +138,23 @@ public sealed class WorkbookSession : IDisposable
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(stream);
+        if (IncludeCharts && _charts.Count > 0)
+        {
+            using var ms = new MemoryStream();
+            _workbook.SaveAs(ms);
+            var bytes = ChartPacker.Embed(ms.ToArray(), _charts);
+            stream.Write(bytes, 0, bytes.Length);
+            return;
+        }
         _workbook.SaveAs(stream);
+    }
+
+    internal void SetSheetPosition(string name, int position)
+    {
+        ThrowIfDisposed();
+        var safe = ExcelNames.Sanitize(name);
+        if (_workbook.TryGetWorksheet(safe, out var ws))
+            ws.Position = position;
     }
 
     internal XLWorkbook Workbook => _workbook;

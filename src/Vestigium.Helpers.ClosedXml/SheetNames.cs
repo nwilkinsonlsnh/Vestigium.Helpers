@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using ClosedXML.Excel;
 
@@ -13,10 +14,14 @@ internal static class ExcelNames
         var builder = new StringBuilder(raw.Length);
         foreach (var ch in raw)
             builder.Append(Illegal.Contains(ch) ? '_' : ch);
+
         var cleaned = builder.ToString().Trim('\'', ' ');
-        if (cleaned.Length == 0) cleaned = fallback;
-        if (cleaned.Length > 31) cleaned = cleaned[..31].TrimEnd();
-        if (cleaned.Length == 0) cleaned = fallback;
+        if (cleaned.Length == 0)
+            cleaned = fallback;
+        if (cleaned.Length > 31)
+            cleaned = cleaned[..31].TrimEnd();
+        if (cleaned.Length == 0)
+            cleaned = fallback;
         return cleaned;
     }
 
@@ -25,31 +30,69 @@ internal static class ExcelNames
         var raw = Sanitize(string.IsNullOrWhiteSpace(name) ? fallback : name, fallback);
         var builder = new StringBuilder(raw.Length);
         foreach (var ch in raw)
-            builder.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
-        var cleaned = builder.ToString().Trim('_');
-        if (cleaned.Length == 0 || char.IsDigit(cleaned[0])) cleaned = "T_" + cleaned;
-        if (cleaned.Length > 200) cleaned = cleaned[..200];
-        return cleaned;
-    }
+        {
+            if (char.IsLetterOrDigit(ch) || ch == '_')
+                builder.Append(ch);
+            else
+                builder.Append('_');
+        }
 
-    public static void TryApplyTabColor(IXLWorksheet sheet, string? hex)
-    {
-        var color = ParseTabColor(hex);
-        if (color is null) return;
-        sheet.TabColor = color;
+        var cleaned = builder.ToString().Trim('_');
+        if (cleaned.Length == 0 || char.IsDigit(cleaned[0]))
+            cleaned = "T_" + cleaned;
+        if (cleaned.Length > 200)
+            cleaned = cleaned[..200];
+        return cleaned;
     }
 
     public static XLColor? ParseTabColor(string? hex)
     {
-        if (string.IsNullOrWhiteSpace(hex)) return null;
-        var cleaned = hex.Trim().TrimStart('#');
-        if (cleaned.Length == 8) cleaned = cleaned[^6..];
-        if (cleaned.Length != 6) return null;
-        foreach (var ch in cleaned)
-        {
-            var ok = ch is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F';
-            if (!ok) return null;
-        }
-        return XLColor.FromHtml("#" + cleaned);
+        if (string.IsNullOrWhiteSpace(hex))
+            return null;
+        var t = hex.Trim().TrimStart('#');
+        if (t.Length == 8)
+            t = t[^6..];
+        if (t.Length != 6)
+            return null;
+        if (!int.TryParse(t, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
+            return null;
+        return XLColor.FromHtml("#" + t);
     }
+
+    public static string ColumnLetter(int index1Based)
+    {
+        if (index1Based < 1)
+            throw new ArgumentOutOfRangeException(nameof(index1Based));
+        var n = index1Based;
+        var s = "";
+        while (n > 0)
+        {
+            var rem = (n - 1) % 26;
+            s = (char)('A' + rem) + s;
+            n = (n - 1) / 26;
+        }
+        return s;
+    }
+
+    public static string QuoteSheet(string name)
+    {
+        var safe = Sanitize(name);
+        var quote = safe.Length == 0 || char.IsDigit(safe[0]);
+        if (!quote)
+        {
+            foreach (var ch in safe)
+            {
+                if (!(char.IsLetterOrDigit(ch) || ch is '_' or '.'))
+                {
+                    quote = true;
+                    break;
+                }
+            }
+        }
+        var escaped = safe.Replace("'", "''", StringComparison.Ordinal);
+        return quote ? $"'{escaped}'" : escaped;
+    }
+
+    public static string A1Range(string sheet, int col1, int row1, int col2, int row2)
+        => $"{QuoteSheet(sheet)}!${ColumnLetter(col1)}${row1}:${ColumnLetter(col2)}${row2}";
 }

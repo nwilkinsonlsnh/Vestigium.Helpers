@@ -33,6 +33,7 @@ internal static class ClosedXmlDemo
         Console.WriteLine("Workbook written:");
         Console.WriteLine($"  {path}");
         Console.WriteLine($"  sheets : {string.Join(", ", book.SheetNames)}");
+        Console.WriteLine($"  charts : {book.Charts.Count} Excel chart(s)");
         Console.WriteLine($"  style  : {ExcelTableStyles.ToExcelName(book.TableStyle)}");
         Console.WriteLine($"  n      : {series.Count}");
         Console.WriteLine($"  mean   : {series.Full.Mean}");
@@ -47,7 +48,7 @@ internal static class ClosedXmlDemo
             app,
             VestigiumStatus.Success,
             app,
-            $"Wrote {path} n={series.Count} mean={series.Full.Mean:F2} P95={series.Full.Percentile(0.95)} sheets={book.SheetNames.Count}");
+            $"Wrote {path} n={series.Count} mean={series.Full.Mean:F2} P95={series.Full.Percentile(0.95)} sheets={book.SheetNames.Count} charts={book.Charts.Count}");
     }
 
     private static List<Observation> DrawUnique(int count, int populationSize, DateTimeOffset origin)
