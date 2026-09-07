@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Vestigium.Helpers.Tests</RootNamespace>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.ClosedXml\Vestigium.Helpers.ClosedXml.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Encryption\Vestigium.Helpers.Encryption.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.WinReg\Vestigium.Helpers.WinReg.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Xml\Vestigium.Helpers.Xml.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.FileIo\Vestigium.Helpers.FileIo.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Processes\Vestigium.Helpers.Processes.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Services\Vestigium.Helpers.Services.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
+  </ItemGroup>
+</Project>

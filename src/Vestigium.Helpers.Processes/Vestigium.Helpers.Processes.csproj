@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Vestigium.Helpers.Processes</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Processes</AssemblyName>
+    <Description>Process launch, capture, and lifetime helpers.</Description>
+    <Version>1.0.0</Version>
+    <Authors>Vestigium</Authors>
+    <Company>Wilkinson Business</Company>
+    <PackageTags>process;diagnostics;vestigium</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+  </ItemGroup>
+</Project>
