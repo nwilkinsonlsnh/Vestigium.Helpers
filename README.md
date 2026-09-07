@@ -53,7 +53,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.FileIo` | `net10.0` | File and directory helpers |
 | `Vestigium.Helpers.Processes` | `net10.0` | Process launch and capture |
 | `Vestigium.Helpers.Services` | `net10.0` | Service control helpers |
-| `Vestigium.Helpers.Analytics` | `net10.0` | Counters and timings |
+| `Vestigium.Helpers.Analytics` | `net10.0` | Numeric series descriptors, quartile bands, confidence intervals |
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial) |
 

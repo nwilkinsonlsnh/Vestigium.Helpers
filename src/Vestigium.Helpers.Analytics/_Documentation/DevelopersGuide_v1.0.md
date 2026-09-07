@@ -2,24 +2,62 @@
 
 **Document ID:** VEST-HLP-ANALYTICS-DEV-000  
 **Version:** 1.2  
-**Status:** Active  
+**Status:** Companion to SRS v1.2  
 **Date:** 7 September 2026
 
-Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Analytics/`.
+Open `Vestigium.Helpers.slnx` → `src/Vestigium.Helpers.Analytics/`.
 
-Source of truth: [`Requirements_v1.0.md`](Requirements_v1.0.md) v1.1 (accepted).
+The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.2** inside that file). This page is how to call it.
 
-## Intended types
+## Use (values only)
 
-| Type | Role |
-|---|---|
-| `AnalyticsHelper` | `Identity` + `Probe()` only |
-| `NumericSeries` | Immutable instance over a copied, sorted sample |
-| `NumericSlice` | Descriptor for `Full`, `Q1`, `Q2`, `Q3`, `Q4`, `Iqr` |
-| `ConfidenceInterval` | Level, estimate, lower, upper, method |
+```csharp
+using Vestigium.Helpers.Analytics;
 
-Quartiles use Excel `PERCENTILE.INC` / NIST R7.
+var series = NumericSeries.From(new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2 }, name: "rtt-ms");
 
-Confidence quantiles (Student t, chi-square) come from `MathNet.Numerics`. Do not hand-roll the inverse CDF.
+SeriesSlice full = series.Full;
+decimal min = full.Min!.Value;
+decimal p95 = full.Percentile(0.95);          // tail cut — not a confidence level
+var slow = series.Q4;                         // right tail as a group
+var high = full.HighOutliers;
 
-Default confidence level is 0.95. `ConfidenceInterval(level)` is a read against the same snapshot — it does not rebuild the series.
+ConfidenceReport ci = series.Confidence(0.95);
+double? meanLo = ci.Mean.Lower;
+double? meanHi = ci.Mean.Upper;
+
+double? justContains = series.MeanConfidenceLevelContaining(12.0); // 1 − p, not “sample confidence”
+```
+
+## Use (optional timestamps)
+
+```csharp
+var observations = new[]
+{
+    new Observation(12.4m, at: DateTimeOffset.UtcNow.AddSeconds(-4)),
+    new Observation(11.9m, at: DateTimeOffset.UtcNow.AddSeconds(-3)),
+    new Observation(18.7m, at: DateTimeOffset.UtcNow.AddSeconds(-1)),
+};
+
+var timed = NumericSeries.FromObservations(observations, name: "rtt-ms");
+var lastTwoSeconds = timed.Slice(DateTimeOffset.UtcNow.AddSeconds(-2), DateTimeOffset.UtcNow);
+
+foreach (var point in timed.EcdfPoints())
+{
+    // point.X = ms, point.Y = fraction finished — bind in a host / future Charts helper
+    _ = point;
+}
+```
+
+`From(double[])` stays legal. Time is never required.
+
+## Do not
+
+- Add OxyPlot / ScottPlot / LiveCharts to this project.
+- Treat P95 as 95 % confidence.
+- Call `Initialize` on `Vestigium.Logging` from this library.
+- Bin the value histogram by clock time.
+
+## Files
+
+See SRS §15. Tests: `src/Vestigium.Helpers.Tests/NumericSeriesTests.cs`.
