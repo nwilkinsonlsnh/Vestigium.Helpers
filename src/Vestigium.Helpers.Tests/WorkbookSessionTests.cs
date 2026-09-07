@@ -188,6 +188,38 @@ public sealed class WorkbookSessionTests
         Assert.Equal(XLColor.FromHtml("#3EC6FF"), wb.Worksheet("Tint").TabColor);
     }
 
+    [Fact]
+    public void Table_style_round_trips_an_excel_gallery_name()
+    {
+        var path = TempXlsx();
+        using (var book = WorkbookHelper.Create("Data", "ClosedXml"))
+        {
+            book.TableStyle = "Medium9";
+            book.Sheet("Data").WriteTable(SheetTable.Create(["Name", "Value"], [["alpha", 1]]));
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        var table = Assert.Single(wb.Worksheet("Data").Tables);
+        Assert.Equal("TableStyleMedium9", table.Theme.Name);
+    }
+
+    [Fact]
+    public void Unknown_table_style_is_rejected()
+    {
+        using var book = WorkbookHelper.Create("Data", "ClosedXml");
+        Assert.Throws<ArgumentOutOfRangeException>(() => book.TableStyle = "ComicSans3");
+    }
+
+    [Fact]
+    public void Default_table_style_is_excel_medium_2()
+    {
+        using var book = WorkbookHelper.Create("Data", "ClosedXml");
+        Assert.Equal("Medium2", book.TableStyle);
+        Assert.Contains("Medium2", WorkbookHelper.TableStyles);
+        Assert.Equal(60, WorkbookHelper.TableStyles.Count);
+    }
+
     private static string TempXlsx()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
