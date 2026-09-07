@@ -13,6 +13,8 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="$(VestigiumLoggingProject)" />
+    <ProjectReference Include="$(VestigiumLoggingProject)">
+      <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
+    </ProjectReference>
   </ItemGroup>
 </Project>
