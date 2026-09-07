@@ -1,5 +1,6 @@
 using Vestigium.Helpers.Analytics;
 using Vestigium.Helpers.ClosedXml;
+using Vestigium.Helpers.Csv;
 using Vestigium.Helpers.Encryption;
 using Vestigium.Helpers.FileIo;
 using Vestigium.Helpers.Json;
@@ -40,6 +41,7 @@ public sealed class HelperLogTests
     [InlineData(HelperLog.AppIds.Services)]
     [InlineData(HelperLog.AppIds.Analytics)]
     [InlineData(HelperLog.AppIds.Network)]
+    [InlineData(HelperLog.AppIds.Csv)]
     public void Probe_writes_jsonl_with_helper_appid(string appId)
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
@@ -83,6 +85,7 @@ public sealed class HelperLogTests
         HelperLog.AppIds.Services => ServiceHelper.Probe(),
         HelperLog.AppIds.Analytics => AnalyticsHelper.Probe(),
         HelperLog.AppIds.Network => NetworkHelper.Probe(),
+        HelperLog.AppIds.Csv => CsvHelper.Probe(),
         _ => throw new ArgumentOutOfRangeException(nameof(appId), appId, "Unknown helper APPID.")
     };
 }
