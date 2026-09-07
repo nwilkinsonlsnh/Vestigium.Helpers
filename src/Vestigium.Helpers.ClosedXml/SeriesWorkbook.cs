@@ -10,25 +10,28 @@ internal static class SeriesWorkbook
         ArgumentNullException.ThrowIfNull(series);
 
         var full = series.Full;
-        book.Sheet(Name(prefix, "Summary")).WriteTable(Summary(series), AnalyticsOptions("1F4E79"));
-        book.Sheet(Name(prefix, "Bands")).WriteTable(Bands(series), AnalyticsOptions("2A6F97"));
-        book.Sheet(Name(prefix, "Confidence")).WriteTable(Confidence(series, populationSize), AnalyticsOptions("3E8E7E"));
-        book.Sheet(Name(prefix, "Histogram")).WriteTable(Histogram(full), AnalyticsOptions("4C6B8A"));
+        var style = book.TableStyle;
+        book.Sheet(Name(prefix, "Summary")).WriteTable(Summary(series), AnalyticsOptions("1F4E79", style));
+        book.Sheet(Name(prefix, "Bands")).WriteTable(Bands(series), AnalyticsOptions("2A6F97", style));
+        book.Sheet(Name(prefix, "Confidence")).WriteTable(Confidence(series, populationSize), AnalyticsOptions("3E8E7E", style));
+        book.Sheet(Name(prefix, "Histogram")).WriteTable(Histogram(full), AnalyticsOptions("4C6B8A", style));
         book.Sheet(Name(prefix, "Sample")).WriteTable(Sample(series), new SheetWriteOptions
         {
             CreateExcelTable = true,
             DateFormat = "yyyy-mm-dd hh:mm:ss",
-            TabColor = "3D4F66"
+            TabColor = "3D4F66",
+            TableStyle = style
         });
     }
 
-    private static SheetWriteOptions AnalyticsOptions(string tab)
+    private static SheetWriteOptions AnalyticsOptions(string tab, string? tableStyle)
         => new()
         {
             CreateExcelTable = true,
             NumberFormat = "0.0000",
             DateFormat = "yyyy-mm-dd hh:mm:ss",
-            TabColor = tab
+            TabColor = tab,
+            TableStyle = tableStyle
         };
 
     private static string Name(string? prefix, string leaf)
