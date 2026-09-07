@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 
@@ -62,15 +61,11 @@ public static class ExcelTableStyles
     public static XLTableTheme Resolve(string? id)
     {
         var excel = ToExcelName(id);
-        if (excel.Equals("None", StringComparison.OrdinalIgnoreCase))
-            return XLTableTheme.None;
-
-        var prop = typeof(XLTableTheme).GetProperty(
-            excel,
-            BindingFlags.Public | BindingFlags.Static | BindingFlags.IgnoreCase);
-        if (prop?.GetValue(null) is XLTableTheme theme)
+        // ClosedXML 0.105 ships these as public static fields, not properties.
+        // FromName is the documented lookup (Name == "TableStyleMedium2").
+        var theme = XLTableTheme.FromName(excel);
+        if (theme is not null)
             return theme;
-
         throw Unknown(id);
     }
 
