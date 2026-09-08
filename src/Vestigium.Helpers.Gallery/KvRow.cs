@@ -53,3 +53,17 @@ public sealed class ReadCellRow
     public string Value { get; init; } = "";
     public string Type { get; init; } = "";
 }
+
+public sealed class PieSlice
+{
+    public double Width { get; init; }
+    public System.Windows.Media.Brush Fill { get; init; } = System.Windows.Media.Brushes.SteelBlue;
+    public string Caption { get; init; } = "";
+}
+
+public sealed class ScatterDot
+{
+    public double X { get; init; }
+    public double Y { get; init; }
+    public string Caption { get; init; } = "";
+}

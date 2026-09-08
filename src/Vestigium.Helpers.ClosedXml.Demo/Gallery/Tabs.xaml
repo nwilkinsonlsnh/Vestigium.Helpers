@@ -16,10 +16,10 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CLOSEDXML  ·  write + charts + read"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CLOSEDXML  ·  write + charts + read + letterhead"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Write-first Excel. ClosedXML writes the tables; the helper splices native chart parts on save so Excel and LibreOffice render them. ReadUsedRange round-trips those sheets. CSV is a sibling library, not a mode of this one."/>
+                   Text="Write-first Excel. ClosedXML writes the tables; the helper splices native chart parts on save so Excel and LibreOffice render them. Open a letterhead, fill a named range, stamp a logo, merge by sheet name. CSV is a sibling library, not a mode of this one."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="280">
             <StackPanel>
@@ -46,7 +46,7 @@
             <StackPanel>
               <TextBlock Style="{StaticResource Caption}" Text="CHARTS"/>
               <TextBlock FontWeight="SemiBold" Text="{Binding ChartCaption}"/>
-              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="ClosedXML 0.105 cannot author charts. We inject OOXML after save."/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Column, bar, line, pie, scatter. ClosedXML 0.105 cannot author charts. We inject OOXML after save."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="280">
@@ -236,7 +236,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Preview of the four series that land as native Excel charts. The downloaded workbook is the source of truth."/>
+                   Text="Preview of the series that land as native Excel charts, including pie (histogram share) and scatter (sample). The downloaded workbook is the source of truth."/>
         <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM"/>
         <ItemsControl Height="160" ItemsSource="{Binding Histogram}">
           <ItemsControl.ItemsPanel>
@@ -273,6 +273,38 @@
             </GridView>
           </ListView.View>
         </ListView>
+        <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM SHARE · PIE"/>
+        <ItemsControl Height="28" ItemsSource="{Binding PieSlices}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Height="28" Width="{Binding Width}" Background="{Binding Fill}" ToolTip="{Binding Caption}"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource Caption}" Text="SAMPLE · SCATTER"/>
+        <ItemsControl Height="160" ItemsSource="{Binding Scatter}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <Canvas Width="720" Height="160"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemContainerStyle>
+            <Style TargetType="ContentPresenter">
+              <Setter Property="Canvas.Left" Value="{Binding X}"/>
+              <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+            </Style>
+          </ItemsControl.ItemContainerStyle>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Ellipse Width="6" Height="6" Fill="#5B9BD5" ToolTip="{Binding Caption}"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </ScrollViewer>
   </DataTemplate>
@@ -345,6 +377,63 @@
             </GridView>
           </ListView.View>
         </ListView>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="TemplateTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Open a caller-supplied letterhead, write into named range Data (or a reserved sheet), stamp a logo at a cell, then merge another workbook by sheet name. Append-only — foreign sheets stay."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="LETTERHEAD"/>
+              <TextBlock FontWeight="SemiBold" Text="Named range Data"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding TemplateCaption}"/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="LOGO"/>
+              <TextBlock FontWeight="SemiBold" Text="Picture at D1"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="ClosedXML AddPicture. 120 by 36 PNG on the letterhead sheet."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="MERGE"/>
+              <TextBlock FontWeight="SemiBold" Text="Append by sheet name"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding MergeCaption}"/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <WrapPanel Margin="0,8,0,0">
+          <Button Content="Write letterhead" Command="{Binding WriteLetterheadCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Merge sample books" Command="{Binding MergeSampleCommand}"/>
+          <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="NAMED RANGES"/>
+        <ListView Height="120" ItemsSource="{Binding NamedRanges}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Name" Width="160" DisplayMemberBinding="{Binding Key}"/>
+              <GridViewColumn Header="RefersTo" Width="280" DisplayMemberBinding="{Binding Value}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+        <TextBlock Style="{StaticResource Caption}" Text="SHEETS AFTER MERGE"/>
+        <ListView Height="160" ItemsSource="{Binding MergeSheets}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="#" Width="50" DisplayMemberBinding="{Binding Key}"/>
+              <GridViewColumn Header="Sheet" Width="220" DisplayMemberBinding="{Binding Value}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+        <TextBlock Style="{StaticResource Caption}" Text="PATH"/>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Text="{Binding ExportPath}"/>
       </StackPanel>
     </ScrollViewer>
   </DataTemplate>

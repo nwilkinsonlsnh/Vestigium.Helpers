@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using ClosedXML.Excel;
+using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.ClosedXml;
 
@@ -42,6 +43,26 @@ internal static class ExcelNames
             cleaned = "T_" + cleaned;
         if (cleaned.Length > 200)
             cleaned = cleaned[..200];
+        return cleaned;
+    }
+
+    public static string SanitizeDefinedName(string? name, string fallback = "Data")
+    {
+        var raw = HelperGuard.NotBlank(string.IsNullOrWhiteSpace(name) ? fallback : name.Trim(), nameof(name));
+        var builder = new StringBuilder(raw.Length);
+        foreach (var ch in raw)
+        {
+            if (char.IsLetterOrDigit(ch) || ch is '_' or '.')
+                builder.Append(ch);
+            else
+                builder.Append('_');
+        }
+
+        var cleaned = builder.ToString().Trim('_', '.');
+        if (cleaned.Length == 0 || char.IsDigit(cleaned[0]))
+            cleaned = fallback;
+        if (cleaned.Length > 255)
+            cleaned = cleaned[..255];
         return cleaned;
     }
 

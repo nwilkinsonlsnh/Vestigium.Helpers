@@ -8,7 +8,9 @@ public enum ChartKind
 {
     Column,
     Bar,
-    Line
+    Line,
+    Pie,
+    Scatter
 }
 
 public sealed class ChartSeries

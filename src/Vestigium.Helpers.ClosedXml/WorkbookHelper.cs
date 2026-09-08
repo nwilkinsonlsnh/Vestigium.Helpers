@@ -99,6 +99,13 @@ public static class WorkbookHelper
         return new WorkbookSession(new XLWorkbook(target), target, appId);
     }
 
+    /// <summary>
+    /// Open a caller-supplied letterhead. Same as <see cref="Open"/> — this is not a token
+    /// template engine. Fill with <see cref="WorkbookSession.WriteNamedRange"/> or a reserved sheet.
+    /// </summary>
+    public static WorkbookSession OpenTemplate(string path, string? appId = null)
+        => Open(path, appId);
+
     public static WorkbookSession OpenOrCreate(string path, string? firstSheetName = null, string? appId = null)
     {
         var target = HelperGuard.NotBlank(path, nameof(path));
@@ -120,5 +127,11 @@ public static class WorkbookHelper
         if (tableStyle is not null)
             book.TableStyle = tableStyle;
         SeriesWorkbook.Write(book, series, prefix, populationSize);
+    }
+
+    public static void Merge(WorkbookSession target, WorkbookSession source)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        target.Merge(source);
     }
 }

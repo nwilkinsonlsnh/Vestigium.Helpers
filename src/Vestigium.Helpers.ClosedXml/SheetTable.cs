@@ -64,6 +64,20 @@ public sealed class SheetWriteOptions
     public double? HighlightGreaterThan { get; init; }
 
     public static SheetWriteOptions Default { get; } = new();
+
+    /// <summary>
+    /// Fill a letterhead named range: do not wipe print setup, freeze, or wrap an Excel table
+    /// around the operator's chrome.
+    /// </summary>
+    public static SheetWriteOptions Letterhead { get; } = new()
+    {
+        CreateExcelTable = false,
+        Autosize = false,
+        FreezeHeader = false,
+        AutoFilter = false,
+        OperatorPrint = false,
+        HeaderNumberFormats = false
+    };
 }
 
 public sealed class SheetReadOptions

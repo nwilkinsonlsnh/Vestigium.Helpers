@@ -16,7 +16,7 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.ClosedXml gallery"/>
-        <TextBlock Opacity="0.7" Text="Write-first Excel · tables, Table Design, charts, read-back, operator chrome"/>
+        <TextBlock Opacity="0.7" Text="Write-first Excel · tables, Table Design, charts, read-back, operator chrome, letterhead"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
@@ -29,6 +29,7 @@
       <TabItem Header="Charts"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ChartsTab}"/></TabItem>
       <TabItem Header="Read"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ReadTab}"/></TabItem>
       <TabItem Header="Chrome"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ChromeTab}"/></TabItem>
+      <TabItem Header="Template"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource TemplateTab}"/></TabItem>
       <TabItem Header="Inject"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource InjectTab}"/></TabItem>
       <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>
     </TabControl>

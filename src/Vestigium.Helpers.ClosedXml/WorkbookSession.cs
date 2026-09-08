@@ -58,6 +58,27 @@ public sealed class WorkbookSession : IDisposable
     public IReadOnlyList<string> SheetNames =>
         _workbook.Worksheets.OrderBy(w => w.Position).Select(w => w.Name).ToArray();
 
+    /// <summary>Workbook- and sheet-scoped defined names, letterhead first.</summary>
+    public IReadOnlyList<string> NamedRanges
+    {
+        get
+        {
+            ThrowIfDisposed();
+            var names = new List<string>();
+            foreach (var n in _workbook.DefinedNames)
+                names.Add(n.Name);
+            foreach (var ws in _workbook.Worksheets)
+            {
+                foreach (var n in ws.DefinedNames)
+                {
+                    if (!names.Contains(n.Name, StringComparer.OrdinalIgnoreCase))
+                        names.Add(n.Name);
+                }
+            }
+            return names;
+        }
+    }
+
     /// <summary>1-based Excel tab position. Names are sanitized the same way as <see cref="Sheet"/>.</summary>
     public void MoveSheet(string name, int position)
     {
@@ -91,6 +112,99 @@ public sealed class WorkbookSession : IDisposable
                 position++;
             }
         }
+    }
+
+    /// <summary>Workbook-scoped defined name over a rectangular range. Used by letterhead fill.</summary>
+    public void DefineName(string name, string sheet, int firstRow, int firstColumn, int lastRow, int lastColumn)
+    {
+        ThrowIfDisposed();
+        var safe = ExcelNames.SanitizeDefinedName(name);
+        if (firstRow < 1 || firstColumn < 1)
+            throw new ArgumentOutOfRangeException(nameof(firstRow), "Range origin is 1-based.");
+        if (lastRow < firstRow || lastColumn < firstColumn)
+            throw new ArgumentOutOfRangeException(nameof(lastRow), "Last cell must be at or below the origin.");
+        var ws = Sheet(sheet).Worksheet;
+        var range = ws.Range(firstRow, firstColumn, lastRow, lastColumn);
+        DropDefinedName(safe);
+        _workbook.DefinedNames.Add(safe, range);
+    }
+
+    /// <summary>
+    /// Write a table at the origin of a caller-defined name. Letterhead cells outside
+    /// that range are not cleared. Missing names throw <see cref="KeyNotFoundException"/>.
+    /// </summary>
+    public void WriteNamedRange(string name, SheetTable table, SheetWriteOptions? options = null)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(table);
+        var defined = ResolveName(name);
+        var range = defined.Ranges.FirstOrDefault()
+            ?? throw new InvalidOperationException($"Named range '{defined.Name}' has no cells.");
+        var addr = range.RangeAddress;
+        var firstRow = addr.FirstAddress.RowNumber;
+        var firstCol = addr.FirstAddress.ColumnNumber;
+        var sheet = new SheetSession(this, range.Worksheet);
+        var opts = options ?? SheetWriteOptions.Letterhead;
+        sheet.WriteAt(firstRow, firstCol, table, opts);
+
+        var colCount = table.Headers.Count;
+        foreach (var row in table.Rows)
+            colCount = Math.Max(colCount, row.Count);
+        var lastRow = firstRow + (opts.HasHeaderRow ? table.Rows.Count : Math.Max(0, table.Rows.Count - 1));
+        if (lastRow < firstRow)
+            lastRow = firstRow;
+        var lastCol = firstCol + Math.Max(1, colCount) - 1;
+        var grown = range.Worksheet.Range(firstRow, firstCol, lastRow, lastCol);
+        var kept = defined.Name;
+        defined.Delete();
+        _workbook.DefinedNames.Add(kept, grown);
+    }
+
+    public void AddPicture(string sheet, string imagePath, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
+        => Sheet(sheet).AddPicture(imagePath, row, column, widthPx, heightPx, name);
+
+    public void AddPicture(string sheet, Stream image, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
+        => Sheet(sheet).AddPicture(image, row, column, widthPx, heightPx, name);
+
+    /// <summary>
+    /// Append-only merge by sheet name. Matching sheets get source data rows appended.
+    /// Unknown sheets are copied in full. Existing target sheets are never deleted.
+    /// </summary>
+    public void Merge(WorkbookSession source)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(source);
+        if (ReferenceEquals(source, this) || ReferenceEquals(source.Workbook, _workbook))
+            throw new ArgumentException("Cannot merge a workbook into itself.", nameof(source));
+        source.ThrowIfDisposed();
+
+        var copied = 0;
+        var appended = 0;
+        foreach (var name in source.SheetNames)
+        {
+            if (_workbook.TryGetWorksheet(name, out _))
+            {
+                var incoming = source.Sheet(name).ReadUsedRange();
+                var dest = Sheet(name);
+                var existing = dest.ReadUsedRange();
+                if (existing.Headers.Count == 0 && existing.Rows.Count == 0)
+                    dest.WriteTable(incoming, new SheetWriteOptions { OperatorPrint = false, CreateExcelTable = false });
+                else
+                    dest.AppendRows(incoming.Rows, new SheetWriteOptions { OperatorPrint = false });
+                appended++;
+            }
+            else
+            {
+                source.Workbook.Worksheet(name).CopyTo(_workbook, name);
+                copied++;
+            }
+        }
+
+        HelperLog.Information(
+            _appId,
+            VestigiumStatus.Success,
+            HelperLog.AppIds.ClosedXml,
+            $"Merged sheets appended={appended} copied={copied} total={_workbook.Worksheets.Count}");
     }
 
     public SheetSession Sheet(string name)
@@ -189,6 +303,45 @@ public sealed class WorkbookSession : IDisposable
     internal XLWorkbook Workbook => _workbook;
 
     internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    private IXLDefinedName ResolveName(string name)
+    {
+        var safe = ExcelNames.SanitizeDefinedName(name);
+        foreach (var n in _workbook.DefinedNames)
+        {
+            if (string.Equals(n.Name, safe, StringComparison.OrdinalIgnoreCase))
+                return n;
+        }
+
+        foreach (var ws in _workbook.Worksheets)
+        {
+            foreach (var n in ws.DefinedNames)
+            {
+                if (string.Equals(n.Name, safe, StringComparison.OrdinalIgnoreCase))
+                    return n;
+            }
+        }
+
+        throw new KeyNotFoundException($"Named range '{safe}' was not found.");
+    }
+
+    private void DropDefinedName(string name)
+    {
+        foreach (var n in _workbook.DefinedNames.ToArray())
+        {
+            if (string.Equals(n.Name, name, StringComparison.OrdinalIgnoreCase))
+                n.Delete();
+        }
+
+        foreach (var ws in _workbook.Worksheets)
+        {
+            foreach (var n in ws.DefinedNames.ToArray())
+            {
+                if (string.Equals(n.Name, name, StringComparison.OrdinalIgnoreCase))
+                    n.Delete();
+            }
+        }
+    }
 
     private string UniqueSheetName(string name)
     {

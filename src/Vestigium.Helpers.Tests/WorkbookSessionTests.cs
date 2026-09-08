@@ -451,6 +451,149 @@ public sealed class WorkbookSessionTests
         Assert.NotEmpty(wb.Worksheet("Sample").ConditionalFormats);
     }
 
+    [Fact]
+    public void WriteNamedRange_fills_letterhead_without_wiping_banner()
+    {
+        var path = TempXlsx();
+        using (var letterhead = WorkbookHelper.Create("Letterhead", "ClosedXml"))
+        {
+            letterhead.Sheet("Letterhead").WriteAt(
+                1, 1,
+                SheetTable.Create(["Banner"], [["VESTIGIUM"]]),
+                SheetWriteOptions.Letterhead);
+            letterhead.DefineName("Data", "Letterhead", 5, 1, 8, 2);
+            letterhead.SaveAs(path);
+        }
+
+        using (var book = WorkbookHelper.OpenTemplate(path, "ClosedXml"))
+        {
+            Assert.Contains("Data", book.NamedRanges);
+            book.WriteNamedRange("Data", SheetTable.Create(
+                ["Name", "Value"],
+                [["alpha", 1], ["beta", 2]]));
+            book.Save();
+        }
+
+        using var wb = new XLWorkbook(path);
+        var ws = wb.Worksheet("Letterhead");
+        Assert.Equal("Banner", ws.Cell(1, 1).GetString());
+        Assert.Equal("VESTIGIUM", ws.Cell(2, 1).GetString());
+        Assert.Equal("Name", ws.Cell(5, 1).GetString());
+        Assert.Equal("alpha", ws.Cell(6, 1).GetString());
+        Assert.Equal(1d, ws.Cell(6, 2).GetDouble());
+        Assert.Equal("beta", ws.Cell(7, 1).GetString());
+        var defined = wb.DefinedName("Data") ?? throw new InvalidOperationException("Data name missing.");
+        Assert.Contains("$A$5", defined.RefersTo, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WriteNamedRange_missing_name_throws()
+    {
+        using var book = WorkbookHelper.Create("Letterhead", "ClosedXml");
+        Assert.Throws<KeyNotFoundException>(() =>
+            book.WriteNamedRange("Data", SheetTable.Create(["X"], [[1]])));
+    }
+
+    [Fact]
+    public void AddPicture_embeds_a_media_part()
+    {
+        var path = TempXlsx();
+        var png = TinyPngPath();
+        using (var book = WorkbookHelper.Create("Letterhead", "ClosedXml"))
+        {
+            book.Sheet("Letterhead").WriteAt(
+                1, 1,
+                SheetTable.Create(["Title"], [["Logo"]]),
+                SheetWriteOptions.Letterhead);
+            book.AddPicture("Letterhead", png, row: 1, column: 3, widthPx: 120, heightPx: 36, name: "Logo");
+            book.SaveAs(path);
+        }
+
+        using var zip = ZipFile.OpenRead(path);
+        var names = zip.Entries.Select(e => e.FullName.Replace('\\', '/')).ToArray();
+        Assert.Contains(names, n => n.StartsWith("xl/media/", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(names, n => n.Contains("drawing", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Merge_appends_matching_sheets_and_copies_unknown_ones()
+    {
+        var targetPath = TempXlsx();
+        using (var target = WorkbookHelper.Create("Log", "ClosedXml"))
+        {
+            target.Sheet("Log").WriteTable(SheetTable.Create(["Id"], [[1]]));
+            target.AddSheet("Keep");
+            target.Sheet("Keep").WriteTable(SheetTable.Create(["Note"], [["stay"]]));
+            target.SaveAs(targetPath);
+        }
+
+        using var source = WorkbookHelper.Create("Log", "ClosedXml");
+        source.Sheet("Log").WriteTable(SheetTable.Create(["Id"], [[2], [3]]));
+        source.Sheet("Extra").WriteTable(SheetTable.Create(["X"], [["new"]]));
+
+        using (var target = WorkbookHelper.Open(targetPath, "ClosedXml"))
+        {
+            WorkbookHelper.Merge(target, source);
+            target.Save();
+            Assert.Contains("Keep", target.SheetNames);
+            Assert.Contains("Extra", target.SheetNames);
+        }
+
+        using var wb = new XLWorkbook(targetPath);
+        var log = wb.Worksheet("Log");
+        Assert.Equal(1d, log.Cell(2, 1).GetDouble());
+        Assert.Equal(2d, log.Cell(3, 1).GetDouble());
+        Assert.Equal(3d, log.Cell(4, 1).GetDouble());
+        Assert.Equal("stay", wb.Worksheet("Keep").Cell(2, 1).GetString());
+        Assert.Equal("new", wb.Worksheet("Extra").Cell(2, 1).GetString());
+    }
+
+    [Fact]
+    public void Merge_into_self_throws()
+    {
+        using var book = WorkbookHelper.Create("A", "ClosedXml");
+        Assert.Throws<ArgumentException>(() => book.Merge(book));
+    }
+
+    [Fact]
+    public void WriteSeries_embeds_pie_and_scatter_charts()
+    {
+        var path = TempXlsx();
+        var series = NumericSeries.From(Enumerable.Range(1, 9), "odd");
+        using (var book = WorkbookHelper.Create("Summary", "ClosedXml"))
+        {
+            WorkbookHelper.WriteSeries(book, series, populationSize: 9);
+            Assert.Contains(book.Charts, c => c.Kind == ChartKind.Pie);
+            Assert.Contains(book.Charts, c => c.Kind == ChartKind.Scatter);
+            book.SaveAs(path);
+        }
+
+        using var zip = ZipFile.OpenRead(path);
+        var xml = new List<string>();
+        foreach (var entry in zip.Entries)
+        {
+            var name = entry.FullName.Replace('\\', '/');
+            if (!name.StartsWith("xl/charts/chart", StringComparison.OrdinalIgnoreCase))
+                continue;
+            using var stream = entry.Open();
+            using var reader = new StreamReader(stream);
+            xml.Add(reader.ReadToEnd());
+        }
+
+        Assert.Contains(xml, x => x.Contains("c:pieChart", StringComparison.Ordinal));
+        Assert.Contains(xml, x => x.Contains("c:scatterChart", StringComparison.Ordinal));
+    }
+
+    private static string TinyPngPath()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "logo.png");
+        File.WriteAllBytes(path, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwGAtKqTqQAAAABJRU5ErkJggg=="));
+        return path;
+    }
+
     private static string TempXlsx()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));

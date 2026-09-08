@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-CLOSEDXML-DEV-000  
 **Version:** 1.0  
-**Status:** Companion to SRS v1.0 (write + charts + read + operator chrome)  
+**Status:** Companion to SRS v1.0 (write + charts + read + operator chrome + letterhead)  
 **Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.ClosedXml/`.
@@ -73,6 +73,25 @@ book.MoveSheet("Sample", 2);
 
 Pass `OperatorPrint = false` to skip the print footer.
 
+## Letterhead, pictures, merge
+
+Not a token template engine. Open the operator's `.xlsx`, fill a named range or a reserved sheet, stamp a logo, merge another dump by sheet name.
+
+```csharp
+using var letterhead = WorkbookHelper.OpenTemplate(path, HelperLog.AppIds.ClosedXml);
+letterhead.WriteNamedRange("Data", table);          // origin of the defined name; chrome around it stays
+letterhead.AddPicture("Letterhead", logoPng, row: 1, column: 4, widthPx: 120, heightPx: 36);
+letterhead.Save();
+
+using var target = WorkbookHelper.Open(left, HelperLog.AppIds.ClosedXml);
+using var source = WorkbookHelper.Open(right, HelperLog.AppIds.ClosedXml);
+WorkbookHelper.Merge(target, source);               // matching sheets append; unknown sheets copy
+```
+
+`DefineName("Data", "Letterhead", 5, 1, 20, 4)` marks the fill if the letterhead does not already have one. Merge is append-only: a sheet that exists only on the target is never deleted.
+
+`AddChart` now accepts `ChartKind.Pie` and `ChartKind.Scatter` in addition to column / bar / line. WriteSeries puts a histogram pie and a sample scatter on the Charts sheet.
+
 ## Open and append
 
 ```csharp
@@ -102,22 +121,22 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 
 | File | Role |
 |---|---|
-| `WorkbookHelper.cs` | Identity, Probe, Create/Open/Save paths, WriteSeries |
-| `WorkbookSession.cs` | Owns `XLWorkbook`; MoveSheet / ReorderSheets |
-| `SheetSession.cs` | WriteTable / AppendRows / ReadUsedRange / chrome |
-| `SheetTable.cs` | Headers + rows + write / read options |
+| `WorkbookHelper.cs` | Identity, Probe, Create/Open/OpenTemplate/Save paths, WriteSeries, Merge |
+| `WorkbookSession.cs` | Owns `XLWorkbook`; MoveSheet / ReorderSheets / named ranges / pictures / merge |
+| `SheetSession.cs` | WriteTable / WriteAt / AppendRows / ReadUsedRange / chrome / AddPicture |
+| `SheetTable.cs` | Headers + rows + write / read options (including `Letterhead`) |
 | `CellWriter.cs` | Types + formula-injection prefix |
 | `CellReader.cs` | Typed guess: number, text, bool, DateTime |
 | `HeaderFormats.cs` | ms / pct / utc from header names |
 | `SeriesWorkbook.cs` | Analytics dump: Summary, Charts, Bands, Confidence, Histogram, Sample |
 | `ExcelTableStyles.cs` | Excel Table Design gallery (Light / Medium / Dark) |
 | `ExcelTableStylePreview.cs` | Header / band / band-alt chips for the WPF gallery |
-| `SheetChart.cs` | Chart spec (column / bar / line) |
+| `SheetChart.cs` | Chart spec (column / bar / line / pie / scatter) |
 | `ChartPacker.cs` | Injects OOXML chart + drawing parts after ClosedXML save |
 
 ## Demo
 
-`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews the four series that land as native Excel charts. **Read** reopens that file through `ReadUsedRange`. **Chrome** shows print, header formats, the P95 highlight, and sheet order.
+`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews column / line / pie / scatter. **Read** reopens that file through `ReadUsedRange`. **Chrome** shows print, header formats, the P95 highlight, and sheet order. **Template** fills named range `Data`, stamps a logo, and merges two workbooks.
 
 Workbook: `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`  
 JSONL: `%ProgramData%\Vestigium\Logs\ClosedXml\`

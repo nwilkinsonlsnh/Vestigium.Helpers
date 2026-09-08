@@ -32,6 +32,10 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         ReadRows = [];
         ChromeFormats = [];
         SheetOrder = [];
+        NamedRanges = [];
+        MergeSheets = [];
+        PieSlices = [];
+        Scatter = [];
         TableStyles = WorkbookHelper.TableStyles;
         StyleGroups = ["Light", "Medium", "Dark"];
         StyleGroup = "Medium";
@@ -51,6 +55,9 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         "using var book = WorkbookHelper.Create(\"Summary\", HelperLog.AppIds.ClosedXml);\n" +
         "book.TableStyle = \"Medium2\";\n" +
         "WorkbookHelper.WriteSeries(book, series, populationSize: 100_000);\n" +
+        "book.WriteNamedRange(\"Data\", table);\n" +
+        "book.AddPicture(\"Letterhead\", logo, 1, 4);\n" +
+        "book.Merge(other);\n" +
         "var path = book.Save();  // Desktop\\Vestigium\\Exports\\ClosedXml\\";
     public IReadOnlyList<string> TableStyles { get; }
     public IReadOnlyList<string> StyleGroups { get; }
@@ -65,6 +72,10 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public ObservableCollection<ReadCellRow> ReadRows { get; }
     public ObservableCollection<KvRow> ChromeFormats { get; }
     public ObservableCollection<KvRow> SheetOrder { get; }
+    public ObservableCollection<KvRow> NamedRanges { get; }
+    public ObservableCollection<KvRow> MergeSheets { get; }
+    public ObservableCollection<PieSlice> PieSlices { get; }
+    public ObservableCollection<ScatterDot> Scatter { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ExcelStyleName))]
@@ -84,6 +95,8 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string readCaption = "Write a workbook, then Read used range.";
     [ObservableProperty] private string chromeFooter = "ClosedXml  ·  &D &T";
     [ObservableProperty] private string chromePrint = "Landscape · fit-to-width";
+    [ObservableProperty] private string templateCaption = "OpenTemplate · named range Data at A5 · logo at D1";
+    [ObservableProperty] private string mergeCaption = "Matching sheets append. Unknown sheets copy. Foreign sheets stay.";
     [ObservableProperty] private Brush previewHeader = Brushes.Transparent;
     [ObservableProperty] private Brush previewHeaderInk = Brushes.White;
     [ObservableProperty] private Brush previewBand = Brushes.Transparent;
@@ -222,6 +235,72 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         RefreshLines();
     }
 
+    [RelayCommand]
+    private void WriteLetterhead()
+    {
+        var dir = Path.GetTempPath();
+        var template = Path.Combine(dir, "vestigium-letterhead-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        var png = WriteLogoPng();
+        using (var letterhead = WorkbookHelper.Create("Letterhead", HelperLog.AppIds.ClosedXml))
+        {
+            letterhead.Sheet("Letterhead").WriteAt(
+                1, 1,
+                SheetTable.Create(["Banner", "Operator"], [["VESTIGIUM", "ClosedXml"]]),
+                SheetWriteOptions.Letterhead);
+            letterhead.DefineName("Data", "Letterhead", 5, 1, 8, 2);
+            letterhead.AddPicture("Letterhead", png, row: 1, column: 4, widthPx: 120, heightPx: 36, name: "Logo");
+            letterhead.SaveAs(template);
+        }
+
+        using var book = WorkbookHelper.OpenTemplate(template, HelperLog.AppIds.ClosedXml);
+        book.WriteNamedRange("Data", SheetTable.Create(
+            ["Name", "Value"],
+            [
+                ["n", Count],
+                ["Mean", Series?.Full.Mean],
+                ["P95", Series?.Full.Percentile(0.95)]
+            ]));
+        ExportPath = book.SaveAs(WorkbookHelper.NewExportPath(HelperLog.AppIds.ClosedXml, "letterhead"));
+        NamedRanges.Clear();
+        foreach (var name in book.NamedRanges)
+            NamedRanges.Add(new KvRow { Key = name, Value = "Letterhead!$A$5" });
+        TemplateCaption = $"Data filled · logo at D1 · {book.NamedRanges.Count} named range(s)";
+        SheetList = string.Join(", ", book.SheetNames);
+        StatusText = $"Wrote letterhead {ExportPath}";
+        RefreshLines();
+    }
+
+    [RelayCommand]
+    private void MergeSample()
+    {
+        using var target = WorkbookHelper.Create("Log", HelperLog.AppIds.ClosedXml);
+        target.Sheet("Log").WriteTable(SheetTable.Create(["Id", "Note"], [[1, "keep-row"]]));
+        target.Sheet("Keep").WriteTable(SheetTable.Create(["Note"], [["foreign sheet stays"]]));
+
+        using var source = WorkbookHelper.Create("Log", HelperLog.AppIds.ClosedXml);
+        source.Sheet("Log").WriteTable(SheetTable.Create(["Id", "Note"], [[2, "appended"], [3, "appended"]]));
+        source.Sheet("Extra").WriteTable(SheetTable.Create(["X"], [["copied sheet"]]));
+
+        WorkbookHelper.Merge(target, source);
+        ExportPath = target.SaveAs(WorkbookHelper.NewExportPath(HelperLog.AppIds.ClosedXml, "merge"));
+        BindSheetOrder(target.SheetNames);
+        MergeSheets.Clear();
+        for (var i = 0; i < target.SheetNames.Count; i++)
+            MergeSheets.Add(new KvRow { Key = (i + 1).ToString(CultureInfo.InvariantCulture), Value = target.SheetNames[i] });
+        MergeCaption = $"Log appended · Extra copied · Keep stayed · {target.SheetNames.Count} sheets";
+        SheetList = string.Join(", ", target.SheetNames);
+        StatusText = $"Merged into {ExportPath}";
+        RefreshLines();
+    }
+
+    private static string WriteLogoPng()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "vestigium-logo.png");
+        File.WriteAllBytes(path, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwGAtKqTqQAAAABJRU5ErkJggg=="));
+        return path;
+    }
+
     private void RebuildSwatches()
     {
         Swatches.Clear();
@@ -304,6 +383,49 @@ public sealed partial class MainViewModel : GalleryViewModelBase
             {
                 Index = s,
                 Value = series.Values[s].ToString(CultureInfo.InvariantCulture)
+            });
+        }
+
+        PieSlices.Clear();
+        var total = hist.Sum(b => b.Count);
+        if (total > 0)
+        {
+            string[] fills = ["#1F4E79", "#2A6F97", "#3E8E7E", "#4C6B8A", "#5B9BD5", "#7DD3FC"];
+            i = 0;
+            foreach (var bin in hist)
+            {
+                var share = bin.Count / (double)total;
+                PieSlices.Add(new PieSlice
+                {
+                    Width = Math.Max(4, share * 640),
+                    Fill = TableStyleSwatch.BrushOf(fills[i % fills.Length]),
+                    Caption = $"{bin.LowerInclusive:G6} · {share:P0}"
+                });
+                i++;
+            }
+        }
+
+        Scatter.Clear();
+        var scatterTake = Math.Min(240, series.Count);
+        double lo = double.MaxValue, hi = double.MinValue;
+        for (var s = 0; s < scatterTake; s++)
+        {
+            var v = (double)series.Values[s];
+            if (v < lo) lo = v;
+            if (v > hi) hi = v;
+        }
+        var span = hi - lo;
+        if (span <= 0) span = 1;
+        for (var s = 0; s < scatterTake; s++)
+        {
+            var v = (double)series.Values[s];
+            var x = scatterTake <= 1 ? 0 : s / (double)(scatterTake - 1) * 700;
+            var y = 150 - (v - lo) / span * 140;
+            Scatter.Add(new ScatterDot
+            {
+                X = x,
+                Y = y,
+                Caption = $"{s}: {v.ToString("G6", CultureInfo.InvariantCulture)}"
             });
         }
     }

@@ -205,11 +205,18 @@ internal static class ChartPacker
         {
             ChartKind.Line => LinePlot(chart),
             ChartKind.Bar => BarPlot(chart, "bar"),
+            ChartKind.Pie => PiePlot(chart),
+            ChartKind.Scatter => ScatterPlot(chart),
             _ => BarPlot(chart, "col")
         };
-        var catPos = chart.Kind == ChartKind.Bar ? "l" : "b";
-        var valPos = chart.Kind == ChartKind.Bar ? "b" : "l";
-        var legend = chart.Series.Count > 1
+        var axes = chart.Kind switch
+        {
+            ChartKind.Pie => "",
+            ChartKind.Scatter => ScatterAxes(),
+            ChartKind.Bar => CatValAxes("l", "b"),
+            _ => CatValAxes("b", "l")
+        };
+        var legend = chart.Kind == ChartKind.Pie || chart.Series.Count > 1
             ? """<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>"""
             : """<c:legend><c:legendPos val="b"/><c:overlay val="1"/><c:delete val="1"/></c:legend>""";
         return $"""
@@ -240,27 +247,7 @@ internal static class ChartPacker
                 <c:plotArea>
                   <c:layout/>
                   {plot}
-                  <c:catAx>
-                    <c:axId val="1"/>
-                    <c:scaling><c:orientation val="minMax"/></c:scaling>
-                    <c:delete val="0"/>
-                    <c:axPos val="{catPos}"/>
-                    <c:crossAx val="2"/>
-                    <c:crosses val="autoZero"/>
-                    <c:auto val="1"/>
-                    <c:lblAlgn val="ctr"/>
-                    <c:lblOffset val="100"/>
-                    <c:tickLblPos val="nextTo"/>
-                  </c:catAx>
-                  <c:valAx>
-                    <c:axId val="2"/>
-                    <c:scaling><c:orientation val="minMax"/></c:scaling>
-                    <c:delete val="0"/>
-                    <c:axPos val="{valPos}"/>
-                    <c:majorGridlines/>
-                    <c:crossAx val="1"/>
-                    <c:crosses val="autoZero"/>
-                  </c:valAx>
+                  {axes}
                 </c:plotArea>
                 {legend}
                 <c:plotVisOnly val="1"/>
@@ -269,11 +256,56 @@ internal static class ChartPacker
             """;
     }
 
+    private static string CatValAxes(string catPos, string valPos) => $"""
+        <c:catAx>
+          <c:axId val="1"/>
+          <c:scaling><c:orientation val="minMax"/></c:scaling>
+          <c:delete val="0"/>
+          <c:axPos val="{catPos}"/>
+          <c:crossAx val="2"/>
+          <c:crosses val="autoZero"/>
+          <c:auto val="1"/>
+          <c:lblAlgn val="ctr"/>
+          <c:lblOffset val="100"/>
+          <c:tickLblPos val="nextTo"/>
+        </c:catAx>
+        <c:valAx>
+          <c:axId val="2"/>
+          <c:scaling><c:orientation val="minMax"/></c:scaling>
+          <c:delete val="0"/>
+          <c:axPos val="{valPos}"/>
+          <c:majorGridlines/>
+          <c:crossAx val="1"/>
+          <c:crosses val="autoZero"/>
+        </c:valAx>
+        """;
+
+    private static string ScatterAxes() => """
+        <c:valAx>
+          <c:axId val="1"/>
+          <c:scaling><c:orientation val="minMax"/></c:scaling>
+          <c:delete val="0"/>
+          <c:axPos val="b"/>
+          <c:crossAx val="2"/>
+          <c:crosses val="autoZero"/>
+          <c:tickLblPos val="nextTo"/>
+        </c:valAx>
+        <c:valAx>
+          <c:axId val="2"/>
+          <c:scaling><c:orientation val="minMax"/></c:scaling>
+          <c:delete val="0"/>
+          <c:axPos val="l"/>
+          <c:majorGridlines/>
+          <c:crossAx val="1"/>
+          <c:crosses val="autoZero"/>
+        </c:valAx>
+        """;
+
     private static string BarPlot(SheetChart chart, string dir)
     {
         var series = new StringBuilder();
         for (var i = 0; i < chart.Series.Count; i++)
-            series.Append(SeriesXml(chart, i, markers: false, smooth: false));
+            series.Append(SeriesXml(chart, i));
         return $"""
             <c:barChart>
               <c:barDir val="{dir}"/>
@@ -292,7 +324,7 @@ internal static class ChartPacker
     {
         var series = new StringBuilder();
         for (var i = 0; i < chart.Series.Count; i++)
-            series.Append(SeriesXml(chart, i, markers: false, smooth: false));
+            series.Append(SeriesXml(chart, i));
         return $"""
             <c:lineChart>
               <c:grouping val="standard"/>
@@ -306,7 +338,38 @@ internal static class ChartPacker
             """;
     }
 
-    private static string SeriesXml(SheetChart chart, int index, bool markers, bool smooth)
+    private static string PiePlot(SheetChart chart)
+    {
+        var count = Math.Max(1, chart.Series.Count);
+        var series = new StringBuilder();
+        for (var i = 0; i < count; i++)
+            series.Append(SeriesXml(chart, i));
+        return $"""
+            <c:pieChart>
+              <c:varyColors val="1"/>
+              {series}
+              <c:firstSliceAng val="0"/>
+            </c:pieChart>
+            """;
+    }
+
+    private static string ScatterPlot(SheetChart chart)
+    {
+        var series = new StringBuilder();
+        for (var i = 0; i < chart.Series.Count; i++)
+            series.Append(ScatterSeriesXml(chart, i));
+        return $"""
+            <c:scatterChart>
+              <c:scatterStyle val="marker"/>
+              <c:varyColors val="0"/>
+              {series}
+              <c:axId val="1"/>
+              <c:axId val="2"/>
+            </c:scatterChart>
+            """;
+    }
+
+    private static string SeriesXml(SheetChart chart, int index)
     {
         var s = chart.Series[index];
         var color = (s.Color ?? chart.Color ?? "1F4E79").TrimStart('#');
@@ -315,9 +378,9 @@ internal static class ChartPacker
             : StrRef(chart.CategoriesFormula, chart.Categories);
         var extra = chart.Kind == ChartKind.Line
             ? """<c:marker><c:symbol val="none"/></c:marker><c:smooth val="0"/>"""
-            : "";
-        _ = markers;
-        _ = smooth;
+            : chart.Kind == ChartKind.Pie
+                ? """<c:dLbls><c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="1"/><c:showSerName val="0"/><c:showPercent val="1"/><c:showBubbleSize val="0"/></c:dLbls>"""
+                : "";
         return $"""
             <c:ser>
               <c:idx val="{index}"/>
@@ -330,6 +393,38 @@ internal static class ChartPacker
               {cat}
               {NumRef("val", s.ValuesFormula, s.Values)}
               {extra}
+            </c:ser>
+            """;
+    }
+
+    private static string ScatterSeriesXml(SheetChart chart, int index)
+    {
+        var s = chart.Series[index];
+        var color = (s.Color ?? chart.Color ?? "1F4E79").TrimStart('#');
+        var xs = chart.NumericCategories
+            ? ParseNumbers(chart.Categories)
+            : Enumerable.Range(0, Math.Max(chart.Categories.Count, s.Values.Count)).Select(i => (double)i).ToArray();
+        return $"""
+            <c:ser>
+              <c:idx val="{index}"/>
+              <c:order val="{index}"/>
+              <c:tx><c:v>{Esc(s.Name)}</c:v></c:tx>
+              <c:spPr>
+                <a:ln w="12700">
+                  <a:noFill/>
+                </a:ln>
+              </c:spPr>
+              <c:marker>
+                <c:symbol val="circle"/>
+                <c:size val="7"/>
+                <c:spPr>
+                  <a:solidFill><a:srgbClr val="{color}"/></a:solidFill>
+                  <a:ln w="9525"><a:solidFill><a:srgbClr val="{color}"/></a:solidFill></a:ln>
+                </c:spPr>
+              </c:marker>
+              {NumRef("xVal", chart.CategoriesFormula, xs)}
+              {NumRef("yVal", s.ValuesFormula, s.Values)}
+              <c:smooth val="0"/>
             </c:ser>
             """;
     }

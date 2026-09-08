@@ -394,15 +394,15 @@ No EPPlus. No Excel Interop. No Microsoft.Office.Interop.Excel. Those require Ex
 - Optional single conditional-format on a named column (high outliers)
 - Sheet order helper
 
-### v2.0 — Templates and pictures
+### v2.0 — Templates and pictures (this drop)
 
 - Open a caller-supplied letterhead `.xlsx` and write into a named range or a reserved sheet
 - Embed a logo image at a fixed cell
 - Multiple workbooks merged by sheet name (append-only)
 
-### v2.1 — Chart builder API
+### v2.1 — Chart builder API (this drop)
 
-- Public `AddChart` is already on the session. A later pass may grow kinds (pie, scatter) without a separate package until the surface actually needs one.
+- Public `AddChart` is already on the session. This drop grows kinds (pie, scatter) without a separate package.
 
 ### Explicitly never here
 
