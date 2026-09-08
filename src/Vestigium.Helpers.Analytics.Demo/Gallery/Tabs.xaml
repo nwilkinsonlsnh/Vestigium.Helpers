@@ -12,7 +12,7 @@
             <StackPanel>
               <TextBlock Style="{StaticResource Caption}" Text="SAMPLE"/>
               <TextBlock FontWeight="SemiBold" Text="{Binding Name}"/>
-              <TextBlock Opacity="0.7" Text="{Binding Count, StringFormat=n = {0:N0} unique integers}"/>
+              <TextBlock Opacity="0.7" Text="{Binding Count, StringFormat='n = {0:N0} unique integers'}"/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="280">

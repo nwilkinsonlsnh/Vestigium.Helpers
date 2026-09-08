@@ -20,7 +20,7 @@
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
-        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="{Binding Count, StringFormat=n = {0:N0}}" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="{Binding Count, StringFormat='n = {0:N0}'}" HorizontalAlignment="Right"/>
       </StackPanel>
     </DockPanel>
     <TabControl Grid.Row="1">

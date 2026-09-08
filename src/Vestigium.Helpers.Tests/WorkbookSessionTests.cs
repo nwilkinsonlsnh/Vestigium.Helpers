@@ -37,7 +37,7 @@ public sealed class WorkbookSessionTests
         Assert.Equal(1d, ws.Cell(2, 2).GetDouble());
         Assert.Equal("beta", ws.Cell(3, 1).GetString());
         Assert.Equal(2d, ws.Cell(3, 2).GetDouble());
-        Assert.True(ws.SheetView.FreezeRows >= 1);
+        Assert.True(ws.SheetView.SplitRow >= 1);
         Assert.True(ws.Tables.Any() || ws.AutoFilter.IsEnabled);
     }
 
