@@ -122,4 +122,69 @@ public sealed class FrequencyTable
 
         return bins;
     }
+
+    /// <summary>
+    /// OLS line through histogram (midpoint, count) points. Same X as
+    /// <see cref="Histogram"/>; Y is the fitted count. Callers draw this as
+    /// the trend line — this type does not draw.
+    /// </summary>
+    public IReadOnlyList<ChartPoint> HistogramTrend()
+    {
+        var hist = Histogram;
+        if (hist.Count == 0)
+            return [];
+
+        var n = hist.Count;
+        double sumX = 0, sumY = 0, sumXy = 0, sumXx = 0;
+        var mids = new double[n];
+        for (var i = 0; i < n; i++)
+        {
+            var mid = (double)((hist[i].LowerInclusive + hist[i].UpperInclusive) / 2m);
+            mids[i] = mid;
+            var count = hist[i].Count;
+            sumX += mid;
+            sumY += count;
+            sumXy += mid * count;
+            sumXx += mid * mid;
+        }
+
+        var denom = n * sumXx - sumX * sumX;
+        var slope = denom == 0 ? 0 : (n * sumXy - sumX * sumY) / denom;
+        var intercept = (sumY - slope * sumX) / n;
+
+        var points = new ChartPoint[n];
+        for (var i = 0; i < n; i++)
+            points[i] = new ChartPoint(mids[i], intercept + slope * mids[i]);
+        return points;
+    }
+
+    /// <summary>
+    /// Histogram bins sorted by count descending with a running share of n.
+    /// That running share is the Pareto line (the 80/20 cumulative).
+    /// </summary>
+    public IReadOnlyList<ParetoPoint> Pareto()
+    {
+        var hist = Histogram;
+        if (hist.Count == 0)
+            return [];
+
+        var ordered = hist
+            .OrderByDescending(b => b.Count)
+            .ThenBy(b => b.LowerInclusive)
+            .ToArray();
+        var total = ordered.Sum(b => b.Count);
+        if (total <= 0)
+            total = 1;
+
+        var points = new ParetoPoint[ordered.Length];
+        var cumulative = 0;
+        for (var i = 0; i < ordered.Length; i++)
+        {
+            cumulative += ordered[i].Count;
+            var mid = (double)((ordered[i].LowerInclusive + ordered[i].UpperInclusive) / 2m);
+            points[i] = new ParetoPoint(i + 1, mid, ordered[i].Count, cumulative / (double)total);
+        }
+
+        return points;
+    }
 }

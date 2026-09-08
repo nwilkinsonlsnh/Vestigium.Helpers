@@ -520,6 +520,8 @@ On `NumericSeries` (and available from `Full` where that is equivalent):
 | `EcdfPoints()` | n | `Sorted[i]` (value axis) | `(i + 1) / n` |
 | `HistogramPoints()` | bin count | bin midpoint `(Lower + Upper) / 2` | `Count` |
 | `HistogramRelativePoints()` | bin count | same midpoint | `RelativeFrequency` |
+| `HistogramTrendPoints()` | bin count | same midpoint | OLS fitted count (trend line) |
+| `ParetoPoints()` | bin count | rank `1 .. k` (count descending) | `ParetoPoint` (count + cumulative share) |
 | `TimeSeriesPoints()` | only observations with non-null `At` | `At.UtcDateTime` as `DateTime` **or** OA date / Unix ms — pick one and document it. Recommendation: return `IReadOnlyList<(DateTimeOffset At, decimal Value)>` and let the chart helper convert. | value |
 
 Preferred time-series API (binding):
@@ -531,7 +533,9 @@ readonly record struct TimedValue(DateTimeOffset At, decimal Value)
 readonly record struct ChartPoint(double X, double Y)
 ```
 
-`SampleOrderPoints`, `SortedPoints`, `EcdfPoints`, `HistogramPoints`, `HistogramRelativePoints` return `IReadOnlyList<ChartPoint>`.
+`SampleOrderPoints`, `SortedPoints`, `EcdfPoints`, `HistogramPoints`, `HistogramRelativePoints`, `HistogramTrendPoints` return `IReadOnlyList<ChartPoint>`.
+
+`ParetoPoints()` returns `IReadOnlyList<ParetoPoint>` (`Rank`, `Midpoint`, `Count`, `CumulativeShare`). The cumulative share is the Pareto line. The gallery draws it; this library does not.
 
 `TimeSeriesPoints()` omits observations with null `At`. If none have times, return an empty list (do not throw).
 
@@ -648,7 +652,7 @@ Current files under `src/Vestigium.Helpers.Analytics/`:
 | `AnalyticsHelper.cs` | Identity + factories |
 | `NumericSeries.cs` | Snapshot, bands, confidence helpers, time slice, chart points |
 | `SeriesSlice.cs` | Band descriptors |
-| `Observation.cs` | Observation + SeriesWindow + TimedValue + ChartPoint |
+| `Observation.cs` | Observation + SeriesWindow + TimedValue + ChartPoint + ParetoPoint |
 | `DescriptiveStatistics.cs` | Moments, five-number, fences |
 | `FrequencyTable.cs` | Exact counts + FD histogram |
 | `Quantiles.cs` | PERCENTILE.INC |
@@ -666,3 +670,4 @@ v1.1 code already covers §§7–9.3 and most of §8. v1.2 work is: `Observation
 | 1.0 | 7 Sep 2026 | Skeleton (“counters and timings”). Placeholder type only. |
 | 1.1 | 7 Sep 2026 | `NumericSeries`, six slices, required descriptors, frequency, moments, confidence level vs interval, Wilson, p-value, planned n. |
 | 1.2 | 7 Sep 2026 | Lossless capture of the design conversation: glossary (P vs γ vs sample fraction), right-tail reading, optional `Observation` / UTC window / `Slice`, FPC mean overload, chart-ready numeric views, explicit non-goals for charting and time-bucket histograms, host feed pattern, expanded acceptance. |
+| 1.3 | 8 Sep 2026 | Histogram OLS trend points and Pareto points (count-desc bins + cumulative share). Gallery draws the trend line and Pareto chart. No charting NuGet. |

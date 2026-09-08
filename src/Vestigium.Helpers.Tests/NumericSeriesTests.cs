@@ -176,6 +176,29 @@ public sealed class NumericSeriesTests
     }
 
     [Fact]
+    public void Histogram_trend_has_one_point_per_bin()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var hist = series.HistogramPoints();
+        var trend = series.HistogramTrendPoints();
+        Assert.Equal(hist.Count, trend.Count);
+        Assert.Equal(hist[0].X, trend[0].X);
+        Assert.Equal(hist[^1].X, trend[^1].X);
+    }
+
+    [Fact]
+    public void Pareto_cumulative_ends_at_one()
+    {
+        var series = NumericSeries.From(new[] { 10, 11, 11, 12, 12, 12, 13, 13, 14, 40 });
+        var pareto = series.ParetoPoints();
+        Assert.NotEmpty(pareto);
+        Assert.Equal(1, pareto[0].Rank);
+        Assert.Equal(1.0, pareto[^1].CumulativeShare, 12);
+        for (var i = 1; i < pareto.Count; i++)
+            Assert.True(pareto[i - 1].Count >= pareto[i].Count);
+    }
+
+    [Fact]
     public void Values_only_series_has_no_timestamps()
     {
         var series = NumericSeries.From(new[] { 1.0, 2.0, 3.0 });

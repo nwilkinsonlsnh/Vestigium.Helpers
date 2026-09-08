@@ -26,6 +26,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         Bands = [];
         Intervals = [];
         Histogram = [];
+        ParetoBars = [];
         Sample = [];
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Analytics}";
         DrawSample();
@@ -41,6 +42,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public ObservableCollection<BandRow> Bands { get; }
     public ObservableCollection<IntervalRow> Intervals { get; }
     public ObservableCollection<HistBar> Histogram { get; }
+    public ObservableCollection<ParetoBar> ParetoBars { get; }
     public ObservableCollection<SamplePoint> Sample { get; }
 
     [ObservableProperty] private string name = "crypto-1k";
@@ -58,6 +60,11 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string ecdfMinLabel = "";
     [ObservableProperty] private string ecdfMaxLabel = "";
     [ObservableProperty] private string ecdfP95Label = "";
+    [ObservableProperty] private PointCollection histogramTrendCurve = [];
+    [ObservableProperty] private PointCollection paretoCurve = [];
+    [ObservableProperty] private double paretoEightyY = 36;
+    [ObservableProperty] private string histogramTrendCaption = "";
+    [ObservableProperty] private string paretoCaption = "";
 
     [RelayCommand]
     private void DrawSample()
@@ -173,7 +180,10 @@ public sealed partial class MainViewModel : GalleryViewModelBase
 
         Histogram.Clear();
         var hist = full.Frequency.Histogram;
+        var trend = series.HistogramTrendPoints();
         var max = hist.Count == 0 ? 1d : Math.Max(1, hist.Max(h => h.Count));
+        if (trend.Count > 0)
+            max = Math.Max(max, trend.Max(p => p.Y));
         var i = 0;
         foreach (var bin in hist)
         {
@@ -186,6 +196,38 @@ public sealed partial class MainViewModel : GalleryViewModelBase
             });
             i++;
         }
+
+        HistogramTrendCurve = MapBarCanvas(trend, max);
+        if (trend.Count >= 2)
+        {
+            var dx = trend[^1].X - trend[0].X;
+            var slope = dx == 0 ? 0 : (trend[^1].Y - trend[0].Y) / dx;
+            HistogramTrendCaption = $"OLS trend  slope = {slope:N4} counts per unit";
+        }
+        else
+            HistogramTrendCaption = "";
+
+        ParetoBars.Clear();
+        var pareto = series.ParetoPoints();
+        var pMax = pareto.Count == 0 ? 1d : Math.Max(1, pareto.Max(b => b.Count));
+        foreach (var bin in pareto)
+        {
+            ParetoBars.Add(new ParetoBar
+            {
+                Label = $"#{bin.Rank}",
+                Count = bin.Count,
+                Height = 8 + bin.Count / pMax * 140,
+                Share = $"{bin.CumulativeShare:P0}",
+                Caption = $"rank {bin.Rank}  mid {bin.Midpoint:N0}  n={bin.Count}  cum {bin.CumulativeShare:P1}"
+            });
+        }
+
+        ParetoCurve = MapShareCanvas(pareto.Select(b => new ChartPoint(b.Rank, b.CumulativeShare)).ToArray());
+        ParetoEightyY = 180 - 0.8 * 160;
+        var k80 = pareto.FirstOrDefault(b => b.CumulativeShare >= 0.8);
+        ParetoCaption = k80.Rank == 0
+            ? ""
+            : $"80% of the sample sits in the first {k80.Rank} of {pareto.Count} bins ({100.0 * k80.Rank / Math.Max(1, pareto.Count):0}%). Classic 80/20 would be ~20% of the bins.";
 
         Sample.Clear();
         var take = Math.Min(80, series.Count);
@@ -278,6 +320,39 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         }
 
         return list;
+    }
+
+
+    private static PointCollection MapBarCanvas(IReadOnlyList<ChartPoint> source, double maxY, double width = 720, double height = 180)
+    {
+        var pts = new PointCollection();
+        if (source.Count == 0)
+            return pts;
+        if (maxY <= 0)
+            maxY = 1;
+        var n = source.Count;
+        for (var i = 0; i < n; i++)
+        {
+            var x = (i + 0.5) / n * width;
+            var y = height - (8 + source[i].Y / maxY * 140);
+            pts.Add(new Point(x, Math.Clamp(y, 2, height - 2)));
+        }
+        return pts;
+    }
+
+    private static PointCollection MapShareCanvas(IReadOnlyList<ChartPoint> source, double width = 720, double height = 180)
+    {
+        var pts = new PointCollection();
+        if (source.Count == 0)
+            return pts;
+        var n = source.Count;
+        for (var i = 0; i < n; i++)
+        {
+            var x = (i + 0.5) / n * width;
+            var y = height - source[i].Y * 160;
+            pts.Add(new Point(x, Math.Clamp(y, 2, height - 2)));
+        }
+        return pts;
     }
 
     private static List<Observation> DrawUnique(int count, int populationSize, DateTimeOffset origin)

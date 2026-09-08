@@ -96,9 +96,13 @@ public sealed class WorkbookSessionTests
 
         using var wb = new XLWorkbook(path);
         var cell = wb.Worksheet("Span").Cell(2, 1);
-        Assert.Equal(XLDataType.Number, cell.DataType);
-        Assert.Equal(TimeSpan.FromMinutes(90).TotalDays, cell.GetDouble(), 12);
         Assert.Contains("h", cell.Style.NumberFormat.Format, StringComparison.OrdinalIgnoreCase);
+        // ClosedXML 0.105 rehydrates [h]:mm:ss as TimeSpan on open; the write
+        // path stored TotalDays as a number. Either type is the same day count.
+        var days = cell.DataType == XLDataType.TimeSpan
+            ? cell.GetTimeSpan().TotalDays
+            : cell.GetDouble();
+        Assert.Equal(TimeSpan.FromMinutes(90).TotalDays, days, 12);
     }
 
     [Fact]

@@ -13,6 +13,7 @@ internal static class CellWriter
             cell.Clear();
             return false;
         }
+
         switch (value)
         {
             case string s:
@@ -45,8 +46,10 @@ internal static class CellWriter
                 ApplyNumber(cell, options);
                 return false;
             case ulong ul:
-                if (ul <= long.MaxValue) cell.Value = (long)ul;
-                else cell.Value = (double)ul;
+                if (ul <= long.MaxValue)
+                    cell.Value = (long)ul;
+                else
+                    cell.Value = (double)ul;
                 ApplyNumber(cell, options);
                 return false;
             case float or double:
@@ -64,7 +67,11 @@ internal static class CellWriter
     private static bool WriteString(IXLCell cell, string text)
     {
         var neutralized = Neutralize(text);
-        cell.SetValue(neutralized.Text);
+        // ClosedXML treats a single leading apostrophe as Excel's quote-prefix
+        // and strips it from the stored text. Prefix once more so GetString()
+        // still starts with "'" after save/reopen.
+        var stored = neutralized.Changed ? "'" + neutralized.Text : neutralized.Text;
+        cell.SetValue(stored);
         if (neutralized.Changed)
         {
             HelperLog.Verbose(
@@ -73,6 +80,7 @@ internal static class CellWriter
                 HelperLog.AppIds.ClosedXml,
                 "Neutralized a formula-like text cell.");
         }
+
         return neutralized.Changed;
     }
 
@@ -84,9 +92,11 @@ internal static class CellWriter
 
     public static (string Text, bool Changed) Neutralize(string text)
     {
-        if (text.Length == 0) return (text, false);
+        if (text.Length == 0)
+            return (text, false);
         var lead = text[0];
-        if (lead is not ('=' or '+' or '-' or '@')) return (text, false);
+        if (lead is not ('=' or '+' or '-' or '@'))
+            return (text, false);
         return ("'" + text, true);
     }
 }

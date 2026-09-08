@@ -214,6 +214,12 @@ public sealed class NumericSeries
     public IReadOnlyList<ChartPoint> HistogramRelativePoints()
         => HistogramAsPoints(relative: true);
 
+    public IReadOnlyList<ChartPoint> HistogramTrendPoints()
+        => Full.Frequency.HistogramTrend();
+
+    public IReadOnlyList<ParetoPoint> ParetoPoints()
+        => Full.Frequency.Pareto();
+
     public IReadOnlyList<TimedValue> TimeSeriesPoints()
     {
         if (!HasTimestamps)

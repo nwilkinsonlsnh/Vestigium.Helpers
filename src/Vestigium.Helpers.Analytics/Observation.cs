@@ -25,4 +25,12 @@ public readonly record struct SeriesWindow(
 
 public readonly record struct ChartPoint(double X, double Y);
 
+/// <summary>
+/// One bar on a Pareto chart: histogram bins sorted by count descending,
+/// plus the running share of the sample. Rank is 1-based.
+/// </summary>
+public readonly record struct ParetoPoint(int Rank, double Midpoint, double Count, double CumulativeShare);
+
+
 public readonly record struct TimedValue(DateTimeOffset At, decimal Value);
+

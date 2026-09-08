@@ -39,6 +39,15 @@ public sealed class HistBar
     public string Caption { get; init; } = "";
 }
 
+public sealed class ParetoBar
+{
+    public required string Label { get; init; }
+    public double Count { get; init; }
+    public double Height { get; init; }
+    public string Share { get; init; } = "";
+    public string Caption { get; init; } = "";
+}
+
 public sealed class SamplePoint
 {
     public int Index { get; init; }
