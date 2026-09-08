@@ -6,7 +6,7 @@ Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, 
 
 **Target:** .NET 10 LTS / Visual Studio 2026  
 **Shape:** class libraries + one WPF gallery per library (same chrome as Vestigium.Logging)  
-**Windows-only project:** `Vestigium.Helpers.WinReg`  
+**Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`  
 **Logging:** [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) JSON Lines (sibling repo, solution folder `/Logging/`)
 
 Umbrella requirements: [`_Documentation/Requirements_v1.0.md`](_Documentation/Requirements_v1.0.md)  
@@ -58,11 +58,12 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.FileIo` | `net10.0` | File and directory helpers |
 | `Vestigium.Helpers.Processes` | `net10.0` | Process launch and capture |
 | `Vestigium.Helpers.Services` | `net10.0` | Service control helpers |
-| `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals |
+| `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals, **ControlLimits** |
+| `Vestigium.Helpers.Charts` | `net10.0-windows` | ScottPlot wrapper. Draws Analytics numbers on a WPF form. Does not compute UCL/LCL. |
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
-| `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial) |
+| `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial; ChartView tests run on Windows) |
 
-Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics and ClosedXml are full galleries; the rest are Probe + JSONL skeletons until their SRS is accepted.
+Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, and Charts are full galleries; the rest are Probe + JSONL skeletons until their SRS is accepted.
 
 ## Open in Visual Studio
 
@@ -75,6 +76,7 @@ Each library has a matching `*.Demo` WPF gallery under the **Demo** solution fol
 ```
 dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo
 dotnet run --project src/Vestigium.Helpers.Analytics.Demo
+dotnet run --project src/Vestigium.Helpers.Charts.Demo
 dotnet test src/Vestigium.Helpers.Tests
 ```
 

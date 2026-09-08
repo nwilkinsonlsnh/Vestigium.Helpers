@@ -272,6 +272,33 @@ public sealed class NumericSeries
     public ConfidenceInterval ProportionAtLeast(decimal threshold, double level = ConfidenceLevel.DefaultValue)
         => Full.ProportionAtLeast(threshold, level);
 
+    /// <summary>
+    /// Process-control fences for the full series. Pass the result to Charts.
+    /// Default is mean ± 3s. Use <see cref="ControlLimitMethod.MovingRange"/> for
+    /// Shewhart individuals (E2 × MR̄).
+    /// </summary>
+    public ControlLimits ControlLimits(
+        ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
+        double k = 3,
+        double? floor = null)
+    {
+        using var scope = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Limits,
+            "ControlLimits",
+            $"series={SeriesId} method={method} k={k} n={Count}",
+            SeriesId);
+        try
+        {
+            return Full.ControlLimits(method, k, floor);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
     public IReadOnlyList<ChartPoint> SampleOrderPoints()
     {
         var points = new ChartPoint[Values.Count];

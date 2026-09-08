@@ -29,6 +29,7 @@ public static class HelperLog
         public const string Analytics = "Analytics";
         public const string Network = "Network";
         public const string Csv = "Csv";
+        public const string Charts = "Charts";
     }
 
     public static class Subcategories
@@ -41,6 +42,7 @@ public static class HelperLog
         public const string Series = "Series";
         public const string Confidence = "Confidence";
         public const string Chart = "Chart";
+        public const string Limits = "Limits";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -56,7 +58,8 @@ public static class HelperLog
         AppIds.Services,
         AppIds.Analytics,
         AppIds.Network,
-        AppIds.Csv
+        AppIds.Csv,
+        AppIds.Charts
     ];
 
     public static VestigiumTaxonomy Taxonomy { get; } = CreateTaxonomy();

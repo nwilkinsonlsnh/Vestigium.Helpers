@@ -27,9 +27,11 @@
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Csv\Vestigium.Helpers.Csv.csproj" />
+    <!-- ScottPlot.WPF pulls Microsoft.WindowsDesktop.App. Linux testhost cannot load it. -->
+    <ProjectReference Include="..\Vestigium.Helpers.Charts\Vestigium.Helpers.Charts.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="ChartViewTests.cs" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 </Project>
-

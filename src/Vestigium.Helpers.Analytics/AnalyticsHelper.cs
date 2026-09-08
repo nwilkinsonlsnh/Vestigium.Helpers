@@ -33,12 +33,14 @@ public static class AnalyticsHelper
         var series = From(new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 40.2, 12.1 }, "rtt-ms");
         var ci = series.Confidence(0.95);
         var p95 = series.Full.Percentile(0.95);
+        var limits = series.ControlLimits();
+        var mr = series.ControlLimits(ControlLimitMethod.MovingRange);
 
         HelperLog.Information(
             app,
             VestigiumStatus.Success,
             app,
-            $"n={series.Count} mean={series.Full.Mean:F2} P50={series.Full.Median} P95={p95} Q4={series.Q4.Count} highOutliers={series.Full.HighOutliers.Count} meanCI=[{ci.Mean.Lower:F2},{ci.Mean.Upper:F2}] γ=0.95 Identity={Identity}");
+            $"n={series.Count} mean={series.Full.Mean:F2} P50={series.Full.Median} P95={p95} Q4={series.Q4.Count} highOutliers={series.Full.HighOutliers.Count} meanCI=[{ci.Mean.Lower:F2},{ci.Mean.Upper:F2}] γ=0.95 UCL={limits.Upper:F2} MR-UCL={mr.Upper:F2} Identity={Identity}");
 
         return Identity;
     }

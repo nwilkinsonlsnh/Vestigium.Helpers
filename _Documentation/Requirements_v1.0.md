@@ -29,11 +29,12 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-PRC | Vestigium.Helpers.Processes | net10.0 | |
 | HLP-SVC | Vestigium.Helpers.Services | net10.0 | SCM / hosted services |
 | HLP-ANL | Vestigium.Helpers.Analytics | net10.0 | In-process only in v1 |
+| HLP-CHARTS | Vestigium.Helpers.Charts | net10.0-windows | ScottPlot wrapper. UCL/LCL are inputs. |
 | HLP-NET | Vestigium.Helpers.Network | net10.0 | |
 | HLP-CSV | Vestigium.Helpers.Csv | net10.0 | Skeleton; not ClosedXml |
 | HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
 
-Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics and ClosedXml are full galleries. The rest use the shared skeleton in `Vestigium.Helpers.Gallery`.
+Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, and Charts are full galleries. The rest use the shared skeleton in `Vestigium.Helpers.Gallery`.
 
 ## 4. Logging
 
@@ -50,8 +51,8 @@ Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics 
 - .NET 10 LTS, C# latest, nullable enabled.
 - Packable class libraries (`IsPackable=true`) except Tests and Demos.
 - Deterministic builds.
-- Helpers do not reference WPF, Themes, or Controls. Demo galleries do (`Vestigium.Helpers.Gallery`).
-- `WinReg` stays on `net10.0-windows`.
+- Helpers do not reference WPF, Themes, or Controls except `Vestigium.Helpers.Charts` (ScottPlot.WPF). Demo galleries do (`Vestigium.Helpers.Gallery`).
+- `WinReg` and `Charts` stay on `net10.0-windows`.
 
 ## 6. Open items
 

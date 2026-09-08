@@ -1,13 +1,13 @@
 # Vestigium.Helpers.Analytics — Developers Guide
 
 **Document ID:** VEST-HLP-ANALYTICS-DEV-000  
-**Version:** 1.3  
-**Status:** Companion to SRS v1.2  
-**Date:** 7 September 2026
+**Version:** 1.4  
+**Status:** Companion to SRS v1.4  
+**Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx` → `src/Vestigium.Helpers.Analytics/`.
 
-The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.2** inside that file). This page is how to call it.
+The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.4** inside that file). This page is how to call it.
 
 ## Use (values only)
 
@@ -27,7 +27,13 @@ double? meanLo = ci.Mean.Lower;
 double? meanHi = ci.Mean.Upper;
 
 double? justContains = series.MeanConfidenceLevelContaining(12.0); // 1 − p, not “sample confidence”
+
+var sigma = series.ControlLimits();                                  // mean ± 3s
+var mr = series.ControlLimits(ControlLimitMethod.MovingRange);       // Shewhart individuals
+var sla = ControlLimits.FromCaller(center: 12, upper: 30, lower: 0); // host / SLA fences
 ```
+
+Pass `sigma`, `mr`, or `sla` to `Vestigium.Helpers.Charts`. This library does not draw.
 
 ## Use (optional timestamps)
 
@@ -44,7 +50,7 @@ var lastTwoSeconds = timed.Slice(DateTimeOffset.UtcNow.AddSeconds(-2), DateTimeO
 
 foreach (var point in timed.EcdfPoints())
 {
-    // point.X = ms, point.Y = fraction finished — bind in a host / future Charts helper
+    // point.X = ms, point.Y = fraction finished — bind in Charts
     _ = point;
 }
 ```
@@ -53,9 +59,9 @@ foreach (var point in timed.EcdfPoints())
 
 ## Demo
 
-`dotnet run --project src/Vestigium.Helpers.Analytics.Demo` opens the WPF gallery (same navy chrome as Vestigium.Logging). **Draw new sample** takes 1,000 unique integers from 1..100,000 with CSPRNG. Tabs: Overview, Sample, Summary, Bands, Histogram, Charts, Confidence, JSONL. **Histogram** overlays an OLS trend on the FD bins and a Pareto chart (bins sorted by count, cumulative share line, 80% mark). **Charts** draws `EcdfPoints()` and `SampleOrderPoints()` as polylines — the library still has no charting package.
+`dotnet run --project src/Vestigium.Helpers.Analytics.Demo` opens the WPF gallery (same navy chrome as Vestigium.Logging). **Draw new sample** takes 1,000 unique integers from 1..100,000 with CSPRNG. Tabs: Overview, Sample, Summary, Bands, Histogram, Charts, Confidence, JSONL. **Histogram** overlays an OLS trend on the FD bins and a Pareto chart (bins sorted by count, cumulative share line, 80% mark). **Charts** draws `EcdfPoints()` and `SampleOrderPoints()` as polylines — this library still has no charting package. Control charts live in `Vestigium.Helpers.Charts`.
 
-The gallery calls `HelperWpfHost.Start` with `MinimumDiskLevel = Debug`. This library never calls `Initialize`. Factories, `Slice`, and `Confidence` write Debug enter plus an Information constructed/confidence line. Rejects write Error then throw. Percentile and histogram loops stay silent.
+The gallery calls `HelperWpfHost.Start` with `MinimumDiskLevel = Debug`. This library never calls `Initialize`. Factories, `Slice`, `Confidence`, and `ControlLimits` write Debug enter plus an Information constructed/confidence/limits line. Rejects write Error then throw. Percentile and histogram loops stay silent.
 
 ## Do not
 
@@ -63,7 +69,8 @@ The gallery calls `HelperWpfHost.Start` with `MinimumDiskLevel = Debug`. This li
 - Treat P95 as 95 % confidence.
 - Call `Initialize` on `Vestigium.Logging` from this library.
 - Bin the value histogram by clock time.
+- Recompute UCL/LCL in a host “to make the spike show”. Pass `MovingRange` or `FromCaller` instead.
 
 ## Files
 
-See SRS §15. Tests: `src/Vestigium.Helpers.Tests/NumericSeriesTests.cs`.
+See SRS §15. Tests: `src/Vestigium.Helpers.Tests/NumericSeriesTests.cs`, `ControlLimitsTests.cs`.

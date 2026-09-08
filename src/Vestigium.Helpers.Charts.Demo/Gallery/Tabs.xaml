@@ -1,0 +1,95 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CHARTS  ·  SRS v1.0"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Wrapper over ScottPlot. Analytics computes the numbers (including UCL / CL / LCL). Charts draws them on a WPF form. Excel charts stay in ClosedXml."/>
+        <Border Style="{StaticResource Panel}">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <TextBlock Opacity="0.7" Margin="0,8,0,0" Text="{Binding LimitsCaption}"/>
+            <TextBlock Opacity="0.7" Text="{Binding MovingCaption}"/>
+            <TextBlock Opacity="0.7" Text="{Binding SpikeCaption}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Draw sample" Command="{Binding DrawSampleCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}"/>
+              <Button Content="Copy log directory" Command="{Binding CopyLogDirectoryCommand}"/>
+            </WrapPanel>
+            <TextBlock Opacity="0.55" Text="{Binding LogDirectoryCaption}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="HistogramTab">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Border Style="{StaticResource Panel}" Margin="0,0,0,8" Grid.Row="0">
+        <ContentControl Content="{Binding HistogramPlot}"/>
+      </Border>
+      <Border Style="{StaticResource Panel}" Grid.Row="1">
+        <ContentControl Content="{Binding BellPlot}"/>
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ControlTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="UCL / CL / LCL are computed by Analytics (mean±3s or moving range). Charts only draws the lines it is given."/>
+        <TextBlock Opacity="0.7" Text="{Binding LimitsCaption}"/>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8">
+          <ContentControl Content="{Binding ControlSigmaPlot}"/>
+        </Border>
+        <TextBlock Opacity="0.7" Text="{Binding MovingCaption}"/>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8">
+          <ContentControl Content="{Binding ControlMovingPlot}"/>
+        </Border>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding SpikeCaption}"/>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8">
+          <ContentControl Content="{Binding ControlSpikeSigmaPlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8,0,0">
+          <ContentControl Content="{Binding ControlSpikePlot}"/>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ParetoTab">
+    <Grid>
+      <Border Style="{StaticResource Panel}">
+        <ContentControl Content="{Binding ParetoPlot}"/>
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="LibraryTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <WrapPanel>
+        <Border Style="{StaticResource Panel}" Width="620" Height="260" Margin="0,0,8,8">
+          <ContentControl Content="{Binding EcdfPlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Width="620" Height="260" Margin="0,0,8,8">
+          <ContentControl Content="{Binding LinePlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Width="620" Height="260" Margin="0,0,8,8">
+          <ContentControl Content="{Binding PiePlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Width="620" Height="260" Margin="0,0,8,8">
+          <ContentControl Content="{Binding BoxPlot}"/>
+        </Border>
+      </WrapPanel>
+    </ScrollViewer>
+  </DataTemplate>
+</ResourceDictionary>

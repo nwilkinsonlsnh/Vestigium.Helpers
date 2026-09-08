@@ -3,11 +3,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.Analytics</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Analytics</AssemblyName>
-    <Description>Descriptive statistics, quartile bands, and confidence intervals for a numeric series.</Description>
+    <Description>Descriptive statistics, quartile bands, confidence intervals, and Shewhart control limits for a numeric series.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>analytics;statistics;quartile;confidence-interval;vestigium</PackageTags>
+    <PackageTags>analytics;statistics;quartile;confidence-interval;control-chart;shewhart;vestigium</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>

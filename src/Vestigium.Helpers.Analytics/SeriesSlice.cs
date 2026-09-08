@@ -108,5 +108,21 @@ public sealed class SeriesSlice
         return ConfidenceReport.Wilson(k, Count, ConfidenceLevel.Of(level));
     }
 
+    /// <summary>
+    /// Process-control fences for this band. Charts draws the result; it does not compute it.
+    /// </summary>
+    public ControlLimits ControlLimits(
+        ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
+        double k = 3,
+        double? floor = null)
+    {
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Limits,
+            "ControlLimits",
+            $"band={Kind} method={method} k={k} n={Count}");
+        return Analytics.ControlLimits.Compute(Values, Mean, StdDev, method, k, floor);
+    }
+
     internal DescriptiveStatistics Statistics => _stats;
 }

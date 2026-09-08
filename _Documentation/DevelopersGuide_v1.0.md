@@ -23,6 +23,7 @@
 | WPF gallery host | `src/Vestigium.Helpers.Gallery/HelperWpfHost.cs` |
 | Shared gallery chrome | `src/Vestigium.Helpers.Gallery/` |
 | Excel wrapper | `src/Vestigium.Helpers.ClosedXml/WorkbookHelper.cs` |
+| Charts wrapper | `src/Vestigium.Helpers.Charts/ChartView.cs` |
 | CSV skeleton | `src/Vestigium.Helpers.Csv/CsvHelper.cs` |
 | Registry wrapper | `src/Vestigium.Helpers.WinReg/RegistryHelper.cs` |
 | Per-library WPF gallery | `src/Vestigium.Helpers.*.Demo/` |
@@ -57,5 +58,5 @@
 4. Add `Probe()` that logs Pending then Success.
 5. Add `src/Vestigium.Helpers.{Name}.Demo` as a WPF gallery (`net10.0-windows`, `UseWPF`) and start it with `HelperWpfHost.Start`.
 6. Add the library under `/Library/` and the demo under `/Demo/` in `Vestigium.Helpers.slnx`.
-7. Reference the library from Tests. Do not add it to the core `Vestigium.Helpers` project.
+7. Reference the library from Tests **unless it is WPF** (`Charts` is Windows-only; ChartView tests compile only on Windows). Do not add it to the core `Vestigium.Helpers` project.
 

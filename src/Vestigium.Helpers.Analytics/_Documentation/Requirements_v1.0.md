@@ -1,9 +1,9 @@
 # Vestigium.Helpers.Analytics — Requirements Specification
 
 **Document ID:** VEST-HLP-ANALYTICS-SRS-000  
-**Version:** 1.2  
+**Version:** 1.4  
 **Status:** Accepted — complete numeric surface (implementation follows this document)  
-**Date:** 7 September 2026  
+**Date:** 8 September 2026  
 **Target:** .NET 10 LTS / Visual Studio 2026 / `net10.0`  
 **Companion:** `DevelopersGuide_v1.0.md`  
 **Project:** `src/Vestigium.Helpers.Analytics/`
@@ -24,6 +24,7 @@ It records every decision from the Analytics design conversation:
 - optional per-observation `DateTimeOffset` and series window
 - host feed pattern (collect → window → describe)
 - charting stays **out** of this library
+- **control limits** (mean ± kσ and Shewhart moving-range) are numbers this library publishes; `Vestigium.Helpers.Charts` draws them
 - the small Analytics additions required so later charting / PingIQ views have numbers, not pictures
 
 ---
@@ -56,7 +57,7 @@ It does not answer “draw this.” It does not persist. Boundary events (constr
 | A5 | Values are normalized to `decimal` at construction. Encounter order is preserved. A sorted copy is kept. |
 | A6 | A series is a **snapshot**, not a stream. Rolling windows, incremental sketches, and “append one ping” are host concerns. The host accumulates, then constructs a new series. |
 | A7 | Time is optional metadata for windowing and later line charts. Time is **not** an axis of the value histogram. |
-| A8 | Charting is out of this project. A future `Vestigium.Helpers.Charts` (or a host view) may consume the numbers this library publishes. This library may publish chart-*ready sequences of numbers*. It must not reference OxyPlot, ScottPlot, LiveCharts, or any drawing surface. |
+| A8 | Charting is out of this project. `Vestigium.Helpers.Charts` consumes the numbers this library publishes (`Histogram`, ECDF, Pareto, **ControlLimits**). This library must not reference ScottPlot, OxyPlot, LiveCharts, or any drawing surface. |
 | A9 | Inverse CDFs for t and χ² come from MathNet.Numerics (`StudentT.InvCDF`, `ChiSquared.InvCDF`). Do not hand-roll those two functions. |
 | A10 | Undefined statistics are `null`, never `NaN`, never magic sentinels (`-1`, `decimal.MinValue`). |
 | A11 | Empty input throws. Null input throws. Non-finite input (`NaN`, `±∞`) throws. |
@@ -537,6 +538,37 @@ readonly record struct ChartPoint(double X, double Y)
 
 `ParetoPoints()` returns `IReadOnlyList<ParetoPoint>` (`Rank`, `Midpoint`, `Count`, `CumulativeShare`). The cumulative share is the Pareto line. The gallery draws it; this library does not.
 
+### 10.2 Control limits (UCL / CL / LCL)
+
+These are **numbers**. `Vestigium.Helpers.Charts` draws them. This library computes them.
+
+```csharp
+ControlLimits NumericSeries.ControlLimits(
+    ControlLimitMethod method = MeanPlusKSigma,
+    double k = 3,
+    double? floor = null)
+
+ControlLimits SeriesSlice.ControlLimits(...)
+ControlLimits.FromCaller(center, upper, lower)
+```
+
+| Method | Formula | Notes |
+|---|---|---|
+| `MeanPlusKSigma` | CL = mean, UCL/LCL = mean ± k × s | s = sample stddev. Reject if n < 2 or s is 0/null. k must be > 0. |
+| `MovingRange` | CL = mean, UCL/LCL = mean ± E2 × MR̄ | MR_i = \|x_i − x_{i−1}\| in **encounter order**. E2 = 3 / d2, d2(n=2) = 1.1283791670955126. Reject if MR̄ = 0. |
+| `CallerSupplied` | none | `FromCaller` only. Charts also accepts this object. |
+
+Optional `floor` clamps LCL (`LCL = max(LCL, floor)`), typical `0` for milliseconds. After clamp the band must still satisfy UCL > CL > LCL.
+
+Worked `{1..9}` mean ± 3s: CL = 5, s = √7.5 ≈ 2.7386, UCL ≈ 13.216, LCL ≈ −3.216, outside = 0.
+
+Worked `{1..9}` moving range: every MR = 1, MR̄ = 1, UCL ≈ 7.660, LCL ≈ 2.340, outside values 1, 2, 8, 9 (indexes 0, 1, 7, 8).
+
+A single spike on a small sample often sits inside mean ± 3s because s inflates with the spike (`{1..9, 1000}` is still in control at k = 3). That is why `MovingRange` exists. Charts must not recompute the fences to “fix” that.
+
+`OutOfControlCount` / `OutOfControlIndexes` compare each encounter-order value to the finished UCL/LCL. Charts may paint those indexes; it must not recompute the fences.
+
+
 `TimeSeriesPoints()` omits observations with null `At`. If none have times, return an empty list (do not throw).
 
 ### 10.2 Overlay numbers, not series
@@ -657,6 +689,7 @@ Current files under `src/Vestigium.Helpers.Analytics/`:
 | `FrequencyTable.cs` | Exact counts + FD histogram |
 | `Quantiles.cs` | PERCENTILE.INC |
 | `Confidence.cs` | Level, interval, report, Wilson, FPC mean, planning n |
+| `ControlLimits.cs` | Mean ± kσ, Shewhart MR (E2 × MR̄), caller-supplied fences |
 | `NumberConvert.cs` | `INumber<T>` → finite decimal |
 
 v1.1 code already covers §§7–9.3 and most of §8. v1.2 work is: `Observation`, window, `Slice`, `LowOutliers` / `HighOutliers`, FPC overload, `ChartPoint` views. Do not regress Identity or PERCENTILE.INC fixtures.
@@ -671,3 +704,4 @@ v1.1 code already covers §§7–9.3 and most of §8. v1.2 work is: `Observation
 | 1.1 | 7 Sep 2026 | `NumericSeries`, six slices, required descriptors, frequency, moments, confidence level vs interval, Wilson, p-value, planned n. |
 | 1.2 | 7 Sep 2026 | Lossless capture of the design conversation: glossary (P vs γ vs sample fraction), right-tail reading, optional `Observation` / UTC window / `Slice`, FPC mean overload, chart-ready numeric views, explicit non-goals for charting and time-bucket histograms, host feed pattern, expanded acceptance. |
 | 1.3 | 8 Sep 2026 | Histogram OLS trend points and Pareto points (count-desc bins + cumulative share). Gallery draws the trend line and Pareto chart. No charting NuGet. |
+| 1.4 | 8 Sep 2026 | `ControlLimits`: mean ± kσ, Shewhart moving-range (E2 × MR̄, encounter order), caller-supplied fences, optional LCL floor. Charts draws these numbers and does not recompute them. |
