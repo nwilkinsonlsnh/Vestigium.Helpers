@@ -1,0 +1,121 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ENC  ·  SRS v1.0"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Two AEADs, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. Passphrases go through Argon2id. Choose a file, seal it, open it back — the original name is hidden in the trailer."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="DEFAULT"/>
+              <TextBlock FontWeight="SemiBold" Text="AES-256-GCM"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="256-bit key, 96-bit nonce, 128-bit tag. Framed at 64 KiB."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="OPT-IN"/>
+              <TextBlock FontWeight="SemiBold" Text="ChaCha20-Poly1305"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Same frame size, same trailer. Open reads alg from the envelope."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="KDF"/>
+              <TextBlock FontWeight="SemiBold" Text="Argon2id"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="64 MiB / 3 / 1. Raw 32-byte keys skip it and write .aes."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="NAMES"/>
+              <TextBlock FontWeight="SemiBold" Text=".aes / .argon"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="nathan.txt is encrypted in the trailer. Peek without a secret does not print it."/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}"/>
+            </WrapPanel>
+            <TextBlock Opacity="0.7" Text="{Binding ExportFolder}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="CipherTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="{Binding Title}"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Round-trip a UTF-8 string, then pick any file. The visible name is .aes or .argon. Open restores the hidden original name."/>
+        <CheckBox Content="Use passphrase (writes .argon instead of .aes)" IsChecked="{Binding UsePassphrase}"/>
+
+        <TextBlock Style="{StaticResource Caption}" Text="STRING ROUND-TRIP"/>
+        <TextBox Text="{Binding PlainText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                 Height="72" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        <WrapPanel>
+          <Button Content="SealString" Command="{Binding SealStringCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="OpenString" Command="{Binding OpenStringCommand}"/>
+        </WrapPanel>
+        <TextBox IsReadOnly="True" Text="{Binding SealedBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap" Height="56" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock Text="{Binding OpenedCaption}" FontFamily="Cascadia Mono, Consolas"/>
+
+        <TextBlock Style="{StaticResource Caption}" Text="FILE ROUND-TRIP"/>
+        <TextBlock Opacity="0.85" Text="{Binding SourceLine}" TextWrapping="Wrap"/>
+        <WrapPanel>
+          <Button Content="Choose file…" Command="{Binding BrowseFileCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Use nathan.txt" Command="{Binding UseNathanSampleCommand}"/>
+        </WrapPanel>
+        <WrapPanel>
+          <Button Content="{Binding SealFileCaption}" Command="{Binding SealFileCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Open → original name" Command="{Binding OpenFileCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.85" Text="{Binding PeekLine}" TextWrapping="Wrap"/>
+        <TextBlock Opacity="0.7" Text="{Binding EnvelopePath}" TextWrapping="Wrap"/>
+        <TextBlock FontWeight="SemiBold" Text="{Binding RestoredCaption}" TextWrapping="Wrap"/>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <TextBox IsReadOnly="True" Text="{Binding RestoredPreview}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                   TextWrapping="Wrap" Height="120" VerticalScrollBarVisibility="Auto"/>
+        </Border>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ValidateTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VALIDATE"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Peek and Validate do not decrypt payload frames. A flipped structural mac or the wrong secret fail closed with CryptographicException."/>
+        <TextBlock Style="{StaticResource Caption}" Text="ENVELOPE"/>
+        <ComboBox ItemsSource="{Binding ValidateTargets}" SelectedItem="{Binding ValidateTarget}"/>
+        <WrapPanel Margin="0,8,0,8">
+          <Button Content="Validate with secret" Command="{Binding ValidateCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Flip mac byte" Command="{Binding FlipMacCommand}"/>
+          <Button Content="Wrong secret" Command="{Binding WrongSecretCommand}"/>
+        </WrapPanel>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" Text="{Binding MagicsText}" TextWrapping="Wrap"/>
+        <TextBlock FontWeight="SemiBold" Text="{Binding PeekSummary}" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding ValidateSummary}" TextWrapping="Wrap"/>
+        <TextBlock Style="{StaticResource Caption}" Text="ORIGINAL NAME"/>
+        <TextBlock Text="{Binding OriginalName}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="PROBLEMS"/>
+        <TextBox IsReadOnly="True" Text="{Binding ProblemsText}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 Height="140" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+</ResourceDictionary>
