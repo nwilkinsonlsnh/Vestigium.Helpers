@@ -1,3 +1,5 @@
+using Vestigium.Helpers;
+
 namespace Vestigium.Helpers.Analytics;
 
 public enum SliceKind
@@ -69,7 +71,10 @@ public sealed class SeriesSlice
     public IReadOnlyDictionary<double, decimal> NamedPercentiles()
     {
         if (IsEmpty)
+        {
+            HelperLog.Reject("cannot compute percentiles of an empty slice");
             throw new InvalidOperationException("Cannot compute percentiles of an empty slice.");
+        }
 
         return new Dictionary<double, decimal>
         {

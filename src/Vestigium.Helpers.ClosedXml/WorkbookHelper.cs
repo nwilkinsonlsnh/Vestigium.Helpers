@@ -17,12 +17,14 @@ public static class WorkbookHelper
     public static string Probe()
     {
         var app = HelperLog.AppIds.ClosedXml;
+        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
         HelperLog.Information(app, VestigiumStatus.Pending, app, "Creating a demo workbook session.");
         using var book = Create("Probe", app);
         book.Sheet("Probe").WriteTable(
             SheetTable.Create(["Metric", "Value"], [["Identity", Identity]]),
             new SheetWriteOptions { CreateExcelTable = false, Autosize = false });
         HelperLog.Information(app, VestigiumStatus.Success, app, "Workbook session ready. Identity=" + Identity);
+        HelperLog.Exit(app, HelperLog.Subcategories.Probe, "Probe", $"session={book.SessionId}");
         return Identity;
     }
 
@@ -55,13 +57,12 @@ public static class WorkbookHelper
 
     public static WorkbookSession Create(string? firstSheetName = null, string? appId = null)
     {
-        HelperLog.Information(
-            appId ?? HelperLog.AppIds.ClosedXml,
-            VestigiumStatus.Pending,
-            HelperLog.AppIds.ClosedXml,
-            "Creating a blank workbook.");
+        var app = string.IsNullOrWhiteSpace(appId) ? HelperLog.AppIds.ClosedXml : appId.Trim();
+        var sessionId = HelperLog.NewId();
+        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Create", $"firstSheet={firstSheetName ?? "(default)"} session={sessionId}", sessionId);
+        HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Creating a blank workbook session={sessionId}");
         var wb = new XLWorkbook();
-        var session = new WorkbookSession(wb, path: null, appId);
+        var session = new WorkbookSession(wb, path: null, app, sessionId);
         if (!string.IsNullOrWhiteSpace(firstSheetName))
         {
             var safe = ExcelNames.Sanitize(firstSheetName);
@@ -80,23 +81,12 @@ public static class WorkbookHelper
 
     public static WorkbookSession Open(string path, string? appId = null)
     {
-        var target = HelperGuard.NotBlank(path, nameof(path));
-        if (!File.Exists(target))
-        {
-            HelperLog.Error(
-                appId ?? HelperLog.AppIds.ClosedXml,
-                VestigiumStatus.Failed,
-                HelperLog.AppIds.ClosedXml,
-                $"Open failed. File not found: {target}");
-            throw new FileNotFoundException("Workbook not found.", target);
-        }
-
-        HelperLog.Information(
-            appId ?? HelperLog.AppIds.ClosedXml,
-            VestigiumStatus.Pending,
-            HelperLog.AppIds.ClosedXml,
-            $"Opening workbook {target}");
-        return new WorkbookSession(new XLWorkbook(target), target, appId);
+        var app = string.IsNullOrWhiteSpace(appId) ? HelperLog.AppIds.ClosedXml : appId.Trim();
+        var sessionId = HelperLog.NewId();
+        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={path} session={sessionId}", sessionId);
+        var target = HelperGuard.FileExists(path, nameof(path));
+        HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Opening workbook path={target} session={sessionId}");
+        return new WorkbookSession(new XLWorkbook(target), target, app, sessionId);
     }
 
     /// <summary>
@@ -124,14 +114,25 @@ public static class WorkbookHelper
         int? populationSize = null,
         string? tableStyle = null)
     {
+        HelperGuard.NotNull(book, nameof(book));
+        HelperGuard.NotNull(series, nameof(series));
+        using var _ = book.Trace(
+            HelperLog.Subcategories.Session,
+            "WriteSeries",
+            $"series={series.SeriesId} n={series.Count} name={series.Name ?? "(none)"} prefix={prefix ?? "(none)"}");
         if (tableStyle is not null)
             book.TableStyle = tableStyle;
         SeriesWorkbook.Write(book, series, prefix, populationSize);
+        HelperLog.Information(
+            book.AppId,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Session,
+            $"WriteSeries series={series.SeriesId} n={series.Count} sheets={book.SheetNames.Count} session={book.SessionId}");
     }
 
     public static void Merge(WorkbookSession target, WorkbookSession source)
     {
-        ArgumentNullException.ThrowIfNull(target);
+        HelperGuard.NotNull(target, nameof(target));
         target.Merge(source);
     }
 }

@@ -36,6 +36,10 @@
 - Each WPF gallery is a process. `HelperWpfHost.Start` initializes with that helper's APPID so the rolling file is `%ProgramData%\Vestigium\Logs\{APPID}\vestigium-{APPID}-*.json`.
 - Optional `appId` on `VestigiumLog.Write` stamps the JSON `APPID` field. The folder still follows the host's `VestigiumLoggerOptions.AppId`.
 - Tests must pass a temp `LogDirectory`. The logger collection is serial (`DisableParallelization`).
+- Enter/argument lines are **always in the DLL**. They are Debug. The host sets `MinimumDiskLevel` (`Information` by default in Vestigium.Logging, `Debug` in Helpers galleries). Same binaries; no `#if DEBUG`.
+- Guards log Error / Failed, then throw. Do not swallow.
+- Log shapes (`n`, `sheet`, `path`, `session`, `series`), never the sample values.
+- Correlation: `WorkbookSession.SessionId` and `NumericSeries.SeriesId` appear on every line from that unit of work.
 
 ## Conventions copied from the suite
 

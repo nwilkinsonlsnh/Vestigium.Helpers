@@ -16,6 +16,10 @@ Umbrella developer notes: [`_Documentation/DevelopersGuide_v1.0.md`](_Documentat
 
 Libraries never call `VestigiumLogger.Initialize`. They call `HelperLog.*`, which is a no-op until a host initializes.
 
+Enter/argument lines (`HelperLog.Begin` / `Enter`) are compiled into every build. They are **Debug**. Vestigium.Logging writes Debug to the in-memory ring always; disk only if the host sets `MinimumDiskLevel = Debug`. Helpers galleries do that. A quiet product host leaves the default (`Information`) and only gets Success / Failed / Error on disk.
+
+`HelperGuard` logs Error / Failed, then throws. `WorkbookSession.SessionId` and `NumericSeries.SeriesId` stitch the chain.
+
 Each WPF gallery is a host. It initializes with that helper's APPID. JSONL lands at:
 
 ```

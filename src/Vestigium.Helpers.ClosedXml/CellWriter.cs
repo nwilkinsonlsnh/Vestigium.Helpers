@@ -54,8 +54,7 @@ internal static class CellWriter
                 return false;
             case float or double:
                 var number = Convert.ToDouble(value);
-                if (!double.IsFinite(number))
-                    throw new ArgumentOutOfRangeException(nameof(value), "NaN and Infinity cannot be written to a cell.");
+                HelperGuard.Finite(number, nameof(value));
                 cell.Value = number;
                 ApplyNumber(cell, options);
                 return false;
@@ -74,10 +73,10 @@ internal static class CellWriter
         cell.SetValue(stored);
         if (neutralized.Changed)
         {
-            HelperLog.Verbose(
+            HelperLog.Warning(
                 HelperLog.AppIds.ClosedXml,
                 VestigiumStatus.Success,
-                HelperLog.AppIds.ClosedXml,
+                HelperLog.Subcategories.Sheet,
                 "Neutralized a formula-like text cell.");
         }
 

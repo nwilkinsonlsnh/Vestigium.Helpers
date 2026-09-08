@@ -20,7 +20,7 @@ public sealed class SheetSession
     public void WriteTable(SheetTable table, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(table);
+        HelperGuard.NotNull(table, nameof(table));
         ClearContent();
         WriteAt(1, 1, table, options ?? SheetWriteOptions.Default);
     }
@@ -32,11 +32,10 @@ public sealed class SheetSession
     public void WriteAt(int row, int column, SheetTable table, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(table);
-        if (row < 1)
-            throw new ArgumentOutOfRangeException(nameof(row), "Row is 1-based.");
-        if (column < 1)
-            throw new ArgumentOutOfRangeException(nameof(column), "Column is 1-based.");
+        HelperGuard.NotNull(table, nameof(table));
+        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "WriteAt", $"sheet={Name} origin={ExcelNames.ColumnLetter(Math.Max(1, column))}{Math.Max(1, row)} rows={table.Rows.Count}");
+        HelperGuard.InRange(row, 1, nameof(row));
+        HelperGuard.InRange(column, 1, nameof(column));
 
         var opts = options ?? SheetWriteOptions.Default;
         var headers = table.Headers;
@@ -44,8 +43,7 @@ public sealed class SheetSession
         foreach (var dataRow in table.Rows)
             colCount = Math.Max(colCount, dataRow.Count);
 
-        if (colCount == 0)
-            throw new ArgumentException("A table needs at least one column.", nameof(table));
+        HelperGuard.Require(colCount > 0, nameof(table), "A table needs at least one column.");
 
         var neutralized = 0;
         if (opts.HasHeaderRow)
@@ -81,14 +79,15 @@ public sealed class SheetSession
         HelperLog.Information(
             _book.AppId,
             VestigiumStatus.Success,
-            HelperLog.AppIds.ClosedXml,
-            $"Wrote sheet={Name} origin={ExcelNames.ColumnLetter(column)}{row} rows={table.Rows.Count} cols={colCount} neutralized={neutralized}");
+            HelperLog.Subcategories.Sheet,
+            $"Wrote sheet={Name} origin={ExcelNames.ColumnLetter(column)}{row} rows={table.Rows.Count} cols={colCount} neutralized={neutralized} session={_book.SessionId}");
     }
 
     public void AppendRows(IEnumerable<IReadOnlyList<object?>> rows, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(rows);
+        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AppendRows", $"sheet={Name}");
+        HelperGuard.NotNull(rows, nameof(rows));
         var opts = options ?? SheetWriteOptions.Default;
         var last = _sheet.LastRowUsed()?.RowNumber() ?? 0;
         var colCount = _sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
@@ -109,13 +108,14 @@ public sealed class SheetSession
         HelperLog.Information(
             _book.AppId,
             VestigiumStatus.Success,
-            HelperLog.AppIds.ClosedXml,
-            $"Appended sheet={Name} rows={count}");
+            HelperLog.Subcategories.Sheet,
+            $"Appended sheet={Name} rows={count} session={_book.SessionId}");
     }
 
     public SheetTable ReadUsedRange(SheetReadOptions? options = null)
     {
         _book.ThrowIfDisposed();
+        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "ReadUsedRange", $"sheet={Name}");
         var opts = options ?? SheetReadOptions.Default;
         var used = _sheet.RangeUsed();
         if (used is null)
@@ -123,8 +123,8 @@ public sealed class SheetSession
             HelperLog.Information(
                 _book.AppId,
                 VestigiumStatus.Success,
-                HelperLog.AppIds.ClosedXml,
-                $"Read sheet={Name} rows=0 cols=0");
+                HelperLog.Subcategories.Sheet,
+                $"Read sheet={Name} rows=0 cols=0 session={_book.SessionId}");
             return new SheetTable { Headers = [], Rows = [], Name = Name };
         }
 
@@ -165,8 +165,8 @@ public sealed class SheetSession
         HelperLog.Information(
             _book.AppId,
             VestigiumStatus.Success,
-            HelperLog.AppIds.ClosedXml,
-            $"Read sheet={Name} rows={rows.Count} cols={colCount}");
+            HelperLog.Subcategories.Sheet,
+            $"Read sheet={Name} rows={rows.Count} cols={colCount} session={_book.SessionId}");
         return new SheetTable { Headers = headers, Rows = rows, Name = tableName };
     }
 
@@ -213,7 +213,12 @@ public sealed class SheetSession
     public void HighlightGreaterThan(string header, double threshold)
     {
         _book.ThrowIfDisposed();
-        var used = _sheet.RangeUsed() ?? throw new InvalidOperationException("Sheet has no used range to highlight.");
+        var used = _sheet.RangeUsed();
+        if (used is null)
+        {
+            HelperLog.Reject("Sheet has no used range to highlight.");
+            throw new InvalidOperationException("Sheet has no used range to highlight.");
+        }
         HighlightGreaterThan(
             header,
             threshold,
@@ -227,9 +232,8 @@ public sealed class SheetSession
     public void AddPicture(string imagePath, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
     {
         _book.ThrowIfDisposed();
-        var path = HelperGuard.NotBlank(imagePath, nameof(imagePath));
-        if (!File.Exists(path))
-            throw new FileNotFoundException("Image not found.", path);
+        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AddPicture", $"sheet={Name} path={imagePath}");
+        var path = HelperGuard.FileExists(imagePath, nameof(imagePath));
         using var stream = File.OpenRead(path);
         AddPicture(stream, row, column, widthPx, heightPx, name);
     }
@@ -237,11 +241,10 @@ public sealed class SheetSession
     public void AddPicture(Stream image, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
     {
         _book.ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(image);
-        if (row < 1)
-            throw new ArgumentOutOfRangeException(nameof(row), "Row is 1-based.");
-        if (column < 1)
-            throw new ArgumentOutOfRangeException(nameof(column), "Column is 1-based.");
+        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AddPicture", $"sheet={Name} cell={ExcelNames.ColumnLetter(Math.Max(1, column))}{Math.Max(1, row)}");
+        HelperGuard.NotNull(image, nameof(image));
+        HelperGuard.InRange(row, 1, nameof(row));
+        HelperGuard.InRange(column, 1, nameof(column));
 
         using var copy = new MemoryStream();
         image.CopyTo(copy);
@@ -257,8 +260,8 @@ public sealed class SheetSession
         HelperLog.Information(
             _book.AppId,
             VestigiumStatus.Success,
-            HelperLog.AppIds.ClosedXml,
-            $"Picture sheet={Name} cell={ExcelNames.ColumnLetter(column)}{row} {widthPx}x{heightPx}");
+            HelperLog.Subcategories.Sheet,
+            $"Picture sheet={Name} cell={ExcelNames.ColumnLetter(column)}{row} {widthPx}x{heightPx} session={_book.SessionId}");
     }
 
     internal IXLWorksheet Worksheet => _sheet;
@@ -267,14 +270,17 @@ public sealed class SheetSession
     {
         var name = HelperGuard.NotBlank(header, nameof(header));
         var col = FindHeaderColumn(name, headerRow, firstCol, lastCol);
-        if (col is null)
+        if (col is not int column)
+        {
+            HelperLog.Reject($"{name}: Header '{name}' was not on this sheet.");
             throw new ArgumentException($"Header '{name}' was not on this sheet.", nameof(header));
+        }
 
         if (lastRow <= headerRow)
             return;
 
         _sheet.ConditionalFormats.RemoveAll();
-        var range = _sheet.Range(headerRow + 1, col.Value, lastRow, col.Value);
+        var range = _sheet.Range(headerRow + 1, column, lastRow, column);
         var style = range.AddConditionalFormat().WhenGreaterThan(threshold);
         style.Fill.SetBackgroundColor(XLColor.FromHtml("#C00000"));
         style.Font.SetFontColor(XLColor.White);

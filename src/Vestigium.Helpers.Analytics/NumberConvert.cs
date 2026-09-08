@@ -1,4 +1,5 @@
 using System.Numerics;
+using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -7,7 +8,7 @@ internal static class NumberConvert
     public static List<decimal> ToDecimalList<T>(IEnumerable<T> values)
         where T : INumber<T>
     {
-        ArgumentNullException.ThrowIfNull(values);
+        HelperGuard.NotNull(values, nameof(values));
 
         var list = new List<decimal>();
         var index = 0;
@@ -18,7 +19,10 @@ internal static class NumberConvert
         }
 
         if (list.Count == 0)
+        {
+            HelperLog.Reject("values is empty");
             throw new ArgumentException("A numeric series must contain at least one value.", nameof(values));
+        }
 
         return list;
     }
@@ -33,7 +37,10 @@ internal static class NumberConvert
         {
             var d = (double)(object)value!;
             if (!double.IsFinite(d))
+            {
+                HelperLog.Reject($"Values[{index}] is not finite");
                 throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
+            }
             return (decimal)d;
         }
 
@@ -41,7 +48,10 @@ internal static class NumberConvert
         {
             var f = (float)(object)value!;
             if (!float.IsFinite(f))
+            {
+                HelperLog.Reject($"Values[{index}] is not finite");
                 throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
+            }
             return (decimal)f;
         }
 
@@ -50,7 +60,10 @@ internal static class NumberConvert
             var h = (Half)(object)value!;
             var d = (double)h;
             if (!double.IsFinite(d))
+            {
+                HelperLog.Reject($"Values[{index}] is not finite");
                 throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
+            }
             return (decimal)d;
         }
 
@@ -60,6 +73,7 @@ internal static class NumberConvert
         }
         catch (OverflowException ex)
         {
+            HelperLog.Reject($"Values[{index}] cannot be stored as decimal");
             throw new ArgumentOutOfRangeException(nameof(value), ex, $"Values[{index}] cannot be stored as decimal.");
         }
     }

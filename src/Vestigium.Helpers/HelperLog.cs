@@ -6,6 +6,9 @@ namespace Vestigium.Helpers;
 /// Safe façade over Vestigium.Logging for helper libraries.
 /// Libraries never call Initialize. WPF galleries and application hosts do.
 /// Writes are no-ops until the host has initialized the logger.
+/// Enter/argument lines are always compiled in; the host floor
+/// (<see cref="VestigiumLoggerOptions.MinimumDiskLevel"/>) decides whether
+/// they land on disk. The in-memory ring still sees Debug when the host is on.
 /// </summary>
 public static class HelperLog
 {
@@ -27,6 +30,18 @@ public static class HelperLog
         public const string Csv = "Csv";
     }
 
+    public static class Subcategories
+    {
+        public const string Probe = "Probe";
+        public const string Identity = "Identity";
+        public const string Guard = "Guard";
+        public const string Session = "Session";
+        public const string Sheet = "Sheet";
+        public const string Series = "Series";
+        public const string Confidence = "Confidence";
+        public const string Chart = "Chart";
+    }
+
     public static IReadOnlyList<string> AllAppIds { get; } =
     [
         AppIds.Core,
@@ -44,6 +59,16 @@ public static class HelperLog
     ];
 
     public static VestigiumTaxonomy Taxonomy { get; } = CreateTaxonomy();
+
+    private static readonly AsyncLocal<ScopeState?> Scope = new();
+
+    public static string CurrentAppId => Scope.Value?.AppId ?? AppIds.Core;
+
+    public static string CurrentMethod => Scope.Value?.Method ?? Subcategories.Guard;
+
+    public static string CurrentSubcategory => Scope.Value?.Subcategory ?? Subcategories.Guard;
+
+    public static string? CorrelationId => Scope.Value?.CorrelationId;
 
     public static void ConfigureHost(VestigiumLoggerOptions cfg, string appId)
     {
@@ -84,6 +109,70 @@ public static class HelperLog
     {
         if (VestigiumLogger.IsInitialized)
             VestigiumLogger.Shutdown();
+    }
+
+    public static string NewId() => Guid.NewGuid().ToString("N")[..8];
+
+    /// <summary>
+    /// Push app / method / correlation for nested guards, and write a Debug enter line.
+    /// Dispose restores the previous scope. Does not write exit — call
+    /// <see cref="Exit"/> after a successful return, or let a reject
+    /// record the failure.
+    /// </summary>
+    public static IDisposable Begin(
+        string appId,
+        string subcategory,
+        string method,
+        string? detail = null,
+        string? correlationId = null)
+    {
+        var parent = Scope.Value;
+        var id = correlationId ?? parent?.CorrelationId;
+        Scope.Value = new ScopeState(appId, subcategory, method, id, parent);
+        Enter(appId, subcategory, method, detail, id);
+        return new PopScope(parent);
+    }
+
+    public static void Enter(
+        string appId,
+        string subcategory,
+        string method,
+        string? detail = null,
+        string? correlationId = null)
+        => Debug(appId, VestigiumStatus.Pending, subcategory, Line("enter", method, detail, correlationId));
+
+    public static void Exit(
+        string appId,
+        string subcategory,
+        string method,
+        string? detail = null,
+        string? correlationId = null)
+        => Debug(appId, VestigiumStatus.Success, subcategory, Line("exit", method, detail, correlationId));
+
+    public static void Reject(string reason, Exception? exception = null)
+        => Reject(CurrentAppId, CurrentSubcategory, CurrentMethod, reason, CorrelationId, exception);
+
+    public static void Reject(
+        string appId,
+        string subcategory,
+        string method,
+        string reason,
+        string? correlationId = null,
+        Exception? exception = null)
+        => Error(appId, VestigiumStatus.Failed, subcategory, Line("reject", method, reason, correlationId), exception);
+
+    public static string Line(string verb, string method, string? detail, string? correlationId)
+    {
+        var message = string.IsNullOrWhiteSpace(detail)
+            ? $"{verb} {method}"
+            : $"{verb} {method} {detail}";
+        if (string.IsNullOrWhiteSpace(correlationId))
+            return message;
+        if (message.Contains("session=", StringComparison.Ordinal)
+            || message.Contains("series=", StringComparison.Ordinal)
+            || message.Contains("id=", StringComparison.Ordinal))
+            return message;
+        return message + " id=" + correlationId;
     }
 
     public static void Write(
@@ -129,7 +218,38 @@ public static class HelperLog
     {
         var t = new VestigiumTaxonomy();
         t.Register(Category, AllAppIds.ToArray());
-        t.Register(Category, "Probe", "Identity", "Guard");
+        t.Register(
+            Category,
+            Subcategories.Probe,
+            Subcategories.Identity,
+            Subcategories.Guard,
+            Subcategories.Session,
+            Subcategories.Sheet,
+            Subcategories.Series,
+            Subcategories.Confidence,
+            Subcategories.Chart);
         return t;
+    }
+
+    private sealed record ScopeState(
+        string AppId,
+        string Subcategory,
+        string Method,
+        string? CorrelationId,
+        ScopeState? Parent);
+
+    private sealed class PopScope : IDisposable
+    {
+        private readonly ScopeState? _parent;
+        private int _done;
+
+        public PopScope(ScopeState? parent) => _parent = parent;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _done, 1) == 1)
+                return;
+            Scope.Value = _parent;
+        }
     }
 }

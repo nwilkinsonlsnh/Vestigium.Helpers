@@ -1,4 +1,5 @@
 using MathNet.Numerics.Distributions;
+using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -14,7 +15,14 @@ public readonly record struct ConfidenceLevel
     public ConfidenceLevel(double value)
     {
         if (value is <= 0d or >= 1d)
+        {
+            HelperLog.Reject(
+                HelperLog.AppIds.Analytics,
+                HelperLog.Subcategories.Confidence,
+                "ConfidenceLevel",
+                $"γ={value} is not in (0, 1)");
             throw new ArgumentOutOfRangeException(nameof(value), "Confidence level must be in (0, 1).");
+        }
         Value = value;
     }
 
@@ -120,9 +128,15 @@ public sealed class ConfidenceReport
         if (populationSize is { } N)
         {
             if (N < 1)
+            {
+                HelperLog.Reject("populationSize must be at least 1");
                 throw new ArgumentOutOfRangeException(nameof(populationSize), "Population size must be at least 1.");
+            }
             if (n > N)
+            {
+                HelperLog.Reject($"n={n} exceeds N={N}");
                 throw new ArgumentOutOfRangeException(nameof(populationSize), "Sample count cannot exceed population size.");
+            }
         }
 
         var mean = stats.Mean.Value;
@@ -230,7 +244,10 @@ public sealed class ConfidenceReport
     internal static int? PlanSampleSize(DescriptiveStatistics stats, double targetMargin, ConfidenceLevel level)
     {
         if (targetMargin <= 0)
+        {
+            HelperLog.Reject($"targetMargin={targetMargin} is not positive");
             throw new ArgumentOutOfRangeException(nameof(targetMargin), "Target margin must be positive.");
+        }
         if (stats.StdDev is not > 0)
             return null;
 

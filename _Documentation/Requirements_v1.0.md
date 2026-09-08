@@ -42,6 +42,8 @@ Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics 
 - Libraries never call `VestigiumLogger.Initialize`. `HelperLog` is a no-op until the host initializes.
 - Each WPF gallery initializes with that helper's APPID so each demo writes its own folder.
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory`.
+- Debug enter/argument lines stay in the compiled helpers. Hosts choose volume with `VestigiumLoggerOptions.MinimumDiskLevel` (galleries: Debug; quiet hosts: Information).
+- `HelperGuard` is the contract layer: log Failed, then throw. Empty, null, non-finite, and 1-based range rejects go through it.
 
 ## 5. Non-functional
 

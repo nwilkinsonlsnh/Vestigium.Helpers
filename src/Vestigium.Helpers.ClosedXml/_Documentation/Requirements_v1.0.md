@@ -36,7 +36,7 @@ These came from the 7 September 2026 design pass.
 | 4 | Read vs write | **Write first.** Then read what we wrote. Do not design a general Excel importer in v1. |
 | 5 | Demo | `Vestigium.Helpers.ClosedXml.Demo` uses `Vestigium.Helpers.Analytics` to mint a numeric series and writes several worksheets. |
 | 6 | Default export folder | `%USERPROFILE%\Desktop\Vestigium\Exports\{APPID}\` on Windows. Caller may pass any other path. Tests never use the Desktop. |
-| 7 | Logging | `HelperLog` only. Libraries never call `VestigiumLogger.Initialize`. APPID = `ClosedXml`. |
+| 7 | Logging | `HelperLog` only. Libraries never call `VestigiumLogger.Initialize`. APPID = `ClosedXml`. Debug enter on public session/sheet methods. Error then throw on guard failures. `SessionId` on every line. |
 | 8 | Charts | Native Excel charts on WriteSeries (v1.1). ClosedXML cannot author them; the helper writes OOXML chart parts after save. |
 
 ---

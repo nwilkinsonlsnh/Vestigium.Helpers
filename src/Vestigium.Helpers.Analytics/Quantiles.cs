@@ -1,3 +1,5 @@
+using Vestigium.Helpers;
+
 namespace Vestigium.Helpers.Analytics;
 
 /// <summary>
@@ -9,9 +11,15 @@ internal static class Quantiles
     public static decimal Inclusive(IReadOnlyList<decimal> sorted, double p)
     {
         if (sorted.Count == 0)
+        {
+            HelperLog.Reject("cannot compute a percentile of an empty sample");
             throw new ArgumentException("Cannot compute a percentile of an empty sample.", nameof(sorted));
+        }
         if (p is < 0 or > 1)
+        {
+            HelperLog.Reject($"p={p} is not in [0, 1]");
             throw new ArgumentOutOfRangeException(nameof(p), "Percentile p must be in [0, 1].");
+        }
         if (sorted.Count == 1)
             return sorted[0];
 

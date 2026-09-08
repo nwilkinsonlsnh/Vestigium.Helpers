@@ -31,6 +31,8 @@ var path = book.Save(); // %DESKTOP%\Vestigium\Exports\ClosedXml\
 
 Tests must `SaveAs` a temp path. Never `Save()` onto the real Desktop from xUnit.
 
+`WorkbookSession.SessionId` is stamped on every JSONL line from that session. `HelperLog.Begin` writes Debug enter (disk only when the host floor is Debug). Guards log Failed then throw.
+
 ## Dump a NumericSeries
 
 ```csharp

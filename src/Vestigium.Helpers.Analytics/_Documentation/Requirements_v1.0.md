@@ -41,7 +41,7 @@ The library answers questions of the form:
 - How uncertain is the average? (confidence interval at a caller-chosen level)
 - Do I have enough samples to decide against an SLA? (interval width, planned n)
 
-It does not answer “draw this.” It does not persist. It does not log.
+It does not answer “draw this.” It does not persist. Boundary events (construct, slice, confidence, rejects) go through `HelperLog`; MathNet loops stay silent.
 
 ---
 
@@ -51,7 +51,7 @@ It does not answer “draw this.” It does not persist. It does not log.
 |---|---|
 | A1 | Class library `net10.0`. No WPF, no Themes, no Controls, no charting NuGet. |
 | A2 | Independently referenced. Core `Vestigium.Helpers` may be used for guards only. |
-| A3 | The library never calls `VestigiumLogger.Initialize`. It never writes `%ProgramData%` logs. Hosts that want a disk trace call `Vestigium.Logging` themselves. |
+| A3 | The library never calls `VestigiumLogger.Initialize`. It never chooses a log folder. Hosts that want a disk trace initialize `HelperLog` / `Vestigium.Logging`. Boundary calls write Debug enter and Information constructed/confidence; rejects write Error then throw. Inner percentile / histogram loops do not log. |
 | A4 | Public work lives on an instance (`NumericSeries` / `SeriesSlice`), not a static bag of math functions. `AnalyticsHelper` is a façade for `Identity` and factories. |
 | A5 | Values are normalized to `decimal` at construction. Encounter order is preserved. A sorted copy is kept. |
 | A6 | A series is a **snapshot**, not a stream. Rolling windows, incremental sketches, and “append one ping” are host concerns. The host accumulates, then constructs a new series. |

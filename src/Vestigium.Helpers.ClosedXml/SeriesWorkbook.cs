@@ -1,3 +1,4 @@
+using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.ClosedXml;
@@ -6,8 +7,8 @@ internal static class SeriesWorkbook
 {
     public static void Write(WorkbookSession book, NumericSeries series, string? prefix, int? populationSize)
     {
-        ArgumentNullException.ThrowIfNull(book);
-        ArgumentNullException.ThrowIfNull(series);
+        HelperGuard.NotNull(book, nameof(book));
+        HelperGuard.NotNull(series, nameof(series));
 
         var full = series.Full;
         var style = book.TableStyle;

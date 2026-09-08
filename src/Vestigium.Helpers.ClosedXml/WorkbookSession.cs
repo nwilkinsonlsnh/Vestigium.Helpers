@@ -16,16 +16,24 @@ public sealed class WorkbookSession : IDisposable
     private string _tableStyle = ExcelTableStyles.DefaultId;
     private readonly List<SheetChart> _charts = [];
 
-    internal WorkbookSession(XLWorkbook workbook, string? path, string? appId)
+    internal WorkbookSession(XLWorkbook workbook, string? path, string? appId, string? sessionId = null)
     {
         _workbook = workbook;
         _path = path;
         _appId = string.IsNullOrWhiteSpace(appId) ? HelperLog.AppIds.ClosedXml : appId.Trim();
+        SessionId = string.IsNullOrWhiteSpace(sessionId) ? HelperLog.NewId() : sessionId.Trim();
         if (_workbook.Worksheets.Count == 0)
             _workbook.AddWorksheet("Sheet1");
+        HelperLog.Information(
+            _appId,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Session,
+            $"created session={SessionId} sheets={_workbook.Worksheets.Count} path={_path ?? "(new)"}");
     }
 
     public string AppId => _appId;
+
+    public string SessionId { get; }
 
     public string? Path => _path;
 
@@ -47,12 +55,16 @@ public sealed class WorkbookSession : IDisposable
     public void AddChart(SheetChart chart)
     {
         ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(chart);
-        if (string.IsNullOrWhiteSpace(chart.Sheet))
-            throw new ArgumentException("A chart needs a sheet name.", nameof(chart));
-        if (chart.Series.Count == 0)
-            throw new ArgumentException("A chart needs at least one series.", nameof(chart));
+        HelperGuard.NotNull(chart, nameof(chart));
+        using var scope = Trace(HelperLog.Subcategories.Chart, "AddChart", $"sheet={chart.Sheet}");
+        HelperGuard.Require(!string.IsNullOrWhiteSpace(chart.Sheet), nameof(chart), "A chart needs a sheet name.");
+        HelperGuard.Require(chart.Series.Count > 0, nameof(chart), "A chart needs at least one series.");
         _charts.Add(chart);
+        HelperLog.Information(
+            _appId,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Chart,
+            $"queued chart sheet={chart.Sheet} series={chart.Series.Count} kind={chart.Kind} session={SessionId}");
     }
 
     public IReadOnlyList<string> SheetNames =>
@@ -83,11 +95,14 @@ public sealed class WorkbookSession : IDisposable
     public void MoveSheet(string name, int position)
     {
         ThrowIfDisposed();
-        if (position < 1)
-            throw new ArgumentOutOfRangeException(nameof(position), "Sheet position is 1-based.");
+        using var scope = Trace(HelperLog.Subcategories.Sheet, "MoveSheet", $"name={name} position={position}");
+        HelperGuard.InRange(position, 1, nameof(position));
         var safe = ExcelNames.Sanitize(name);
         if (!_workbook.TryGetWorksheet(safe, out var ws))
+        {
+            HelperLog.Reject($"Sheet '{safe}' was not found");
             throw new KeyNotFoundException($"Sheet '{safe}' was not found.");
+        }
         var max = _workbook.Worksheets.Count;
         ws.Position = position > max ? max : position;
     }
@@ -99,7 +114,8 @@ public sealed class WorkbookSession : IDisposable
     public void ReorderSheets(params string[] names)
     {
         ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(names);
+        HelperGuard.NotNull(names, nameof(names));
+        using var scope = Trace(HelperLog.Subcategories.Sheet, "ReorderSheets", $"count={names.Length}");
         var position = 1;
         foreach (var name in names)
         {
@@ -118,15 +134,20 @@ public sealed class WorkbookSession : IDisposable
     public void DefineName(string name, string sheet, int firstRow, int firstColumn, int lastRow, int lastColumn)
     {
         ThrowIfDisposed();
+        using var scope = Trace(HelperLog.Subcategories.Sheet, "DefineName", $"name={name} sheet={sheet}");
         var safe = ExcelNames.SanitizeDefinedName(name);
-        if (firstRow < 1 || firstColumn < 1)
-            throw new ArgumentOutOfRangeException(nameof(firstRow), "Range origin is 1-based.");
-        if (lastRow < firstRow || lastColumn < firstColumn)
-            throw new ArgumentOutOfRangeException(nameof(lastRow), "Last cell must be at or below the origin.");
+        HelperGuard.InRange(firstRow, 1, nameof(firstRow));
+        HelperGuard.InRange(firstColumn, 1, nameof(firstColumn));
+        HelperGuard.Require(lastRow >= firstRow && lastColumn >= firstColumn, nameof(lastRow), "Last cell must be at or below the origin.");
         var ws = Sheet(sheet).Worksheet;
         var range = ws.Range(firstRow, firstColumn, lastRow, lastColumn);
         DropDefinedName(safe);
         _workbook.DefinedNames.Add(safe, range);
+        HelperLog.Information(
+            _appId,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Sheet,
+            $"defined name={safe} sheet={ws.Name} session={SessionId}");
     }
 
     /// <summary>
@@ -136,10 +157,15 @@ public sealed class WorkbookSession : IDisposable
     public void WriteNamedRange(string name, SheetTable table, SheetWriteOptions? options = null)
     {
         ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(table);
+        HelperGuard.NotNull(table, nameof(table));
+        using var scope = Trace(HelperLog.Subcategories.Sheet, "WriteNamedRange", $"name={name} rows={table.Rows.Count}");
         var defined = ResolveName(name);
-        var range = defined.Ranges.FirstOrDefault()
-            ?? throw new InvalidOperationException($"Named range '{defined.Name}' has no cells.");
+        var range = defined.Ranges.FirstOrDefault();
+        if (range is null)
+        {
+            HelperLog.Reject($"Named range '{defined.Name}' has no cells.");
+            throw new InvalidOperationException($"Named range '{defined.Name}' has no cells.");
+        }
         var addr = range.RangeAddress;
         var firstRow = addr.FirstAddress.RowNumber;
         var firstCol = addr.FirstAddress.ColumnNumber;
@@ -173,9 +199,12 @@ public sealed class WorkbookSession : IDisposable
     public void Merge(WorkbookSession source)
     {
         ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(source);
-        if (ReferenceEquals(source, this) || ReferenceEquals(source.Workbook, _workbook))
-            throw new ArgumentException("Cannot merge a workbook into itself.", nameof(source));
+        HelperGuard.NotNull(source, nameof(source));
+        using var scope = Trace(HelperLog.Subcategories.Session, "Merge", $"from={source.SessionId}");
+        HelperGuard.Require(
+            !ReferenceEquals(source, this) && !ReferenceEquals(source.Workbook, _workbook),
+            nameof(source),
+            "Cannot merge a workbook into itself.");
         source.ThrowIfDisposed();
 
         var copied = 0;
@@ -203,8 +232,8 @@ public sealed class WorkbookSession : IDisposable
         HelperLog.Information(
             _appId,
             VestigiumStatus.Success,
-            HelperLog.AppIds.ClosedXml,
-            $"Merged sheets appended={appended} copied={copied} total={_workbook.Worksheets.Count}");
+            HelperLog.Subcategories.Session,
+            $"Merged sheets appended={appended} copied={copied} total={_workbook.Worksheets.Count} session={SessionId}");
     }
 
     public SheetSession Sheet(string name)
@@ -221,6 +250,11 @@ public sealed class WorkbookSession : IDisposable
         ThrowIfDisposed();
         var safe = UniqueSheetName(ExcelNames.Sanitize(name));
         var ws = _workbook.AddWorksheet(safe);
+        HelperLog.Debug(
+            _appId,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Sheet,
+            $"added sheet={safe} session={SessionId}");
         return new SheetSession(this, ws);
     }
 
@@ -230,8 +264,7 @@ public sealed class WorkbookSession : IDisposable
         var safe = ExcelNames.Sanitize(name);
         if (!_workbook.TryGetWorksheet(safe, out var ws))
             return false;
-        if (_workbook.Worksheets.Count == 1)
-            throw new InvalidOperationException("A workbook must keep at least one worksheet.");
+        HelperGuard.RequireState(_workbook.Worksheets.Count > 1, "A workbook must keep at least one worksheet.");
         ws.Delete();
         return true;
     }
@@ -246,6 +279,7 @@ public sealed class WorkbookSession : IDisposable
     public string SaveAs(string path)
     {
         ThrowIfDisposed();
+        using var scope = Trace(HelperLog.Subcategories.Session, "SaveAs", $"path={path}");
         var target = HelperGuard.NotBlank(path, nameof(path));
         try
         {
@@ -267,18 +301,14 @@ public sealed class WorkbookSession : IDisposable
             HelperLog.Information(
                 _appId,
                 VestigiumStatus.Success,
-                HelperLog.AppIds.ClosedXml,
-                $"Saved workbook path={target} sheets={_workbook.Worksheets.Count} charts={(IncludeCharts ? _charts.Count : 0)}");
+                HelperLog.Subcategories.Session,
+                $"Saved workbook path={target} sheets={_workbook.Worksheets.Count} charts={(IncludeCharts ? _charts.Count : 0)} session={SessionId}");
+            HelperLog.Exit(_appId, HelperLog.Subcategories.Session, "SaveAs", $"path={target} session={SessionId}");
             return target;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ArgumentException and not ObjectDisposedException)
         {
-            HelperLog.Error(
-                _appId,
-                VestigiumStatus.Failed,
-                HelperLog.AppIds.ClosedXml,
-                $"Save failed path={target}",
-                ex);
+            HelperLog.Reject(_appId, HelperLog.Subcategories.Session, "SaveAs", $"path={target} session={SessionId}", SessionId, ex);
             throw;
         }
     }
@@ -286,7 +316,8 @@ public sealed class WorkbookSession : IDisposable
     public void SaveTo(Stream stream)
     {
         ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(stream);
+        using var scope = Trace(HelperLog.Subcategories.Session, "SaveTo");
+        HelperGuard.NotNull(stream, nameof(stream));
         if (IncludeCharts && _charts.Count > 0)
         {
             using var ms = new MemoryStream();
@@ -302,7 +333,15 @@ public sealed class WorkbookSession : IDisposable
 
     internal XLWorkbook Workbook => _workbook;
 
-    internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+    internal IDisposable Trace(string subcategory, string method, string? detail = null)
+    {
+        var text = string.IsNullOrWhiteSpace(detail)
+            ? $"session={SessionId}"
+            : $"{detail} session={SessionId}";
+        return HelperLog.Begin(_appId, subcategory, method, text, SessionId);
+    }
+
+    internal void ThrowIfDisposed() => HelperGuard.NotDisposed(_disposed, this);
 
     private IXLDefinedName ResolveName(string name)
     {
@@ -322,6 +361,7 @@ public sealed class WorkbookSession : IDisposable
             }
         }
 
+        HelperLog.Reject(_appId, HelperLog.Subcategories.Sheet, "ResolveName", $"named range '{safe}' was not found session={SessionId}", SessionId);
         throw new KeyNotFoundException($"Named range '{safe}' was not found.");
     }
 
@@ -354,6 +394,7 @@ public sealed class WorkbookSession : IDisposable
                 return candidate;
         }
 
+        HelperLog.Reject(_appId, HelperLog.Subcategories.Sheet, "AddSheet", $"could not allocate a unique sheet name session={SessionId}", SessionId);
         throw new InvalidOperationException("Could not allocate a unique sheet name.");
     }
 

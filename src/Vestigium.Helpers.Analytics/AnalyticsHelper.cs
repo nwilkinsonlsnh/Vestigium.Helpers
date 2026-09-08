@@ -26,6 +26,7 @@ public static class AnalyticsHelper
     public static string Probe()
     {
         var app = HelperLog.AppIds.Analytics;
+        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
         HelperLog.Information(app, VestigiumStatus.Pending, app, "Opening an in-process numeric series snapshot.");
 
         var series = From(new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 40.2, 12.1 }, "rtt-ms");

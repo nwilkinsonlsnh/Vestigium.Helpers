@@ -1,4 +1,6 @@
 using System.Numerics;
+using Vestigium.Helpers;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -10,7 +12,7 @@ public sealed class NumericSeries
 {
     public NumericSeries(IEnumerable<decimal> values, string? name = null)
         : this(
-            NumberConvert.ToDecimalList(values ?? throw new ArgumentNullException(nameof(values))),
+            NumberConvert.ToDecimalList(HelperGuard.NotNull(values, nameof(values))),
             times: [],
             name,
             SeriesWindow.None)
@@ -23,6 +25,7 @@ public sealed class NumericSeries
         string? name,
         SeriesWindow window)
     {
+        SeriesId = HelperLog.NewId();
         Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
         Values = values;
         Sorted = values.OrderBy(v => v).ToArray();
@@ -63,18 +66,43 @@ public sealed class NumericSeries
         Q3 = new SeriesSlice(SliceKind.Q3, values.Where(v => v > median && v <= q3).ToArray());
         Q4 = new SeriesSlice(SliceKind.Q4, values.Where(v => v > q3).ToArray());
         Iqr = new SeriesSlice(SliceKind.Iqr, values.Where(v => v >= q1 && v <= q3).ToArray());
+
+        HelperLog.Information(
+            HelperLog.AppIds.Analytics,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Series,
+            $"constructed series={SeriesId} n={values.Count} name={Name ?? "(none)"} window={Window.Kind}");
     }
 
     public static NumericSeries From<T>(IEnumerable<T> values, string? name = null)
         where T : INumber<T>
-        => new(NumberConvert.ToDecimalList(values), [], name, SeriesWindow.None);
+    {
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Series,
+            "From",
+            $"name={name ?? "(none)"}");
+        return new NumericSeries(NumberConvert.ToDecimalList(values), [], name, SeriesWindow.None);
+    }
 
     public static NumericSeries FromDecimal(IEnumerable<decimal> values, string? name = null)
-        => new(values, name);
+    {
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Series,
+            "FromDecimal",
+            $"name={name ?? "(none)"}");
+        return new NumericSeries(values, name);
+    }
 
     public static NumericSeries FromObservations(IEnumerable<Observation> observations, string? name = null)
     {
-        ArgumentNullException.ThrowIfNull(observations);
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Series,
+            "FromObservations",
+            $"name={name ?? "(none)"}");
+        HelperGuard.NotNull(observations, nameof(observations));
         var (values, times) = Unpack(observations);
         return new NumericSeries(values, times, name, SeriesWindow.None);
     }
@@ -85,9 +113,13 @@ public sealed class NumericSeries
         DateTimeOffset endExclusive,
         string? name = null)
     {
-        ArgumentNullException.ThrowIfNull(observations);
-        if (startInclusive >= endExclusive)
-            throw new ArgumentException("Window start must be earlier than end.", nameof(startInclusive));
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Series,
+            "FromObservations",
+            $"name={name ?? "(none)"} window=[{startInclusive:o},{endExclusive:o})");
+        HelperGuard.NotNull(observations, nameof(observations));
+        HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
 
         var filtered = observations.Where(o =>
             o.At is { } at &&
@@ -102,6 +134,7 @@ public sealed class NumericSeries
             new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
     }
 
+    public string SeriesId { get; }
     public string? Name { get; }
     public int Count => Values.Count;
     public IReadOnlyList<decimal> Values { get; }
@@ -123,10 +156,14 @@ public sealed class NumericSeries
 
     public NumericSeries Slice(DateTimeOffset startInclusive, DateTimeOffset endExclusive, string? name = null)
     {
-        if (!HasTimestamps)
-            throw new InvalidOperationException("Slice requires at least one timestamped observation.");
-        if (startInclusive >= endExclusive)
-            throw new ArgumentException("Window start must be earlier than end.", nameof(startInclusive));
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Series,
+            "Slice",
+            $"series={SeriesId} window=[{startInclusive:o},{endExclusive:o})",
+            SeriesId);
+        HelperGuard.RequireState(HasTimestamps, "Slice requires at least one timestamped observation.");
+        HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
 
         var values = new List<decimal>();
         var times = new List<DateTimeOffset?>();
@@ -142,7 +179,10 @@ public sealed class NumericSeries
         }
 
         if (values.Count == 0)
+        {
+            HelperLog.Reject($"slice produced an empty series series={SeriesId}");
             throw new ArgumentException("Slice produced an empty series.");
+        }
 
         return new NumericSeries(
             values,
@@ -152,10 +192,43 @@ public sealed class NumericSeries
     }
 
     public ConfidenceReport Confidence(double level = ConfidenceLevel.DefaultValue)
-        => Full.Confidence(level);
+    {
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Confidence,
+            "Confidence",
+            $"γ={level} n={Count} series={SeriesId}",
+            SeriesId);
+        var report = Full.Confidence(level);
+        HelperLog.Information(
+            HelperLog.AppIds.Analytics,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Confidence,
+            $"confidence series={SeriesId} γ={level} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
+        return report;
+    }
 
     public ConfidenceReport Confidence(double level, int populationSize)
-        => Full.Confidence(level, populationSize);
+    {
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Confidence,
+            "Confidence",
+            $"γ={level} N={populationSize} n={Count} series={SeriesId}",
+            SeriesId);
+        HelperGuard.InRange(populationSize, 1, nameof(populationSize));
+        HelperGuard.Require(
+            Count <= populationSize,
+            nameof(populationSize),
+            "Sample count cannot exceed population size.");
+        var report = Full.Confidence(level, populationSize);
+        HelperLog.Information(
+            HelperLog.AppIds.Analytics,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Confidence,
+            $"confidence series={SeriesId} γ={level} N={populationSize} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
+        return report;
+    }
 
     /// <summary>
     /// Two-sided p-value of H0: mean = <paramref name="hypothesizedMean"/>.
@@ -260,8 +333,13 @@ public sealed class NumericSeries
         }
 
         if (values.Count == 0)
+        {
+            HelperLog.Reject("observations is empty");
             throw new ArgumentException("A numeric series must contain at least one value.", nameof(observations));
+        }
 
         return (values, times);
     }
+
+    private static string Fmt(double? value) => value is { } v ? v.ToString("G6") : "null";
 }

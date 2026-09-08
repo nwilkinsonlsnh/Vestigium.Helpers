@@ -8,7 +8,10 @@ public static class HelperDemoHost
 {
     public static int Run(string appId, string identity, Action probe)
     {
-        HelperLog.InitializeHost(appId);
+        HelperLog.InitializeHost(appId, cfg =>
+        {
+            cfg.MinimumDiskLevel = Vestigium.Logging.VestigiumLogLevel.Debug;
+        });
         Console.WriteLine($"Vestigium.Helpers.{appId}");
         Console.WriteLine($"Identity : {identity}");
         Console.WriteLine($"APPID    : {appId}");

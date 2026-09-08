@@ -55,7 +55,7 @@ foreach (var point in timed.EcdfPoints())
 
 `dotnet run --project src/Vestigium.Helpers.Analytics.Demo` opens the WPF gallery (same navy chrome as Vestigium.Logging). **Draw new sample** takes 1,000 unique integers from 1..100,000 with CSPRNG. Tabs: Overview, Sample, Summary, Bands, Histogram, Charts, Confidence, JSONL. **Histogram** overlays an OLS trend on the FD bins and a Pareto chart (bins sorted by count, cumulative share line, 80% mark). **Charts** draws `EcdfPoints()` and `SampleOrderPoints()` as polylines — the library still has no charting package.
 
-The gallery calls `HelperWpfHost.Start`. This library never calls `Initialize`.
+The gallery calls `HelperWpfHost.Start` with `MinimumDiskLevel = Debug`. This library never calls `Initialize`. Factories, `Slice`, and `Confidence` write Debug enter plus an Information constructed/confidence line. Rejects write Error then throw. Percentile and histogram loops stay silent.
 
 ## Do not
 
