@@ -24,7 +24,8 @@
 | Shared gallery chrome | `src/Vestigium.Helpers.Gallery/` |
 | Excel wrapper | `src/Vestigium.Helpers.ClosedXml/WorkbookHelper.cs` |
 | Charts wrapper | `src/Vestigium.Helpers.Charts/ChartView.cs` |
-| CSV skeleton | `src/Vestigium.Helpers.Csv/CsvHelper.cs` |
+| CSV | `src/Vestigium.Helpers.Csv/CsvHelper.cs` |
+| Encryption | `src/Vestigium.Helpers.Encryption/EncryptionHelper.cs` |
 | Registry wrapper | `src/Vestigium.Helpers.WinReg/RegistryHelper.cs` |
 | Per-library WPF gallery | `src/Vestigium.Helpers.*.Demo/` |
 | Logging library | sibling `../Vestigium.Logging` (solution folder `/Logging/`) |
