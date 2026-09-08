@@ -51,7 +51,8 @@ public abstract partial class GalleryViewModelBase : ObservableObject, IDisposab
 
     public void RefreshLines()
     {
-        HelperLog.Flush();
+        // Do not call HelperLog.Flush here. VestigiumLogger.Flush stops
+        // accepting writes (it is process-exit). The ring is updated live.
         var fresh = HelperLog.RecentJsonLines;
         WrittenCount = fresh.Count;
         if (Lines.Count == fresh.Count)

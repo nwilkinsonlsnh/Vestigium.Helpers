@@ -77,12 +77,20 @@ public sealed class NumericSeries
     public static NumericSeries From<T>(IEnumerable<T> values, string? name = null)
         where T : INumber<T>
     {
-        using var _ = HelperLog.Begin(
+        using var scope = HelperLog.Begin(
             HelperLog.AppIds.Analytics,
             HelperLog.Subcategories.Series,
             "From",
             $"name={name ?? "(none)"}");
-        return new NumericSeries(NumberConvert.ToDecimalList(values), [], name, SeriesWindow.None);
+        try
+        {
+            return new NumericSeries(NumberConvert.ToDecimalList(values), [], name, SeriesWindow.None);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public static NumericSeries FromDecimal(IEnumerable<decimal> values, string? name = null)
@@ -193,19 +201,27 @@ public sealed class NumericSeries
 
     public ConfidenceReport Confidence(double level = ConfidenceLevel.DefaultValue)
     {
-        using var _ = HelperLog.Begin(
+        using var scope = HelperLog.Begin(
             HelperLog.AppIds.Analytics,
             HelperLog.Subcategories.Confidence,
             "Confidence",
             $"γ={level} n={Count} series={SeriesId}",
             SeriesId);
-        var report = Full.Confidence(level);
-        HelperLog.Information(
-            HelperLog.AppIds.Analytics,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Confidence,
-            $"confidence series={SeriesId} γ={level} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
-        return report;
+        try
+        {
+            var report = Full.Confidence(level);
+            HelperLog.Information(
+                HelperLog.AppIds.Analytics,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Confidence,
+                $"confidence series={SeriesId} γ={level} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
+            return report;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public ConfidenceReport Confidence(double level, int populationSize)

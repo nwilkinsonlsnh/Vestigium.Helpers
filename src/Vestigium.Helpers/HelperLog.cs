@@ -3,12 +3,13 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers;
 
 /// <summary>
-/// Safe façade over Vestigium.Logging for helper libraries.
-/// Libraries never call Initialize. WPF galleries and application hosts do.
-/// Writes are no-ops until the host has initialized the logger.
-/// Enter/argument lines are always compiled in; the host floor
-/// (<see cref="VestigiumLoggerOptions.MinimumDiskLevel"/>) decides whether
-/// they land on disk. The in-memory ring still sees Debug when the host is on.
+/// Only door from helper libraries into Vestigium.Logging.
+/// ClosedXml and Analytics call this type. They never call
+/// <see cref="VestigiumLogger.Initialize"/> and they never write files themselves.
+/// The padlock <c>Vestigium.Logging</c> project in Solution Explorer is the engine
+/// that formats JSONL under <c>%ProgramData%\Vestigium\Logs\{APPID}\</c>.
+/// Writes are no-ops until a host (WPF gallery, later a product process) initializes.
+/// <see cref="Flush"/> is process-exit only — it stops further writes.
 /// </summary>
 public static class HelperLog
 {
@@ -61,6 +62,7 @@ public static class HelperLog
     public static VestigiumTaxonomy Taxonomy { get; } = CreateTaxonomy();
 
     private static readonly AsyncLocal<ScopeState?> Scope = new();
+    private static readonly AsyncLocal<bool> ContractFailed = new();
 
     public static string CurrentAppId => Scope.Value?.AppId ?? AppIds.Core;
 
@@ -99,6 +101,10 @@ public static class HelperLog
     public static IReadOnlyList<string> RecentJsonLines =>
         VestigiumLogger.IsInitialized ? VestigiumLogger.RecentJsonLines : [];
 
+    /// <summary>
+    /// Process-exit only. Vestigium.Logging stops accepting writes after this.
+    /// Do not call from a UI timer or from library methods.
+    /// </summary>
     public static void Flush()
     {
         if (VestigiumLogger.IsInitialized)
@@ -127,6 +133,8 @@ public static class HelperLog
         string? correlationId = null)
     {
         var parent = Scope.Value;
+        if (parent is null)
+            ContractFailed.Value = false;
         var id = correlationId ?? parent?.CorrelationId;
         Scope.Value = new ScopeState(appId, subcategory, method, id, parent);
         Enter(appId, subcategory, method, detail, id);
@@ -159,7 +167,27 @@ public static class HelperLog
         string reason,
         string? correlationId = null,
         Exception? exception = null)
-        => Error(appId, VestigiumStatus.Failed, subcategory, Line("reject", method, reason, correlationId), exception);
+    {
+        ContractFailed.Value = true;
+        Error(appId, VestigiumStatus.Failed, subcategory, Line("reject", method, reason, correlationId), exception);
+    }
+
+    /// <summary>
+    /// Log an unexpected failure from ClosedXML / MathNet / IO, then let the
+    /// caller rethrow. No-ops if <see cref="Reject"/> already recorded this throw.
+    /// </summary>
+    public static void Trap(Exception ex)
+    {
+        if (ContractFailed.Value)
+            return;
+        ContractFailed.Value = true;
+        Error(
+            CurrentAppId,
+            VestigiumStatus.Failed,
+            CurrentSubcategory,
+            Line("failed", CurrentMethod, $"{ex.GetType().Name}: {ex.Message}", CorrelationId),
+            ex);
+    }
 
     public static string Line(string verb, string method, string? detail, string? correlationId)
     {

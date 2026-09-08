@@ -206,34 +206,41 @@ public sealed class WorkbookSession : IDisposable
             nameof(source),
             "Cannot merge a workbook into itself.");
         source.ThrowIfDisposed();
-
-        var copied = 0;
-        var appended = 0;
-        foreach (var name in source.SheetNames)
+        try
         {
-            if (_workbook.TryGetWorksheet(name, out _))
+            var copied = 0;
+            var appended = 0;
+            foreach (var name in source.SheetNames)
             {
-                var incoming = source.Sheet(name).ReadUsedRange();
-                var dest = Sheet(name);
-                var existing = dest.ReadUsedRange();
-                if (existing.Headers.Count == 0 && existing.Rows.Count == 0)
-                    dest.WriteTable(incoming, new SheetWriteOptions { OperatorPrint = false, CreateExcelTable = false });
+                if (_workbook.TryGetWorksheet(name, out _))
+                {
+                    var incoming = source.Sheet(name).ReadUsedRange();
+                    var dest = Sheet(name);
+                    var existing = dest.ReadUsedRange();
+                    if (existing.Headers.Count == 0 && existing.Rows.Count == 0)
+                        dest.WriteTable(incoming, new SheetWriteOptions { OperatorPrint = false, CreateExcelTable = false });
+                    else
+                        dest.AppendRows(incoming.Rows, new SheetWriteOptions { OperatorPrint = false });
+                    appended++;
+                }
                 else
-                    dest.AppendRows(incoming.Rows, new SheetWriteOptions { OperatorPrint = false });
-                appended++;
+                {
+                    source.Workbook.Worksheet(name).CopyTo(_workbook, name);
+                    copied++;
+                }
             }
-            else
-            {
-                source.Workbook.Worksheet(name).CopyTo(_workbook, name);
-                copied++;
-            }
-        }
 
-        HelperLog.Information(
-            _appId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Session,
-            $"Merged sheets appended={appended} copied={copied} total={_workbook.Worksheets.Count} session={SessionId}");
+            HelperLog.Information(
+                _appId,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Session,
+                $"Merged sheets appended={appended} copied={copied} total={_workbook.Worksheets.Count} session={SessionId}");
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public SheetSession Sheet(string name)
@@ -306,9 +313,9 @@ public sealed class WorkbookSession : IDisposable
             HelperLog.Exit(_appId, HelperLog.Subcategories.Session, "SaveAs", $"path={target} session={SessionId}");
             return target;
         }
-        catch (Exception ex) when (ex is not ArgumentException and not ObjectDisposedException)
+        catch (Exception ex)
         {
-            HelperLog.Reject(_appId, HelperLog.Subcategories.Session, "SaveAs", $"path={target} session={SessionId}", SessionId, ex);
+            HelperLog.Trap(ex);
             throw;
         }
     }

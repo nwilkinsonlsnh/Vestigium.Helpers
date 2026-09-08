@@ -18,5 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
+    <ProjectReference Include="$(VestigiumLoggingProject)" />
   </ItemGroup>
 </Project>

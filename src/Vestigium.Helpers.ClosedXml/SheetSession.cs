@@ -34,6 +34,19 @@ public sealed class SheetSession
         _book.ThrowIfDisposed();
         HelperGuard.NotNull(table, nameof(table));
         using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "WriteAt", $"sheet={Name} origin={ExcelNames.ColumnLetter(Math.Max(1, column))}{Math.Max(1, row)} rows={table.Rows.Count}");
+        try
+        {
+            WriteAtCore(row, column, table, options);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
+    private void WriteAtCore(int row, int column, SheetTable table, SheetWriteOptions? options)
+    {
         HelperGuard.InRange(row, 1, nameof(row));
         HelperGuard.InRange(column, 1, nameof(column));
 
@@ -88,6 +101,8 @@ public sealed class SheetSession
         _book.ThrowIfDisposed();
         using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AppendRows", $"sheet={Name}");
         HelperGuard.NotNull(rows, nameof(rows));
+        try
+        {
         var opts = options ?? SheetWriteOptions.Default;
         var last = _sheet.LastRowUsed()?.RowNumber() ?? 0;
         var colCount = _sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
@@ -110,12 +125,20 @@ public sealed class SheetSession
             VestigiumStatus.Success,
             HelperLog.Subcategories.Sheet,
             $"Appended sheet={Name} rows={count} session={_book.SessionId}");
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public SheetTable ReadUsedRange(SheetReadOptions? options = null)
     {
         _book.ThrowIfDisposed();
         using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "ReadUsedRange", $"sheet={Name}");
+        try
+        {
         var opts = options ?? SheetReadOptions.Default;
         var used = _sheet.RangeUsed();
         if (used is null)
@@ -168,6 +191,12 @@ public sealed class SheetSession
             HelperLog.Subcategories.Sheet,
             $"Read sheet={Name} rows={rows.Count} cols={colCount} session={_book.SessionId}");
         return new SheetTable { Headers = headers, Rows = rows, Name = tableName };
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public void ApplyChrome(SheetChrome chrome)

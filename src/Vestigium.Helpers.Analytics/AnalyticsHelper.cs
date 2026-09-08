@@ -6,8 +6,9 @@ namespace Vestigium.Helpers.Analytics;
 
 /// <summary>
 /// Façade for descriptive statistics on a finite numeric series.
-/// Real work lives on <see cref="NumericSeries"/>; this type keeps the suite identity contract.
-/// Libraries never call Initialize — Probe writes through HelperLog, a no-op until the host starts logging.
+/// Real work lives on <see cref="NumericSeries"/>. Logging goes through
+/// <see cref="HelperLog"/> into <c>Vestigium.Logging</c> (APPID Analytics).
+/// This library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class AnalyticsHelper
 {

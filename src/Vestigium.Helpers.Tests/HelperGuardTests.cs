@@ -212,6 +212,28 @@ public sealed class HelperGuardTests
         }
     }
 
+    [Fact]
+    public void Open_garbage_file_logs_failed_through_vestigium_logging()
+    {
+        var dir = NewDir();
+        HelperLog.InitializeHost(HelperLog.AppIds.ClosedXml, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            var junk = Path.Combine(dir, "not-excel.xlsx");
+            File.WriteAllText(junk, "this is not a workbook");
+            Assert.ThrowsAny<Exception>(() => WorkbookHelper.Open(junk, HelperLog.AppIds.ClosedXml));
+            Assert.Contains(HelperLog.RecentJsonLines, l =>
+                l.Contains("\"APPID\":\"ClosedXml\"")
+                && l.Contains("\"LEVEL\":\"Error\"")
+                && l.Contains("\"STATUS\":\"Failed\"")
+                && l.Contains("\"CATEGORY\":\"Helpers\""));
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+        }
+    }
+
     private static string NewDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));

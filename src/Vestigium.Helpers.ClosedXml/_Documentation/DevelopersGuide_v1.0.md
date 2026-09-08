@@ -29,9 +29,21 @@ book.Sheet("Summary").WriteTable(SheetTable.Create(
 var path = book.Save(); // %DESKTOP%\Vestigium\Exports\ClosedXml\
 ```
 
-Tests must `SaveAs` a temp path. Never `Save()` onto the real Desktop from xUnit.
+## Logging (Vestigium.Logging)
 
-`WorkbookSession.SessionId` is stamped on every JSONL line from that session. `HelperLog.Begin` writes Debug enter (disk only when the host floor is Debug). Guards log Failed then throw.
+The padlock **Logging** folder in the solution *is* the engine. ClosedXml does not call `VestigiumLogger.Initialize` and does not write files itself.
+
+Call path:
+
+`WorkbookHelper` / `WorkbookSession` / `SheetSession` → `HelperLog.Write` → `VestigiumLog.Write` → JSONL under `%ProgramData%\Vestigium\Logs\{APPID}\`.
+
+- F5 `Vestigium.Helpers.ClosedXml.Demo` (that process initializes logging with APPID `ClosedXml`).
+- Then open `C:\ProgramData\Vestigium\Logs\ClosedXml\vestigium-ClosedXml-*.json`.
+- You should see Debug `enter Create` / `enter WriteAt`, Information `Wrote sheet=...`, and on failure Error `reject` or `failed` with the exception text.
+
+If you run ClosedXml from a unit test or a console that never called `HelperLog.InitializeHost`, the library still throws — it just has nowhere to write. That is the host contract, not a missing reference.
+
+Tests must `SaveAs` a temp path. Never `Save()` onto the real Desktop from xUnit.
 
 ## Dump a NumericSeries
 
