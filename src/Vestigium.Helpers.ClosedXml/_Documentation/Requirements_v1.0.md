@@ -1,9 +1,9 @@
 # Vestigium.Helpers.ClosedXml — Requirements Specification
 
 **Document ID:** VEST-HLP-CLOSEDXML-SRS-000  
-**Version:** 1.0  
-**Status:** Accepted (write-first; implementation follows this document)  
-**Date:** 7 September 2026  
+**Version:** 1.1  
+**Status:** Accepted (write + charts + read + chrome + letterhead — implementation follows this document)  
+**Date:** 8 September 2026  
 **Package:** `Vestigium.Helpers.ClosedXml`  
 **Engine:** ClosedXML 0.105.1 (or the current suite pin)  
 **TFM:** `net10.0` (not Windows-only)
@@ -37,7 +37,7 @@ These came from the 7 September 2026 design pass.
 | 5 | Demo | `Vestigium.Helpers.ClosedXml.Demo` uses `Vestigium.Helpers.Analytics` to mint a numeric series and writes several worksheets. |
 | 6 | Default export folder | `%USERPROFILE%\Desktop\Vestigium\Exports\{APPID}\` on Windows. Caller may pass any other path. Tests never use the Desktop. |
 | 7 | Logging | `HelperLog` only. Libraries never call `VestigiumLogger.Initialize`. APPID = `ClosedXml`. Debug enter on public session/sheet methods. Error then throw on guard failures. `SessionId` on every line. |
-| 8 | Charts | Native Excel charts on WriteSeries (v1.1). ClosedXML cannot author them; the helper writes OOXML chart parts after save. |
+| 8 | Charts | Native Excel charts on WriteSeries. ClosedXML cannot author them; the helper writes OOXML chart parts after save. The **demo** also hosts `Vestigium.Helpers.Charts` as a preview — the library does not reference Charts. |
 
 ---
 
@@ -84,9 +84,9 @@ If a later milestone needs "open `Vestigium-Letterhead.xlsx` and fill named rang
 | `.xls` | ClosedXML does not support it. |
 | Macro authoring | We are not a VBA IDE. |
 | Pivot caches, Power Query, slicers | Different product. |
-| Excel charts | **Shipped.** `WriteSeries` embeds column / line charts. ClosedXML does not author them — we inject chart parts. `IncludeCharts = false` turns them off. |
+| Excel charts | **Shipped.** `WriteSeries` embeds column / bar / line / pie / scatter. ClosedXML does not author them — we inject chart parts. `IncludeCharts = false` turns them off. |
 | Sparklines | Still out. |
-| Conditional-formatting rule designer | One "highlight high outliers" rule may land in v1.2, not v1.0. |
+| Conditional-formatting rule designer | One "highlight high outliers" rule shipped (Sample.Value > P95). A general designer is out. |
 | POCO / attribute mapping | Avoid a second ORM. Callers pass `SheetTable`. |
 | ClosedXML.Report token templates | v2. |
 | Streaming 1M-row writers | ClosedXML loads the package. Huge extracts need another stack. |
@@ -288,7 +288,7 @@ A `WorkbookHelper.WriteSeries(WorkbookSession, NumericSeries, string? prefix = n
 1. Draw an Analytics series (crypto sample: 1,000 unique integers from 1..100,000).
 2. **Write workbook** dumps the sheets in §9 to `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`.
 3. Table Design style defaults to Medium 2; the gallery ComboBox lists Excel's Light / Medium / Dark names.
-4. **Charts** previews the four series that land as native Excel charts (injected OOXML after ClosedXML save).
+4. **Charts** hosts `Vestigium.Helpers.Charts` (`ChartView`) as a preview of the same series. Excel still gets native OOXML charts on save. This library does not reference Charts.
 5. **Inject** shows that leading `= + - @` become text.
 6. JSONL still goes to `%ProgramData%\Vestigium\Logs\ClosedXml\`.
 
@@ -362,54 +362,33 @@ No EPPlus. No Excel Interop. No Microsoft.Office.Interop.Excel. Those require Ex
 
 ## 15. Roadmap
 
-### v1.0 — Write (this document)
+Shipped work stays in the table so it is not reopened. New work is §15.2.
 
-- Session create / open / open-or-create / dispose
-- `SheetTable` write
-- Chrome: header, freeze, autofilter, autosize cap
-- Desktop export path
-- Injection guard
-- Demo writes Analytics across several sheets
-- Tests against a known workbook via ClosedXML reopen
+### 15.1 Shipped
 
-### v1.1 — Charts (this drop)
+| Version | What landed |
+|---|---|
+| v1.0 | Session create / open / save, `SheetTable` write, chrome, Desktop export, injection guard, `WriteSeries` sheets, Identity / Probe |
+| v1.1 | Native Excel column / line charts on `WriteSeries`, Charts dashboard sheet, `IncludeCharts` |
+| v1.2 | `ReadUsedRange` → `SheetTable`, typed cell guess, round-trip tests |
+| v1.3 | Print chrome, header-name formats (`ms` / `pct` / `utc`), P95 highlight, `ReorderSheets` / `MoveSheet` |
+| v2.0 | `OpenTemplate`, named ranges, pictures / logo, merge by sheet name |
+| v2.1 | `AddChart` pie + scatter, Excel Table Design gallery (Light / Medium / Dark), demo hosts ChartView as a preview |
 
-- Native Excel column / line charts on `WriteSeries`
-- Charts sheet dashboard (histogram, band means, mean CI, sample)
-- Histogram sheet local chart
-- `WorkbookSession.IncludeCharts` (default true)
-- Still no sparklines, pivot charts, or a separate Charts helper library
+### 15.2 Next
 
-### v1.2 — Read what we wrote (this drop)
+| Version | Item | Why |
+|---|---|---|
+| **v2.2** | **Preserve chart parts on Open + Save** | ClosedXML round-trip drops injected OOXML. Today charts exist only on the way *out*. Operators who open a dump, append a row, and save lose the dashboard. |
+| **v2.2** | **Hyperlinks** | Jump from Summary to Sample row. |
+| **v2.2** | **Cell comments / notes** | Stamp a method note on a P95 cell without a second sheet. |
+| **v2.3** | **Data validation** (dropdown from a list) | Operator chrome, not a form designer. |
+| **v2.3** | **Read named ranges** | `WriteNamedRange` exists; round-trip the fill. |
+| **later** | Password-protected workbooks (open with a password) | Not a crypto product. Encryption helper stays a sibling. |
 
-- `ReadUsedRange` -> `SheetTable`
-- Typed cell guess: number, text, bool, DateTime
-- Round-trip tests: write demo shape, read, compare counts and a handful of values
-- Still not a general "any Excel file from accounting" importer
+### 15.3 Never here
 
-### v1.3 — Operator chrome (this drop)
-
-- Print: landscape, fit-to-width, footer with APPID + timestamp
-- Column number formats per header name (`ms`, `pct`, `utc`)
-- Optional single conditional-format on a named column (high outliers)
-- Sheet order helper
-
-### v2.0 — Templates and pictures (this drop)
-
-- Open a caller-supplied letterhead `.xlsx` and write into a named range or a reserved sheet
-- Embed a logo image at a fixed cell
-- Multiple workbooks merged by sheet name (append-only)
-
-### v2.1 — Chart builder API (this drop)
-
-- Public `AddChart` is already on the session. This drop grows kinds (pie, scatter) without a separate package.
-
-### Explicitly never here
-
-- CSV (see `Vestigium.Helpers.Csv`)
-- `.xls`
-- VBA authoring
-- Database / DataTable first-class API
+CSV (see `Vestigium.Helpers.Csv`), `.xls`, VBA authoring, pivot caches, Power Query, slicers, sparklines, ClosedXML.Report token templates, streaming 1M-row writers, thread-safe workbook sharing, writing to `%ProgramData%`.
 
 ---
 

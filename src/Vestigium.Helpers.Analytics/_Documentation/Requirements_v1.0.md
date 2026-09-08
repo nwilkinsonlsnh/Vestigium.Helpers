@@ -1,11 +1,11 @@
 # Vestigium.Helpers.Analytics — Requirements Specification
 
 **Document ID:** VEST-HLP-ANALYTICS-SRS-000  
-**Version:** 1.4  
+**Version:** 1.5  
 **Status:** Accepted — complete numeric surface (implementation follows this document)  
 **Date:** 8 September 2026  
 **Target:** .NET 10 LTS / Visual Studio 2026 / `net10.0`  
-**Companion:** `DevelopersGuide_v1.0.md`  
+**Companion:** `DevelopersGuide_v1.0.md` (design + how to call)  
 **Project:** `src/Vestigium.Helpers.Analytics/`
 
 ---
@@ -571,21 +571,17 @@ A single spike on a small sample often sits inside mean ± 3s because s inflates
 
 `TimeSeriesPoints()` omits observations with null `At`. If none have times, return an empty list (do not throw).
 
-### 10.2 Overlay numbers, not series
+### 10.3 Overlay numbers, not series
 
-Callers who want a normal-curve overlay compute it themselves from `Mean` and `StdDev`. This library does not emit a discretized Gaussian in v1.2 (allowed later; not required).
+Callers who want a normal-curve overlay compute it themselves from `Mean` and `StdDev`, or let Charts sample N(μ, s) for layout. Publishing `PdfPoints()` from this library is roadmap §16, not this version.
 
 Box-plot whiskers are the five-number summary plus `LowOutliers` / `HighOutliers`. No extra type is required.
 
-### 10.3 Future charting library (out of this project)
+### 10.4 Charting library (sibling, not this project)
 
-A later helper (name TBD, e.g. `Vestigium.Helpers.Charts`) may:
+`Vestigium.Helpers.Charts` exists. It wraps ScottPlot, consumes `NumericSeries` / `ChartPoint` / `ControlLimits`, and returns `FrameworkElement`. **This project must not reference it.** Analytics.Demo may. Until a host draws, PingIQ can bind the numbers directly.
 
-- reference ScottPlot / OxyPlot / LiveCharts in **that** project
-- consume `ChartPoint` / `TimedValue` / descriptors
-- live under the Helpers solution or a host
-
-Until that project exists, demos and PingIQ bind the numbers directly. **Do not** add a chart NuGet to `Vestigium.Helpers.Analytics.csproj`.
+Do not add a chart NuGet to `Vestigium.Helpers.Analytics.csproj`.
 
 ---
 
@@ -598,7 +594,7 @@ Until that project exists, demos and PingIQ bind the numbers directly. **Do not*
 | Package description | Descriptive statistics, quartile bands, frequency, and confidence intervals for finite numeric series. |
 | Package tags | `analytics;statistics;percentile;confidence;vestigium` |
 | MathNet.Numerics | 5.0.0 (inverse CDF only) |
-| Logging | none |
+| Logging | `HelperLog` APPID `Analytics`. Library never calls `Initialize`. |
 | Packable | yes |
 
 `AnalyticsHelper.Identity` remains so suite smoke tests stay green.
@@ -607,20 +603,18 @@ Until that project exists, demos and PingIQ bind the numbers directly. **Do not*
 
 ## 12. Non-goals (this version)
 
-- Chart controls, colors, palettes, WPF views
-- Kernel density / smoothed PDF
+Items that are **never** this library sit in §16.3. Items that are **later** sit in §16.2. This version still excludes:
+
+- Chart controls, colors, palettes, WPF views (sibling Charts)
 - Time-bucket histograms (“probes per minute”)
 - Streaming / rolling / exponential moving statistics
 - Weighted observations
-- Missing-value imputation (reject or, for time, skip that point in `Slice`)
+- Missing-value imputation
 - Autocorrelation, FFT, regression, ANOVA
-- Shapiro–Wilk or other formal normality tests
-- Bootstrap / BCa intervals
 - Bayesian credible intervals
-- Confidence interval **for P95** (may be a later version; not required now)
 - Application Insights / OpenTelemetry metrics export
-- Writing Vestigium log files
-- Multi-series compare type (`NumericSeries.Compare(a, b)`). Hosts hold two series and compare descriptors themselves.
+- Writing Vestigium log files (HelperLog only)
+- Multi-series compare type (`NumericSeries.Compare(a, b)`) — hosts hold two series today
 
 ---
 
@@ -692,11 +686,36 @@ Current files under `src/Vestigium.Helpers.Analytics/`:
 | `ControlLimits.cs` | Mean ± kσ, Shewhart MR (E2 × MR̄), caller-supplied fences |
 | `NumberConvert.cs` | `INumber<T>` → finite decimal |
 
-v1.1 code already covers §§7–9.3 and most of §8. v1.2 work is: `Observation`, window, `Slice`, `LowOutliers` / `HighOutliers`, FPC overload, `ChartPoint` views. Do not regress Identity or PERCENTILE.INC fixtures.
+v1.4 code covers §§7–10.2. Charts is a sibling. Do not regress Identity, PERCENTILE.INC fixtures, or ControlLimits.
 
 ---
 
-## 16. Document control
+## 16. Roadmap
+
+v1.4 is the shipped numeric surface. This section is what comes after — not work hiding in v1.5 of the code.
+
+### 16.1 Shipped (do not reopen)
+
+NumericSeries snapshot, six slices, five-number, frequency, Freedman–Diaconis histogram, moments, PERCENTILE.INC, confidence (t / median / χ² / Wilson / FPC / planned n / p-value / just-covering), ControlLimits (mean ± kσ, Shewhart MR, caller-supplied, optional LCL floor), chart-ready points (ECDF, histogram, Pareto, OLS hist trend, time series), HelperLog. Gallery hosts Charts; this library still has no ScottPlot reference.
+
+### 16.2 Next
+
+| Version | Item | Why |
+|---|---|---|
+| **v1.5** | **Run rules** — Nelson / Western Electric flags as indexes on a series given `ControlLimits` | Natural companion to MovingRange. Charts paints the indexes; this library computes them. A lone point outside UCL is already `OutOfControlIndexes`. Runs (8 on one side of CL, 2 of 3 beyond 2σ, …) are the next QC question PingIQ will ask. |
+| **v1.5** | **Interval for a percentile** (CI for P95) | Called out since v1.2. P95 is a rank cut; hosts still want a fence on that cut. Bootstrap or an order-statistic interval. Not a confidence *level* of 0.95. |
+| **v1.6** | **`PdfPoints()`** — sampled N(μ, s) and optional KDE on the value axis | Charts already samples a bell for layout. Publishing the points here keeps density math in Analytics. |
+| **v1.6** | **Two-series compare** — difference of means, overlapping intervals | Hosts currently compare two `NumericSeries` by hand. A small report type, not a chart. |
+| **later** | Shapiro–Wilk / Anderson–Darling as a descriptor (`IsConsistentWithNormal`) | Optional gate, never a reason to refuse ControlLimits. |
+| **later** | Bootstrap / BCa for the mean as an alternate `ConfidenceInterval.Method` | t stays the default. |
+
+### 16.3 Never here
+
+Charting NuGet, ScottPlot / OxyPlot / LiveCharts, time-bucket histograms, streaming sketches, weighted observations, Bayesian intervals, OpenTelemetry export, writing log files, CSV, Excel.
+
+---
+
+## 17. Document control
 
 | Version | Date | Change |
 |---|---|---|
@@ -705,3 +724,4 @@ v1.1 code already covers §§7–9.3 and most of §8. v1.2 work is: `Observation
 | 1.2 | 7 Sep 2026 | Lossless capture of the design conversation: glossary (P vs γ vs sample fraction), right-tail reading, optional `Observation` / UTC window / `Slice`, FPC mean overload, chart-ready numeric views, explicit non-goals for charting and time-bucket histograms, host feed pattern, expanded acceptance. |
 | 1.3 | 8 Sep 2026 | Histogram OLS trend points and Pareto points (count-desc bins + cumulative share). Gallery draws the trend line and Pareto chart. No charting NuGet. |
 | 1.4 | 8 Sep 2026 | `ControlLimits`: mean ± kσ, Shewhart moving-range (E2 × MR̄, encounter order), caller-supplied fences, optional LCL floor. Charts draws these numbers and does not recompute them. |
+| 1.5 | 8 Sep 2026 | Charts sibling is in-tree. HelperLog is the logging door. Future roadmap: run rules, percentile interval, PdfPoints, two-series compare. |

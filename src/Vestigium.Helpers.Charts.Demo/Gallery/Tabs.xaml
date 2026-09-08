@@ -3,7 +3,7 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CHARTS  ·  SRS v1.0"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CHARTS  ·  SRS v1.1"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
                    Text="Wrapper over ScottPlot. Analytics computes the numbers (including UCL / CL / LCL). Charts draws them on a WPF form. Excel charts stay in ClosedXml."/>

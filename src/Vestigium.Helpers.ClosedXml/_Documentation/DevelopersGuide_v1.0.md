@@ -1,11 +1,29 @@
 # Vestigium.Helpers.ClosedXml — Developers Guide
 
 **Document ID:** VEST-HLP-CLOSEDXML-DEV-000  
-**Version:** 1.0  
-**Status:** Companion to SRS v1.0 (write + charts + read + operator chrome + letterhead)  
+**Version:** 1.1  
+**Status:** Design companion to SRS v1.1 (write + charts + read + operator chrome + letterhead)  
 **Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.ClosedXml/`.
+
+## Design
+
+**Intent.** One way for every Vestigium host to dump reviewable data into a real `.xlsx`. Operators sort, filter, and stare at numbers without installing the app that produced them. The file must open in Excel and LibreOffice.
+
+**Locked decisions.**
+
+| Decision | Why |
+|---|---|
+| Write first, then read what we wrote | The read surface is a round-trip of our files, not a general importer. |
+| CSV is a sibling | ClosedXML is `.xlsx` only. `Vestigium.Helpers.Csv` is the next lossless SRS. |
+| Native Excel charts by zip splice | ClosedXML 0.105 cannot author charts. We inject OOXML after save. |
+| ChartView is a demo host, not a library reference | Excel charts stay here. WPF preview uses Charts. Two drawing surfaces, one series. |
+| Desktop export, ProgramData logs | Workbooks are for humans. JSONL is for the padlock logger. |
+| Injection prefix on `= + - @` | Untrusted text never becomes a formula. |
+| Table Design is Excel's gallery | Light / Medium / Dark names. Default Medium 2. No kitchen-sink `IXLStyle`. |
+
+**Gap that drives v2.2.** Opening a charted file with `WorkbookHelper.Open` and `Save` writes tables only — chart parts are injected on the way out. Preserve-on-round-trip is the next real Excel problem.
 
 ## Contract
 
@@ -157,4 +175,16 @@ JSONL: `%ProgramData%\Vestigium\Logs\ClosedXml\`
 
 ## CSV
 
-That work is `Vestigium.Helpers.Csv`. Do not add a CSV parser here.
+That work is `Vestigium.Helpers.Csv`. Do not add a CSV parser here. Csv is the next library to leave skeleton — see that project's SRS.
+
+## Roadmap
+
+Shipped through v2.1 (write, Excel charts, read-back, chrome, letterhead, pictures, merge, pie/scatter, Table Design, demo ChartView host).
+
+Next (SRS §15.2):
+
+1. **Preserve chart parts on Open + Save** — the round-trip currently drops them.
+2. **Hyperlinks** and **cell comments**.
+3. **Data validation** (dropdown lists) and **read named ranges**.
+
+Never: CSV, `.xls`, VBA, pivots, sparklines, token templates.

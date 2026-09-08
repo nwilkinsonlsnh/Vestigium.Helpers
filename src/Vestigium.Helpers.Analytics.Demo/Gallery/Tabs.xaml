@@ -3,7 +3,7 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ANL  ·  SRS v1.4"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ANL  ·  SRS v1.5"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
                    Text="NumericSeries is an immutable snapshot of a finite sample. It publishes the five-number summary, quartile bands, PERCENTILE.INC tails, frequentist intervals, and ControlLimits. Charting stays out of this library — this gallery hosts Vestigium.Helpers.Charts (ScottPlot) so you can see the numbers."/>

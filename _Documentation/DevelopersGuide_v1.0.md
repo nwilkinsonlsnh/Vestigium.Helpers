@@ -1,9 +1,9 @@
 # Vestigium.Helpers — Developers Guide
 
 **Document ID:** VEST-HLP-DEV-000  
-**Version:** 1.2  
+**Version:** 1.3  
 **Status:** Active  
-**Date:** 7 September 2026
+**Date:** 8 September 2026
 
 ## Open the solution
 
@@ -53,7 +53,7 @@
 ## Adding a helper later
 
 1. New class library `src/Vestigium.Helpers.{Name}` targeting `net10.0` unless it is Windows-only.
-2. `_Documentation/Requirements_v1.0.md` and `DevelopersGuide_v1.0.md` before implementation.
+2. `_Documentation/Requirements_v1.0.md` (SRS) and `DevelopersGuide_v1.0.md` (design companion, including a future roadmap) **before** implementation.
 3. Add `HelperLog.AppIds.{Name}` and register it in `HelperLog.Taxonomy`.
 4. Add `Probe()` that logs Pending then Success.
 5. Add `src/Vestigium.Helpers.{Name}.Demo` as a WPF gallery (`net10.0-windows`, `UseWPF`) and start it with `HelperWpfHost.Start`.

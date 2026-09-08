@@ -50,7 +50,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 |---|---|---|
 | `Vestigium.Helpers` | `net10.0` | Guards, `HelperLog`, `HelperWpfHost` |
 | `Vestigium.Helpers.ClosedXml` | `net10.0` | ClosedXML write-first Excel (`.xlsx`) |
-| `Vestigium.Helpers.Csv` | `net10.0` | CSV / TSV (skeleton; not ClosedXml) |
+| `Vestigium.Helpers.Csv` | `net10.0` | CSV / TSV (SRS proposed; not ClosedXml) |
 | `Vestigium.Helpers.Encryption` | `net10.0` | Hashing and encryption helpers |
 | `Vestigium.Helpers.WinReg` | `net10.0-windows` | Windows Registry helpers |
 | `Vestigium.Helpers.Json` | `net10.0` | System.Text.Json helpers |

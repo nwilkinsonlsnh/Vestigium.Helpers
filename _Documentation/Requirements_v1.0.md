@@ -1,9 +1,9 @@
 # Vestigium.Helpers — Requirements Specification
 
 **Document ID:** VEST-HLP-SRS-000  
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Active  
-**Date:** 7 September 2026
+**Date:** 8 September 2026
 
 ## 1. Purpose
 
@@ -34,7 +34,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-CSV | Vestigium.Helpers.Csv | net10.0 | Skeleton; not ClosedXml |
 | HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
 
-Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, and Charts are full galleries. The rest use the shared skeleton in `Vestigium.Helpers.Gallery`.
+Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, and Charts are full galleries with accepted SRS + design companion (including a future roadmap). The rest use the shared skeleton in `Vestigium.Helpers.Gallery` until their own lossless SRS is accepted. **Csv is next.**
 
 ## 4. Logging
 
@@ -56,6 +56,8 @@ Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics,
 
 ## 6. Open items
 
+- **Csv lossless SRS** (next library). Delimiter, quoting, UTF-8 BOM, injection prefix, Desktop export path shared with ClosedXml. Skeleton is `src/Vestigium.Helpers.Csv/`.
 - Encryption key-storage contract (DPAPI vs raw key material).
 - Whether Services targets Service Control Manager only, or also `IHostedService`.
-- Csv lossless SRS (delimiter, quoting, injection prefix). ClosedXml write surface is accepted in `src/Vestigium.Helpers.ClosedXml/_Documentation/Requirements_v1.0.md`.
+
+Accepted with a future roadmap: ClosedXml (SRS v1.1), Analytics (SRS v1.5), Charts (SRS v1.1).
