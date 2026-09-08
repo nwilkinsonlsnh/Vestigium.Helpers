@@ -20,6 +20,7 @@ public static class HelperLog
         public const string Core = "Helpers";
         public const string ClosedXml = "ClosedXml";
         public const string Encryption = "Encryption";
+        public const string Hashing = "Hashing";
         public const string WinReg = "WinReg";
         public const string Json = "Json";
         public const string Xml = "Xml";
@@ -43,6 +44,7 @@ public static class HelperLog
         public const string Confidence = "Confidence";
         public const string Chart = "Chart";
         public const string Limits = "Limits";
+        public const string Crypto = "Crypto";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -50,6 +52,7 @@ public static class HelperLog
         AppIds.Core,
         AppIds.ClosedXml,
         AppIds.Encryption,
+        AppIds.Hashing,
         AppIds.WinReg,
         AppIds.Json,
         AppIds.Xml,
@@ -122,12 +125,6 @@ public static class HelperLog
 
     public static string NewId() => Guid.NewGuid().ToString("N")[..8];
 
-    /// <summary>
-    /// Push app / method / correlation for nested guards, and write a Debug enter line.
-    /// Dispose restores the previous scope. Does not write exit — call
-    /// <see cref="Exit"/> after a successful return, or let a reject
-    /// record the failure.
-    /// </summary>
     public static IDisposable Begin(
         string appId,
         string subcategory,
@@ -175,10 +172,6 @@ public static class HelperLog
         Error(appId, VestigiumStatus.Failed, subcategory, Line("reject", method, reason, correlationId), exception);
     }
 
-    /// <summary>
-    /// Log an unexpected failure from ClosedXML / MathNet / IO, then let the
-    /// caller rethrow. No-ops if <see cref="Reject"/> already recorded this throw.
-    /// </summary>
     public static void Trap(Exception ex)
     {
         if (ContractFailed.Value)
@@ -258,7 +251,8 @@ public static class HelperLog
             Subcategories.Sheet,
             Subcategories.Series,
             Subcategories.Confidence,
-            Subcategories.Chart);
+            Subcategories.Chart,
+            Subcategories.Crypto);
         return t;
     }
 
