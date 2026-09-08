@@ -14,6 +14,7 @@
     <Project Path="src/Vestigium.Helpers.Csv/Vestigium.Helpers.Csv.csproj" />
   </Folder>
   <Folder Name="/Demo/">
+    <Project Path="src/Vestigium.Helpers.Gallery/Vestigium.Helpers.Gallery.csproj" />
     <Project Path="src/Vestigium.Helpers.Demo/Vestigium.Helpers.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.ClosedXml.Demo/Vestigium.Helpers.ClosedXml.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Encryption.Demo/Vestigium.Helpers.Encryption.Demo.csproj" />

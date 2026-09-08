@@ -1,15 +1,15 @@
 namespace Vestigium.Helpers;
 
 /// <summary>
-/// Shared entry for every Helpers CLI demo. Initializes Vestigium.Logging with
-/// the helper APPID so JSONL lands in %ProgramData%\Vestigium\Logs\{APPID}\.
+/// Optional console entry. The shipped demos are WPF galleries in
+/// <c>Vestigium.Helpers.Gallery</c> (<c>HelperWpfHost.Start</c>).
 /// </summary>
 public static class HelperDemoHost
 {
     public static int Run(string appId, string identity, Action probe)
     {
         HelperLog.InitializeHost(appId);
-        Console.WriteLine($"Vestigium.Helpers.{appId} CLI");
+        Console.WriteLine($"Vestigium.Helpers.{appId}");
         Console.WriteLine($"Identity : {identity}");
         Console.WriteLine($"APPID    : {appId}");
         Console.WriteLine();
@@ -17,11 +17,11 @@ public static class HelperDemoHost
         try
         {
             probe();
-            HelperLog.Information(appId, Vestigium.Logging.VestigiumStatus.Success, appId, "CLI demo finished.");
+            HelperLog.Information(appId, Vestigium.Logging.VestigiumStatus.Success, appId, "Demo finished.");
         }
         catch (Exception ex)
         {
-            HelperLog.Error(appId, Vestigium.Logging.VestigiumStatus.Failed, appId, "CLI demo failed.", ex);
+            HelperLog.Error(appId, Vestigium.Logging.VestigiumStatus.Failed, appId, "Demo failed.", ex);
             Console.Error.WriteLine(ex);
             PrintLogs(appId);
             HelperLog.Shutdown();

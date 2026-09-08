@@ -283,15 +283,14 @@ A `WorkbookHelper.WriteSeries(WorkbookSession, NumericSeries, string? prefix = n
 
 ## 10. Demo contract
 
-`Vestigium.Helpers.ClosedXml.Demo`:
+`Vestigium.Helpers.ClosedXml.Demo` is a WPF gallery (`HelperWpfHost.Start`, APPID `ClosedXml`):
 
-1. `HelperDemoHost.Run` with APPID `ClosedXml`.
-2. Call `WorkbookHelper.Probe()`.
-3. Draw or reuse an Analytics series (crypto sample is fine; 200-1000 points).
-4. Write the sheets in §9.
-5. `Save()` to `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`.
-6. Print the full path to the console.
-7. JSONL still goes to `%ProgramData%\Vestigium\Logs\ClosedXml\`.
+1. Draw an Analytics series (crypto sample: 1,000 unique integers from 1..100,000).
+2. **Write workbook** dumps the sheets in §9 to `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`.
+3. Table Design style defaults to Medium 2; the gallery ComboBox lists Excel's Light / Medium / Dark names.
+4. **Charts** previews the four series that land as native Excel charts (injected OOXML after ClosedXML save).
+5. **Inject** shows that leading `= + - @` become text.
+6. JSONL still goes to `%ProgramData%\Vestigium\Logs\ClosedXml\`.
 
 The demo references Analytics. The library may as well. Core `Vestigium.Helpers` does not reference ClosedXml or Analytics.
 

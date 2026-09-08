@@ -4,7 +4,7 @@ namespace Vestigium.Helpers;
 
 /// <summary>
 /// Safe façade over Vestigium.Logging for helper libraries.
-/// Libraries never call Initialize. CLI demos and application hosts do.
+/// Libraries never call Initialize. WPF galleries and application hosts do.
 /// Writes are no-ops until the host has initialized the logger.
 /// </summary>
 public static class HelperLog
@@ -56,14 +56,14 @@ public static class HelperLog
             "Vestigium", "Logs", cfg.AppId);
     }
 
-    public static void InitializeHost(string appId, Action<VestigiumLoggerOptions>? extra = null)
+    public static void InitializeHost(string appId, Action<VestigiumLoggerOptions>? extra = null, object? wpfApplication = null)
     {
         VestigiumLogger.Initialize(cfg =>
         {
             ConfigureHost(cfg, appId);
             extra?.Invoke(cfg);
         });
-        VestigiumLogger.BindLifetime(null);
+        VestigiumLogger.BindLifetime(wpfApplication);
     }
 
     public static bool IsInitialized => VestigiumLogger.IsInitialized;

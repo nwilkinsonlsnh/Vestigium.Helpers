@@ -30,7 +30,7 @@ It records every decision from the Analytics design conversation:
 
 ## 1. Purpose
 
-Give Vestigium hosts (PingIQ, DnsIQ, TraceIQ, HttpIQ, ProbeHost, CLI demos, later services) one in-process type that turns a finite batch of numbers into **meaningful descriptors**.
+Give Vestigium hosts (PingIQ, DnsIQ, TraceIQ, HttpIQ, ProbeHost, WPF galleries, later services) one in-process type that turns a finite batch of numbers into **meaningful descriptors**.
 
 Typical feeds: echo RTTs, hop counts, payload sizes, probe durations, HTTP status-to-ms mappings, any other homogeneous numeric column.
 

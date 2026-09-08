@@ -1,7 +1,7 @@
 # Vestigium.Helpers.Analytics — Developers Guide
 
 **Document ID:** VEST-HLP-ANALYTICS-DEV-000  
-**Version:** 1.2  
+**Version:** 1.3  
 **Status:** Companion to SRS v1.2  
 **Date:** 7 September 2026
 
@@ -50,6 +50,12 @@ foreach (var point in timed.EcdfPoints())
 ```
 
 `From(double[])` stays legal. Time is never required.
+
+## Demo
+
+`dotnet run --project src/Vestigium.Helpers.Analytics.Demo` opens the WPF gallery (same navy chrome as Vestigium.Logging). **Draw new sample** takes 1,000 unique integers from 1..100,000 with CSPRNG. Tabs: Overview, Sample, Summary, Bands, Histogram, Confidence, JSONL.
+
+The gallery calls `HelperWpfHost.Start`. This library never calls `Initialize`.
 
 ## Do not
 

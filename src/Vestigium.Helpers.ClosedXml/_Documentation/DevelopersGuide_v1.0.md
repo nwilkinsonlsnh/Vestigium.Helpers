@@ -84,7 +84,7 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 
 ## Demo
 
-`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo`
+`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews the four series that land as native Excel charts.
 
 Workbook: `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`  
 JSONL: `%ProgramData%\Vestigium\Logs\ClosedXml\`

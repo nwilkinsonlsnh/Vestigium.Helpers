@@ -5,7 +5,7 @@
 Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, HttpIQ, ProbeHost).
 
 **Target:** .NET 10 LTS / Visual Studio 2026  
-**Shape:** class libraries + one CLI demo per library  
+**Shape:** class libraries + one WPF gallery per library (same chrome as Vestigium.Logging)  
 **Windows-only project:** `Vestigium.Helpers.WinReg`  
 **Logging:** [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) JSON Lines (sibling repo, solution folder `/Logging/`)
 
@@ -16,7 +16,7 @@ Umbrella developer notes: [`_Documentation/DevelopersGuide_v1.0.md`](_Documentat
 
 Libraries never call `VestigiumLogger.Initialize`. They call `HelperLog.*`, which is a no-op until a host initializes.
 
-Each CLI demo is a host. It initializes with that helper's APPID. JSONL lands at:
+Each WPF gallery is a host. It initializes with that helper's APPID. JSONL lands at:
 
 ```
 %ProgramData%\Vestigium\Logs\{APPID}\vestigium-{APPID}-*.json
@@ -44,8 +44,9 @@ CI checks both repositories out as siblings so the same slnx path restores.
 
 | Project | TFM | Role |
 |---|---|---|
-| `Vestigium.Helpers` | `net10.0` | Guards, `HelperLog`, `HelperDemoHost` |
-| `Vestigium.Helpers.ClosedXml` | `net10.0` | ClosedXML Excel wrappers |
+| `Vestigium.Helpers` | `net10.0` | Guards, `HelperLog`, `HelperWpfHost` |
+| `Vestigium.Helpers.ClosedXml` | `net10.0` | ClosedXML write-first Excel (`.xlsx`) |
+| `Vestigium.Helpers.Csv` | `net10.0` | CSV / TSV (skeleton; not ClosedXml) |
 | `Vestigium.Helpers.Encryption` | `net10.0` | Hashing and encryption helpers |
 | `Vestigium.Helpers.WinReg` | `net10.0-windows` | Windows Registry helpers |
 | `Vestigium.Helpers.Json` | `net10.0` | System.Text.Json helpers |
@@ -53,29 +54,30 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.FileIo` | `net10.0` | File and directory helpers |
 | `Vestigium.Helpers.Processes` | `net10.0` | Process launch and capture |
 | `Vestigium.Helpers.Services` | `net10.0` | Service control helpers |
-| `Vestigium.Helpers.Analytics` | `net10.0` | Numeric series descriptors, quartile bands, confidence intervals |
+| `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals |
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial) |
 
-Each library has a matching `*.Demo` console project under the **Demo** solution folder.
+Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics and ClosedXml are full galleries; the rest are Probe + JSONL skeletons until their SRS is accepted.
 
 ## Open in Visual Studio
 
 1. Clone this repository **and** `Vestigium.Logging` next to it.
 2. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
 3. Restore NuGet.
-4. Set any `*.Demo` project as startup, F5. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
+4. Set any `*.Demo` project as startup, F5. Analytics and ClosedXml open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
 5. Run `Vestigium.Helpers.Tests` for the contract.
 
 ```
 dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo
+dotnet run --project src/Vestigium.Helpers.Analytics.Demo
 dotnet test src/Vestigium.Helpers.Tests
 ```
 
 ## Contracts that do not move
 
 - `.slnx` (not legacy `.sln`).
-- Helpers never call `Initialize`. CLIs and application hosts do.
+- Helpers never call `Initialize`. WPF galleries and application hosts do.
 - Disk format is JSON Lines from Vestigium.Logging. No `.log` / CSV path.
 - `WinReg` stays on `net10.0-windows`.
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory`.

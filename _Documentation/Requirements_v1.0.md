@@ -11,7 +11,7 @@ Provide small, independently referenced helper libraries for the Vestigium suite
 
 ## 2. Scope
 
-In scope for this milestone: solution skeleton, project files, `HelperLog` façade, one CLI demo per library, xUnit contracts for logging, umbrella documentation, CI build.
+In scope for this milestone: solution skeleton, project files, `HelperLog` façade, one WPF gallery per library, xUnit contracts for logging, umbrella documentation, CI build.
 
 Out of scope until a per-library SRS is accepted: real algorithm work, NuGet publish.
 
@@ -19,7 +19,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 
 | ID | Project | TFM | Notes |
 |---|---|---|---|
-| HLP-CORE | Vestigium.Helpers | net10.0 | Guards, `HelperLog`, `HelperDemoHost` |
+| HLP-CORE | Vestigium.Helpers | net10.0 | Guards, `HelperLog`, `HelperWpfHost` |
 | HLP-XLS | Vestigium.Helpers.ClosedXml | net10.0 | Wraps ClosedXML 0.105.1 |
 | HLP-ENC | Vestigium.Helpers.Encryption | net10.0 | No custom crypto primitives |
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
@@ -30,16 +30,17 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-SVC | Vestigium.Helpers.Services | net10.0 | SCM / hosted services |
 | HLP-ANL | Vestigium.Helpers.Analytics | net10.0 | In-process only in v1 |
 | HLP-NET | Vestigium.Helpers.Network | net10.0 | |
+| HLP-CSV | Vestigium.Helpers.Csv | net10.0 | Skeleton; not ClosedXml |
 | HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
 
-Each library has a matching `*.Demo` console project.
+Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics and ClosedXml are full galleries. The rest use the shared skeleton in `Vestigium.Helpers.Gallery`.
 
 ## 4. Logging
 
 - Disk format is Vestigium.Logging JSON Lines. No `.log` / CSV path.
 - Path: `%ProgramData%\Vestigium\Logs\{APPID}\vestigium-{APPID}-*.json`.
 - Libraries never call `VestigiumLogger.Initialize`. `HelperLog` is a no-op until the host initializes.
-- Each CLI initializes with that helper's APPID so each demo writes its own folder.
+- Each WPF gallery initializes with that helper's APPID so each demo writes its own folder.
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory`.
 
 ## 5. Non-functional
@@ -47,11 +48,11 @@ Each library has a matching `*.Demo` console project.
 - .NET 10 LTS, C# latest, nullable enabled.
 - Packable class libraries (`IsPackable=true`) except Tests and Demos.
 - Deterministic builds.
-- Helpers do not reference WPF, Themes, or Controls.
+- Helpers do not reference WPF, Themes, or Controls. Demo galleries do (`Vestigium.Helpers.Gallery`).
 - `WinReg` stays on `net10.0-windows`.
 
 ## 6. Open items
 
-- Exact ClosedXML surface (read-only vs write, template workbooks).
 - Encryption key-storage contract (DPAPI vs raw key material).
 - Whether Services targets Service Control Manager only, or also `IHostedService`.
+- Csv lossless SRS (delimiter, quoting, injection prefix). ClosedXml write surface is accepted in `src/Vestigium.Helpers.ClosedXml/_Documentation/Requirements_v1.0.md`.

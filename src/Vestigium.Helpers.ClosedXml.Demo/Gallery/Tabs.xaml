@@ -1,0 +1,161 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CLOSEDXML  ·  write + charts"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Write-first Excel. ClosedXML writes the tables; the helper splices native chart parts on save so Excel and LibreOffice render them. CSV is a sibling library, not a mode of this one."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="SHEETS"/>
+              <TextBlock FontWeight="SemiBold" Text="Six tabs"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding SheetList}"/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="TABLE DESIGN"/>
+              <TextBlock FontWeight="SemiBold" Text="{Binding ExcelStyleName}"/>
+              <TextBlock Opacity="0.7" Text="Excel's own Light / Medium / Dark gallery. Default Medium 2."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="CHARTS"/>
+              <TextBlock FontWeight="SemiBold" Text="{Binding ChartCaption}"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="ClosedXML 0.105 cannot author charts. We inject OOXML after save."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="EXPORT"/>
+              <TextBlock FontWeight="SemiBold" Text="Desktop · Vestigium · Exports"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding ExportFolder}"/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Write workbook" Command="{Binding WriteWorkbookCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}"/>
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}"/>
+            </WrapPanel>
+            <TextBlock Opacity="0.7" Text="{Binding ExportPath}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="WriteTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="TABLE STYLE"/>
+        <ComboBox Width="220" HorizontalAlignment="Left"
+                  ItemsSource="{Binding TableStyles}" SelectedItem="{Binding TableStyle}"/>
+        <TextBlock Opacity="0.6" Text="{Binding ExcelStyleName}"/>
+        <CheckBox Content="Include Excel charts" IsChecked="{Binding IncludeCharts}"/>
+        <WrapPanel Margin="0,8,0,0">
+          <Button Content="Draw new sample" Command="{Binding DrawSampleCommand}"/>
+          <Button Content="Write workbook" Command="{Binding WriteWorkbookCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}"/>
+        </WrapPanel>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="220">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="n"/>
+              <TextBlock FontWeight="SemiBold" FontFamily="Cascadia Mono, Consolas" Text="{Binding Count, StringFormat=N0}"/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="220">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="MEAN"/>
+              <TextBlock FontWeight="SemiBold" FontFamily="Cascadia Mono, Consolas" Text="{Binding MeanText}"/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="220">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="P95"/>
+              <TextBlock FontWeight="SemiBold" FontFamily="Cascadia Mono, Consolas" Text="{Binding P95Text}"/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="SHEETS IN THE LAST WORKBOOK"/>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" Text="{Binding SheetList}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="PATH"/>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Text="{Binding ExportPath}"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ChartsTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Preview of the four series that land as native Excel charts. The downloaded workbook is the source of truth."/>
+        <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM"/>
+        <ItemsControl Height="160" ItemsSource="{Binding Histogram}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Rows="1"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Margin="2,0" VerticalAlignment="Bottom" Height="{Binding Height}" Background="#4C6B8A" ToolTip="{Binding Caption}" CornerRadius="2,2,0,0"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource Caption}" Text="BAND MEANS"/>
+        <ListView Height="180" ItemsSource="{Binding Bands}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Band" Width="80" DisplayMemberBinding="{Binding Band}"/>
+              <GridViewColumn Header="n" Width="70" DisplayMemberBinding="{Binding N}"/>
+              <GridViewColumn Header="Mean" Width="120" DisplayMemberBinding="{Binding Mean}"/>
+              <GridViewColumn Header="P50" Width="120" DisplayMemberBinding="{Binding P50}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+        <TextBlock Style="{StaticResource Caption}" Text="MEAN CONFIDENCE"/>
+        <ListView Height="180" ItemsSource="{Binding Intervals}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Level" Width="90" DisplayMemberBinding="{Binding Level}"/>
+              <GridViewColumn Header="Estimate" Width="110" DisplayMemberBinding="{Binding Estimate}"/>
+              <GridViewColumn Header="Lower" Width="110" DisplayMemberBinding="{Binding Lower}"/>
+              <GridViewColumn Header="Upper" Width="110" DisplayMemberBinding="{Binding Upper}"/>
+              <GridViewColumn Header="Method" Width="220" DisplayMemberBinding="{Binding Method}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="InjectTab">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
+                 Text="Strings that start with = + - @ are stored with a leading apostrophe. The library never evaluates caller formulas."/>
+      <ListView Grid.Row="1" ItemsSource="{Binding Injection}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Payload" Width="220" DisplayMemberBinding="{Binding Key}"/>
+            <GridViewColumn Header="Stored" Width="220" DisplayMemberBinding="{Binding Value}"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+    </Grid>
+  </DataTemplate>
+</ResourceDictionary>
