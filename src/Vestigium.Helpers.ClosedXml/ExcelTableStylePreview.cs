@@ -24,6 +24,17 @@ public sealed class ExcelTableStylePreview
 
     public string Caption => $"{Group} {Index}";
 
+    private static readonly (string Fill, string Dark, string Pale, string Ink)[] Accents =
+    [
+        ("#5B9BD5", "#2F5496", "#DDEBF7", White),
+        ("#ED7D31", "#C45911", "#FCE4D6", White),
+        ("#A5A5A5", "#7F7F7F", "#F2F2F2", White),
+        ("#FFC000", "#BF8F00", "#FFF2CC", Ink),
+        ("#4472C4", "#203864", "#D6DCE4", White),
+        ("#70AD47", "#375623", "#E2EFDA", White),
+        ("#9C5700", "#833C0C", "#F8CBAD", White)
+    ];
+
     public static IReadOnlyList<ExcelTableStylePreview> All { get; } = Build();
 
     public static IReadOnlyList<ExcelTableStylePreview> In(string group) =>
@@ -35,17 +46,6 @@ public sealed class ExcelTableStylePreview
         var found = All.FirstOrDefault(p => p.Id.Equals(key, StringComparison.OrdinalIgnoreCase));
         return found ?? throw new ArgumentOutOfRangeException(nameof(id), $"No preview for '{id}'.");
     }
-
-    private static readonly (string Fill, string Dark, string Pale, string Ink)[] Accents =
-    [
-        ("#5B9BD5", "#2F5496", "#DDEBF7", White),
-        ("#ED7D31", "#C45911", "#FCE4D6", White),
-        ("#A5A5A5", "#7F7F7F", "#F2F2F2", White),
-        ("#FFC000", "#BF8F00", "#FFF2CC", Ink),
-        ("#4472C4", "#203864", "#D6DCE4", White),
-        ("#70AD47", "#375623", "#E2EFDA", White),
-        ("#9C5700", "#833C0C", "#F8CBAD", White)
-    ];
 
     private static ExcelTableStylePreview[] Build()
     {
