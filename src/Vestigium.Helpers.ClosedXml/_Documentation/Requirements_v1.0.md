@@ -37,7 +37,7 @@ These came from the 7 September 2026 design pass.
 | 5 | Demo | `Vestigium.Helpers.ClosedXml.Demo` uses `Vestigium.Helpers.Analytics` to mint a numeric series and writes several worksheets. |
 | 6 | Default export folder | `%USERPROFILE%\Desktop\Vestigium\Exports\{APPID}\` on Windows. Caller may pass any other path. Tests never use the Desktop. |
 | 7 | Logging | `HelperLog` only. Libraries never call `VestigiumLogger.Initialize`. APPID = `ClosedXml`. |
-| 8 | Charts | Not in this library for v1. Same rule as Analytics: numbers and tables first. Charts are a later helper or a later milestone. |
+| 8 | Charts | Native Excel charts on WriteSeries (v1.1). ClosedXML cannot author them; the helper writes OOXML chart parts after save. |
 
 ---
 
@@ -84,7 +84,8 @@ If a later milestone needs "open `Vestigium-Letterhead.xlsx` and fill named rang
 | `.xls` | ClosedXML does not support it. |
 | Macro authoring | We are not a VBA IDE. |
 | Pivot caches, Power Query, slicers | Different product. |
-| Excel charts, sparklines | Deferred with Analytics charting. |
+| Excel charts | **Shipped.** `WriteSeries` embeds column / line charts. ClosedXML does not author them — we inject chart parts. `IncludeCharts = false` turns them off. |
+| Sparklines | Still out. |
 | Conditional-formatting rule designer | One "highlight high outliers" rule may land in v1.2, not v1.0. |
 | POCO / attribute mapping | Avoid a second ORM. Callers pass `SheetTable`. |
 | ClosedXML.Report token templates | v2. |
@@ -132,7 +133,7 @@ Example:  C:\Users\Wilkinson\Desktop\Vestigium\Exports\ClosedXml\
 Rules:
 
 - `{APPID}` is the **host** APPID when a Vestigium app calls the helper (PingIQ, DnsIQ, ...). The ClosedXml demo uses `ClosedXml`.
-- The helper creates the directory if it is missing.
+- The helper creates the directory if it is missing (on `Save` / `SaveAs`, not when you only ask for the path).
 - File name default: `vestigium-{APPID}-{yyyyMMdd-HHmmss}.xlsx` so runs do not clobber each other.
 - Caller path always wins over the default.
 - Tests pass a temp directory. The library must not touch the real Desktop from xUnit.
@@ -163,11 +164,15 @@ public static class WorkbookHelper
     public static string DefaultExportDirectory(string appId);
     public static string NewExportPath(string appId, string? stem = null);
 
-    public static WorkbookSession Create(string? firstSheetName = null);
-    public static WorkbookSession Open(string path);
-    public static WorkbookSession OpenOrCreate(string path, string? firstSheetName = null);
+    public static WorkbookSession Create(string? firstSheetName = null, string? appId = null);
+    public static WorkbookSession Open(string path, string? appId = null);
+    public static WorkbookSession OpenOrCreate(string path, string? firstSheetName = null, string? appId = null);
+
+    public static void WriteSeries(WorkbookSession book, NumericSeries series, string? prefix = null, int? populationSize = null, string? tableStyle = null);
 }
 ```
+
+`appId` stamps `HelperLog` and the default `Save()` folder. Tests always pass a temp path to `SaveAs`.
 
 ### 8.2 Session
 
@@ -175,6 +180,10 @@ public static class WorkbookHelper
 public sealed class WorkbookSession : IDisposable
 {
     public IReadOnlyList<string> SheetNames { get; }
+    public string TableStyle { get; set; }           // Light/Medium/Dark gallery; default Medium2
+    public bool IncludeCharts { get; set; }          // default true; native Excel charts on save
+    public void AddChart(SheetChart chart);
+    public IReadOnlyList<SheetChart> Charts { get; }
     public SheetSession Sheet(string name);          // get or create
     public SheetSession AddSheet(string name);
     public bool RemoveSheet(string name);
@@ -194,7 +203,7 @@ public sealed class SheetSession
 {
     public string Name { get; }
     public void WriteTable(SheetTable table, SheetWriteOptions? options = null);
-    public void AppendRows(IEnumerable<IReadOnlyList<object?>> rows);
+    public void AppendRows(IEnumerable<IReadOnlyList<object?>> rows, SheetWriteOptions? options = null);
     public void ApplyChrome(SheetChrome chrome);
 }
 ```
@@ -204,6 +213,8 @@ v1.1 adds:
 ```csharp
     public SheetTable ReadUsedRange(SheetReadOptions? options = null);
 ```
+
+`WriteTable` replaces the used range of that sheet (G2 / ReplaceTable).
 
 ### 8.4 Table
 
@@ -242,10 +253,12 @@ public sealed class SheetWriteOptions
     public bool AutoFilter { get; init; } = true;
     public string? NumberFormat { get; init; }     // applied to numeric body cells
     public string? DateFormat { get; init; }
+    public string? TabColor { get; init; }         // #RRGGBB or RRGGBB
+    public string? TableStyle { get; init; }       // Light1–21, Medium1–28, Dark1–11, None
 }
 ```
 
-Do not leak a kitchen-sink `IXLStyle` through the helper. If a host needs a one-off style, it is not this library's problem in v1.
+Do not leak a kitchen-sink `IXLStyle` through the helper. Table coloring uses Excel's built-in `TableStyleLight*` / `TableStyleMedium*` / `TableStyleDark*` names via `TableStyle` / `WorkbookSession.TableStyle`. Default is Medium2 (Excel's default). If a host needs a one-off cell style, it is not this library's problem in v1.
 
 ---
 
@@ -258,6 +271,7 @@ v1 demo workbook sheets (minimum):
 | Sheet | Contents |
 |---|---|
 | `Summary` | n, min, Q1, median, Q3, max, mean, stddev, skew, excess kurtosis, P90, P95, P99 |
+| `Charts` | Mean confidence table plus four Excel charts (histogram, band means, mean CI, sample). Histogram also carries a chart on its own sheet. |
 | `Bands` | Full / Q1 / Q2 / Q3 / Q4 / IQR with n, min, P50, max, mean, stddev, skew, excess kurtosis |
 | `Confidence` | level, parameter, estimate, lower, upper, width, method for 90 / 95 / 99 and FPC mean |
 | `Histogram` | bin index, lower, upper, count, relative frequency |
@@ -285,7 +299,7 @@ The demo references Analytics. The library may as well. Core `Vestigium.Helpers`
 
 ## 11. Safety
 
-- Sheet names: 1-31 characters, not `[]:*?/\\`. Helper sanitizes or throws. Empty becomes `Sheet1`.
+- Sheet names: 1-31 characters, not `[]:*?/\`. Helper sanitizes or throws. Empty becomes `Sheet1`.
 - Path: reject blank paths. `SaveAs` creates the parent directory.
 - Formula injection: if a string value starts with `=`, `+`, `-`, or `@`, prefix `'` so Excel stores text. Log Verbose that a value was neutralized.
 - Numeric non-finites throw. Do not write `#NUM!` by accident.
@@ -323,7 +337,13 @@ v1.0:
 - Injection: write `=1+1` as a string, reopen, cell is text not a computed `2`.
 - NaN rejected.
 
-v1.1 adds read-back equality tests on the Analytics demo shape (summary row count, histogram bin count).
+v1.1 charts (this drop):
+
+- `WriteSeries` zip contains `xl/charts/chart*.xml` (`c:barChart` / `c:lineChart`) and drawing anchors.
+- Charts worksheet sits at position 2.
+- `IncludeCharts = false` skips the Charts sheet and chart parts.
+
+v1.2 adds read-back equality tests on the Analytics demo shape (summary row count, histogram bin count).
 
 ---
 
@@ -351,14 +371,22 @@ No EPPlus. No Excel Interop. No Microsoft.Office.Interop.Excel. Those require Ex
 - Demo writes Analytics across several sheets
 - Tests against a known workbook via ClosedXML reopen
 
-### v1.1 — Read what we wrote
+### v1.1 — Charts (this drop)
+
+- Native Excel column / line charts on `WriteSeries`
+- Charts sheet dashboard (histogram, band means, mean CI, sample)
+- Histogram sheet local chart
+- `WorkbookSession.IncludeCharts` (default true)
+- Still no sparklines, pivot charts, or a separate Charts helper library
+
+### v1.2 — Read what we wrote
 
 - `ReadUsedRange` -> `SheetTable`
 - Typed cell guess: number, text, bool, DateTime
 - Round-trip tests: write demo shape, read, compare counts and a handful of values
 - Still not a general "any Excel file from accounting" importer
 
-### v1.2 — Operator chrome
+### v1.3 — Operator chrome
 
 - Print: landscape, fit-to-width, footer with APPID + timestamp
 - Column number formats per header name (`ms`, `pct`, `utc`)
@@ -371,9 +399,9 @@ No EPPlus. No Excel Interop. No Microsoft.Office.Interop.Excel. Those require Ex
 - Embed a logo image at a fixed cell
 - Multiple workbooks merged by sheet name (append-only)
 
-### v2.1 — Charts (maybe a helper library)
+### v2.1 — Chart builder API
 
-- Only after a charting discussion. Prefer a future `Vestigium.Helpers.Charts` that consumes Analytics chart-ready points. Do not hide chart builders inside ClosedXml by accident.
+- Public `AddChart` is already on the session. A later pass may grow kinds (pie, scatter) without a separate package until the surface actually needs one.
 
 ### Explicitly never here
 

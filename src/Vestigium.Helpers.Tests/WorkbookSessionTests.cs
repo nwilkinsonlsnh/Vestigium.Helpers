@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using ClosedXML.Excel;
 using Vestigium.Helpers.Analytics;
 using Vestigium.Helpers.ClosedXml;
@@ -117,7 +118,7 @@ public sealed class WorkbookSessionTests
     }
 
     [Fact]
-    public void WriteSeries_creates_the_five_sheets()
+    public void WriteSeries_creates_the_six_sheets()
     {
         var path = TempXlsx();
         var series = NumericSeries.From(Enumerable.Range(1, 9), "odd");
@@ -138,6 +139,56 @@ public sealed class WorkbookSessionTests
         Assert.Equal(1d, sample.Cell(2, 2).GetDouble());
         Assert.Equal(9d, sample.Cell(10, 2).GetDouble());
         Assert.False(summary.TabColor.Equals(XLColor.NoColor));
+        Assert.True(wb.TryGetWorksheet("Charts", out _));
+        Assert.Equal("Charts", wb.Worksheet(2).Name);
+    }
+
+    [Fact]
+    public void WriteSeries_embeds_excel_charts()
+    {
+        var path = TempXlsx();
+        var series = NumericSeries.From(Enumerable.Range(1, 9), "odd");
+        using (var book = WorkbookHelper.Create("Summary", "ClosedXml"))
+        {
+            WorkbookHelper.WriteSeries(book, series, populationSize: 9);
+            Assert.True(book.Charts.Count >= 4);
+            book.SaveAs(path);
+        }
+
+        using (var zip = ZipFile.OpenRead(path))
+        {
+            Assert.NotNull(zip.GetEntry("xl/charts/chart1.xml"));
+            Assert.NotNull(zip.GetEntry("xl/drawings/drawing1.xml"));
+            var names = zip.Entries.Select(e => e.FullName.Replace('\\', '/')).ToArray();
+            Assert.Contains(names, n => n.StartsWith("xl/charts/chart", StringComparison.Ordinal));
+            using var stream = zip.GetEntry("xl/charts/chart1.xml")!.Open();
+            using var reader = new StreamReader(stream);
+            var xml = reader.ReadToEnd();
+            Assert.Contains("c:barChart", xml);
+        }
+
+        using var wb = new XLWorkbook(path);
+        Assert.Equal("n", wb.Worksheet("Summary").Cell(3, 1).GetString());
+        Assert.Equal("90%", wb.Worksheet("Charts").Cell(2, 1).GetString());
+    }
+
+    [Fact]
+    public void IncludeCharts_false_skips_chart_parts()
+    {
+        var path = TempXlsx();
+        var series = NumericSeries.From(Enumerable.Range(1, 9), "odd");
+        using (var book = WorkbookHelper.Create("Summary", "ClosedXml"))
+        {
+            book.IncludeCharts = false;
+            WorkbookHelper.WriteSeries(book, series);
+            Assert.Empty(book.Charts);
+            book.SaveAs(path);
+        }
+
+        using var zip = ZipFile.OpenRead(path);
+        Assert.Null(zip.GetEntry("xl/charts/chart1.xml"));
+        using var wb = new XLWorkbook(path);
+        Assert.False(wb.TryGetWorksheet("Charts", out _));
     }
 
     [Fact]

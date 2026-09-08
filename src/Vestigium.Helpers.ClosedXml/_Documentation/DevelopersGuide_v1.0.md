@@ -9,7 +9,9 @@ Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Cl
 
 ## Contract
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is write-first. No CSV in this project. Charts stay out.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is write-first. No CSV in this project.
+
+ClosedXML 0.105 cannot create charts. This library still ships them: after ClosedXML writes the tables we splice native Excel chart parts into the `.xlsx` zip so Excel and LibreOffice render them.
 
 ## Write a table
 
@@ -35,7 +37,11 @@ Tests must `SaveAs` a temp path. Never `Save()` onto the real Desktop from xUnit
 WorkbookHelper.WriteSeries(book, series, populationSize: 100_000);
 ```
 
-Sheets: Summary, Bands, Confidence, Histogram, Sample. Prefix them with the third argument if one workbook holds several series.
+Sheets: Summary, Charts, Bands, Confidence, Histogram, Sample. Prefix them with the third argument if one workbook holds several series.
+
+The Charts sheet is a dashboard: mean confidence table plus four Excel charts (histogram, band means, mean CI, sample line). Histogram also gets a chart on its own sheet. Set `book.IncludeCharts = false` before `WriteSeries` to skip chart parts.
+
+ClosedXML cannot round-trip charts. Opening a charted file with `WorkbookHelper.Open` and `Save` writes tables only — chart parts are injected on the way out.
 
 ## Open and append
 
@@ -71,8 +77,10 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 | `SheetSession.cs` | WriteTable / AppendRows / chrome |
 | `SheetTable.cs` | Headers + rows + write options |
 | `CellWriter.cs` | Types + formula-injection prefix |
-| `SeriesWorkbook.cs` | Analytics dump: Summary, Bands, Confidence, Histogram, Sample |
+| `SeriesWorkbook.cs` | Analytics dump: Summary, Charts, Bands, Confidence, Histogram, Sample |
 | `ExcelTableStyles.cs` | Excel Table Design gallery (Light / Medium / Dark) |
+| `SheetChart.cs` | Chart spec (column / bar / line) |
+| `ChartPacker.cs` | Injects OOXML chart + drawing parts after ClosedXML save |
 
 ## Demo
 
