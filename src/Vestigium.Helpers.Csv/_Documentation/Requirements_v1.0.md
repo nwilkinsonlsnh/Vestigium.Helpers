@@ -2,13 +2,13 @@
 
 **Document ID:** VEST-HLP-CSV-SRS-000  
 **Version:** 1.0  
-**Status:** Proposed — lossless pass; do not grow the API until this document is accepted  
+**Status:** Shipped v1.0  
 **Date:** 8 September 2026  
 **Package:** `Vestigium.Helpers.Csv`  
 **TFM:** `net10.0` (not Windows-only)  
 **Companion:** `DevelopersGuide_v1.0.md`
 
-This is the next library after ClosedXml / Analytics / Charts. ClosedXml stays `.xlsx` only. This package is delimited text only.
+This is the next library after ClosedXml / Analytics / Charts. ClosedXml stays `.xlsx` only. This package is delimited text only. Implementation matches this surface.
 
 ---
 

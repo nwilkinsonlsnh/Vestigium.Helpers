@@ -1,0 +1,124 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CSV  ·  SRS v1.0"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="RFC 4180 delimited text. One table per file. Excel still opens it. ClosedXml stays .xlsx only. The delimiter is a character you set — comma by default, plus tab, semicolon, and pipe presets."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="DIALECT"/>
+              <TextBlock FontWeight="SemiBold" Text="{Binding DialectCaption}"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="CRLF on write. UTF-8. BOM on so Excel on Windows sees Unicode."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="SAMPLE"/>
+              <TextBlock FontWeight="SemiBold" Text="{Binding Count}"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="WriteSeries dumps Index, Value, Timestamp. Not the ClosedXml six-sheet workbook."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="INJECTION"/>
+              <TextBlock FontWeight="SemiBold" Text="' prefix"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Leading = + - @ on a string cell become text, same as ClosedXml."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="EXPORT"/>
+              <TextBlock FontWeight="SemiBold" Text="Desktop · Vestigium · Exports"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding ExportFolder}"/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Write CSV" Command="{Binding WriteCsvCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}"/>
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}"/>
+            </WrapPanel>
+            <TextBlock Opacity="0.7" Text="{Binding ExportPath}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="WriteTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="320"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Style="{StaticResource Caption}" Text="DELIMITER"/>
+        <ComboBox ItemsSource="{Binding Dialects}" SelectedItem="{Binding Dialect}"/>
+        <CheckBox Content="UTF-8 BOM (Excel)" IsChecked="{Binding Utf8Bom}"/>
+        <Button Content="Draw sample" Command="{Binding DrawSampleCommand}"/>
+        <Button Content="Write Sample.csv" Command="{Binding WriteCsvCommand}" Style="{StaticResource PrimaryButton}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="MEAN"/>
+        <TextBlock FontSize="18" Text="{Binding MeanText}"/>
+        <TextBlock Opacity="0.6" Text="{Binding ExportPath}" TextWrapping="Wrap"/>
+      </StackPanel>
+      <Border Grid.Column="1" Style="{StaticResource Panel}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="PREVIEW (first 800 bytes)"/>
+          <TextBox IsReadOnly="True" Text="{Binding PreviewText}" FontFamily="Cascadia Mono, Consolas"
+                   FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"/>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ReadTab">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Style="{StaticResource Caption}" Text="ROUND-TRIP"/>
+        <TextBlock Text="{Binding ReadCaption}"/>
+        <WrapPanel Margin="0,8,0,8">
+          <Button Content="Write then read" Command="{Binding ReadCsvCommand}" Style="{StaticResource PrimaryButton}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.7" Text="{Binding HeaderList}"/>
+      </StackPanel>
+      <ListView ItemsSource="{Binding ReadRows}">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="#" DisplayMemberBinding="{Binding Row}" Width="48"/>
+            <GridViewColumn Header="A" DisplayMemberBinding="{Binding A}" Width="120"/>
+            <GridViewColumn Header="B" DisplayMemberBinding="{Binding B}" Width="120"/>
+            <GridViewColumn Header="C" DisplayMemberBinding="{Binding C}" Width="280"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="InjectTab">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Style="{StaticResource Caption}" Text="FORMULA INJECTION"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="A string that starts with = + - or @ is written with a leading apostrophe so Excel stores text. Numeric CLR values are not prefixed."/>
+        <Button Content="Write inject.csv" Command="{Binding WriteInjectCommand}" Style="{StaticResource PrimaryButton}"/>
+      </StackPanel>
+      <ListView ItemsSource="{Binding Injection}">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Caller" DisplayMemberBinding="{Binding Key}" Width="160"/>
+            <GridViewColumn Header="On disk" DisplayMemberBinding="{Binding Value}" Width="160"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+    </DockPanel>
+  </DataTemplate>
+</ResourceDictionary>

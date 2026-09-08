@@ -394,13 +394,11 @@ CSV (see `Vestigium.Helpers.Csv`), `.xls`, VBA authoring, pivot caches, Power Qu
 
 ## 16. Sibling: Vestigium.Helpers.Csv
 
-Created as a **skeleton** in the same change set as this SRS:
+Created as a sibling of this library. Csv v1.0 is shipped: RFC 4180 write/read, settable delimiter, injection prefix, Sample.csv.
 
 - `src/Vestigium.Helpers.Csv`
 - `src/Vestigium.Helpers.Csv.Demo`
 - `HelperLog.AppIds.Csv`
-- Placeholder `CsvHelper.Identity` + `Probe()`
-- Skeleton SRS until that library gets its own lossless pass
 
 Csv must not reference ClosedXml. ClosedXml must not parse CSV. A later "sheet <-> csv dump" may live as a one-pager that uses both, in a host, not inside either library.
 

@@ -3,16 +3,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.Csv</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Csv</AssemblyName>
-    <Description>CSV helpers for Vestigium hosts. Separate from ClosedXml.</Description>
+    <Description>RFC 4180 CSV / TSV for Vestigium hosts. Separate from ClosedXml.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>csv;vestigium</PackageTags>
+    <PackageTags>csv;tsv;rfc4180;vestigium</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
+    <ProjectReference Include="$(VestigiumLoggingProject)" />
   </ItemGroup>
 </Project>

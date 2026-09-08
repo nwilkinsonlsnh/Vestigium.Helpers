@@ -50,7 +50,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 |---|---|---|
 | `Vestigium.Helpers` | `net10.0` | Guards, `HelperLog`, `HelperWpfHost` |
 | `Vestigium.Helpers.ClosedXml` | `net10.0` | ClosedXML write-first Excel (`.xlsx`) |
-| `Vestigium.Helpers.Csv` | `net10.0` | CSV / TSV (SRS proposed; not ClosedXml) |
+| `Vestigium.Helpers.Csv` | `net10.0` | RFC 4180 CSV / TSV (settable delimiter; not ClosedXml) |
 | `Vestigium.Helpers.Encryption` | `net10.0` | Hashing and encryption helpers |
 | `Vestigium.Helpers.WinReg` | `net10.0-windows` | Windows Registry helpers |
 | `Vestigium.Helpers.Json` | `net10.0` | System.Text.Json helpers |
@@ -63,20 +63,21 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial; ChartView tests run on Windows) |
 
-Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, and Charts are full galleries; the rest are Probe + JSONL skeletons until their SRS is accepted.
+Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, Charts, and Csv are full galleries; the rest are Probe + JSONL skeletons until their SRS is accepted.
 
 ## Open in Visual Studio
 
 1. Clone this repository **and** `Vestigium.Logging` next to it.
 2. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
 3. Restore NuGet.
-4. Set any `*.Demo` project as startup, F5. Analytics and ClosedXml open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
+4. Set any `*.Demo` project as startup, F5. Analytics, ClosedXml, Charts, and Csv open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
 5. Run `Vestigium.Helpers.Tests` for the contract.
 
 ```
 dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo
 dotnet run --project src/Vestigium.Helpers.Analytics.Demo
 dotnet run --project src/Vestigium.Helpers.Charts.Demo
+dotnet run --project src/Vestigium.Helpers.Csv.Demo
 dotnet test src/Vestigium.Helpers.Tests
 ```
 
