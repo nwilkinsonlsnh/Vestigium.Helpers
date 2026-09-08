@@ -32,6 +32,8 @@ public sealed class SheetTable
             [keyHeader, valueHeader],
             pairs.Select(p => (IReadOnlyList<object?>)[p.Key, p.Value]),
             name);
+
+    public static string CellKind(object? value) => CellReader.KindOf(value);
 }
 
 public sealed class SheetWriteOptions
@@ -52,8 +54,23 @@ public sealed class SheetWriteOptions
     /// Null inherits <see cref="WorkbookSession.TableStyle"/>.
     /// </summary>
     public string? TableStyle { get; init; }
+    /// <summary>Landscape, fit-to-width, footer with APPID and print date/time.</summary>
+    public bool OperatorPrint { get; init; } = true;
+    /// <summary>Number formats from header names: ms, pct, utc.</summary>
+    public bool HeaderNumberFormats { get; init; } = true;
+    /// <summary>Header of a numeric column to highlight when greater than <see cref="HighlightGreaterThan"/>.</summary>
+    public string? HighlightColumn { get; init; }
+    /// <summary>Threshold for the single high-outlier rule. Ignored when HighlightColumn is blank.</summary>
+    public double? HighlightGreaterThan { get; init; }
 
     public static SheetWriteOptions Default { get; } = new();
+}
+
+public sealed class SheetReadOptions
+{
+    public bool HasHeaderRow { get; init; } = true;
+
+    public static SheetReadOptions Default { get; } = new();
 }
 
 public sealed class SheetChrome
@@ -62,6 +79,7 @@ public sealed class SheetChrome
     public bool FreezeHeader { get; init; } = true;
     public bool AutoFilter { get; init; } = true;
     public string? TabColor { get; init; }
+    public bool OperatorPrint { get; init; } = true;
 
     public static SheetChrome Default { get; } = new();
 }

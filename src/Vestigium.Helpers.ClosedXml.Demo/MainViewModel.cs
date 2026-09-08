@@ -18,6 +18,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
 {
     public const int SampleSize = 1000;
     public const int PopulationSize = 100_000;
+    private readonly Dictionary<string, SheetTable> _readCache = new(StringComparer.OrdinalIgnoreCase);
 
     public MainViewModel()
     {
@@ -27,6 +28,10 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         Sample = [];
         Injection = [];
         Swatches = [];
+        ReadSheets = [];
+        ReadRows = [];
+        ChromeFormats = [];
+        SheetOrder = [];
         TableStyles = WorkbookHelper.TableStyles;
         StyleGroups = ["Light", "Medium", "Dark"];
         StyleGroup = "Medium";
@@ -37,6 +42,8 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         BindPreviewBrushes(ExcelTableStylePreview.Of(TableStyle));
         DrawSample();
         SeedInjection();
+        SeedChrome();
+        BindSheetOrder(["Summary", "Charts", "Bands", "Confidence", "Histogram", "Sample"]);
     }
 
     public string Identity => WorkbookHelper.Identity;
@@ -54,6 +61,10 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public ObservableCollection<SamplePoint> Sample { get; }
     public ObservableCollection<KvRow> Injection { get; }
     public ObservableCollection<TableStyleSwatch> Swatches { get; }
+    public ObservableCollection<string> ReadSheets { get; }
+    public ObservableCollection<ReadCellRow> ReadRows { get; }
+    public ObservableCollection<KvRow> ChromeFormats { get; }
+    public ObservableCollection<KvRow> SheetOrder { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ExcelStyleName))]
@@ -69,6 +80,10 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string meanText = "";
     [ObservableProperty] private string p95Text = "";
     [ObservableProperty] private NumericSeries? series;
+    [ObservableProperty] private string readSheet = "Summary";
+    [ObservableProperty] private string readCaption = "Write a workbook, then Read used range.";
+    [ObservableProperty] private string chromeFooter = "ClosedXml  ·  &D &T";
+    [ObservableProperty] private string chromePrint = "Landscape · fit-to-width";
     [ObservableProperty] private Brush previewHeader = Brushes.Transparent;
     [ObservableProperty] private Brush previewHeaderInk = Brushes.White;
     [ObservableProperty] private Brush previewBand = Brushes.Transparent;
@@ -143,7 +158,48 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         ExportPath = book.Save();
         SheetList = string.Join(", ", book.SheetNames);
         ChartCount = book.Charts.Count;
+        BindSheetOrder(book.SheetNames);
         StatusText = $"Wrote {ExportPath} · {SelectedStyleCaption} · sheets={book.SheetNames.Count} · charts={ChartCount}";
+        RefreshLines();
+    }
+
+    [RelayCommand]
+    private void ReadWorkbook()
+    {
+        var path = ExportPath;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            WriteWorkbook();
+            path = ExportPath;
+        }
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            StatusText = "Write a workbook first.";
+            return;
+        }
+
+        using var book = WorkbookHelper.Open(path, HelperLog.AppIds.ClosedXml);
+        _readCache.Clear();
+        ReadSheets.Clear();
+        foreach (var name in book.SheetNames)
+        {
+            ReadSheets.Add(name);
+            _readCache[name] = book.Sheet(name).ReadUsedRange();
+        }
+
+        BindSheetOrder(book.SheetNames);
+        if (ReadSheets.Count == 0)
+        {
+            ReadCaption = "No sheets.";
+            return;
+        }
+
+        if (!ReadSheets.Contains(ReadSheet))
+            ReadSheet = ReadSheets[0];
+        else
+            BindReadSheet();
+        StatusText = $"Read {path} · {ReadSheets.Count} sheet(s)";
         RefreshLines();
     }
 
@@ -250,6 +306,53 @@ public sealed partial class MainViewModel : GalleryViewModelBase
                 Value = series.Values[s].ToString(CultureInfo.InvariantCulture)
             });
         }
+    }
+
+    partial void OnReadSheetChanged(string value) => BindReadSheet();
+
+    private void BindReadSheet()
+    {
+        ReadRows.Clear();
+        if (!_readCache.TryGetValue(ReadSheet, out var table))
+        {
+            ReadCaption = "Pick a sheet after Read used range.";
+            return;
+        }
+
+        ReadCaption = $"{table.Name ?? ReadSheet} · {table.Rows.Count:N0} rows · {table.Headers.Count} cols";
+        var take = Math.Min(80, table.Rows.Count);
+        for (var r = 0; r < take; r++)
+        {
+            var row = table.Rows[r];
+            for (var c = 0; c < table.Headers.Count; c++)
+            {
+                var value = c < row.Count ? row[c] : null;
+                ReadRows.Add(new ReadCellRow
+                {
+                    Row = r + 1,
+                    Header = table.Headers[c],
+                    Value = Convert.ToString(value, CultureInfo.InvariantCulture) ?? "",
+                    Type = SheetTable.CellKind(value)
+                });
+            }
+        }
+    }
+
+    private void BindSheetOrder(IReadOnlyList<string> names)
+    {
+        SheetOrder.Clear();
+        for (var i = 0; i < names.Count; i++)
+            SheetOrder.Add(new KvRow { Key = (i + 1).ToString(CultureInfo.InvariantCulture), Value = names[i] });
+    }
+
+    private void SeedChrome()
+    {
+        ChromeFormats.Clear();
+        ChromeFormats.Add(new KvRow { Key = "ms", Value = "0.0" });
+        ChromeFormats.Add(new KvRow { Key = "pct / relative", Value = "0.00%" });
+        ChromeFormats.Add(new KvRow { Key = "utc / timestamp", Value = "yyyy-mm-dd hh:mm:ss" });
+        ChromePrint = "Landscape · fit-to-width";
+        ChromeFooter = $"{HelperLog.AppIds.ClosedXml}  ·  &D &T";
     }
 
     private void SeedInjection()

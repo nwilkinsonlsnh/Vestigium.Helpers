@@ -45,3 +45,11 @@ public sealed class SamplePoint
     public string Value { get; init; } = "";
     public string Timestamp { get; init; } = "";
 }
+
+public sealed class ReadCellRow
+{
+    public int Row { get; init; }
+    public string Header { get; init; } = "";
+    public string Value { get; init; } = "";
+    public string Type { get; init; } = "";
+}

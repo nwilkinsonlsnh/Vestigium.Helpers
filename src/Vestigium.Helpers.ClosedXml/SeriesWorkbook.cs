@@ -20,10 +20,28 @@ internal static class SeriesWorkbook
             CreateExcelTable = true,
             DateFormat = "yyyy-mm-dd hh:mm:ss",
             TabColor = "3D4F66",
-            TableStyle = style
+            TableStyle = style,
+            HighlightColumn = "Value",
+            HighlightGreaterThan = (double)series.Full.Percentile(0.95)
         });
         if (book.IncludeCharts)
             AddCharts(book, series, prefix, populationSize);
+
+        if (book.IncludeCharts)
+            book.ReorderSheets(
+                Name(prefix, "Summary"),
+                Name(prefix, "Charts"),
+                Name(prefix, "Bands"),
+                Name(prefix, "Confidence"),
+                Name(prefix, "Histogram"),
+                Name(prefix, "Sample"));
+        else
+            book.ReorderSheets(
+                Name(prefix, "Summary"),
+                Name(prefix, "Bands"),
+                Name(prefix, "Confidence"),
+                Name(prefix, "Histogram"),
+                Name(prefix, "Sample"));
     }
 
     private static void AddCharts(WorkbookSession book, NumericSeries series, string? prefix, int? populationSize)
@@ -41,7 +59,6 @@ internal static class SeriesWorkbook
                 means.Select(m => (IReadOnlyList<object?>)[m.Level, m.Estimate, m.Lower, m.Upper]),
                 "Charts"),
             AnalyticsOptions("5A6F8C", style));
-        book.SetSheetPosition(chartsName, 2);
 
         var hist = series.Full.Frequency.Histogram;
         if (hist.Count > 0)

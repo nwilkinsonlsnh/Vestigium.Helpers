@@ -288,6 +288,169 @@ public sealed class WorkbookSessionTests
         Assert.Equal("#2F5496", light1.HeaderInk);
     }
 
+    [Fact]
+    public void ReadUsedRange_round_trips_types()
+    {
+        var path = TempXlsx();
+        var at = new DateTime(2026, 9, 8, 12, 0, 0, DateTimeKind.Unspecified);
+        using (var book = WorkbookHelper.Create("Data", "ClosedXml"))
+        {
+            book.Sheet("Data").WriteTable(SheetTable.Create(
+                ["Name", "Value", "Flag", "When"],
+                [
+                    ["alpha", 1.5, true, at],
+                    ["beta", 2, false, at.AddHours(1)]
+                ]));
+            book.SaveAs(path);
+        }
+
+        using var reopen = WorkbookHelper.Open(path, "ClosedXml");
+        var table = reopen.Sheet("Data").ReadUsedRange();
+        Assert.Equal(["Name", "Value", "Flag", "When"], table.Headers);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal("alpha", table.Rows[0][0]);
+        Assert.Equal(1.5, Convert.ToDouble(table.Rows[0][1], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(true, table.Rows[0][2]);
+        var when = Assert.IsType<DateTime>(table.Rows[0][3]);
+        Assert.Equal(at, when, TimeSpan.FromSeconds(1));
+        Assert.Equal("text", SheetTable.CellKind(table.Rows[0][0]));
+        Assert.Equal("number", SheetTable.CellKind(table.Rows[0][1]));
+        Assert.Equal("bool", SheetTable.CellKind(table.Rows[0][2]));
+        Assert.Equal("datetime", SheetTable.CellKind(table.Rows[0][3]));
+    }
+
+    [Fact]
+    public void ReadUsedRange_round_trips_the_analytics_shape()
+    {
+        var path = TempXlsx();
+        var series = NumericSeries.From(Enumerable.Range(1, 9), "odd");
+        using (var book = WorkbookHelper.Create("Summary", "ClosedXml"))
+        {
+            book.IncludeCharts = false;
+            WorkbookHelper.WriteSeries(book, series, populationSize: 9);
+            book.SaveAs(path);
+        }
+
+        using var reopen = WorkbookHelper.Open(path, "ClosedXml");
+        var summary = reopen.Sheet("Summary").ReadUsedRange();
+        Assert.Equal(22, summary.Rows.Count);
+        Assert.Equal("n", summary.Rows[1][0]);
+        Assert.Equal(9d, Convert.ToDouble(summary.Rows[1][1], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("odd", summary.Rows[0][1]);
+        var hist = reopen.Sheet("Histogram").ReadUsedRange();
+        Assert.Equal(series.Full.Frequency.Histogram.Count, hist.Rows.Count);
+        var sample = reopen.Sheet("Sample").ReadUsedRange();
+        Assert.Equal(9, sample.Rows.Count);
+        Assert.Equal(1d, Convert.ToDouble(sample.Rows[0][1], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(9d, Convert.ToDouble(sample.Rows[8][1], System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void Empty_sheet_reads_as_an_empty_table()
+    {
+        using var book = WorkbookHelper.Create("Blank", "ClosedXml");
+        var table = book.Sheet("Blank").ReadUsedRange();
+        Assert.Empty(table.Headers);
+        Assert.Empty(table.Rows);
+    }
+
+    [Fact]
+    public void Operator_print_is_landscape_fit_to_width_with_appid_footer()
+    {
+        var path = TempXlsx();
+        using (var book = WorkbookHelper.Create("Data", "ClosedXml"))
+        {
+            book.Sheet("Data").WriteTable(SheetTable.Create(["ms"], [[12.5]]));
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        var setup = wb.Worksheet("Data").PageSetup;
+        Assert.Equal(XLPageOrientation.Landscape, setup.PageOrientation);
+        Assert.Equal(1, setup.PagesWide);
+        var footer = setup.Footer.Left.GetText(XLHFOccurrence.OddPages);
+        if (string.IsNullOrEmpty(footer))
+            footer = setup.Footer.Left.GetText(XLHFOccurrence.AllPages);
+        Assert.Contains("ClosedXml", footer, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Header_name_ms_pct_utc_gets_a_number_format()
+    {
+        var path = TempXlsx();
+        var at = new DateTime(2026, 9, 8, 16, 0, 0);
+        using (var book = WorkbookHelper.Create("Fmt", "ClosedXml"))
+        {
+            book.Sheet("Fmt").WriteTable(SheetTable.Create(
+                ["ms", "pct", "utc"],
+                [[12.5, 0.1234, at]]));
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        var ws = wb.Worksheet("Fmt");
+        Assert.Equal("0.0", ws.Cell(2, 1).Style.NumberFormat.Format);
+        Assert.Contains("%", ws.Cell(2, 2).Style.NumberFormat.Format, StringComparison.Ordinal);
+        var dateFmt = ws.Cell(2, 3).Style.DateFormat.Format;
+        if (string.IsNullOrWhiteSpace(dateFmt))
+            dateFmt = ws.Cell(2, 3).Style.NumberFormat.Format;
+        Assert.Contains("yy", dateFmt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Highlight_column_adds_one_greater_than_rule()
+    {
+        var path = TempXlsx();
+        using (var book = WorkbookHelper.Create("Data", "ClosedXml"))
+        {
+            book.Sheet("Data").WriteTable(
+                SheetTable.Create(["Name", "Value"], [["a", 1], ["b", 99]]),
+                new SheetWriteOptions { HighlightColumn = "Value", HighlightGreaterThan = 50 });
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        var formats = wb.Worksheet("Data").ConditionalFormats;
+        Assert.Single(formats);
+        var cf = formats.Single();
+        Assert.Equal(2, cf.Range.RangeAddress.FirstAddress.ColumnNumber);
+    }
+
+    [Fact]
+    public void ReorderSheets_puts_named_tabs_first()
+    {
+        using var book = WorkbookHelper.Create("A", "ClosedXml");
+        book.AddSheet("B");
+        book.AddSheet("C");
+        book.ReorderSheets("C", "A");
+        Assert.Equal(new[] { "C", "A", "B" }, book.SheetNames);
+        book.MoveSheet("B", 1);
+        Assert.Equal("B", book.SheetNames[0]);
+    }
+
+    [Fact]
+    public void MoveSheet_missing_name_throws()
+    {
+        using var book = WorkbookHelper.Create("A", "ClosedXml");
+        Assert.Throws<KeyNotFoundException>(() => book.MoveSheet("Nope", 1));
+    }
+
+    [Fact]
+    public void WriteSeries_highlights_sample_values_above_p95()
+    {
+        var path = TempXlsx();
+        var series = NumericSeries.From(Enumerable.Range(1, 9), "odd");
+        using (var book = WorkbookHelper.Create("Summary", "ClosedXml"))
+        {
+            book.IncludeCharts = false;
+            WorkbookHelper.WriteSeries(book, series, populationSize: 9);
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        Assert.NotEmpty(wb.Worksheet("Sample").ConditionalFormats);
+    }
+
     private static string TempXlsx()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));

@@ -56,7 +56,42 @@ public sealed class WorkbookSession : IDisposable
     }
 
     public IReadOnlyList<string> SheetNames =>
-        _workbook.Worksheets.Select(w => w.Name).ToArray();
+        _workbook.Worksheets.OrderBy(w => w.Position).Select(w => w.Name).ToArray();
+
+    /// <summary>1-based Excel tab position. Names are sanitized the same way as <see cref="Sheet"/>.</summary>
+    public void MoveSheet(string name, int position)
+    {
+        ThrowIfDisposed();
+        if (position < 1)
+            throw new ArgumentOutOfRangeException(nameof(position), "Sheet position is 1-based.");
+        var safe = ExcelNames.Sanitize(name);
+        if (!_workbook.TryGetWorksheet(safe, out var ws))
+            throw new KeyNotFoundException($"Sheet '{safe}' was not found.");
+        var max = _workbook.Worksheets.Count;
+        ws.Position = position > max ? max : position;
+    }
+
+    /// <summary>
+    /// Puts the named sheets first, in this order. Unknown names are ignored.
+    /// Sheets not listed keep their relative order after the named ones.
+    /// </summary>
+    public void ReorderSheets(params string[] names)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(names);
+        var position = 1;
+        foreach (var name in names)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                continue;
+            var safe = ExcelNames.Sanitize(name);
+            if (_workbook.TryGetWorksheet(safe, out var ws))
+            {
+                ws.Position = position;
+                position++;
+            }
+        }
+    }
 
     public SheetSession Sheet(string name)
     {
@@ -149,13 +184,7 @@ public sealed class WorkbookSession : IDisposable
         _workbook.SaveAs(stream);
     }
 
-    internal void SetSheetPosition(string name, int position)
-    {
-        ThrowIfDisposed();
-        var safe = ExcelNames.Sanitize(name);
-        if (_workbook.TryGetWorksheet(safe, out var ws))
-            ws.Position = position;
-    }
+    internal void SetSheetPosition(string name, int position) => MoveSheet(name, position);
 
     internal XLWorkbook Workbook => _workbook;
 

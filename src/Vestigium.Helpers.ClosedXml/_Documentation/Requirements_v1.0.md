@@ -344,6 +344,8 @@ v1.1 charts (this drop):
 
 v1.2 adds read-back equality tests on the Analytics demo shape (summary row count, histogram bin count).
 
+v1.3 adds print chrome, header-name formats (`ms` / `pct` / `utc`), one greater-than highlight, and `ReorderSheets` / `MoveSheet`.
+
 ---
 
 ## 14. Dependencies
@@ -378,14 +380,14 @@ No EPPlus. No Excel Interop. No Microsoft.Office.Interop.Excel. Those require Ex
 - `WorkbookSession.IncludeCharts` (default true)
 - Still no sparklines, pivot charts, or a separate Charts helper library
 
-### v1.2 — Read what we wrote
+### v1.2 — Read what we wrote (this drop)
 
 - `ReadUsedRange` -> `SheetTable`
 - Typed cell guess: number, text, bool, DateTime
 - Round-trip tests: write demo shape, read, compare counts and a handful of values
 - Still not a general "any Excel file from accounting" importer
 
-### v1.3 — Operator chrome
+### v1.3 — Operator chrome (this drop)
 
 - Print: landscape, fit-to-width, footer with APPID + timestamp
 - Column number formats per header name (`ms`, `pct`, `utc`)

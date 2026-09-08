@@ -56,6 +56,12 @@ public sealed class SheetSession
         var lastRow = Math.Max(1, r - 1);
         var range = _sheet.Range(1, 1, lastRow, colCount);
         ApplyChrome(range, lastRow, colCount, opts, table.Name);
+        if (opts.HeaderNumberFormats && opts.HasHeaderRow)
+            ApplyHeaderFormats(headers, lastRow, colCount);
+        if (opts.OperatorPrint)
+            ApplyOperatorPrint();
+        if (!string.IsNullOrWhiteSpace(opts.HighlightColumn) && opts.HighlightGreaterThan is { } threshold)
+            HighlightGreaterThan(opts.HighlightColumn, threshold);
         HelperLog.Information(
             _book.AppId,
             VestigiumStatus.Success,
@@ -91,6 +97,63 @@ public sealed class SheetSession
             $"Appended sheet={Name} rows={count}");
     }
 
+    public SheetTable ReadUsedRange(SheetReadOptions? options = null)
+    {
+        _book.ThrowIfDisposed();
+        var opts = options ?? SheetReadOptions.Default;
+        var used = _sheet.RangeUsed();
+        if (used is null)
+        {
+            HelperLog.Information(
+                _book.AppId,
+                VestigiumStatus.Success,
+                HelperLog.AppIds.ClosedXml,
+                $"Read sheet={Name} rows=0 cols=0");
+            return new SheetTable { Headers = [], Rows = [], Name = Name };
+        }
+
+        var firstRow = used.FirstRow().RowNumber();
+        var lastRow = used.LastRow().RowNumber();
+        var firstCol = used.FirstColumn().ColumnNumber();
+        var lastCol = used.LastColumn().ColumnNumber();
+        var colCount = lastCol - firstCol + 1;
+
+        var headers = new string[colCount];
+        var dataStart = firstRow;
+        if (opts.HasHeaderRow)
+        {
+            for (var i = 0; i < colCount; i++)
+            {
+                var text = _sheet.Cell(firstRow, firstCol + i).GetString();
+                headers[i] = string.IsNullOrWhiteSpace(text) ? $"Column{i + 1}" : text;
+            }
+
+            dataStart = firstRow + 1;
+        }
+        else
+        {
+            for (var i = 0; i < colCount; i++)
+                headers[i] = $"Column{i + 1}";
+        }
+
+        var rows = new List<IReadOnlyList<object?>>();
+        for (var r = dataStart; r <= lastRow; r++)
+        {
+            var row = new object?[colCount];
+            for (var i = 0; i < colCount; i++)
+                row[i] = CellReader.Read(_sheet.Cell(r, firstCol + i));
+            rows.Add(row);
+        }
+
+        var tableName = _sheet.Tables.FirstOrDefault()?.Name ?? Name;
+        HelperLog.Information(
+            _book.AppId,
+            VestigiumStatus.Success,
+            HelperLog.AppIds.ClosedXml,
+            $"Read sheet={Name} rows={rows.Count} cols={colCount}");
+        return new SheetTable { Headers = headers, Rows = rows, Name = tableName };
+    }
+
     public void ApplyChrome(SheetChrome chrome)
     {
         _book.ThrowIfDisposed();
@@ -98,6 +161,8 @@ public sealed class SheetSession
         if (used is null)
         {
             ApplyTabColor(chrome.TabColor);
+            if (chrome.OperatorPrint)
+                ApplyOperatorPrint();
             return;
         }
 
@@ -108,6 +173,79 @@ public sealed class SheetSession
         if (chrome.AutoFilter && !_sheet.Tables.Any())
             used.SetAutoFilter();
         ApplyTabColor(chrome.TabColor);
+        if (chrome.OperatorPrint)
+            ApplyOperatorPrint();
+    }
+
+    public void ApplyOperatorPrint()
+    {
+        _book.ThrowIfDisposed();
+        var setup = _sheet.PageSetup;
+        setup.PageOrientation = XLPageOrientation.Landscape;
+        setup.FitToPages(1, 0);
+        setup.Footer.Clear();
+        setup.Footer.Left.AddText(_book.AppId, XLHFOccurrence.AllPages);
+        setup.Footer.Left.AddText(_book.AppId, XLHFOccurrence.OddPages);
+        setup.Footer.Right.AddText(XLHFPredefinedText.Date, XLHFOccurrence.AllPages);
+        setup.Footer.Right.AddText(" ", XLHFOccurrence.AllPages);
+        setup.Footer.Right.AddText(XLHFPredefinedText.Time, XLHFOccurrence.AllPages);
+        setup.Footer.Right.AddText(XLHFPredefinedText.Date, XLHFOccurrence.OddPages);
+        setup.Footer.Right.AddText(" ", XLHFOccurrence.OddPages);
+        setup.Footer.Right.AddText(XLHFPredefinedText.Time, XLHFOccurrence.OddPages);
+    }
+
+    public void HighlightGreaterThan(string header, double threshold)
+    {
+        _book.ThrowIfDisposed();
+        var name = HelperGuard.NotBlank(header, nameof(header));
+        var used = _sheet.RangeUsed();
+        if (used is null)
+            throw new InvalidOperationException("Sheet has no used range to highlight.");
+
+        var col = FindHeaderColumn(name, used);
+        if (col is null)
+            throw new ArgumentException($"Header '{name}' was not on this sheet.", nameof(header));
+
+        var lastRow = used.LastRow().RowNumber();
+        if (lastRow < 2)
+            return;
+
+        _sheet.ConditionalFormats.RemoveAll();
+        var range = _sheet.Range(2, col.Value, lastRow, col.Value);
+        var style = range.AddConditionalFormat().WhenGreaterThan(threshold);
+        style.Fill.SetBackgroundColor(XLColor.FromHtml("#C00000"));
+        style.Font.SetFontColor(XLColor.White);
+    }
+
+    private int? FindHeaderColumn(string header, IXLRange used)
+    {
+        var firstCol = used.FirstColumn().ColumnNumber();
+        var lastCol = used.LastColumn().ColumnNumber();
+        for (var c = firstCol; c <= lastCol; c++)
+        {
+            if (string.Equals(_sheet.Cell(1, c).GetString(), header, StringComparison.OrdinalIgnoreCase))
+                return c;
+        }
+
+        return null;
+    }
+
+    private void ApplyHeaderFormats(IReadOnlyList<string> headers, int lastRow, int colCount)
+    {
+        if (lastRow < 2)
+            return;
+        var n = Math.Min(headers.Count, colCount);
+        for (var c = 0; c < n; c++)
+        {
+            var format = HeaderFormats.For(headers[c]);
+            if (format is null)
+                continue;
+            var body = _sheet.Range(2, c + 1, lastRow, c + 1);
+            if (format == HeaderFormats.Utc)
+                body.Style.DateFormat.Format = format;
+            else
+                body.Style.NumberFormat.Format = format;
+        }
     }
 
     private void ApplyChrome(IXLRange range, int lastRow, int colCount, SheetWriteOptions opts, string? tableName)
@@ -160,6 +298,7 @@ public sealed class SheetSession
     private void ClearContent()
     {
         _sheet.Clear();
+        _sheet.ConditionalFormats.RemoveAll();
     }
 
     private string UniqueTableName(string name)

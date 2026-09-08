@@ -16,10 +16,10 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CLOSEDXML  ·  write + charts"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-CLOSEDXML  ·  write + charts + read"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Write-first Excel. ClosedXML writes the tables; the helper splices native chart parts on save so Excel and LibreOffice render them. CSV is a sibling library, not a mode of this one."/>
+                   Text="Write-first Excel. ClosedXML writes the tables; the helper splices native chart parts on save so Excel and LibreOffice render them. ReadUsedRange round-trips those sheets. CSV is a sibling library, not a mode of this one."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="280">
             <StackPanel>
@@ -270,6 +270,78 @@
               <GridViewColumn Header="Lower" Width="110" DisplayMemberBinding="{Binding Lower}"/>
               <GridViewColumn Header="Upper" Width="110" DisplayMemberBinding="{Binding Upper}"/>
               <GridViewColumn Header="Method" Width="220" DisplayMemberBinding="{Binding Method}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ReadTab">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <StackPanel Margin="0,0,0,8">
+        <TextBlock Opacity="0.7" TextWrapping="Wrap"
+                   Text="ReadUsedRange opens a sheet this library wrote and returns a SheetTable. Cells are guessed as number, text, bool, or DateTime — not a general importer."/>
+        <DockPanel LastChildFill="False" Margin="0,8,0,0">
+          <TextBlock FontWeight="SemiBold" Text="{Binding ReadCaption}" VerticalAlignment="Center"/>
+          <Button DockPanel.Dock="Right" Content="Read used range" Command="{Binding ReadWorkbookCommand}" Style="{StaticResource PrimaryButton}"/>
+        </DockPanel>
+        <ComboBox Margin="0,8,0,0" Width="240" HorizontalAlignment="Left"
+                  ItemsSource="{Binding ReadSheets}" SelectedItem="{Binding ReadSheet}"/>
+      </StackPanel>
+      <ListView Grid.Row="1" ItemsSource="{Binding ReadRows}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Row" Width="70" DisplayMemberBinding="{Binding Row}"/>
+            <GridViewColumn Header="Header" Width="160" DisplayMemberBinding="{Binding Header}"/>
+            <GridViewColumn Header="Value" Width="280" DisplayMemberBinding="{Binding Value}"/>
+            <GridViewColumn Header="Type" Width="120" DisplayMemberBinding="{Binding Type}"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ChromeTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Operator chrome lands on every WriteTable: landscape, fit-to-width, APPID footer, header-name formats, and one high-outlier rule on Sample.Value > P95."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="PRINT"/>
+              <TextBlock FontWeight="SemiBold" Text="{Binding ChromePrint}"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding ChromeFooter}"/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="280">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="HIGHLIGHT"/>
+              <TextBlock FontWeight="SemiBold" Text="Sample.Value > P95"/>
+              <TextBlock Opacity="0.7" Text="{Binding P95Text}"/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="HEADER FORMATS"/>
+        <ListView Height="140" ItemsSource="{Binding ChromeFormats}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Header" Width="180" DisplayMemberBinding="{Binding Key}"/>
+              <GridViewColumn Header="Format" Width="220" DisplayMemberBinding="{Binding Value}"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+        <TextBlock Style="{StaticResource Caption}" Text="SHEET ORDER"/>
+        <ListView Height="200" ItemsSource="{Binding SheetOrder}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="#" Width="50" DisplayMemberBinding="{Binding Key}"/>
+              <GridViewColumn Header="Sheet" Width="220" DisplayMemberBinding="{Binding Value}"/>
             </GridView>
           </ListView.View>
         </ListView>

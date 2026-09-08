@@ -2,8 +2,8 @@
 
 **Document ID:** VEST-HLP-CLOSEDXML-DEV-000  
 **Version:** 1.0  
-**Status:** Companion to SRS v1.0 (write engine shipped)  
-**Date:** 7 September 2026
+**Status:** Companion to SRS v1.0 (write + charts + read + operator chrome)  
+**Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.ClosedXml/`.
 
@@ -43,6 +43,36 @@ The Charts sheet is a dashboard: mean confidence table plus four Excel charts (h
 
 ClosedXML cannot round-trip charts. Opening a charted file with `WorkbookHelper.Open` and `Save` writes tables only — chart parts are injected on the way out.
 
+## Read what we wrote
+
+```csharp
+using var book = WorkbookHelper.Open(path, HelperLog.AppIds.ClosedXml);
+var table = book.Sheet("Summary").ReadUsedRange();
+// table.Headers / table.Rows — cells guessed as number, text, bool, or DateTime
+```
+
+This is a round-trip of files this helper wrote. It is not a general importer for arbitrary accounting workbooks.
+
+## Operator chrome
+
+WriteTable (default on) applies:
+
+- Print: landscape, fit-to-width, footer `APPID` + Excel date/time
+- Column formats from header names: `ms` → `0.0`, `pct` → `0.00%`, `utc` / `timestamp` → `yyyy-mm-dd hh:mm:ss`
+- Optional single conditional format: `HighlightColumn` + `HighlightGreaterThan` (WriteSeries uses Sample `Value` > P95)
+
+```csharp
+book.Sheet("Rtt").WriteTable(table, new SheetWriteOptions
+{
+    HighlightColumn = "ms",
+    HighlightGreaterThan = 80
+});
+book.ReorderSheets("Summary", "Charts", "Sample");
+book.MoveSheet("Sample", 2);
+```
+
+Pass `OperatorPrint = false` to skip the print footer.
+
 ## Open and append
 
 ```csharp
@@ -73,10 +103,12 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 | File | Role |
 |---|---|
 | `WorkbookHelper.cs` | Identity, Probe, Create/Open/Save paths, WriteSeries |
-| `WorkbookSession.cs` | Owns `XLWorkbook` |
-| `SheetSession.cs` | WriteTable / AppendRows / chrome |
-| `SheetTable.cs` | Headers + rows + write options |
+| `WorkbookSession.cs` | Owns `XLWorkbook`; MoveSheet / ReorderSheets |
+| `SheetSession.cs` | WriteTable / AppendRows / ReadUsedRange / chrome |
+| `SheetTable.cs` | Headers + rows + write / read options |
 | `CellWriter.cs` | Types + formula-injection prefix |
+| `CellReader.cs` | Typed guess: number, text, bool, DateTime |
+| `HeaderFormats.cs` | ms / pct / utc from header names |
 | `SeriesWorkbook.cs` | Analytics dump: Summary, Charts, Bands, Confidence, Histogram, Sample |
 | `ExcelTableStyles.cs` | Excel Table Design gallery (Light / Medium / Dark) |
 | `ExcelTableStylePreview.cs` | Header / band / band-alt chips for the WPF gallery |
@@ -85,7 +117,7 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 
 ## Demo
 
-`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews the four series that land as native Excel charts.
+`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews the four series that land as native Excel charts. **Read** reopens that file through `ReadUsedRange`. **Chrome** shows print, header formats, the P95 highlight, and sheet order.
 
 Workbook: `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`  
 JSONL: `%ProgramData%\Vestigium\Logs\ClosedXml\`
