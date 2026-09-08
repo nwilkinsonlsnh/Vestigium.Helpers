@@ -3,6 +3,7 @@
   <Folder Name="/Library/">
     <Project Path="src/Vestigium.Helpers.ClosedXml/Vestigium.Helpers.ClosedXml.csproj" />
     <Project Path="src/Vestigium.Helpers.Encryption/Vestigium.Helpers.Encryption.csproj" />
+    <Project Path="src/Vestigium.Helpers.Hashing/Vestigium.Helpers.Hashing.csproj" />
     <Project Path="src/Vestigium.Helpers.WinReg/Vestigium.Helpers.WinReg.csproj" />
     <Project Path="src/Vestigium.Helpers.Json/Vestigium.Helpers.Json.csproj" />
     <Project Path="src/Vestigium.Helpers.Xml/Vestigium.Helpers.Xml.csproj" />
@@ -19,6 +20,7 @@
     <Project Path="src/Vestigium.Helpers.Demo/Vestigium.Helpers.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.ClosedXml.Demo/Vestigium.Helpers.ClosedXml.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Encryption.Demo/Vestigium.Helpers.Encryption.Demo.csproj" />
+    <Project Path="src/Vestigium.Helpers.Hashing.Demo/Vestigium.Helpers.Hashing.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.WinReg.Demo/Vestigium.Helpers.WinReg.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Json.Demo/Vestigium.Helpers.Json.Demo.csproj" />
     <Project Path="src/Vestigium.Helpers.Xml.Demo/Vestigium.Helpers.Xml.Demo.csproj" />

@@ -3,6 +3,7 @@ using Vestigium.Helpers.ClosedXml;
 using Vestigium.Helpers.Csv;
 using Vestigium.Helpers.Encryption;
 using Vestigium.Helpers.FileIo;
+using Vestigium.Helpers.Hashing;
 using Vestigium.Helpers.Json;
 using Vestigium.Helpers.Network;
 using Vestigium.Helpers.Processes;
@@ -33,6 +34,7 @@ public sealed class HelperLogTests
     [InlineData(HelperLog.AppIds.Core)]
     [InlineData(HelperLog.AppIds.ClosedXml)]
     [InlineData(HelperLog.AppIds.Encryption)]
+    [InlineData(HelperLog.AppIds.Hashing)]
     [InlineData(HelperLog.AppIds.WinReg)]
     [InlineData(HelperLog.AppIds.Json)]
     [InlineData(HelperLog.AppIds.Xml)]
@@ -77,6 +79,7 @@ public sealed class HelperLogTests
         HelperLog.AppIds.Core => HelperGuard.Probe(),
         HelperLog.AppIds.ClosedXml => WorkbookHelper.Probe(),
         HelperLog.AppIds.Encryption => EncryptionHelper.Probe(),
+        HelperLog.AppIds.Hashing => HashingHelper.Probe(),
         HelperLog.AppIds.WinReg => RegistryHelper.Probe(),
         HelperLog.AppIds.Json => JsonHelper.Probe(),
         HelperLog.AppIds.Xml => XmlHelper.Probe(),

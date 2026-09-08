@@ -18,6 +18,7 @@
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.ClosedXml\Vestigium.Helpers.ClosedXml.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Encryption\Vestigium.Helpers.Encryption.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Hashing\Vestigium.Helpers.Hashing.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.WinReg\Vestigium.Helpers.WinReg.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Xml\Vestigium.Helpers.Xml.csproj" />
@@ -27,7 +28,6 @@
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Csv\Vestigium.Helpers.Csv.csproj" />
-    <!-- ScottPlot.WPF pulls Microsoft.WindowsDesktop.App. Linux testhost cannot load it. -->
     <ProjectReference Include="..\Vestigium.Helpers.Charts\Vestigium.Helpers.Charts.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
   <ItemGroup>

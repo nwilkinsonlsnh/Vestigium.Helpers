@@ -3,6 +3,7 @@ using Vestigium.Helpers.ClosedXml;
 using Vestigium.Helpers.Csv;
 using Vestigium.Helpers.Encryption;
 using Vestigium.Helpers.FileIo;
+using Vestigium.Helpers.Hashing;
 using Vestigium.Helpers.Json;
 using Vestigium.Helpers.Network;
 using Vestigium.Helpers.Processes;
@@ -28,6 +29,7 @@ public sealed class SkeletonSmokeTests
     {
         Assert.Equal("Vestigium.Helpers.ClosedXml", WorkbookHelper.Identity);
         Assert.Equal("Vestigium.Helpers.Encryption", EncryptionHelper.Identity);
+        Assert.Equal("Vestigium.Helpers.Hashing", HashingHelper.Identity);
         Assert.Equal("Vestigium.Helpers.WinReg", RegistryHelper.Identity);
         Assert.Equal("Vestigium.Helpers.Json", JsonHelper.Identity);
         Assert.Equal("Vestigium.Helpers.Xml", XmlHelper.Identity);

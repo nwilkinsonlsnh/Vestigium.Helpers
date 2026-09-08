@@ -18,11 +18,11 @@ public partial class App : Application
                 AppId = HelperLog.AppIds.Encryption,
                 Identity = EncryptionHelper.Identity,
                 Title = "Vestigium.Helpers.Encryption gallery",
-                Role = "Hashing and encryption helpers",
-                DocumentId = "VEST-HLP-ENC  ·  skeleton",
-                Blurb = "Hashing, symmetric encryption, and secret handling. No custom crypto primitives. This gallery is the host so HelperLog has an APPID before Probe runs.",
+                Role = "AES-256-GCM / ChaCha20-Poly1305 / Argon2id — SRS proposed",
+                DocumentId = "VEST-HLP-ENC  ·  SRS proposed",
+                Blurb = "Authenticated encryption for strings and large files. AES-256-GCM default, ChaCha20-Poly1305 opt-in, Argon2id for passphrases. Hashing is a sibling library. This gallery only runs Probe until the Encryption SRS is accepted.",
                 Probe = EncryptionHelper.Probe,
-                StatusNote = "Skeleton until its own SRS is accepted. Probe writes Pending then Success through HelperLog.",
+                StatusNote = "SRS proposed. Probe writes Pending then Success through HelperLog. Implementation follows acceptance.",
             })
         }.Show();
     }
