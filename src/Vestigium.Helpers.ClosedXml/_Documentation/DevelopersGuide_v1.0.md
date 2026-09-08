@@ -79,12 +79,13 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 | `CellWriter.cs` | Types + formula-injection prefix |
 | `SeriesWorkbook.cs` | Analytics dump: Summary, Charts, Bands, Confidence, Histogram, Sample |
 | `ExcelTableStyles.cs` | Excel Table Design gallery (Light / Medium / Dark) |
+| `ExcelTableStylePreview.cs` | Header / band / band-alt chips for the WPF gallery |
 | `SheetChart.cs` | Chart spec (column / bar / line) |
 | `ChartPacker.cs` | Injects OOXML chart + drawing parts after ClosedXML save |
 
 ## Demo
 
-`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews the four series that land as native Excel charts.
+`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews the four series that land as native Excel charts.
 
 Workbook: `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`  
 JSONL: `%ProgramData%\Vestigium\Logs\ClosedXml\`

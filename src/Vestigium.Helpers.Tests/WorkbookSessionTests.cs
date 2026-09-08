@@ -271,6 +271,23 @@ public sealed class WorkbookSessionTests
         Assert.Equal(60, WorkbookHelper.TableStyles.Count);
     }
 
+    [Fact]
+    public void Table_style_preview_matches_the_excel_gallery()
+    {
+        Assert.Equal(60, ExcelTableStylePreview.All.Count);
+        Assert.Equal(21, ExcelTableStylePreview.In("Light").Count);
+        Assert.Equal(28, ExcelTableStylePreview.In("Medium").Count);
+        Assert.Equal(11, ExcelTableStylePreview.In("Dark").Count);
+        var medium2 = ExcelTableStylePreview.Of("Medium2");
+        Assert.Equal("Medium", medium2.Group);
+        Assert.Equal(2, medium2.Index);
+        Assert.Equal("TableStyleMedium2", medium2.ExcelName);
+        Assert.Equal("#ED7D31", medium2.Header);
+        var light1 = ExcelTableStylePreview.Of("Light1");
+        Assert.Equal("#FFFFFF", light1.Header);
+        Assert.Equal("#2F5496", light1.HeaderInk);
+    }
+
     private static string TempXlsx()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
