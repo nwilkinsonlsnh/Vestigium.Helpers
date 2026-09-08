@@ -29,6 +29,7 @@
       <TabItem Header="Summary"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource SummaryTab}"/></TabItem>
       <TabItem Header="Bands"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource BandsTab}"/></TabItem>
       <TabItem Header="Histogram"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource HistogramTab}"/></TabItem>
+      <TabItem Header="Charts"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ChartsTab}"/></TabItem>
       <TabItem Header="Confidence"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ConfidenceTab}"/></TabItem>
       <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>
     </TabControl>

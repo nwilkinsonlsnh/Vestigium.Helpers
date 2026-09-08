@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Vestigium.Helpers;
@@ -14,6 +16,9 @@ public sealed partial class MainViewModel : GalleryViewModelBase
 {
     public const int SampleSize = 1000;
     public const int PopulationSize = 100_000;
+    private const double PlotWidth = 720;
+    private const double PlotHeight = 240;
+    private const double PlotPad = 12;
 
     public MainViewModel()
     {
@@ -47,6 +52,12 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string skewText = "";
     [ObservableProperty] private string inferenceText = "";
     [ObservableProperty] private NumericSeries? series;
+    [ObservableProperty] private PointCollection ecdfCurve = [];
+    [ObservableProperty] private PointCollection sampleCurve = [];
+    [ObservableProperty] private double p95LineX;
+    [ObservableProperty] private string ecdfMinLabel = "";
+    [ObservableProperty] private string ecdfMaxLabel = "";
+    [ObservableProperty] private string ecdfP95Label = "";
 
     [RelayCommand]
     private void DrawSample()
@@ -188,6 +199,85 @@ public sealed partial class MainViewModel : GalleryViewModelBase
                 Timestamp = at is DateTimeOffset dto ? dto.ToString("HH:mm:ss") : ""
             });
         }
+
+        BindCurves(series);
+    }
+
+    private void BindCurves(NumericSeries series)
+    {
+        var ecdf = series.EcdfPoints();
+        EcdfCurve = MapCurve(ecdf);
+        SampleCurve = MapCurve(series.SampleOrderPoints());
+        if (ecdf.Count == 0)
+        {
+            P95LineX = PlotPad;
+            EcdfMinLabel = "";
+            EcdfMaxLabel = "";
+            EcdfP95Label = "";
+            return;
+        }
+
+        var minX = ecdf[0].X;
+        var maxX = ecdf[^1].X;
+        var span = maxX - minX;
+        if (span == 0)
+            span = 1;
+        var p95 = (double)series.Full.Percentile(0.95);
+        P95LineX = PlotPad + (p95 - minX) / span * (PlotWidth - 2 * PlotPad);
+        EcdfMinLabel = FmtNum(minX);
+        EcdfMaxLabel = FmtNum(maxX);
+        EcdfP95Label = $"P95 = {FmtDec(series.Full.Percentile(0.95))}";
+    }
+
+    private static PointCollection MapCurve(IReadOnlyList<ChartPoint> source)
+    {
+        var pts = new PointCollection();
+        if (source.Count == 0)
+            return pts;
+
+        var minX = source[0].X;
+        var maxX = source[0].X;
+        var minY = source[0].Y;
+        var maxY = source[0].Y;
+        foreach (var p in source)
+        {
+            if (p.X < minX) minX = p.X;
+            if (p.X > maxX) maxX = p.X;
+            if (p.Y < minY) minY = p.Y;
+            if (p.Y > maxY) maxY = p.Y;
+        }
+
+        var dx = maxX - minX;
+        if (dx == 0) dx = 1;
+        var dy = maxY - minY;
+        if (dy == 0) dy = 1;
+        var innerW = PlotWidth - 2 * PlotPad;
+        var innerH = PlotHeight - 2 * PlotPad;
+        foreach (var p in Downsample(source, 240))
+        {
+            var x = PlotPad + (p.X - minX) / dx * innerW;
+            var y = PlotPad + (1 - (p.Y - minY) / dy) * innerH;
+            pts.Add(new Point(x, y));
+        }
+
+        return pts;
+    }
+
+    private static List<ChartPoint> Downsample(IReadOnlyList<ChartPoint> source, int max)
+    {
+        if (source.Count <= max)
+            return [.. source];
+        var list = new List<ChartPoint>(max);
+        var step = (source.Count - 1) / (double)(max - 1);
+        for (var i = 0; i < max; i++)
+        {
+            var idx = (int)Math.Round(i * step);
+            if (idx >= source.Count)
+                idx = source.Count - 1;
+            list.Add(source[idx]);
+        }
+
+        return list;
     }
 
     private static List<Observation> DrawUnique(int count, int populationSize, DateTimeOffset origin)

@@ -147,6 +147,54 @@
     </Grid>
   </DataTemplate>
 
+  <DataTemplate x:Key="ChartsTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <DockPanel LastChildFill="False" Margin="0,0,0,8">
+          <TextBlock FontWeight="SemiBold" Text="Curves from NumericSeries" VerticalAlignment="Center"/>
+          <Button DockPanel.Dock="Right" Content="Draw new sample" Command="{Binding DrawSampleCommand}" Style="{StaticResource PrimaryButton}"/>
+        </DockPanel>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Charting stays out of the library. This tab draws EcdfPoints() and SampleOrderPoints(). Y on the ECDF is the share of the sample at or below X. The dashed line is P95 — a rank cutoff, not 95% confidence."/>
+        <TextBlock Style="{StaticResource Caption}" Text="ECDF"/>
+        <Border Style="{StaticResource Panel}" Height="300" Margin="0,0,0,8">
+          <DockPanel>
+            <DockPanel DockPanel.Dock="Bottom" LastChildFill="True" Margin="0,6,0,0">
+              <TextBlock DockPanel.Dock="Left" FontFamily="Cascadia Mono, Consolas" FontSize="11" Opacity="0.7" Text="{Binding EcdfMinLabel}"/>
+              <TextBlock DockPanel.Dock="Right" FontFamily="Cascadia Mono, Consolas" FontSize="11" Opacity="0.7" Text="{Binding EcdfMaxLabel}"/>
+              <TextBlock HorizontalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="#7DD3FC" Text="{Binding EcdfP95Label}"/>
+            </DockPanel>
+            <Viewbox Stretch="Fill">
+              <Canvas Width="720" Height="240">
+                <Line X1="12" Y1="228" X2="708" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
+                <Line X1="12" Y1="12" X2="12" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
+                <Line X1="{Binding P95LineX}" Y1="12" X2="{Binding P95LineX}" Y2="228"
+                      Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="4 3"/>
+                <Polyline Points="{Binding EcdfCurve}" Stroke="#7DD3FC" StrokeThickness="2.5"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"/>
+              </Canvas>
+            </Viewbox>
+          </DockPanel>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="SAMPLE ORDER"/>
+        <Border Style="{StaticResource Panel}" Height="260">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Bottom" Opacity="0.7" Margin="0,6,0,0"
+                       Text="Observation index → value. Same points as the Sample tab, in draw order."/>
+            <Viewbox Stretch="Fill">
+              <Canvas Width="720" Height="240">
+                <Line X1="12" Y1="228" X2="708" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
+                <Line X1="12" Y1="12" X2="12" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
+                <Polyline Points="{Binding SampleCurve}" Stroke="#5B9BD5" StrokeThickness="1.6"
+                          StrokeLineJoin="Round" Fill="Transparent"/>
+              </Canvas>
+            </Viewbox>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
   <DataTemplate x:Key="ConfidenceTab">
     <Grid>
       <Grid.RowDefinitions>
