@@ -72,6 +72,9 @@ public static class ChartView
     public static FrameworkElement Line(NumericSeries series, TrendKind trend = TrendKind.None, ChartOptions? options = null)
         => From(Spec(ChartKind.Line, series, With(options, trend: trend)));
 
+    public static FrameworkElement Line(NumericSeries series, ChartOptions options)
+        => Line(series, TrendKind.None, options);
+
     public static FrameworkElement Line(NumericSeries series, TrendKind trend, out TrendFit? fit, ChartOptions? options = null)
     {
         fit = Fit(series, trend);
@@ -80,6 +83,9 @@ public static class ChartView
 
     public static FrameworkElement Scatter(NumericSeries series, TrendKind trend = TrendKind.None, ChartOptions? options = null)
         => From(Spec(ChartKind.Scatter, series, With(options, trend: trend)));
+
+    public static FrameworkElement Scatter(NumericSeries series, ChartOptions options)
+        => Scatter(series, TrendKind.None, options);
 
     public static FrameworkElement Scatter(
         IReadOnlyList<double> x,
@@ -129,6 +135,9 @@ public static class ChartView
 
     public static FrameworkElement Box(NumericSeries series, ChartOptions? options = null)
         => From(Spec(ChartKind.Box, series, options));
+
+    public static FrameworkElement Box(NumericSeries series, BoxWhiskerKind whisker, ChartOptions? options = null)
+        => Box(series, With(options, whisker: whisker));
 
     public static FrameworkElement Bands(NumericSeries series, ChartOptions? options = null)
         => From(Spec(ChartKind.Bands, series, options));
@@ -182,13 +191,19 @@ public static class ChartView
         return new ChartSpec { Kind = kind, Source = series, Options = options, Title = options?.Title ?? series.Name };
     }
 
-    private static ChartOptions With(ChartOptions? options, bool? showBell = null, TrendKind? trend = null)
+    private static ChartOptions With(
+        ChartOptions? options,
+        bool? showBell = null,
+        TrendKind? trend = null,
+        BoxWhiskerKind? whisker = null)
     {
         var o = options ?? new ChartOptions();
         if (showBell is { } bell)
             o = o with { ShowBellCurve = bell };
         if (trend is { } t)
             o = o with { Trend = t };
+        if (whisker is { } w)
+            o = o with { BoxWhisker = w };
         return o;
     }
 

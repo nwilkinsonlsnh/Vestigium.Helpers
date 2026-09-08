@@ -26,6 +26,7 @@
     <TabControl Grid.Row="1">
       <TabItem Header="Overview"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource OverviewTab}"/></TabItem>
       <TabItem Header="Histogram"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource HistogramTab}"/></TabItem>
+      <TabItem Header="Shapes"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ShapesTab}"/></TabItem>
       <TabItem Header="Control"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ControlTab}"/></TabItem>
       <TabItem Header="Pareto"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ParetoTab}"/></TabItem>
       <TabItem Header="Library"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource LibraryTab}"/></TabItem>

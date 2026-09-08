@@ -59,7 +59,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.Processes` | `net10.0` | Process launch and capture |
 | `Vestigium.Helpers.Services` | `net10.0` | Service control helpers |
 | `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals, **ControlLimits** |
-| `Vestigium.Helpers.Charts` | `net10.0-windows` | ScottPlot wrapper. Draws Analytics numbers on a WPF form. Does not compute UCL/LCL. |
+| `Vestigium.Helpers.Charts` | `net10.0-windows` | ScottPlot wrapper. Draws Analytics numbers on a WPF form (histogram, five-number box, control). Does not compute UCL/LCL. Analytics.Demo and ClosedXml.Demo host it. |
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial; ChartView tests run on Windows) |
 

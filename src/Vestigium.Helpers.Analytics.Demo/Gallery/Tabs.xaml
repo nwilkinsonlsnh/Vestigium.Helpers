@@ -3,10 +3,10 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ANL  ·  SRS v1.2"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ANL  ·  SRS v1.4"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="NumericSeries is an immutable snapshot of a finite sample. It publishes the five-number summary, quartile bands, PERCENTILE.INC tails, and frequentist intervals. Charting stays out of this library — the gallery draws the numbers so you can see them."/>
+                   Text="NumericSeries is an immutable snapshot of a finite sample. It publishes the five-number summary, quartile bands, PERCENTILE.INC tails, frequentist intervals, and ControlLimits. Charting stays out of this library — this gallery hosts Vestigium.Helpers.Charts (ScottPlot) so you can see the numbers."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="280">
             <StackPanel>
@@ -118,61 +118,25 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Freedman–Diaconis bins on the value axis. Time is not an axis of this histogram. The gold line is ordinary least squares through (bin midpoint, count) — a trend of how densely the sample sits across the value axis, not a forecast."/>
-        <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM + TREND"/>
-        <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Margin="0,0,0,6" Text="{Binding HistogramTrendCaption}"/>
-        <Grid Height="180" Margin="0,0,0,12">
-          <ItemsControl ItemsSource="{Binding Histogram}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Rows="1"/>
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border Margin="2,0" VerticalAlignment="Bottom" Height="{Binding Height}" Background="#4C6B8A" ToolTip="{Binding Caption}" CornerRadius="2,2,0,0"/>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <Viewbox Stretch="Fill" IsHitTestVisible="False">
-            <Canvas Width="720" Height="180">
-              <Polyline Points="{Binding HistogramTrendCurve}" Stroke="#F0C14A" StrokeThickness="2.4"
-                        StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"/>
-            </Canvas>
-          </Viewbox>
-        </Grid>
+                   Text="Freedman–Diaconis bins from Analytics. Vestigium.Helpers.Charts draws them. The bell overlay is N(μ, s) scaled to counts — layout only. Pareto is the same bins ranked by count."/>
+        <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding HistogramPlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM + N(μ, s)"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding HistogramBellPlot}"/>
+        </Border>
         <TextBlock Style="{StaticResource Caption}" Text="PARETO"/>
-        <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,6"
-                   Text="Same bins, sorted by count descending. Bars are the vital-few ranking. The gold line is the cumulative share of the sample — that is the Pareto line. The dashed line is 80%. Vilfredo Pareto noticed ~80% of land sat with ~20% of people; Joseph Juran turned that into this chart. It is a real QC tool, not a joke. This sample is unique integers, so you should not expect a dramatic 80/20."/>
-        <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Margin="0,0,0,6" Text="{Binding ParetoCaption}"/>
-        <Grid Height="180" Margin="0,0,0,12">
-          <ItemsControl ItemsSource="{Binding ParetoBars}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Rows="1"/>
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border Margin="2,0" VerticalAlignment="Bottom" Height="{Binding Height}" Background="#2A6F97" ToolTip="{Binding Caption}" CornerRadius="2,2,0,0"/>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <Viewbox Stretch="Fill" IsHitTestVisible="False">
-            <Canvas Width="720" Height="180">
-              <Line X1="12" Y1="{Binding ParetoEightyY}" X2="708" Y2="{Binding ParetoEightyY}"
-                    Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="4 3"/>
-              <Polyline Points="{Binding ParetoCurve}" Stroke="#F0C14A" StrokeThickness="2.4"
-                        StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"/>
-            </Canvas>
-          </Viewbox>
-        </Grid>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding ParetoPlot}"/>
+        </Border>
         <ListView ItemsSource="{Binding Histogram}" FontFamily="Cascadia Mono, Consolas" FontSize="12" MaxHeight="280">
           <ListView.View>
             <GridView>
               <GridViewColumn Header="Lower" Width="140" DisplayMemberBinding="{Binding Label}"/>
               <GridViewColumn Header="Count" Width="100" DisplayMemberBinding="{Binding Count}"/>
-              <GridViewColumn Header="Bin" Width="160" DisplayMemberBinding="{Binding Caption}"/>
+              <GridViewColumn Header="Bin" Width="260" DisplayMemberBinding="{Binding Caption}"/>
             </GridView>
           </ListView.View>
         </ListView>
@@ -184,45 +148,31 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <DockPanel LastChildFill="False" Margin="0,0,0,8">
-          <TextBlock FontWeight="SemiBold" Text="Curves from NumericSeries" VerticalAlignment="Center"/>
+          <TextBlock FontWeight="SemiBold" Text="Vestigium.Helpers.Charts" VerticalAlignment="Center"/>
           <Button DockPanel.Dock="Right" Content="Draw new sample" Command="{Binding DrawSampleCommand}" Style="{StaticResource PrimaryButton}"/>
         </DockPanel>
         <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Charting stays out of the library. This tab draws EcdfPoints() and SampleOrderPoints(). Y on the ECDF is the share of the sample at or below X. The dashed line is P95 — a rank cutoff, not 95% confidence."/>
+                   Text="This gallery is a Charts host. Analytics still has no ScottPlot reference. ECDF, sample order, five-number box, and control charts are ChartView widgets given NumericSeries + ControlLimits."/>
+        <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Margin="0,0,0,8" Text="{Binding LimitsCaption}"/>
         <TextBlock Style="{StaticResource Caption}" Text="ECDF"/>
-        <Border Style="{StaticResource Panel}" Height="300" Margin="0,0,0,8">
-          <DockPanel>
-            <DockPanel DockPanel.Dock="Bottom" LastChildFill="True" Margin="0,6,0,0">
-              <TextBlock DockPanel.Dock="Left" FontFamily="Cascadia Mono, Consolas" FontSize="11" Opacity="0.7" Text="{Binding EcdfMinLabel}"/>
-              <TextBlock DockPanel.Dock="Right" FontFamily="Cascadia Mono, Consolas" FontSize="11" Opacity="0.7" Text="{Binding EcdfMaxLabel}"/>
-              <TextBlock HorizontalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="11" Foreground="#7DD3FC" Text="{Binding EcdfP95Label}"/>
-            </DockPanel>
-            <Viewbox Stretch="Fill">
-              <Canvas Width="720" Height="240">
-                <Line X1="12" Y1="228" X2="708" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
-                <Line X1="12" Y1="12" X2="12" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
-                <Line X1="{Binding P95LineX}" Y1="12" X2="{Binding P95LineX}" Y2="228"
-                      Stroke="#E2E8F0" StrokeThickness="1" StrokeDashArray="4 3"/>
-                <Polyline Points="{Binding EcdfCurve}" Stroke="#7DD3FC" StrokeThickness="2.5"
-                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"/>
-              </Canvas>
-            </Viewbox>
-          </DockPanel>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding EcdfPlot}"/>
         </Border>
         <TextBlock Style="{StaticResource Caption}" Text="SAMPLE ORDER"/>
-        <Border Style="{StaticResource Panel}" Height="260">
-          <DockPanel>
-            <TextBlock DockPanel.Dock="Bottom" Opacity="0.7" Margin="0,6,0,0"
-                       Text="Observation index → value. Same points as the Sample tab, in draw order."/>
-            <Viewbox Stretch="Fill">
-              <Canvas Width="720" Height="240">
-                <Line X1="12" Y1="228" X2="708" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
-                <Line X1="12" Y1="12" X2="12" Y2="228" Stroke="#2A4A73" StrokeThickness="1"/>
-                <Polyline Points="{Binding SampleCurve}" Stroke="#5B9BD5" StrokeThickness="1.6"
-                          StrokeLineJoin="Round" Fill="Transparent"/>
-              </Canvas>
-            </Viewbox>
-          </DockPanel>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding LinePlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="FIVE-NUMBER BOX"/>
+        <Border Style="{StaticResource Panel}" Height="280" Margin="0,0,0,12">
+          <ContentControl Content="{Binding BoxPlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="CONTROL · MEAN ± 3S"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding ControlSigmaPlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="CONTROL · MOVING RANGE"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,0">
+          <ContentControl Content="{Binding ControlMovingPlot}"/>
         </Border>
       </StackPanel>
     </ScrollViewer>

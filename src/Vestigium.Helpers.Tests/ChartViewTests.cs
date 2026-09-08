@@ -94,6 +94,30 @@ public sealed class ChartViewTests
     }
 
     [Fact]
+    public void Box_five_number_uses_min_and_max_as_whiskers()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 40 }, "spike");
+        var five = PlotBuilder.LayoutBox(series.Full, BoxWhiskerKind.FiveNumber);
+        var tukey = PlotBuilder.LayoutBox(series.Full, BoxWhiskerKind.Tukey);
+        Assert.Equal(1d, five.WhiskerMin);
+        Assert.Equal(40d, five.WhiskerMax);
+        Assert.Empty(five.Outliers);
+        Assert.True(tukey.WhiskerMax < 40);
+        Assert.Contains(40m, tukey.Outliers);
+    }
+
+    [Fact]
+    public void Shape_samples_are_symmetric_right_and_left()
+    {
+        var mid = ChartSamples.Symmetric();
+        var right = ChartSamples.RightTail();
+        var left = ChartSamples.LeftTail();
+        Assert.True(Math.Abs(mid.Full.Skewness ?? 9) < 0.35);
+        Assert.True((right.Full.Skewness ?? 0) > 0.8);
+        Assert.True((left.Full.Skewness ?? 0) < -0.8);
+    }
+
+    [Fact]
     public void Control_requires_limits_and_rejects_malformed_band()
     {
         var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5 });

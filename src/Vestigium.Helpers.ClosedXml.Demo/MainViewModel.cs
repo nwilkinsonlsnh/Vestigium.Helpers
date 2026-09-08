@@ -3,11 +3,13 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
+using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
+using Vestigium.Helpers.Charts;
 using Vestigium.Helpers.ClosedXml;
 using Vestigium.Helpers.Gallery;
 using Vestigium.Logging;
@@ -102,6 +104,11 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private Brush previewBand = Brushes.Transparent;
     [ObservableProperty] private Brush previewBandAlt = Brushes.Transparent;
     [ObservableProperty] private Brush previewBodyInk = Brushes.Black;
+    [ObservableProperty] private FrameworkElement? histogramPlot;
+    [ObservableProperty] private FrameworkElement? linePlot;
+    [ObservableProperty] private FrameworkElement? piePlot;
+    [ObservableProperty] private FrameworkElement? scatterPlot;
+    [ObservableProperty] private FrameworkElement? boxPlot;
 
     public string ChartCaption => IncludeCharts ? $"{ChartCount} Excel chart(s)" : "charts off";
     public string ExcelStyleName => ExcelTableStyles.ToExcelName(TableStyle);
@@ -428,6 +435,12 @@ public sealed partial class MainViewModel : GalleryViewModelBase
                 Caption = $"{s}: {v.ToString("G6", CultureInfo.InvariantCulture)}"
             });
         }
+
+        HistogramPlot = ChartView.Histogram(series, new ChartOptions { Title = "Histogram · Charts helper" });
+        LinePlot = ChartView.Line(series, TrendKind.Linear, new ChartOptions { Title = "Sample order · Charts helper" });
+        PiePlot = ChartView.Pie(series, new ChartOptions { Title = "Frequencies · Charts helper" });
+        ScatterPlot = ChartView.Scatter(series, new ChartOptions { Title = "Scatter · Charts helper" });
+        BoxPlot = ChartView.Box(series, BoxWhiskerKind.FiveNumber, new ChartOptions { Title = "Five-number box · Charts helper" });
     }
 
     partial void OnReadSheetChanged(string value) => BindReadSheet();

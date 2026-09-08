@@ -99,6 +99,8 @@ internal static class PlotBuilder
         {
             var min = (double)series.Full.Min!.Value;
             var max = (double)series.Full.Max!.Value;
+            var lo = Math.Min(min, mu - 3.5 * s);
+            var hi = Math.Max(max, mu + 3.5 * s);
             var binWidth = bins.Count == 0
                 ? 1
                 : (double)(bins[0].UpperInclusive - bins[0].LowerInclusive);
@@ -108,7 +110,7 @@ internal static class PlotBuilder
             var ys = new double[80];
             for (var i = 0; i < 80; i++)
             {
-                var x = min + (max - min) * i / 79d;
+                var x = lo + (hi - lo) * i / 79d;
                 var z = (x - mu) / s;
                 var pdf = Math.Exp(-0.5 * z * z) / (s * Math.Sqrt(2 * Math.PI));
                 xs[i] = x;
@@ -233,28 +235,85 @@ internal static class PlotBuilder
     private static void FillBox(Plot plot, ChartSpec spec, ChartOptions options)
     {
         var s = RequireSeries(spec).Full;
-        var inFence = s.Values.Where(v =>
-            (s.TukeyLowerFence is not { } lo || v >= lo) &&
-            (s.TukeyUpperFence is not { } hi || v <= hi)).ToArray();
+        var layout = LayoutBox(s, options.BoxWhisker);
         var box = new Box
         {
             Position = 1,
-            BoxMin = (double)s.Q1!.Value,
-            BoxMax = (double)s.Q3!.Value,
-            BoxMiddle = (double)s.Median!.Value,
-            WhiskerMin = (double)(inFence.Length == 0 ? s.Min!.Value : inFence.Min()),
-            WhiskerMax = (double)(inFence.Length == 0 ? s.Max!.Value : inFence.Max()),
+            BoxMin = layout.Q1,
+            BoxMax = layout.Q3,
+            BoxMiddle = layout.Median,
+            WhiskerMin = layout.WhiskerMin,
+            WhiskerMax = layout.WhiskerMax,
             FillColor = Primary(options)
         };
         plot.Add.Box(box);
-        if (s.Outliers.Count > 0)
+
+        if (layout.Outliers.Count > 0)
         {
-            var ox = Enumerable.Repeat(1d, s.Outliers.Count).ToArray();
-            var oy = s.Outliers.Select(v => (double)v).ToArray();
+            var ox = Enumerable.Repeat(1d, layout.Outliers.Count).ToArray();
+            var oy = layout.Outliers.Select(v => (double)v).ToArray();
             var sc = plot.Add.Scatter(ox, oy);
             sc.Color = Color.FromHex(Palette.Outlier);
             sc.LegendText = "outliers";
         }
+
+        LabelFive(plot, layout);
+        plot.Axes.SetLimitsX(0.15, 2.35);
+    }
+
+    internal readonly record struct BoxLayout(
+        double WhiskerMin,
+        double WhiskerMax,
+        double Q1,
+        double Median,
+        double Q3,
+        IReadOnlyList<decimal> Outliers,
+        BoxWhiskerKind Kind);
+
+    internal static BoxLayout LayoutBox(SeriesSlice s, BoxWhiskerKind kind)
+    {
+        var q1 = (double)s.Q1!.Value;
+        var median = (double)s.Median!.Value;
+        var q3 = (double)s.Q3!.Value;
+        if (kind == BoxWhiskerKind.Tukey)
+        {
+            var inFence = s.Values.Where(v =>
+                (s.TukeyLowerFence is not { } lo || v >= lo) &&
+                (s.TukeyUpperFence is not { } hi || v <= hi)).ToArray();
+            return new BoxLayout(
+                (double)(inFence.Length == 0 ? s.Min!.Value : inFence.Min()),
+                (double)(inFence.Length == 0 ? s.Max!.Value : inFence.Max()),
+                q1,
+                median,
+                q3,
+                s.Outliers,
+                BoxWhiskerKind.Tukey);
+        }
+
+        return new BoxLayout(
+            (double)s.Min!.Value,
+            (double)s.Max!.Value,
+            q1,
+            median,
+            q3,
+            [],
+            BoxWhiskerKind.FiveNumber);
+    }
+
+    private static void LabelFive(Plot plot, BoxLayout layout)
+    {
+        void Mark(double y, string name)
+        {
+            var text = plot.Add.Text($"{name} {y:G4}", 1.32, y);
+            text.LabelFontSize = 11;
+            text.LabelFontColor = Color.FromHex("#1F2A33");
+        }
+
+        Mark(layout.WhiskerMax, layout.Kind == BoxWhiskerKind.FiveNumber ? "max" : "upper");
+        Mark(layout.Q3, "Q3");
+        Mark(layout.Median, "median");
+        Mark(layout.Q1, "Q1");
+        Mark(layout.WhiskerMin, layout.Kind == BoxWhiskerKind.FiveNumber ? "min" : "lower");
     }
 
     private static void FillBands(Plot plot, ChartSpec spec, ChartOptions options)

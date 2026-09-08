@@ -16,7 +16,7 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Analytics gallery"/>
-        <TextBlock Opacity="0.7" Text="NumericSeries snapshot · five-number, bands, P95, confidence intervals"/>
+        <TextBlock Opacity="0.7" Text="NumericSeries snapshot · Charts helper draws histogram, box, ECDF, control"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>

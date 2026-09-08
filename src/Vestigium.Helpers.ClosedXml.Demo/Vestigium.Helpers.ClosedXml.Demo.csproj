@@ -16,5 +16,6 @@
     <ProjectReference Include="..\Vestigium.Helpers.Gallery\Vestigium.Helpers.Gallery.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.ClosedXml\Vestigium.Helpers.ClosedXml.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Charts\Vestigium.Helpers.Charts.csproj" />
   </ItemGroup>
 </Project>

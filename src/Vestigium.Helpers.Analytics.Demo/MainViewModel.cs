@@ -2,11 +2,11 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Windows;
-using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
+using Vestigium.Helpers.Charts;
 using Vestigium.Helpers.Gallery;
 using Vestigium.Logging;
 
@@ -16,9 +16,6 @@ public sealed partial class MainViewModel : GalleryViewModelBase
 {
     public const int SampleSize = 1000;
     public const int PopulationSize = 100_000;
-    private const double PlotWidth = 720;
-    private const double PlotHeight = 240;
-    private const double PlotPad = 12;
 
     public MainViewModel()
     {
@@ -26,7 +23,6 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         Bands = [];
         Intervals = [];
         Histogram = [];
-        ParetoBars = [];
         Sample = [];
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Analytics}";
         DrawSample();
@@ -36,13 +32,14 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public string StartupSnippet =>
         "var series = NumericSeries.FromObservations(observations, \"crypto-1k\");\n" +
         "var ci = series.Confidence(0.95);\n" +
-        "decimal p95 = series.Full.Percentile(0.95);  // tail cut — not a confidence level";
+        "var limits = series.ControlLimits(ControlLimitMethod.MovingRange);\n" +
+        "panel.Children.Add(ChartView.Box(series, BoxWhiskerKind.FiveNumber));\n" +
+        "panel.Children.Add(ChartView.Control(series, limits));";
 
     public ObservableCollection<KvRow> Summary { get; }
     public ObservableCollection<BandRow> Bands { get; }
     public ObservableCollection<IntervalRow> Intervals { get; }
     public ObservableCollection<HistBar> Histogram { get; }
-    public ObservableCollection<ParetoBar> ParetoBars { get; }
     public ObservableCollection<SamplePoint> Sample { get; }
 
     [ObservableProperty] private string name = "crypto-1k";
@@ -53,18 +50,16 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string meanCiText = "";
     [ObservableProperty] private string skewText = "";
     [ObservableProperty] private string inferenceText = "";
+    [ObservableProperty] private string limitsCaption = "";
     [ObservableProperty] private NumericSeries? series;
-    [ObservableProperty] private PointCollection ecdfCurve = [];
-    [ObservableProperty] private PointCollection sampleCurve = [];
-    [ObservableProperty] private double p95LineX;
-    [ObservableProperty] private string ecdfMinLabel = "";
-    [ObservableProperty] private string ecdfMaxLabel = "";
-    [ObservableProperty] private string ecdfP95Label = "";
-    [ObservableProperty] private PointCollection histogramTrendCurve = [];
-    [ObservableProperty] private PointCollection paretoCurve = [];
-    [ObservableProperty] private double paretoEightyY = 36;
-    [ObservableProperty] private string histogramTrendCaption = "";
-    [ObservableProperty] private string paretoCaption = "";
+    [ObservableProperty] private FrameworkElement? histogramPlot;
+    [ObservableProperty] private FrameworkElement? histogramBellPlot;
+    [ObservableProperty] private FrameworkElement? paretoPlot;
+    [ObservableProperty] private FrameworkElement? ecdfPlot;
+    [ObservableProperty] private FrameworkElement? linePlot;
+    [ObservableProperty] private FrameworkElement? boxPlot;
+    [ObservableProperty] private FrameworkElement? controlSigmaPlot;
+    [ObservableProperty] private FrameworkElement? controlMovingPlot;
 
     [RelayCommand]
     private void DrawSample()
@@ -179,55 +174,16 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         }
 
         Histogram.Clear();
-        var hist = full.Frequency.Histogram;
-        var trend = series.HistogramTrendPoints();
-        var max = hist.Count == 0 ? 1d : Math.Max(1, hist.Max(h => h.Count));
-        if (trend.Count > 0)
-            max = Math.Max(max, trend.Max(p => p.Y));
-        var i = 0;
-        foreach (var bin in hist)
+        foreach (var bin in full.Frequency.Histogram)
         {
             Histogram.Add(new HistBar
             {
                 Label = FmtDec(bin.LowerInclusive),
                 Count = bin.Count,
-                Height = 8 + bin.Count / max * 140,
-                Caption = $"{i}: {bin.Count}"
-            });
-            i++;
-        }
-
-        HistogramTrendCurve = MapBarCanvas(trend, max);
-        if (trend.Count >= 2)
-        {
-            var dx = trend[^1].X - trend[0].X;
-            var slope = dx == 0 ? 0 : (trend[^1].Y - trend[0].Y) / dx;
-            HistogramTrendCaption = $"OLS trend  slope = {slope:N4} counts per unit";
-        }
-        else
-            HistogramTrendCaption = "";
-
-        ParetoBars.Clear();
-        var pareto = series.ParetoPoints();
-        var pMax = pareto.Count == 0 ? 1d : Math.Max(1, pareto.Max(b => b.Count));
-        foreach (var bin in pareto)
-        {
-            ParetoBars.Add(new ParetoBar
-            {
-                Label = $"#{bin.Rank}",
-                Count = bin.Count,
-                Height = 8 + bin.Count / pMax * 140,
-                Share = $"{bin.CumulativeShare:P0}",
-                Caption = $"rank {bin.Rank}  mid {bin.Midpoint:N0}  n={bin.Count}  cum {bin.CumulativeShare:P1}"
+                Height = 8,
+                Caption = $"{bin.LowerInclusive:G4}–{bin.UpperInclusive:G4}: {bin.Count}"
             });
         }
-
-        ParetoCurve = MapShareCanvas(pareto.Select(b => new ChartPoint(b.Rank, b.CumulativeShare)).ToArray());
-        ParetoEightyY = 180 - 0.8 * 160;
-        var k80 = pareto.FirstOrDefault(b => b.CumulativeShare >= 0.8);
-        ParetoCaption = k80.Rank == 0
-            ? ""
-            : $"80% of the sample sits in the first {k80.Rank} of {pareto.Count} bins ({100.0 * k80.Rank / Math.Max(1, pareto.Count):0}%). Classic 80/20 would be ~20% of the bins.";
 
         Sample.Clear();
         var take = Math.Min(80, series.Count);
@@ -242,117 +198,23 @@ public sealed partial class MainViewModel : GalleryViewModelBase
             });
         }
 
-        BindCurves(series);
+        BindCharts(series);
     }
 
-    private void BindCurves(NumericSeries series)
+    private void BindCharts(NumericSeries series)
     {
-        var ecdf = series.EcdfPoints();
-        EcdfCurve = MapCurve(ecdf);
-        SampleCurve = MapCurve(series.SampleOrderPoints());
-        if (ecdf.Count == 0)
-        {
-            P95LineX = PlotPad;
-            EcdfMinLabel = "";
-            EcdfMaxLabel = "";
-            EcdfP95Label = "";
-            return;
-        }
+        var sigma = series.ControlLimits();
+        var moving = series.ControlLimits(ControlLimitMethod.MovingRange);
+        LimitsCaption = $"mean±3s outside={sigma.OutOfControlCount}  ·  MR outside={moving.OutOfControlCount}  ·  five-number {FiveNumber}";
 
-        var minX = ecdf[0].X;
-        var maxX = ecdf[^1].X;
-        var span = maxX - minX;
-        if (span == 0)
-            span = 1;
-        var p95 = (double)series.Full.Percentile(0.95);
-        P95LineX = PlotPad + (p95 - minX) / span * (PlotWidth - 2 * PlotPad);
-        EcdfMinLabel = FmtNum(minX);
-        EcdfMaxLabel = FmtNum(maxX);
-        EcdfP95Label = $"P95 = {FmtDec(series.Full.Percentile(0.95))}";
-    }
-
-    private static PointCollection MapCurve(IReadOnlyList<ChartPoint> source)
-    {
-        var pts = new PointCollection();
-        if (source.Count == 0)
-            return pts;
-
-        var minX = source[0].X;
-        var maxX = source[0].X;
-        var minY = source[0].Y;
-        var maxY = source[0].Y;
-        foreach (var p in source)
-        {
-            if (p.X < minX) minX = p.X;
-            if (p.X > maxX) maxX = p.X;
-            if (p.Y < minY) minY = p.Y;
-            if (p.Y > maxY) maxY = p.Y;
-        }
-
-        var dx = maxX - minX;
-        if (dx == 0) dx = 1;
-        var dy = maxY - minY;
-        if (dy == 0) dy = 1;
-        var innerW = PlotWidth - 2 * PlotPad;
-        var innerH = PlotHeight - 2 * PlotPad;
-        foreach (var p in Downsample(source, 240))
-        {
-            var x = PlotPad + (p.X - minX) / dx * innerW;
-            var y = PlotPad + (1 - (p.Y - minY) / dy) * innerH;
-            pts.Add(new Point(x, y));
-        }
-
-        return pts;
-    }
-
-    private static List<ChartPoint> Downsample(IReadOnlyList<ChartPoint> source, int max)
-    {
-        if (source.Count <= max)
-            return [.. source];
-        var list = new List<ChartPoint>(max);
-        var step = (source.Count - 1) / (double)(max - 1);
-        for (var i = 0; i < max; i++)
-        {
-            var idx = (int)Math.Round(i * step);
-            if (idx >= source.Count)
-                idx = source.Count - 1;
-            list.Add(source[idx]);
-        }
-
-        return list;
-    }
-
-
-    private static PointCollection MapBarCanvas(IReadOnlyList<ChartPoint> source, double maxY, double width = 720, double height = 180)
-    {
-        var pts = new PointCollection();
-        if (source.Count == 0)
-            return pts;
-        if (maxY <= 0)
-            maxY = 1;
-        var n = source.Count;
-        for (var i = 0; i < n; i++)
-        {
-            var x = (i + 0.5) / n * width;
-            var y = height - (8 + source[i].Y / maxY * 140);
-            pts.Add(new Point(x, Math.Clamp(y, 2, height - 2)));
-        }
-        return pts;
-    }
-
-    private static PointCollection MapShareCanvas(IReadOnlyList<ChartPoint> source, double width = 720, double height = 180)
-    {
-        var pts = new PointCollection();
-        if (source.Count == 0)
-            return pts;
-        var n = source.Count;
-        for (var i = 0; i < n; i++)
-        {
-            var x = (i + 0.5) / n * width;
-            var y = height - source[i].Y * 160;
-            pts.Add(new Point(x, Math.Clamp(y, 2, height - 2)));
-        }
-        return pts;
+        HistogramPlot = ChartView.Histogram(series, new ChartOptions { Title = "Histogram (Freedman–Diaconis)" });
+        HistogramBellPlot = ChartView.Histogram(series, showBellCurve: true, new ChartOptions { Title = "Histogram + N(μ, s)" });
+        ParetoPlot = ChartView.Pareto(series, new ChartOptions { Title = "Pareto" });
+        EcdfPlot = ChartView.Ecdf(series, new ChartOptions { Title = "ECDF" });
+        LinePlot = ChartView.Line(series, TrendKind.Linear, new ChartOptions { Title = "Sample order + trend" });
+        BoxPlot = ChartView.Box(series, BoxWhiskerKind.FiveNumber, new ChartOptions { Title = "Five-number box (min / Q1 / median / Q3 / max)" });
+        ControlSigmaPlot = ChartView.Control(series, sigma, new ChartOptions { Title = "Control · mean ± 3s" });
+        ControlMovingPlot = ChartView.Control(series, moving, new ChartOptions { Title = "Control · moving range" });
     }
 
     private static List<Observation> DrawUnique(int count, int populationSize, DateTimeOffset origin)

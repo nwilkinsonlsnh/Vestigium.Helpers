@@ -32,9 +32,11 @@ Excel native charts stay in ClosedXml. This package must not reference ClosedXML
 
 ## v1 kinds
 
-Histogram (+ optional bell overlay), ECDF, Line, Scatter, Column, Bar, Pie, Pareto, Box, Bands, MeanInterval, Control.
+Histogram (+ optional bell overlay, sampled to μ ± 3.5s so the tails show), ECDF, Line, Scatter, Column, Bar, Pie, Pareto, Box (five-number or Tukey), Bands, MeanInterval, Control.
 
-Overlays Charts *may* compute for layout only: OLS trend through plotted points, normal PDF sampled for the bell, Pareto sort-and-accumulate for display.
+`ChartView.Box` defaults to the five-number summary (min / Q1 / median / Q3 / max) with those labels on the plot. `BoxWhiskerKind.Tukey` stops the whiskers at the last in-fence point and plots outliers.
+
+`ChartSamples.Symmetric` / `RightTail` / `LeftTail` are seeded demo series for the gallery. Overlays Charts *may* compute for layout only: OLS trend through plotted points, normal PDF sampled for the bell, Pareto sort-and-accumulate for display.
 
 ## Control widget
 
@@ -42,4 +44,4 @@ Overlays Charts *may* compute for layout only: OLS trend through plotted points,
 
 ## Tests
 
-Identity, Probe JSONL, SavePng each kind, Control null/malformed rejects, pie collapse to Other, OLS slope ≈ 1 on `{1..5}`, public types do not name ScottPlot.
+Identity, Probe JSONL, SavePng each kind, Control null/malformed rejects, pie collapse to Other, OLS slope ≈ 1 on `{1..5}`, public types do not name ScottPlot, five-number whiskers are min/max (Tukey stops in-fence), ChartSamples skew signs.

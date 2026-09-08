@@ -46,7 +46,7 @@
             <StackPanel>
               <TextBlock Style="{StaticResource Caption}" Text="CHARTS"/>
               <TextBlock FontWeight="SemiBold" Text="{Binding ChartCaption}"/>
-              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Column, bar, line, pie, scatter. ClosedXML 0.105 cannot author charts. We inject OOXML after save."/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Column, bar, line, pie, scatter in the .xlsx. This gallery also hosts Vestigium.Helpers.Charts as a preview."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="280">
@@ -236,20 +236,27 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Preview of the series that land as native Excel charts, including pie (histogram share) and scatter (sample). The downloaded workbook is the source of truth."/>
+                   Text="Preview via Vestigium.Helpers.Charts (ScottPlot). Excel still gets native OOXML charts on save — ClosedXml does not reference Charts. This tab is the host test: same NumericSeries, two drawing surfaces."/>
         <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM"/>
-        <ItemsControl Height="160" ItemsSource="{Binding Histogram}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <UniformGrid Rows="1"/>
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border Margin="2,0" VerticalAlignment="Bottom" Height="{Binding Height}" Background="#4C6B8A" ToolTip="{Binding Caption}" CornerRadius="2,2,0,0"/>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding HistogramPlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="LINE"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding LinePlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="PIE"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding PiePlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="SCATTER"/>
+        <Border Style="{StaticResource Panel}" Height="240" Margin="0,0,0,12">
+          <ContentControl Content="{Binding ScatterPlot}"/>
+        </Border>
+        <TextBlock Style="{StaticResource Caption}" Text="FIVE-NUMBER BOX"/>
+        <Border Style="{StaticResource Panel}" Height="280" Margin="0,0,0,12">
+          <ContentControl Content="{Binding BoxPlot}"/>
+        </Border>
         <TextBlock Style="{StaticResource Caption}" Text="BAND MEANS"/>
         <ListView Height="180" ItemsSource="{Binding Bands}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
           <ListView.View>
@@ -261,50 +268,6 @@
             </GridView>
           </ListView.View>
         </ListView>
-        <TextBlock Style="{StaticResource Caption}" Text="MEAN CONFIDENCE"/>
-        <ListView Height="180" ItemsSource="{Binding Intervals}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
-          <ListView.View>
-            <GridView>
-              <GridViewColumn Header="Level" Width="90" DisplayMemberBinding="{Binding Level}"/>
-              <GridViewColumn Header="Estimate" Width="110" DisplayMemberBinding="{Binding Estimate}"/>
-              <GridViewColumn Header="Lower" Width="110" DisplayMemberBinding="{Binding Lower}"/>
-              <GridViewColumn Header="Upper" Width="110" DisplayMemberBinding="{Binding Upper}"/>
-              <GridViewColumn Header="Method" Width="220" DisplayMemberBinding="{Binding Method}"/>
-            </GridView>
-          </ListView.View>
-        </ListView>
-        <TextBlock Style="{StaticResource Caption}" Text="HISTOGRAM SHARE · PIE"/>
-        <ItemsControl Height="28" ItemsSource="{Binding PieSlices}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal"/>
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border Height="28" Width="{Binding Width}" Background="{Binding Fill}" ToolTip="{Binding Caption}"/>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-        <TextBlock Style="{StaticResource Caption}" Text="SAMPLE · SCATTER"/>
-        <ItemsControl Height="160" ItemsSource="{Binding Scatter}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <Canvas Width="720" Height="160"/>
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemContainerStyle>
-            <Style TargetType="ContentPresenter">
-              <Setter Property="Canvas.Left" Value="{Binding X}"/>
-              <Setter Property="Canvas.Top" Value="{Binding Y}"/>
-            </Style>
-          </ItemsControl.ItemContainerStyle>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Ellipse Width="6" Height="6" Fill="#5B9BD5" ToolTip="{Binding Caption}"/>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
       </StackPanel>
     </ScrollViewer>
   </DataTemplate>

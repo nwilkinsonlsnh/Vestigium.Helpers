@@ -24,6 +24,16 @@ public enum TrendKind
     Linear
 }
 
+/// <summary>
+/// Whiskers on <see cref="ChartKind.Box"/>. Five-number is min / Q1 / median / Q3 / max.
+/// Tukey stops at the last in-fence point and plots outliers.
+/// </summary>
+public enum BoxWhiskerKind
+{
+    FiveNumber = 0,
+    Tukey = 1
+}
+
 public sealed record ChartOptions
 {
     public string? Title { get; init; }
@@ -34,6 +44,7 @@ public sealed record ChartOptions
     public bool ShowBellCurve { get; init; }
     public TrendKind Trend { get; init; } = TrendKind.None;
     public bool ShowParetoLine { get; init; } = true;
+    public BoxWhiskerKind BoxWhisker { get; init; } = BoxWhiskerKind.FiveNumber;
     public ControlLimits? Limits { get; init; }
     public double? Width { get; init; }
     public double? Height { get; init; }

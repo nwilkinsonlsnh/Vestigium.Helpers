@@ -74,6 +74,36 @@
     </Grid>
   </DataTemplate>
 
+  <DataTemplate x:Key="ShapesTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Three seeded samples. Symmetric is N(12, 1.15). Right tail is log-normal (mean sits right of the median). Left tail is the same sample mirrored. Histogram + N(μ, s) overlay, then the five-number box."/>
+        <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding SymmetricCaption}"/>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8">
+          <ContentControl Content="{Binding SymmetricPlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,0,0,12">
+          <ContentControl Content="{Binding SymmetricBoxPlot}"/>
+        </Border>
+        <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding RightCaption}"/>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8">
+          <ContentControl Content="{Binding RightPlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,0,0,12">
+          <ContentControl Content="{Binding RightBoxPlot}"/>
+        </Border>
+        <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding LeftCaption}"/>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,8">
+          <ContentControl Content="{Binding LeftPlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Height="220" Margin="0,0,0,0">
+          <ContentControl Content="{Binding LeftBoxPlot}"/>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
   <DataTemplate x:Key="LibraryTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <WrapPanel>
@@ -86,8 +116,11 @@
         <Border Style="{StaticResource Panel}" Width="620" Height="260" Margin="0,0,8,8">
           <ContentControl Content="{Binding PiePlot}"/>
         </Border>
-        <Border Style="{StaticResource Panel}" Width="620" Height="260" Margin="0,0,8,8">
+        <Border Style="{StaticResource Panel}" Width="620" Height="280" Margin="0,0,8,8">
           <ContentControl Content="{Binding BoxPlot}"/>
+        </Border>
+        <Border Style="{StaticResource Panel}" Width="620" Height="280" Margin="0,0,8,8">
+          <ContentControl Content="{Binding TukeyPlot}"/>
         </Border>
       </WrapPanel>
     </ScrollViewer>

@@ -150,7 +150,7 @@ NaN and Infinity throw. Empty series from Analytics never reach this helper — 
 
 ## Demo
 
-`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** previews column / line / pie / scatter. **Read** reopens that file through `ReadUsedRange`. **Chrome** shows print, header formats, the P95 highlight, and sheet order. **Template** fills named range `Data`, stamps a logo, and merges two workbooks.
+`dotnet run --project src/Vestigium.Helpers.ClosedXml.Demo` opens the WPF gallery (same chrome as Vestigium.Logging). **Write** is Excel's Light / Medium / Dark Table Design chips (header + band + band-alt) plus a live sample. **Write workbook** dumps the Analytics sample to Desktop. **Charts** hosts `Vestigium.Helpers.Charts` (`ChartView.Histogram` / `Line` / `Pie` / `Scatter` / `Box`) as a preview; Excel still gets native OOXML charts on save — this library does not reference Charts. **Read** reopens that file through `ReadUsedRange`. **Chrome** shows print, header formats, the P95 highlight, and sheet order. **Template** fills named range `Data`, stamps a logo, and merges two workbooks.
 
 Workbook: `%DESKTOP%\Vestigium\Exports\ClosedXml\vestigium-ClosedXml-{stamp}.xlsx`  
 JSONL: `%ProgramData%\Vestigium\Logs\ClosedXml\`
