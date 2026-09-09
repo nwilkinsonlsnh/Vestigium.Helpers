@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-ENC-SRS-000  
 **Version:** 1.0  
-**Status:** Accepted. Implemented v1.0 + v1.1 AES-256-CBC (interop) + v1.2 RSA-OAEP wrap + key ring.  
+**Status:** Accepted. Implemented v1.0 + v1.1 AES-256-CBC (interop) + v1.2 RSA-OAEP wrap + key ring + token enable/disable/expire with override + ALCOA+ logs.  
 **Date:** 8 September 2026  
 **Package:** `Vestigium.Helpers.Encryption`  
 **TFM:** `net10.0` (not Windows-only)  
@@ -70,7 +70,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 | 4 | Large files | Streamed framed AEAD. Never `File.ReadAllBytes` the plaintext or ciphertext. |
 | 5 | Engine | BCL (`AesGcm`, `ChaCha20Poly1305`, `RSA` OAEP SHA-256, `RandomNumberGenerator`). Argon2id: BCL if present on net10; otherwise one approved NuGet (`Konscious.Security.Cryptography.Argon2`). No home-grown S-boxes. |
 | 6 | Hashing / HMAC libs | **Out of this project.** `Vestigium.Helpers.Hashing` (skeleton) and future `Vestigium.Helpers.Hmac` own those APIs. Trailer reserves 32+32 zero bytes for them. |
-| 7 | Logging | `HelperLog` only. APPID = host (demo: `Encryption`). Never log plaintext, keys, passphrases, salts-as-secrets, Base64 ciphertext, the hidden original name, PKCS8, or wrap key material. Log alg, bytes in/out, **visible** path, frame count, wrap **count** (not company names). |
+| 7 | Logging | `HelperLog` only. APPID = host (demo: `Encryption`). **ALCOA+**: attributable (APPID + 8-hex key prefix + override actor), contemporaneous (logger timestamp), complete (Pending then Success/Failed; Warning on Disable/Expire/Refuse/Override), never original secret material. Never log plaintext, keys, passphrases, salts-as-secrets, Base64 ciphertext, the hidden original name, PKCS8, SPKI, company / subject / issuedTo. Log alg, bytes in/out, **visible** path, frame count, wrap **count**. Do not attach `exception` even at Debug — Vestigium.Logging `EXCEPTION` is `exception?.ToString()`. |
 | 8 | Initialize | Library never calls `VestigiumLogger.Initialize`. |
 | 9 | Export folder | Encrypted **files** the demo writes go to `%DESKTOP%\Vestigium\Exports\{APPID}\`. Tests pass a temp path. |
 | 10 | CBC / RSA | CBC ships in v1.1 as framed Encrypt-then-MAC (alg 3, suite 1.1). **RSA wrap ships in v1.2**: wrap list, suite 1.2, payload alg unchanged. RSA never encrypts frames. |
@@ -81,7 +81,8 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 | 15 | Reserved integrity slots | Trailer always contains 32-byte `sha256` and 32-byte `hmacSha256` fields. v1.0 writes zeros. Later Hashing / Hmac libraries fill them. Do not compute them in Encryption. |
 | 16 | Secure delete | After a successful `SealFile`, the caller may shred the unencrypted source. **3-pass** = 3 random overwrites + 1 zero pass, then delete. **7-pass** = 7 random + 1 zero, then delete. Default is **Keep** (do not touch the plaintext file). Stream `SealFile` does not shred — there is no path. Flash / SSD wear-leveling is best-effort; the passes still run. |
 | 17 | Isolation | Isolation is **per public key** (thumbprint of SubjectPublicKeyInfo), not a friendly name. Company X Application X and Company X Application Y are two moduli. A file sealed to AppX cannot be opened by AppY. Trailer stores **thumbprints only**. |
-| 18 | Key ring | Two lists in one JSON format `VESTIGIUM-KEYRING` 1.0: **pairs** (private+public, receive / Open) and **contacts** (public only, send / Seal). Many keys per `issuedTo`. Default Issue is issue-and-forget (public contact kept; private returned as a slip and not stored). `escrow: true` is explicit. Types live beside Encryption. |
+| 18 | Key ring | Two lists in one JSON format `VESTIGIUM-KEYRING` 1.1: **pairs** (private+public, receive / Open) and **contacts** (public only, send / Seal). Many keys per `issuedTo`. Default Issue is issue-and-forget (public contact kept; private returned as a slip and not stored). `escrow: true` is explicit. Types live beside Encryption. Format minor 1 adds status, expiry, and status-changed. |
+| 19 | Token edition | Ring records have `Active`, `Disabled`, `Expired`, `Retired`, `Compromised`. Disable / Expire of an Active token is operator control. Seal or Open **via the ring** then requires `EncryptionKeyOverride` (requestedBy ≤ 50, reason ≤ 80, no PEM / long hex / long Base64). A **Warning** is always logged (Disable, Expire, Refuse, Override) with 8-hex thumb prefix + actor + reason. **Compromised and Retired are not overridable** and cannot be Enabled. A company slip (`EncryptionRsaKey`) is independent of ring status. Clock expiry (`ExpiresUtc` in the past) is EffectiveStatus `Expired`. |
 
 ---
 
@@ -92,7 +93,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 **G3.** Seal and Open a file of unbounded size by streaming 64 KiB frames.  
 **G4.** Default algorithm is AES-256-GCM. Caller may pick ChaCha20-Poly1305 or AES-256-CBC+HMAC on Seal. Open reads the algorithm from the envelope.  
 **G5.** Passphrases become a 32-byte content key through Argon2id. Raw keys skip the KDF. RSA-only Seal draws a random 32-byte content key (kdf = 0) and wraps it.  
-**G6.** Log Pending / Success / Failed through `HelperLog` only.  
+**G6.** Log Pending / Success / Failed through `HelperLog` only. Token Disable / Expire / Refuse / Override log Warning. Never attach exceptions.  
 **G7.** Keep `EncryptionHelper.Identity` and `EncryptionHelper.Probe()` so existing smoke tests stay green.  
 **G8.** `Probe` is in-memory only. It must not write the Desktop and must not log the fixture text.  
 **G9.** Wrong secret, wrong RSA private, bit flip, or truncated envelope fails closed with `CryptographicException`. Do not distinguish “wrong password” from “corrupt file” from “wrong company key” in the message. Message is `The envelope is corrupt.`  
@@ -101,7 +102,8 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 **G12.** Seal of `nathan.txt` writes `nathan.aes` (raw key / AES-256-GCM / RSA-only wrap) or `nathan.argon` (passphrase / Argon2id). Original name is hidden in the trailer. Open restores `nathan.txt`.  
 **G13.** Optional secure delete of the unencrypted source after Seal: 3 random + zero, or 7 random + zero. Off by default.  
 **G14.** Seal may wrap the content key to 1..8 RSA public keys. Open with the matching private, a key ring, **or** the original secret if one was used.  
-**G15.** A host can keep a named key ring: pairs to receive, contacts to send. Isolation survives sending the envelope to the wrong company.
+**G15.** A host can keep a named key ring: pairs to receive, contacts to send. Isolation survives sending the envelope to the wrong company.  
+**G16.** Enable, Disable, Expire, Retire, Compromise tokens on the ring. Disabled and Expired require an override; Compromised and Retired fail closed.
 
 ---
 
@@ -225,7 +227,7 @@ One private key is one modulus. It does not have many different public keys. Iso
 
 ### 4.7 Key ring — v1.2 shipped
 
-Named RSA wrap keys. Lives in this project. JSON format `VESTIGIUM-KEYRING` 1.0. The ring file itself **should** be a Vestigium envelope when written to disk (host concern: Seal the JSON). The library’s `ToJson` / `FromJson` are the plaintext contract.
+Named RSA wrap keys. Lives in this project. JSON format `VESTIGIUM-KEYRING` 1.1 (1.0 still loads; missing status defaults Active). The ring file itself **should** be a Vestigium envelope when written to disk (host concern: Seal the JSON). The library’s `ToJson` / `FromJson` are the plaintext contract.
 
 Two lists:
 
@@ -248,7 +250,9 @@ Record fields (UTF-16 character counts, trimmed):
 | `IssuedToKind` | enum | Organization, Person, Service, Host |
 | `Application` | 50 | Optional. Distinguishes AppX vs AppY for the same issuedTo |
 | `Role` | enum | Receive (pair) / Send (contact) |
-| `Status` | enum | Active, Retired, Compromised. Open uses Active pairs only |
+| `Status` | enum | Active, Disabled, Expired, Retired, Compromised |
+| `ExpiresUtc` | DateTimeOffset? | Clock expiry. Active + past expiry → EffectiveStatus Expired |
+| `StatusChangedUtc` | DateTimeOffset? | Last Enable / Disable / Expire / Retire / Compromise |
 | `KeyBits` | int | 2048–4096 |
 | `ThumbprintSha256` | hex | SHA-256 of SPKI |
 | `Escrow` | bool | True only when Issue kept the private |
@@ -260,7 +264,13 @@ Record fields (UTF-16 character counts, trimmed):
 3. Return the **private** as a one-time slip (`EncryptionRsaKey`).
 4. Do **not** keep the private on the ring unless `escrow: true`.
 
-`FindPrivate(thumbprint)` looks at Active pairs only. A contact cannot unwrap.
+`FindPrivate(thumbprint, override?)` looks at pairs that can unwrap. Disabled / Expired pairs throw `EncryptionTokenException` unless an override is supplied. Retired / Compromised throw and **cannot** be overridden. A contact cannot unwrap.
+
+`RequireForSeal` / `RequireForOpen` are the operator APIs. Raw `EncryptionRsaKey` slips ignore ring status (the company still has the key).
+
+`Enable` restores Disabled / Expired to Active. Enable of Retired or Compromised throws. `Disable` / `Expire` of Retired or Compromised throw and do not downgrade. `Retire` and `Compromise` are terminal (Compromise wins).
+
+`EncryptionKeyOverride.Request(requestedBy, reason)` rejects PEM / `PRIVATE KEY` / PKCS8 / 32+ hex / 44+ Base64. Actor ≤ 50, reason ≤ 80.
 
 `ExportPublicSlip` is JSON a company can import as a contact (public SPKI + metadata). It never includes PKCS8.
 
@@ -764,13 +774,28 @@ Rules:
 - `SecureDelete(path, ThreePass | SevenPass)` overwrites the whole length in 64 KiB chunks (random, then zeros), `Flush(flushToDisk: true)` after each pass, then `File.Delete`. `Keep` is invalid on this method. Missing source → `FileNotFoundException`. Directories are refused. Read-only is cleared, then shredded. Never log file contents.
 - RSA-only Seal (`SealString` / `SealFile` with a recipient list and no secret) draws a random 32-byte content key, sets kdf = 0, writes `.aes`.
 - `alsoWrapTo` appends one extra wrap slot. Combined list must be 1..8 unique-enough keys (duplicate thumbprints are the caller’s problem; the reader matches the first).
-- Open with a ring matches wrap thumbprints to Active pairs only.
+- Open with a ring matches wrap thumbprints through `FindPrivate`. Disabled / Expired tokens throw `EncryptionTokenException` (`The token is disabled.` / `The token is expired.`) unless `EncryptionKeyOverride` is passed. Retired / Compromised throw `The token is not usable.` and cannot be overridden. TokenException is not converted to `The envelope is corrupt.`
+- `OpenString` / `OpenFile` / `RevealOriginalFileName` ring overloads take an optional `EncryptionKeyOverride`.
 
 `Probe` seals and opens a short fixture in memory. It must not write `%DESKTOP%` and must not log the fixture text.
 
 ---
 
 ## 8. Logging
+
+ALCOA+ for this library:
+
+| Letter | How Encryption meets it |
+|---|---|
+| Attributable | APPID + subcategory (`Encryption` / `Token`) + 8-hex key prefix + override `by=` / `reason=` |
+| Legible | Structured `verb: detail` English. No exception dumps. |
+| Contemporaneous | Vestigium.Logging timestamp. `StatusChangedUtc` on the record. |
+| Original | JSONL append-only. The library never rewrites a line. |
+| Accurate | Counts and alg bytes only. Fail closed messages are generic. |
+| Complete | Pending then Success or Failed on Seal / Open / Shred. Token Disable / Expire / Refuse / Override is a Warning. TokenException is not logged as Failed. |
+| Consistent | Same verbs (`Seal`, `Open`, `Peek`, `Shred`, `Disable`, `Expire`, `Override`, `Refuse`). |
+| Enduring | Host JSONL under `%ProgramData%\Vestigium\Logs\{APPID}\`. |
+| Available | `HelperLog.RecentJsonLines` after the host initializes. |
 
 | Event | Level | Status |
 |---|---|---|
@@ -781,14 +806,21 @@ Rules:
 | Tag mismatch / crypt failure | Error | Failed |
 | Missing source file | Error | Failed |
 | Unsupported envelope field | Error | Failed |
-| Peek (path, alg, frames, plaintext length, wrap count — not secrets, not company names) | Information | Success |
+| Peek (alg, frames, plaintext length, wrap count — not secrets, not company names) | Information | Success |
 | Shred start (pass count — not contents) | Information | Pending |
 | Shred complete | Information | Success |
 | Shred failed | Error | Failed |
+| Token Disable / Expire / Retire / Compromise | Warning | Success |
+| Token Refuse (disabled / expired / terminal, no usable override) | Warning | Success |
+| Token Override (disabled / expired + sanitized actor and reason) | Warning | Success |
+| Token Enable | Information | Success |
+| Token Issue | Information | Success |
 
-Category = `Helpers`. Subcategory = `Encryption`. APPID = host APPID.
+Category = `Helpers`. Subcategory = `Encryption` or `Token`. APPID = host APPID.
 
-Never log: plaintext, passphrase, key bytes, PKCS8, SPKI as a secret, salt that could be reused as a key, Base64 ciphertext, the **hidden original file name**, company / subject / issuedTo. Log the visible path (`nathan.aes`) and wrap **count**. Thumbprint hex on Peek is allowed (it is already in the trailer).
+Never log, **including Debug enter/exit**: plaintext, passphrase, key bytes, PKCS8, SPKI, salt that could be reused as a key, Base64 ciphertext, the **hidden original file name**, company / subject / issuedTo, full thumbprints (8-hex prefix only), override reasons that look like PEM / long hex / long Base64. Log the visible path (`nathan.aes`) and wrap **count**. Do not pass `Exception` into `HelperLog` from this library — the engine stores `EXCEPTION = exception?.ToString()`, which can contain paths and key material.
+
+`EncryptionLog.Safe` redacts any message that looks like a secret before it is written. `EncryptionKeyOverride.Request` rejects those strings so they never become audit text.
 
 ---
 
@@ -801,7 +833,7 @@ Never log: plaintext, passphrase, key bytes, PKCS8, SPKI as a secret, salt that 
 3. AES and ChaCha default to a raw 32-byte key (`.aes`). Argon2id uses `EncryptionSecret.FromPassphrase` (`.argon`, 64 MiB / 3 / 1) with a visible throwaway passphrase field (`gallery-demo-only`).
 4. Each cipher tab round-trips a UTF-8 string (`SealString` / `OpenString`) and a file (`Choose file…` / `nathan.txt`, then Seal / Open). Open restores the hidden original name.
 5. File Seal offers **Keep original**, **3-pass random + zero**, or **7-pass random + zero**. Shred runs only after a successful seal and only on the unencrypted source.
-6. RSA / key ring tab: generate an operator pair; Issue CompanyX / ApplicationX and CompanyX / ApplicationY (2048-bit in the gallery with a caption that the library default is 3072); Seal to the selected contact; optional also wrap to Ops; Open as Ops / AppX / AppY to show isolation; Peek wrap thumbprints. Issue is issue-and-forget on the operator ring (public contact kept; private slip held in the gallery so isolation can be demonstrated).
+6. RSA / key ring tab: generate an operator pair; Issue CompanyX / ApplicationX and CompanyX / ApplicationY (2048-bit in the gallery with a caption that the library default is 3072); Seal to the selected contact; optional also wrap to Ops; Open as Ops / AppX / AppY to show isolation; Peek wrap thumbprints. Issue is issue-and-forget on the operator ring (public contact kept; private slip held in the gallery so isolation can be demonstrated). **Token edition:** Enable / Disable / Expire the selected ring token. Disabled or expired Seal/Open via the ring requires an override (requestedBy + reason); a warning is logged. Compromised / retired cannot be overridden. JSONL never shows issuedTo or PKCS8.
 7. JSONL under `%ProgramData%\Vestigium\Logs\Encryption\`. Desktop exports under `%DESKTOP%\Vestigium\Exports\Encryption\`.
 
 Do not put a real production passphrase or a production RSA private in the gallery source. A throwaway gallery secret is fine if it is obviously fake (`gallery-demo-only`).
@@ -866,6 +898,12 @@ v1.2 RSA wrap (tests use 2048-bit keys):
 - Key ring JSON round-trip: pairs and contacts survive `ToJson` / `FromJson`. Title 75 / subject 50 / description 220 / issuedTo 75 / application 50 reject over-limit.
 - `Issue` without escrow: contact is public-only; `FindPrivate` on that thumbprint is null on the operator ring; the returned slip unwraps.
 - `Issue` with escrow: `FindPrivate` returns the pair.
+- Disable a receive pair: `OpenString(..., ring)` throws `EncryptionTokenException` (`The token is disabled.`). The same call with `EncryptionKeyOverride.Request` succeeds and logs Warning `Override`. The exported slip still opens without an override.
+- Expire (past timestamp) requires an override. Enable restores Active.
+- Compromise / Retire: override is refused (`The token is not usable.`). Disable / Enable of Compromised throw and do not change status.
+- `EncryptionKeyOverride.Request` rejects PEM, 32+ hex, and 44+ Base64.
+- Logs after Disable/Override never contain issuedTo, company names, PKCS8, PEM, the full thumbprint, or Base64 ciphertext. They do contain the 8-hex prefix, `by=`, and `reason=`. Failed lines never include an `EXCEPTION` payload.
+- Key ring JSON round-trip preserves Status and ExpiresUtc. Format minor is 1.
 
 xUnit, serial logger collection, temp directories only. See `EncryptionSessionTests`.
 

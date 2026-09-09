@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-ENC-DEV-000  
 **Version:** 1.0  
-**Status:** Implemented v1.0 + v1.1 CBC + v1.2 RSA-OAEP wrap + key ring.  
+**Status:** Implemented v1.0 + v1.1 CBC + v1.2 RSA-OAEP wrap + key ring + token enable/disable/expire + ALCOA+ logs.  
 **Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Encryption/`.
@@ -21,7 +21,7 @@ This file is the design companion: how the pieces sit, how large files stay off 
 
 - No custom primitives. BCL AEAD types and BCL RSA-OAEP SHA-256. One approved Argon2 package only if net10 has no Argon2id type.
 - Library never calls `Initialize`. `HelperLog` APPID `Encryption`.
-- Never log plaintext, keys, passphrases, PKCS8, company names.
+- Never log plaintext, keys, passphrases, PKCS8, company names, issuedTo, or full thumbprints — even at Debug. Override actor + reason only after `LooksLikeSecret` rejection.
 - Large files are framed (64 KiB). Do not load the file.
 - Every blob ends in a `VESTIGIUM TRL` footer. v1.0 body is 465 bytes plus 17-byte length+magic (482 at EOF) when there is **no** wrap list. Wrap list grows the body; `bodyLength` is the seek contract. VerifyMac uses `body.Length - 32`.
 - Hashing is `Vestigium.Helpers.Hashing`. Hmac is a later sibling. Do not fill their 32-byte slots.
@@ -30,8 +30,9 @@ This file is the design companion: how the pieces sit, how large files stay off 
 - Isolation is per public key (SHA-256 of SPKI). Trailer stores thumbprints only.
 - One private key is one modulus. Many pairs per `issuedTo` if a company needs AppX and AppY.
 - Issue-and-forget is the default. `escrow: true` is explicit.
+- Token edition lives on the ring: Enable / Disable / Expire / Retire / Compromise. Disabled and Expired need `EncryptionKeyOverride`. Compromised and Retired fail closed.
 
-**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1), RSA-OAEP wrap list (suite 1.2), `EncryptionRsaKey`, `EncryptionKeyRing`. Hashing remains a sibling.
+**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1), RSA-OAEP wrap list (suite 1.2), `EncryptionRsaKey`, `EncryptionKeyRing` (status, expiry, override), `EncryptionKeyOverride`, `EncryptionTokenException`. Hashing remains a sibling.
 
 ## Why these algorithms
 
@@ -95,7 +96,12 @@ Open:
 
 ```
 if secret present and trailer mac verifies → use that content key
-else match wrap thumbprint to a private (caller key or Active ring pair)
+else match wrap thumbprint to a private (caller key or ring pair)
+    ring.FindPrivate(thumbprint, override) → RequireForOpen
+        Active → unwrap
+        Disabled / Expired without override → EncryptionTokenException + Warning Refuse
+        Disabled / Expired with override → Warning Override, then unwrap
+        Retired / Compromised → EncryptionTokenException (not overridable)
     unwrap → verify mac
 else fail closed: The envelope is corrupt.
 ```
@@ -212,7 +218,9 @@ EncryptionHelper.SecureDelete(plaintextPath, SecureDeleteMode.SevenPass);
 | `EncryptionFileInfo.cs` | Peek DTO (suite version, alg, sizes, wrap count, thumbprints) |
 | `EncryptionValidationResult.cs` | Validate DTO |
 | `EncryptionRsaKey.cs` | Generate / SPKI / PKCS8 / Wrap / Unwrap / thumbprint |
-| `EncryptionKeyRing.cs` | Pairs vs contacts, Issue, JSON `VESTIGIUM-KEYRING` |
+| `EncryptionKeyRing.cs` | Pairs vs contacts, Issue, Enable/Disable/Expire/Retire/Compromise, JSON `VESTIGIUM-KEYRING` 1.1 |
+| `EncryptionKeyOverride.cs` | Override request + `EncryptionTokenException` |
+| `EncryptionLog.cs` | ALCOA+ HelperLog adapter; redacts secrets even at Debug |
 | `Envelope.cs` | `VESTIGIUM HDR` read/write; `SuiteMinorFor(alg, hasRsaWrap)` |
 | `Trailer.cs` | `VESTIGIUM TRL` write / parse / mac / peek / wrap list |
 | `FrameCipher.cs` | One AEAD frame, or one CBC+HMAC frame |
@@ -223,11 +231,19 @@ Do not add a Hashing implementation here. Do not add a separate KeyRing project.
 
 ## Logging
 
-Category `Helpers`, subcategory `Encryption`, APPID = host.
+Category `Helpers`, subcategory `Encryption` or `Token`, APPID = host.
 
-Safe to log: algorithm name, KDF id, wrap count, plaintext **length**, frame count, destination **path**.
+This is ALCOA+ without key material:
 
-Never log: passphrase, key, PKCS8, salt-as-reusable-secret, plaintext, Base64 blob, hidden original name, company / subject / issuedTo. Visible path (`nathan.aes`) is fine. Thumbprint hex on Peek is already on disk.
+- **Complete:** Seal/Open/Shred write Pending then Success or Failed. Token Disable/Expire/Refuse/Override write Warning. TokenException is rethrown without Failed.
+- **Attributable:** 8-hex thumb prefix + `by=` + `reason=` on Override. Never issuedTo / company / subject.
+- **Accurate:** `EncryptionLog.Failed` never takes an `Exception`. Vestigium.Logging would otherwise persist `exception.ToString()`.
+
+Safe to log: algorithm name, KDF id, wrap count, plaintext **length**, frame count, destination **file name**, 8-hex key prefix, sanitized actor and reason.
+
+Never log, including Debug `enter`: passphrase, key, PKCS8, SPKI, salt-as-reusable-secret, plaintext, Base64 blob, hidden original name, company / subject / issuedTo, full thumbprint. Visible path (`nathan.aes`) is fine.
+
+`EncryptionAudit.LooksLikeSecret` rejects PEM, `PRIVATE KEY`, PKCS8, 32+ hex, 44+ Base64. Override construction uses it. `EncryptionLog.Safe` is a last fence.
 
 Library never calls `VestigiumLogger.Initialize`. If the host has not started logging, Seal/Open still work; log calls are no-ops.
 
@@ -239,7 +255,7 @@ dotnet run --project src/Vestigium.Helpers.Encryption.Demo
 
 JSONL: `%ProgramData%\Vestigium\Logs\Encryption\`
 
-The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, Argon2id, and RSA / key ring tabs. Cipher tabs round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default. RSA tab Issues CompanyX AppX / AppY, Seals to a contact, optionally also wraps to Ops, and Opens as Ops / AppX / AppY so isolation is visible. Gallery RSA keys are 2048-bit; the library default remains 3072.
+The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, Argon2id, and RSA / key ring tabs. Cipher tabs round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default. RSA tab Issues CompanyX AppX / AppY, Seals to a contact, optionally also wraps to Ops, and Opens as Ops / AppX / AppY so isolation is visible. The same tab Enable / Disable / Expire tokens and can request an override. Gallery RSA keys are 2048-bit; the library default remains 3072.
 
 ## Roadmap (design)
 
@@ -247,7 +263,7 @@ The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, Arg
 |---|---|---|
 | v1.0 | GCM + ChaCha + Argon2id + VESTIGIUM HDR/TRL | 64 KiB frames; hidden original name; `.aes` / `.argon`; Peek/Validate; optional 3/7-pass shred |
 | v1.1 | AES-256-CBC + HMAC-SHA256, framed, not default — **shipped** | Per-frame IV + per-frame HMAC; PKCS#7 per frame; hidden name stays GCM |
-| v1.2 | RSA-OAEP wraps content key; wrap list; key ring — **shipped** | Hybrid: RSA cost is N wraps (N ≤ 8); file still streams |
+| v1.2 | RSA-OAEP wraps content key; wrap list; key ring; token enable/disable/expire — **shipped** | Hybrid: RSA cost is N wraps (N ≤ 8); file still streams |
 | v1.3 | Public-key trailer sig / frameSize override | Flag bit 2; keep EOF magic so Peek still works |
 
 CBC without HMAC does not ship. RSA on the file body does not ship.

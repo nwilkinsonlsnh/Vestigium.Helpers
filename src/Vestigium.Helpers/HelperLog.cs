@@ -45,6 +45,8 @@ public static class HelperLog
         public const string Chart = "Chart";
         public const string Limits = "Limits";
         public const string Crypto = "Crypto";
+        public const string Token = "Token";
+        public const string Encryption = "Encryption";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -252,7 +254,10 @@ public static class HelperLog
             Subcategories.Series,
             Subcategories.Confidence,
             Subcategories.Chart,
-            Subcategories.Crypto);
+            Subcategories.Limits,
+            Subcategories.Crypto,
+            Subcategories.Token,
+            Subcategories.Encryption);
         return t;
     }
 

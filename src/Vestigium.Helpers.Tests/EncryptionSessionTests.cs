@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Vestigium.Helpers;
 using Vestigium.Helpers.Encryption;
 using Vestigium.Logging;
 
@@ -576,6 +577,96 @@ public sealed class EncryptionSessionTests
         Assert.Throws<ArgumentException>(() => ring.AddContact("t", "s", new string('C', 76), pub));
         Assert.Throws<ArgumentException>(() => ring.AddContact("t", "s", "c", pub, application: new string('A', 51)));
         Assert.Throws<ArgumentException>(() => ring.AddContact("t", "s", "c", pub, description: new string('D', 221)));
+    }
+
+    [Fact]
+    public void Token_disable_requires_override_and_never_logs_key_material()
+    {
+        var dir = TempDir();
+        HelperLog.InitializeHost(HelperLog.AppIds.Encryption, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            using var ring = EncryptionKeyRing.Create("Ops ring");
+            var pair = ring.AddPair("Ops receive", "Ops", "CompanyX", application: "ApplicationX", keyBits: 2048);
+            var sealedText = EncryptionHelper.SealString("token", [pair.Key]);
+            Assert.Equal("token", EncryptionHelper.OpenString(sealedText, ring));
+
+            ring.Disable(pair);
+            var disabled = Assert.Throws<EncryptionTokenException>(() => EncryptionHelper.OpenString(sealedText, ring));
+            Assert.Equal("The token is disabled.", disabled.Message);
+            Assert.Equal(EncryptionKeyStatus.Disabled, disabled.Status);
+
+            var ov = EncryptionKeyOverride.Request("qa-operator", "restore for incident 42");
+            Assert.Equal("token", EncryptionHelper.OpenString(sealedText, ring, ov));
+
+            using var slip = EncryptionRsaKey.FromPkcs8(pair.Key.ExportPkcs8());
+            Assert.Equal("token", EncryptionHelper.OpenString(sealedText, slip));
+
+            ring.Enable(pair);
+            Assert.Equal("token", EncryptionHelper.OpenString(sealedText, ring));
+
+            ring.Expire(pair, DateTimeOffset.UtcNow.AddMinutes(-1));
+            var expired = Assert.Throws<EncryptionTokenException>(() => ring.RequireForSeal(pair));
+            Assert.Equal("The token is expired.", expired.Message);
+            Assert.NotNull(ring.RequireForSeal(pair, EncryptionKeyOverride.Request("qa-operator", "read-only restore")));
+
+            ring.Compromise(pair);
+            var terminal = Assert.Throws<EncryptionTokenException>(
+                () => ring.RequireForOpen(pair, EncryptionKeyOverride.Request("qa-operator", "attempt after compromise")));
+            Assert.Equal("The token is not usable.", terminal.Message);
+            Assert.Equal(EncryptionKeyStatus.Compromised, pair.Status);
+            Assert.Throws<EncryptionTokenException>(() => ring.Disable(pair));
+            Assert.Throws<EncryptionTokenException>(() => ring.Enable(pair));
+            Assert.Equal(EncryptionKeyStatus.Compromised, pair.Status);
+
+            var lines = string.Join('\n', HelperLog.RecentJsonLines);
+            Assert.Contains("\"SUBCATEGORY\":\"Token\"", lines);
+            Assert.Contains("Disable:", lines);
+            Assert.Contains("Override:", lines);
+            Assert.Contains("by=qa-operator", lines);
+            Assert.Contains("reason=restore for incident 42", lines);
+            Assert.Contains(pair.ThumbprintSha256[..8], lines);
+            Assert.DoesNotContain("CompanyX", lines, StringComparison.Ordinal);
+            Assert.DoesNotContain("ApplicationX", lines, StringComparison.Ordinal);
+            Assert.DoesNotContain("BEGIN ", lines, StringComparison.Ordinal);
+            Assert.DoesNotContain("PRIVATE KEY", lines, StringComparison.Ordinal);
+            Assert.DoesNotContain("PKCS8", lines, StringComparison.Ordinal);
+            Assert.DoesNotContain(pair.ThumbprintSha256, lines, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(sealedText, lines, StringComparison.Ordinal);
+            Assert.All(HelperLog.RecentJsonLines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+        }
+    }
+
+    [Fact]
+    public void Token_override_rejects_key_material_and_retired_is_not_overridable()
+    {
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("qa", "-----BEGIN PRIVATE KEY-----"));
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("qa", new string('a', 44)));
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("qa", new string('f', 32)));
+        var ok = EncryptionKeyOverride.Request("qa-operator", "restore disabled token");
+        Assert.Equal("qa-operator", ok.RequestedBy);
+
+        using var ring = EncryptionKeyRing.Create("Ops ring");
+        var pair = ring.AddPair("Ops receive", "Ops", "Wilkinson", application: "Gallery", keyBits: 2048);
+        ring.Retire(pair);
+        var ov = EncryptionKeyOverride.Request("qa-operator", "restore retired token");
+        var retired = Assert.Throws<EncryptionTokenException>(() => ring.RequireForOpen(pair, ov));
+        Assert.Equal("The token is not usable.", retired.Message);
+        Assert.Throws<EncryptionTokenException>(() => ring.Enable(pair));
+
+        ring.Enable(ring.AddPair("Ops two", "Ops", "Wilkinson", application: "Other", keyBits: 2048), DateTimeOffset.UtcNow.AddSeconds(-1));
+        var clock = ring.Pairs[^1];
+        Assert.Equal(EncryptionKeyStatus.Expired, ring.EffectiveStatus(clock));
+        Assert.NotNull(ring.RequireForSeal(clock, EncryptionKeyOverride.Request("qa-operator", "clock skew restore")));
+
+        var json = ring.ToJson();
+        Assert.Contains("\"formatMinor\": 1", json);
+        using var back = EncryptionKeyRing.FromJson(json);
+        Assert.Equal(EncryptionKeyStatus.Retired, back.Pairs[0].Status);
     }
 
     private static EncryptionFileInfo PeekBlob(string sealedBase64)

@@ -503,7 +503,7 @@ public sealed partial class RsaSession : ObservableObject
 {
     private readonly Action<string> _status;
     private readonly EncryptionKeyRing _ring = EncryptionKeyRing.Create("Ops ring");
-    private EncryptionRsaKey? _ops;
+    private EncryptionKeyRecord? _ops;
     private EncryptionRsaKey? _appXSlip;
     private EncryptionRsaKey? _appYSlip;
     private EncryptionKeyRecord? _appX;
@@ -515,20 +515,31 @@ public sealed partial class RsaSession : ObservableObject
         PlainText = "token from Vestigium";
         Recipient = "CompanyX / AppX";
         OpenAs = "AppX";
+        TokenTarget = "AppX";
         AlsoWrapToOps = true;
+        UseOverride = false;
+        OverrideBy = "qa-operator";
+        OverrideReason = "restore for incident";
         KeySummary = "Generate an Ops pair, then Issue AppX and AppY (2048-bit gallery keys).";
+        TokenStatusLine = "Issue a token, then Enable / Disable / Expire.";
     }
 
     public IReadOnlyList<string> Recipients { get; } = ["CompanyX / AppX", "CompanyX / AppY"];
     public IReadOnlyList<string> OpenAsChoices { get; } = ["Ops", "AppX", "AppY"];
+    public IReadOnlyList<string> TokenTargets { get; } = ["Ops", "AppX", "AppY"];
 
     [ObservableProperty] private string plainText = "";
     [ObservableProperty] private string sealedBase64 = "";
     [ObservableProperty] private string openedText = "";
     [ObservableProperty] private string recipient = "CompanyX / AppX";
     [ObservableProperty] private string openAs = "AppX";
+    [ObservableProperty] private string tokenTarget = "AppX";
     [ObservableProperty] private bool alsoWrapToOps = true;
+    [ObservableProperty] private bool useOverride;
+    [ObservableProperty] private string overrideBy = "qa-operator";
+    [ObservableProperty] private string overrideReason = "restore for incident";
     [ObservableProperty] private string keySummary = "";
+    [ObservableProperty] private string tokenStatusLine = "";
     [ObservableProperty] private string peekLine = "";
     [ObservableProperty] private string envelopePath = "";
     [ObservableProperty] private string restoredPath = "";
@@ -539,15 +550,30 @@ public sealed partial class RsaSession : ObservableObject
 
     partial void OnOpenedTextChanged(string value) => OnPropertyChanged(nameof(OpenedCaption));
     partial void OnRestoredPathChanged(string value) => OnPropertyChanged(nameof(RestoredCaption));
+    partial void OnTokenTargetChanged(string value) => TokenStatusLine = StatusLine(SelectedToken());
 
     private void RefreshKeys()
     {
         KeySummary =
-            $"Ops {Short(_ops)}  ·  AppX {Short(_appX?.Key)}  ·  AppY {Short(_appY?.Key)}";
+            $"Ops {Short(_ops)}  ·  AppX {Short(_appX)}  ·  AppY {Short(_appY)}";
+        TokenStatusLine = StatusLine(SelectedToken());
     }
 
-    private static string Short(EncryptionRsaKey? key)
-        => key is null ? "(none)" : key.ThumbprintHex[..12] + "…";
+    private static string Short(EncryptionKeyRecord? row)
+        => row is null ? "(none)" : row.ThumbprintSha256[..12] + "… " + row.Status;
+
+    private EncryptionKeyRecord? SelectedToken()
+        => TokenTarget.Equals("Ops", StringComparison.OrdinalIgnoreCase) ? _ops
+            : TokenTarget.Contains("AppY", StringComparison.Ordinal) ? _appY
+            : _appX;
+
+    private static string StatusLine(EncryptionKeyRecord? row)
+        => row is null
+            ? "Issue a token, then Enable / Disable / Expire."
+            : $"{row.ThumbprintSha256[..12]}…  {row.Status}";
+
+    private EncryptionKeyOverride? MaybeOverride()
+        => UseOverride ? EncryptionKeyOverride.Request(OverrideBy, OverrideReason) : null;
 
     [RelayCommand]
     private async Task GenerateOpsAsync()
@@ -555,10 +581,10 @@ public sealed partial class RsaSession : ObservableObject
         ErrorText = "";
         try
         {
-            _ops?.Dispose();
-            _ops = await Task.Run(() => EncryptionRsaKey.Generate(2048));
+            var row = await Task.Run(() => _ring.AddPair("Ops receive", "Ops", "Wilkinson", application: "Gallery", keyBits: 2048));
+            _ops = row;
             RefreshKeys();
-            _status("Ops pair ready (2048-bit).");
+            _status("Ops pair ready on the ring (2048-bit).");
         }
         catch (Exception ex)
         {
@@ -610,7 +636,7 @@ public sealed partial class RsaSession : ObservableObject
     private async Task SealStringAsync()
     {
         ErrorText = "";
-        var contact = Contact();
+        var contact = ContactRecord();
         if (contact is null)
         {
             ErrorText = "Issue AppX or AppY first.";
@@ -625,8 +651,13 @@ public sealed partial class RsaSession : ObservableObject
         try
         {
             var text = PlainText ?? "";
-            var also = AlsoWrapToOps ? _ops : null;
-            SealedBase64 = await Task.Run(() => EncryptionHelper.SealString(text, [contact], alsoWrapTo: also));
+            var also = AlsoWrapToOps ? _ops?.Key : null;
+            var ov = MaybeOverride();
+            SealedBase64 = await Task.Run(() =>
+            {
+                var key = _ring.RequireForSeal(contact, ov);
+                return EncryptionHelper.SealString(text, [key], alsoWrapTo: also);
+            });
             OpenedText = "";
             var blob = Convert.FromBase64String(SealedBase64);
             var dir = EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
@@ -653,17 +684,12 @@ public sealed partial class RsaSession : ObservableObject
             ErrorText = "Seal the string first.";
             return;
         }
-        var key = Opener();
-        if (key is null)
-        {
-            ErrorText = "Generate / issue the Open-as key first.";
-            return;
-        }
 
         try
         {
             var sealedText = SealedBase64;
-            OpenedText = await Task.Run(() => EncryptionHelper.OpenString(sealedText, key));
+            var ov = MaybeOverride();
+            OpenedText = await Task.Run(() => OpenSealed(sealedText, ov));
             _status($"Opened as {OpenAs} · {OpenedText.Length} chars");
         }
         catch (Exception ex)
@@ -677,7 +703,7 @@ public sealed partial class RsaSession : ObservableObject
     private async Task SealFileAsync()
     {
         ErrorText = "";
-        var contact = Contact();
+        var contact = ContactRecord();
         if (contact is null)
         {
             ErrorText = "Issue AppX or AppY first.";
@@ -697,8 +723,13 @@ public sealed partial class RsaSession : ObservableObject
             File.WriteAllText(src, "hello from Vestigium");
             var destDir = EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
             Directory.CreateDirectory(destDir);
-            var also = AlsoWrapToOps ? _ops : null;
-            EnvelopePath = await Task.Run(() => EncryptionHelper.SealFile(src, destDir, [contact], alsoWrapTo: also));
+            var also = AlsoWrapToOps ? _ops?.Key : null;
+            var ov = MaybeOverride();
+            EnvelopePath = await Task.Run(() =>
+            {
+                var key = _ring.RequireForSeal(contact, ov);
+                return EncryptionHelper.SealFile(src, destDir, [key], alsoWrapTo: also);
+            });
             RestoredPath = "";
             var peek = EncryptionHelper.PeekFile(EnvelopePath);
             PeekLine = $"{Path.GetFileName(EnvelopePath)} · suite {peek.SuiteVersion} · wraps={peek.WrapCount} · hidden={peek.HasHiddenOriginalName}";
@@ -720,19 +751,14 @@ public sealed partial class RsaSession : ObservableObject
             ErrorText = "Seal a file first.";
             return;
         }
-        var key = Opener();
-        if (key is null)
-        {
-            ErrorText = "Generate / issue the Open-as key first.";
-            return;
-        }
 
         try
         {
             var source = EnvelopePath;
             var restoredDir = Path.Combine(EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption), "restored");
             Directory.CreateDirectory(restoredDir);
-            RestoredPath = await Task.Run(() => EncryptionHelper.OpenFile(source, restoredDir + Path.DirectorySeparatorChar, key));
+            var ov = MaybeOverride();
+            RestoredPath = await Task.Run(() => OpenSealedFile(source, restoredDir + Path.DirectorySeparatorChar, ov));
             _status($"Opened as {OpenAs} → {Path.GetFileName(RestoredPath)}");
         }
         catch (Exception ex)
@@ -742,11 +768,68 @@ public sealed partial class RsaSession : ObservableObject
         }
     }
 
-    private EncryptionRsaKey? Contact()
-        => Recipient.Contains("AppY", StringComparison.Ordinal) ? _appY?.Key : _appX?.Key;
+    [RelayCommand]
+    private void EnableToken() => ChangeToken(row => _ring.Enable(row), "Enabled");
 
-    private EncryptionRsaKey? Opener()
-        => OpenAs.Equals("Ops", StringComparison.OrdinalIgnoreCase) ? _ops
-            : OpenAs.Equals("AppY", StringComparison.OrdinalIgnoreCase) ? _appYSlip
-            : _appXSlip;
+    [RelayCommand]
+    private void DisableToken() => ChangeToken(row => _ring.Disable(row), "Disabled");
+
+    [RelayCommand]
+    private void ExpireToken() => ChangeToken(row => _ring.Expire(row), "Expired");
+
+    private void ChangeToken(Action<EncryptionKeyRecord> change, string verb)
+    {
+        ErrorText = "";
+        var row = SelectedToken();
+        if (row is null)
+        {
+            ErrorText = "Generate or issue the token first.";
+            return;
+        }
+
+        try
+        {
+            change(row);
+            RefreshKeys();
+            _status($"{verb} {TokenTarget} · warning written to JSONL.");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+            _status(ex.Message);
+        }
+    }
+
+    private EncryptionKeyRecord? ContactRecord()
+        => Recipient.Contains("AppY", StringComparison.Ordinal) ? _appY : _appX;
+
+    private string OpenSealed(string sealedText, EncryptionKeyOverride? keyOverride)
+    {
+        if (OpenAs.Equals("Ops", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_ops is null)
+                throw new InvalidOperationException("Generate the Ops pair first.");
+            return EncryptionHelper.OpenString(sealedText, _ring, keyOverride);
+        }
+
+        var slip = OpenAs.Equals("AppY", StringComparison.OrdinalIgnoreCase) ? _appYSlip : _appXSlip;
+        if (slip is null)
+            throw new InvalidOperationException("Issue the Open-as key first.");
+        return EncryptionHelper.OpenString(sealedText, slip);
+    }
+
+    private string OpenSealedFile(string source, string dest, EncryptionKeyOverride? keyOverride)
+    {
+        if (OpenAs.Equals("Ops", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_ops is null)
+                throw new InvalidOperationException("Generate the Ops pair first.");
+            return EncryptionHelper.OpenFile(source, dest, _ring, keyOverride);
+        }
+
+        var slip = OpenAs.Equals("AppY", StringComparison.OrdinalIgnoreCase) ? _appYSlip : _appXSlip;
+        if (slip is null)
+            throw new InvalidOperationException("Issue the Open-as key first.");
+        return EncryptionHelper.OpenFile(source, dest, slip);
+    }
 }

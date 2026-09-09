@@ -146,13 +146,26 @@
       <StackPanel>
         <TextBlock Style="{StaticResource Id}" Text="RSA-OAEP WRAP  ·  SUITE 1.2"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="RSA wraps the 32-byte content key, never the file. Isolation is per public key: CompanyX / ApplicationX cannot open a file sealed to ApplicationY. Gallery keys are 2048-bit; the library default is 3072. Trailer stores thumbprints only."/>
+                   Text="RSA wraps the 32-byte content key, never the file. Isolation is per public key: CompanyX / ApplicationX cannot open a file sealed to ApplicationY. Disable or expire a ring token and an override is required. Gallery keys are 2048-bit; the library default is 3072. Trailer stores thumbprints only."/>
         <WrapPanel>
           <Button Content="Generate Ops pair" Command="{Binding GenerateOpsCommand}" Style="{StaticResource PrimaryButton}"/>
           <Button Content="Issue CompanyX / AppX" Command="{Binding IssueAppXCommand}"/>
           <Button Content="Issue CompanyX / AppY" Command="{Binding IssueAppYCommand}"/>
         </WrapPanel>
         <TextBlock Opacity="0.85" FontFamily="Cascadia Mono, Consolas" Text="{Binding KeySummary}" TextWrapping="Wrap"/>
+        <TextBlock Style="{StaticResource Caption}" Text="TOKEN EDITION"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Disable or expire a ring token. Seal / Open via the ring then needs an override; a warning is always logged. Compromised and retired cannot be overridden. The company slip still opens. Logs never carry PEM, PKCS8, issuedTo, or key bytes — even at Debug."/>
+        <ComboBox ItemsSource="{Binding TokenTargets}" SelectedItem="{Binding TokenTarget}"/>
+        <TextBlock Opacity="0.85" FontFamily="Cascadia Mono, Consolas" Text="{Binding TokenStatusLine}" TextWrapping="Wrap"/>
+        <WrapPanel>
+          <Button Content="Enable" Command="{Binding EnableTokenCommand}"/>
+          <Button Content="Disable" Command="{Binding DisableTokenCommand}"/>
+          <Button Content="Expire" Command="{Binding ExpireTokenCommand}"/>
+        </WrapPanel>
+        <CheckBox Content="Request override" IsChecked="{Binding UseOverride}"/>
+        <TextBox Text="{Binding OverrideBy, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBox Text="{Binding OverrideReason, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBlock Style="{StaticResource Caption}" Text="SEAL TO"/>
         <ComboBox ItemsSource="{Binding Recipients}" SelectedItem="{Binding Recipient}"/>
         <CheckBox Content="Also wrap to Ops" IsChecked="{Binding AlsoWrapToOps}"/>

@@ -81,10 +81,10 @@ public static class EncryptionHelper
         return RevealOriginalFileName(source, secret: null, rsa, ring: null);
     }
 
-    public static string? RevealOriginalFileName(string path, EncryptionKeyRing ring)
+    public static string? RevealOriginalFileName(string path, EncryptionKeyRing ring, EncryptionKeyOverride? keyOverride = null)
     {
         using var source = OpenRead(path);
-        return RevealOriginalFileName(source, secret: null, rsa: null, ring);
+        return RevealOriginalFileName(source, secret: null, rsa: null, ring, keyOverride);
     }
 
     public static bool IsVestigiumFile(string path)
@@ -159,7 +159,7 @@ public static class EncryptionHelper
         try
         {
             var trailer = Trailer.Read(source);
-            Log("Peek", VestigiumStatus.Success, $"alg={trailer.Alg} frames={trailer.FrameCount} bytes={trailer.PlaintextLength}");
+            EncryptionLog.Success("Peek", $"alg={trailer.Alg} frames={trailer.FrameCount} bytes={trailer.PlaintextLength} wraps={trailer.Wraps.Count}");
             return ToInfo(trailer, originalName: null);
         }
         finally
@@ -313,10 +313,10 @@ public static class EncryptionHelper
     public static string OpenString(string sealedBase64, EncryptionRsaKey rsa)
         => OpenStringCore(sealedBase64, secret: null, rsa, ring: null);
 
-    public static string OpenString(string sealedBase64, EncryptionKeyRing ring)
-        => OpenStringCore(sealedBase64, secret: null, rsa: null, ring);
+    public static string OpenString(string sealedBase64, EncryptionKeyRing ring, EncryptionKeyOverride? keyOverride = null)
+        => OpenStringCore(sealedBase64, secret: null, rsa: null, ring, keyOverride);
 
-    private static string OpenStringCore(string sealedBase64, EncryptionSecret? secret, EncryptionRsaKey? rsa, EncryptionKeyRing? ring)
+    private static string OpenStringCore(string sealedBase64, EncryptionSecret? secret, EncryptionRsaKey? rsa, EncryptionKeyRing? ring, EncryptionKeyOverride? keyOverride = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sealedBase64);
         byte[] blob;
@@ -331,7 +331,7 @@ public static class EncryptionHelper
 
         using var source = new MemoryStream(blob, writable: false);
         using var destination = new MemoryStream();
-        OpenFileCore(source, destination, secret, rsa, ring);
+        OpenFileCore(source, destination, secret, rsa, ring, keyOverride);
         return Encoding.UTF8.GetString(destination.ToArray());
     }
 
@@ -349,7 +349,7 @@ public static class EncryptionHelper
         if (!File.Exists(source))
         {
             var missing = new FileNotFoundException("Source file was not found.", source);
-            LogFailed("Source file was not found.", missing);
+            EncryptionLog.Failed("Source file was not found.");
             throw missing;
         }
 
@@ -365,11 +365,16 @@ public static class EncryptionHelper
             using var input = File.OpenRead(source);
             using var output = File.Create(destFile);
             SealFile(input, output, secret, alg, input.Length, originalName, rsaRecipients);
-            Log("Seal", VestigiumStatus.Success, $"path={Path.GetFileName(destFile)} frames done");
+            EncryptionLog.Success("Seal", $"path={Path.GetFileName(destFile)} frames done");
         }
-        catch (Exception ex)
+        catch (EncryptionTokenException)
         {
-            LogFailed("Seal failed.", ex);
+            if (created)
+                TryDelete(destFile);
+            throw;
+        }
+        catch (Exception)
+        {
             if (created)
                 TryDelete(destFile);
             throw;
@@ -407,27 +412,29 @@ public static class EncryptionHelper
     public static string OpenFile(string sourcePath, string destinationPath, EncryptionRsaKey rsa)
         => OpenFilePath(sourcePath, destinationPath, secret: null, rsa, ring: null);
 
-    public static string OpenFile(string sourcePath, string destinationPath, EncryptionKeyRing ring)
-        => OpenFilePath(sourcePath, destinationPath, secret: null, rsa: null, ring);
+    public static string OpenFile(string sourcePath, string destinationPath, EncryptionKeyRing ring, EncryptionKeyOverride? keyOverride = null)
+        => OpenFilePath(sourcePath, destinationPath, secret: null, rsa: null, ring, keyOverride);
 
     private static string OpenFilePath(
         string sourcePath,
         string destinationPath,
         EncryptionSecret? secret,
         EncryptionRsaKey? rsa,
-        EncryptionKeyRing? ring)
+        EncryptionKeyRing? ring,
+        EncryptionKeyOverride? keyOverride = null)
     {
         var source = HelperGuard.NotBlank(sourcePath, nameof(sourcePath));
         var destArg = HelperGuard.NotBlank(destinationPath, nameof(destinationPath));
         if (!File.Exists(source))
         {
             var missing = new FileNotFoundException("Source file was not found.", source);
-            LogFailed("Source file was not found.", missing);
+            EncryptionLog.Failed("Source file was not found.");
             throw missing;
         }
 
         using var input = File.OpenRead(source);
-        var originalName = RevealOriginalFileName(input, secret, rsa, ring);
+        EncryptionLog.Pending("Open", $"path={Path.GetFileName(source)}");
+        var originalName = RevealOriginalFileName(input, secret, rsa, ring, keyOverride);
         input.Position = 0;
         var destFile = ResolveOpenDestination(destArg, originalName);
         if (PathsEqual(source, destFile))
@@ -438,13 +445,19 @@ public static class EncryptionHelper
         try
         {
             using var output = File.Create(destFile);
-            OpenFileCore(input, output, secret, rsa, ring);
-            Log("Open", VestigiumStatus.Success, $"path={Path.GetFileName(destFile)}");
+            OpenFileCore(input, output, secret, rsa, ring, keyOverride);
+            EncryptionLog.Success("Open", $"path={Path.GetFileName(destFile)}");
             return destFile;
         }
-        catch (Exception ex)
+        catch (EncryptionTokenException)
         {
-            LogFailed("Open failed.", ex);
+            if (created)
+                TryDelete(destFile);
+            throw;
+        }
+        catch (Exception)
+        {
+            EncryptionLog.Failed("Open failed.");
             if (created)
                 TryDelete(destFile);
             throw;
@@ -468,12 +481,12 @@ public static class EncryptionHelper
         if (!File.Exists(file))
         {
             var missing = new FileNotFoundException("Source file was not found.", file);
-            LogFailed("Source file was not found.", missing);
+            EncryptionLog.Failed("Source file was not found.");
             throw missing;
         }
 
         var randomPasses = (int)mode;
-        Log("Shred", VestigiumStatus.Pending, $"passes={randomPasses}+zero");
+        EncryptionLog.Pending("Shred", $"passes={randomPasses}+zero");
         const int chunk = 65536;
         var buffer = new byte[chunk];
         try
@@ -498,11 +511,11 @@ public static class EncryptionHelper
             }
 
             File.Delete(file);
-            Log("Shred", VestigiumStatus.Success, $"passes={randomPasses}+zero");
+            EncryptionLog.Success("Shred", $"passes={randomPasses}+zero");
         }
         catch (Exception ex) when (ex is not FileNotFoundException)
         {
-            LogFailed("Shred failed.", ex);
+            EncryptionLog.Failed("Shred failed.");
             throw;
         }
         finally
@@ -555,7 +568,8 @@ public static class EncryptionHelper
         {
             key = secret.DeriveContentKey(kdf, salt, kdfMem, kdfIter, kdfPar);
             var headerCount = unknown ? 0UL : (ulong)FrameCountFor(length);
-            Log("Seal", VestigiumStatus.Pending, $"alg={algByte} kdf={kdf} wrap={hasWrap} bytes={(unknown ? -1 : length)} frames={headerCount}");
+            using var scope = EncryptionLog.Begin("SealFile", $"alg={algByte} kdf={kdf} wraps={(hasWrap ? "yes" : "no")} bytes={(unknown ? -1 : length)} frames={headerCount}");
+            EncryptionLog.Pending("Seal", $"alg={algByte} kdf={kdf} wrap={hasWrap} bytes={(unknown ? -1 : length)} frames={headerCount}");
             var prefix = Envelope.WriteHeader(destination, algByte, kdf, kdfMem, kdfIter, kdfPar, salt, fileNonce, headerCount, hasWrap);
 
             ulong frames = 0;
@@ -621,7 +635,12 @@ public static class EncryptionHelper
                 nameCt,
                 key,
                 wraps);
-            Log("Seal", VestigiumStatus.Success, $"alg={algByte} kdf={kdf} wraps={wraps.Count} frames={frames} bytes={writtenPlain}");
+            EncryptionLog.Success("Seal", $"alg={algByte} kdf={kdf} wraps={wraps.Count} frames={frames} bytes={writtenPlain}");
+        }
+        catch (Exception)
+        {
+            EncryptionLog.Failed("Seal failed.");
+            throw;
         }
         finally
         {
@@ -638,15 +657,16 @@ public static class EncryptionHelper
     public static void OpenFile(Stream source, Stream destination, EncryptionRsaKey rsa)
         => OpenFileCore(source, destination, secret: null, rsa, ring: null);
 
-    public static void OpenFile(Stream source, Stream destination, EncryptionKeyRing ring)
-        => OpenFileCore(source, destination, secret: null, rsa: null, ring);
+    public static void OpenFile(Stream source, Stream destination, EncryptionKeyRing ring, EncryptionKeyOverride? keyOverride = null)
+        => OpenFileCore(source, destination, secret: null, rsa: null, ring, keyOverride);
 
     private static void OpenFileCore(
         Stream source,
         Stream destination,
         EncryptionSecret? secret,
         EncryptionRsaKey? rsa,
-        EncryptionKeyRing? ring)
+        EncryptionKeyRing? ring,
+        EncryptionKeyOverride? keyOverride = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
@@ -655,8 +675,9 @@ public static class EncryptionHelper
         if (!source.CanSeek)
             throw new CryptographicException("The envelope is corrupt.");
 
+        using var scope = EncryptionLog.Begin("OpenFile", "Open start");
         var origin = source.Position;
-        Log("Open", VestigiumStatus.Pending, "Open start");
+        EncryptionLog.Pending("Open", "Open start");
         EnvelopeHeader header;
         TrailerFields trailer;
         try
@@ -683,7 +704,7 @@ public static class EncryptionHelper
         var tag = new byte[Envelope.TagSize];
         try
         {
-            key = ResolveContentKey(trailer, secret, rsa, ring);
+            key = ResolveContentKey(trailer, secret, rsa, ring, keyOverride);
             if (key is null || !Trailer.VerifyMac(key, trailer))
                 throw new CryptographicException("The envelope is corrupt.");
 
@@ -720,7 +741,26 @@ public static class EncryptionHelper
                 destination.Write(plain.AsSpan(0, n));
                 remaining -= (uint)n;
             }
-            Log("Open", VestigiumStatus.Success, $"alg={trailer.Alg} frames={frameCount} bytes={trailer.PlaintextLength}");
+            EncryptionLog.Success("Open", $"alg={trailer.Alg} frames={frameCount} bytes={trailer.PlaintextLength} wraps={trailer.Wraps.Count}");
+        }
+        catch (EncryptionTokenException)
+        {
+            throw;
+        }
+        catch (NotSupportedException)
+        {
+            EncryptionLog.Failed("Unsupported envelope field.");
+            throw;
+        }
+        catch (CryptographicException)
+        {
+            EncryptionLog.Failed("Open failed.");
+            throw;
+        }
+        catch
+        {
+            EncryptionLog.Failed("Open failed.");
+            throw new CryptographicException("The envelope is corrupt.");
         }
         finally
         {
@@ -735,14 +775,15 @@ public static class EncryptionHelper
         Stream source,
         EncryptionSecret? secret,
         EncryptionRsaKey? rsa,
-        EncryptionKeyRing? ring)
+        EncryptionKeyRing? ring,
+        EncryptionKeyOverride? keyOverride = null)
     {
         var origin = source.CanSeek ? source.Position : 0;
         byte[]? key = null;
         try
         {
             var trailer = Trailer.Read(source);
-            key = ResolveContentKey(trailer, secret, rsa, ring);
+            key = ResolveContentKey(trailer, secret, rsa, ring, keyOverride);
             if (key is null || !Trailer.VerifyMac(key, trailer))
                 throw new CryptographicException("The envelope is corrupt.");
             return Trailer.OpenOriginalName((EncryptionAlgorithm)trailer.Alg, key, trailer);
@@ -913,7 +954,8 @@ public static class EncryptionHelper
         TrailerFields trailer,
         EncryptionSecret? secret,
         EncryptionRsaKey? rsa,
-        EncryptionKeyRing? ring)
+        EncryptionKeyRing? ring,
+        EncryptionKeyOverride? keyOverride = null)
     {
         if (secret is not null)
         {
@@ -938,7 +980,7 @@ public static class EncryptionHelper
             if (rsa is not null && rsa.CanUnwrap && rsa.ThumbprintEquals(wrap.Thumbprint))
                 key = rsa;
             else if (ring is not null)
-                key = ring.FindPrivate(wrap.Thumbprint);
+                key = ring.FindPrivate(wrap.Thumbprint, keyOverride);
             if (key is null)
                 continue;
             try
@@ -969,10 +1011,4 @@ public static class EncryptionHelper
             // best-effort cleanup of a failed destination
         }
     }
-
-    private static void Log(string verb, VestigiumStatus status, string message)
-        => HelperLog.Information(HelperLog.AppIds.Encryption, status, "Encryption", $"{verb}: {message}");
-
-    private static void LogFailed(string message, Exception ex)
-        => HelperLog.Error(HelperLog.AppIds.Encryption, VestigiumStatus.Failed, "Encryption", message, ex);
 }

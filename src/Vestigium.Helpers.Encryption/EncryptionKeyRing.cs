@@ -23,7 +23,9 @@ public enum EncryptionKeyStatus
 {
     Active = 1,
     Retired = 2,
-    Compromised = 3
+    Compromised = 3,
+    Disabled = 4,
+    Expired = 5
 }
 
 public sealed class EncryptionKeyRecord
@@ -42,7 +44,9 @@ public sealed class EncryptionKeyRecord
     public EncryptionIssuedToKind IssuedToKind { get; init; } = EncryptionIssuedToKind.Organization;
     public string? Application { get; init; }
     public EncryptionKeyRole Role { get; init; }
-    public EncryptionKeyStatus Status { get; init; } = EncryptionKeyStatus.Active;
+    public EncryptionKeyStatus Status { get; internal set; } = EncryptionKeyStatus.Active;
+    public DateTimeOffset? ExpiresUtc { get; internal set; }
+    public DateTimeOffset? StatusChangedUtc { get; internal set; }
     public int KeyBits { get; init; }
     public string ThumbprintSha256 { get; init; } = "";
     public bool Escrow { get; init; }
@@ -69,7 +73,7 @@ public sealed class EncryptionKeyRing : IDisposable
 {
     public const string Format = "VESTIGIUM-KEYRING";
     public const int FormatMajor = 1;
-    public const int FormatMinor = 0;
+    public const int FormatMinor = 1;
 
     private readonly List<EncryptionKeyRecord> _pairs = [];
     private readonly List<EncryptionKeyRecord> _contacts = [];
@@ -148,17 +152,123 @@ public sealed class EncryptionKeyRing : IDisposable
         var export = EncryptionRsaKey.FromPkcs8(generated.ExportPkcs8());
         if (!escrow)
             generated.Dispose();
+        EncryptionLog.Success("Issue", $"{EncryptionAudit.TokenLabel(contact)} bits={keyBits} escrow={escrow}");
         return (contact, export);
     }
 
+    public EncryptionKeyStatus EffectiveStatus(EncryptionKeyRecord row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        if (row.Status is EncryptionKeyStatus.Disabled or EncryptionKeyStatus.Expired
+            or EncryptionKeyStatus.Retired or EncryptionKeyStatus.Compromised)
+            return row.Status;
+        if (row.ExpiresUtc is { } expiry && expiry <= DateTimeOffset.UtcNow)
+            return EncryptionKeyStatus.Expired;
+        return EncryptionKeyStatus.Active;
+    }
+
+    public void Enable(EncryptionKeyRecord row, DateTimeOffset? expiresUtc = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var match = Locate(row);
+        RefuseTerminal(match, EncryptionTokenUse.Seal);
+        ApplyStatus(match, EncryptionKeyStatus.Active, expiresUtc);
+        EncryptionLog.Success("Enable", $"{EncryptionAudit.TokenLabel(match)} status=Active");
+    }
+
+    public void Disable(EncryptionKeyRecord row)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var match = Locate(row);
+        RefuseTerminal(match, EncryptionTokenUse.Seal);
+        ApplyStatus(match, EncryptionKeyStatus.Disabled, match.ExpiresUtc);
+        EncryptionLog.TokenWarning("Disable", $"{EncryptionAudit.TokenLabel(match)} status=Disabled");
+    }
+
+    public void Expire(EncryptionKeyRecord row, DateTimeOffset? at = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var match = Locate(row);
+        RefuseTerminal(match, EncryptionTokenUse.Seal);
+        var when = at ?? DateTimeOffset.UtcNow;
+        if (when <= DateTimeOffset.UtcNow)
+        {
+            ApplyStatus(match, EncryptionKeyStatus.Expired, when);
+            EncryptionLog.TokenWarning("Expire", $"{EncryptionAudit.TokenLabel(match)} status=Expired");
+        }
+        else
+        {
+            ApplyStatus(match, EncryptionKeyStatus.Active, when);
+            EncryptionLog.TokenWarning("Expire", $"{EncryptionAudit.TokenLabel(match)} status=Active until={when:O}");
+        }
+    }
+
+    public void Retire(EncryptionKeyRecord row)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var match = Locate(row);
+        if (match.Status == EncryptionKeyStatus.Compromised)
+            throw new EncryptionTokenException(match.Id, EncryptionKeyStatus.Compromised, EncryptionTokenUse.Seal);
+        ApplyStatus(match, EncryptionKeyStatus.Retired, match.ExpiresUtc);
+        EncryptionLog.TokenWarning("Retire", $"{EncryptionAudit.TokenLabel(match)} status=Retired");
+    }
+
+    public void Compromise(EncryptionKeyRecord row)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var match = Locate(row);
+        ApplyStatus(match, EncryptionKeyStatus.Compromised, match.ExpiresUtc);
+        EncryptionLog.TokenWarning("Compromise", $"{EncryptionAudit.TokenLabel(match)} status=Compromised");
+    }
+
+    public EncryptionRsaKey RequireForSeal(EncryptionKeyRecord row, EncryptionKeyOverride? keyOverride = null)
+        => Require(row, EncryptionTokenUse.Seal, keyOverride);
+
+    public EncryptionRsaKey RequireForOpen(EncryptionKeyRecord row, EncryptionKeyOverride? keyOverride = null)
+        => Require(row, EncryptionTokenUse.Open, keyOverride);
+
+    public EncryptionRsaKey Require(EncryptionKeyRecord row, EncryptionTokenUse use, EncryptionKeyOverride? keyOverride = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var match = Locate(row);
+        var effective = EffectiveStatus(match);
+        if (effective == EncryptionKeyStatus.Expired && match.Status != EncryptionKeyStatus.Expired)
+            ApplyStatus(match, EncryptionKeyStatus.Expired, match.ExpiresUtc);
+
+        if (use == EncryptionTokenUse.Open && !match.Key.CanUnwrap)
+            throw new CryptographicException("The envelope is corrupt.");
+
+        if (effective == EncryptionKeyStatus.Active)
+            return match.Key;
+
+        if (effective is EncryptionKeyStatus.Disabled or EncryptionKeyStatus.Expired)
+        {
+            if (keyOverride is null)
+            {
+                EncryptionLog.TokenWarning("Refuse", $"{EncryptionAudit.TokenLabel(match)} status={effective} use={use}");
+                throw new EncryptionTokenException(match.Id, effective, use);
+            }
+
+            EncryptionLog.TokenWarning(
+                "Override",
+                $"{EncryptionAudit.TokenLabel(match)} status={effective} use={use} by={keyOverride.RequestedBy} reason={keyOverride.Reason}");
+            return match.Key;
+        }
+
+        EncryptionLog.TokenWarning("Refuse", $"{EncryptionAudit.TokenLabel(match)} status={effective} use={use}");
+        throw new EncryptionTokenException(match.Id, effective, use);
+    }
+
     public EncryptionRsaKey? FindPrivate(ReadOnlySpan<byte> thumbprint)
+        => FindPrivate(thumbprint, keyOverride: null);
+
+    public EncryptionRsaKey? FindPrivate(ReadOnlySpan<byte> thumbprint, EncryptionKeyOverride? keyOverride)
     {
         foreach (var row in _pairs)
         {
-            if (row.Status != EncryptionKeyStatus.Active)
+            if (!row.Key.CanUnwrap || !row.Key.ThumbprintEquals(thumbprint))
                 continue;
-            if (row.Key.CanUnwrap && row.Key.ThumbprintEquals(thumbprint))
-                return row.Key;
+            return Require(row, EncryptionTokenUse.Open, keyOverride);
         }
 
         return null;
@@ -239,6 +349,37 @@ public sealed class EncryptionKeyRing : IDisposable
             row.Key.Dispose();
     }
 
+    private EncryptionKeyRecord Locate(EncryptionKeyRecord row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        foreach (var existing in _pairs.Concat(_contacts))
+        {
+            if (existing.Id == row.Id || existing.ThumbprintSha256 == row.ThumbprintSha256)
+                return existing;
+        }
+
+        throw new ArgumentException("Token is not on this ring.", nameof(row));
+    }
+
+    private static void RefuseTerminal(EncryptionKeyRecord match, EncryptionTokenUse use)
+    {
+        if (match.Status is EncryptionKeyStatus.Compromised or EncryptionKeyStatus.Retired)
+            throw new EncryptionTokenException(match.Id, match.Status, use);
+    }
+
+    private void ApplyStatus(EncryptionKeyRecord match, EncryptionKeyStatus status, DateTimeOffset? expiresUtc)
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var row in _pairs.Concat(_contacts))
+        {
+            if (row.ThumbprintSha256 != match.ThumbprintSha256)
+                continue;
+            row.Status = status;
+            row.ExpiresUtc = expiresUtc;
+            row.StatusChangedUtc = now;
+        }
+    }
+
     private static EncryptionKeyRecord NewRecord(
         string title,
         string subject,
@@ -264,6 +405,8 @@ public sealed class EncryptionKeyRing : IDisposable
                 : EncryptionKeyRecord.Clamp(application, EncryptionKeyRecord.ApplicationMax, nameof(application)),
             Role = role,
             Status = EncryptionKeyStatus.Active,
+            ExpiresUtc = null,
+            StatusChangedUtc = DateTimeOffset.UtcNow,
             KeyBits = key.KeyBits,
             ThumbprintSha256 = key.ThumbprintHex,
             Escrow = escrow,
@@ -281,6 +424,8 @@ public sealed class EncryptionKeyRing : IDisposable
         Application = row.Application,
         Role = row.Role.ToString(),
         Status = row.Status.ToString(),
+        ExpiresUtc = row.ExpiresUtc,
+        StatusChangedUtc = row.StatusChangedUtc,
         KeyBits = row.KeyBits,
         ThumbprintSha256 = row.ThumbprintSha256,
         Escrow = row.Escrow,
@@ -306,6 +451,8 @@ public sealed class EncryptionKeyRing : IDisposable
             Application = string.IsNullOrWhiteSpace(row.Application) ? null : EncryptionKeyRecord.Clamp(row.Application, EncryptionKeyRecord.ApplicationMax, "application"),
             Role = Enum.TryParse<EncryptionKeyRole>(row.Role, out var role) ? role : fallbackRole,
             Status = Enum.TryParse<EncryptionKeyStatus>(row.Status, out var status) ? status : EncryptionKeyStatus.Active,
+            ExpiresUtc = row.ExpiresUtc,
+            StatusChangedUtc = row.StatusChangedUtc,
             KeyBits = key.KeyBits,
             ThumbprintSha256 = key.ThumbprintHex,
             Escrow = row.Escrow,
@@ -342,6 +489,8 @@ public sealed class EncryptionKeyRing : IDisposable
         public string? Application { get; set; }
         public string? Role { get; set; }
         public string? Status { get; set; }
+        public DateTimeOffset? ExpiresUtc { get; set; }
+        public DateTimeOffset? StatusChangedUtc { get; set; }
         public int KeyBits { get; set; }
         public string? ThumbprintSha256 { get; set; }
         public bool Escrow { get; set; }
