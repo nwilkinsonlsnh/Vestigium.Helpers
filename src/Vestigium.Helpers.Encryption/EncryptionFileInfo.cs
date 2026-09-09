@@ -13,6 +13,9 @@ public sealed class EncryptionFileInfo
     public DateTimeOffset? CreatedUtc { get; init; }
     public bool Sha256ReservedFilled { get; init; }
     public bool HmacSha256ReservedFilled { get; init; }
+    public string? PlaintextSha256Hex { get; init; }
+    public string? CallerHmacHex { get; init; }
+    public HmacCoverage HmacCoverage { get; init; }
     public bool HasHiddenOriginalName { get; init; }
     public string? OriginalFileName { get; init; }
     public bool HasRsaWrap { get; init; }
