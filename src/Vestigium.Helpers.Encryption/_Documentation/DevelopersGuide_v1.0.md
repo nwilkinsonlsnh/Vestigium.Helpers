@@ -2,16 +2,16 @@
 
 **Document ID:** VEST-HLP-ENC-DEV-000  
 **Version:** 1.0  
-**Status:** Implemented v1.0  
+**Status:** Implemented v1.0 + v1.1 CBC.  
 **Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Encryption/`.
 
 ## Read first
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. AES-256-GCM default, ChaCha20-Poly1305 opt-in, Argon2id for passphrases, `VESTIGIUM HDR` / `VESTIGIUM TRL` envelope. Hashing and Hmac are siblings; this project only reserves their trailer slots.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. AES-256-GCM default, ChaCha20-Poly1305 opt-in, AES-256-CBC+HMAC v1.1 interop, Argon2id for passphrases, `VESTIGIUM HDR` / `VESTIGIUM TRL` envelope. Hashing and Hmac are siblings; this project only reserves their trailer slots.
 
-This file is the design companion: how the pieces sit, how large files stay off the heap, and how CBC / RSA can land later without a second envelope family.
+This file is the design companion: how the pieces sit, how large files stay off the heap, and how RSA can land later without a second envelope family.
 
 ## Design
 
@@ -25,19 +25,19 @@ This file is the design companion: how the pieces sit, how large files stay off 
 - Large files are framed (64 KiB). Do not load the file.
 - Every blob ends in a `VESTIGIUM TRL` footer. v1.0 body is 465 bytes plus 17-byte length+magic (482 at EOF).
 - Hashing is `Vestigium.Helpers.Hashing`. Hmac is a later sibling. Do not fill their 32-byte slots in v1.0.
-- Future AES-256-CBC is Encrypt-then-MAC and still framed.
+- AES-256-CBC is Encrypt-then-MAC and still framed (v1.1, not default).
 - Future RSA wraps the 32-byte content key. It never encrypts the payload.
 
-**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source. Hashing remains a sibling. CBC and RSA stay on the roadmap.
+**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1). Hashing remains a sibling. RSA stays on the roadmap.
 
-## Why these three, not five
+## Why these algorithms
 
 | Algorithm | Role now | Role later |
 |---|---|---|
 | AES-256-GCM | Default AEAD. AES-NI on the boxes we ship to. | Stays default. |
 | ChaCha20-Poly1305 | Same contract, different math. Opt-in. | Soft default on hosts without AES-NI if a profile asks. |
 | Argon2id | Only passphrase → key path. | Parameters may bump; id and params live in the header. |
-| AES-256-CBC | Not v1. | Interop only, with HMAC, framed. |
+| AES-256-CBC + HMAC | v1.1 interop. Encrypt-then-MAC, framed, not default. | Per-frame IV + HMAC. Hidden name stays GCM. |
 | RSA-OAEP | Not v1. | Wraps the content key. Payload still AEAD frames. |
 
 Unauthenticated AES-CBC and “RSA the whole file” are the two designs this library exists to prevent.
@@ -149,16 +149,16 @@ EncryptionHelper.SecureDelete(plaintextPath, SecureDeleteMode.SevenPass);
 | `EncryptionHelper.cs` | Identity, Probe, paths, Seal/Open, IsVestigium/Peek/Validate/RevealOriginalFileName, SecureDelete |
 | `SecureDeleteMode.cs` | Keep / ThreePass (3 random + zero) / SevenPass (7 random + zero) |
 | `EncryptionSecret.cs` | Passphrase / raw key; dispose clears |
-| `EncryptionAlgorithm.cs` | Aes256Gcm, ChaCha20Poly1305 |
+| `EncryptionAlgorithm.cs` | Aes256Gcm, ChaCha20Poly1305, Aes256CbcHmac |
 | `EncryptionFileInfo.cs` | Peek DTO (suite version, alg, sizes) |
 | `EncryptionValidationResult.cs` | Validate DTO |
 | `Envelope.cs` | `VESTIGIUM HDR` read/write |
 | `Trailer.cs` | `VESTIGIUM TRL` write / parse / mac / peek |
-| `FrameCipher.cs` | One AEAD frame |
+| `FrameCipher.cs` | One AEAD frame, or one CBC+HMAC frame |
 | `OriginalNames.cs` | Bare file name rules; hidden `nathan.txt` |
 | `Argon2idKdf.cs` | Passphrase → 32-byte key |
 
-Do not add a Hashing implementation here. Do not add CBC or RSA types until those SRS revisions.
+Do not add a Hashing implementation here. Do not add RSA types until that SRS revision.
 
 ## Logging
 
@@ -178,14 +178,14 @@ dotnet run --project src/Vestigium.Helpers.Encryption.Demo
 
 JSONL: `%ProgramData%\Vestigium\Logs\Encryption\`
 
-The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, and Argon2id tabs each round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`.
+The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, and Argon2id tabs each round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default.
 
 ## Roadmap (design)
 
 | Version | Work | Large-file workaround |
 |---|---|---|
 | v1.0 | GCM + ChaCha + Argon2id + VESTIGIUM HDR/TRL | 64 KiB frames; hidden original name; `.aes` / `.argon`; Peek/Validate; optional 3/7-pass shred |
-| v1.1 | AES-256-CBC + HMAC-SHA256, framed, not default | Per-frame IV + per-frame HMAC; PKCS#7 per frame |
+| v1.1 | AES-256-CBC + HMAC-SHA256, framed, not default — **shipped** | Per-frame IV + per-frame HMAC; PKCS#7 per frame; hidden name stays GCM |
 | v1.2 | RSA-OAEP wraps content key; payload still GCM/ChaCha frames | Hybrid: RSA cost is one wrap; file still streams |
 | v1.3 | Public-key trailer sig / frameSize override | Flag bit 2; keep EOF magic so Peek still works |
 

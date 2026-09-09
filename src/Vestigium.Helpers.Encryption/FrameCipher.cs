@@ -5,6 +5,29 @@ namespace Vestigium.Helpers.Encryption;
 
 internal static class FrameCipher
 {
+    public const int CbcIvSize = 16;
+    public const int CbcHmacSize = 32;
+    public const int CbcBlockSize = 16;
+
+    private static ReadOnlySpan<byte> CbcMacInfo => "VESTIGIUM-CBC-HMAC"u8;
+
+    public static bool IsAead(EncryptionAlgorithm alg)
+        => alg is EncryptionAlgorithm.Aes256Gcm or EncryptionAlgorithm.ChaCha20Poly1305;
+
+    public static bool IsSupported(EncryptionAlgorithm alg)
+        => alg is EncryptionAlgorithm.Aes256Gcm
+            or EncryptionAlgorithm.ChaCha20Poly1305
+            or EncryptionAlgorithm.Aes256CbcHmac;
+
+    public static EncryptionAlgorithm NameAlgorithm(EncryptionAlgorithm alg)
+        => alg == EncryptionAlgorithm.Aes256CbcHmac ? EncryptionAlgorithm.Aes256Gcm : alg;
+
+    public static int CbcPaddedLength(int plaintextLength)
+    {
+        var pad = CbcBlockSize - (plaintextLength % CbcBlockSize);
+        return plaintextLength + pad;
+    }
+
     public static void Encrypt(
         EncryptionAlgorithm alg,
         ReadOnlySpan<byte> key,
@@ -57,6 +80,158 @@ internal static class FrameCipher
         catch (CryptographicException)
         {
             throw new CryptographicException("The envelope is corrupt.");
+        }
+    }
+
+    public static void WriteCbcFrame(
+        Stream destination,
+        ReadOnlySpan<byte> contentKey,
+        ReadOnlySpan<byte> fileNonce,
+        ReadOnlySpan<byte> headerPrefix,
+        uint index,
+        ReadOnlySpan<byte> plaintext)
+    {
+        Span<byte> iv = stackalloc byte[CbcIvSize];
+        RandomNumberGenerator.Fill(iv);
+        var key = contentKey.ToArray();
+        var ivBytes = iv.ToArray();
+        byte[] cipher;
+        try
+        {
+            using var aes = Aes.Create();
+            aes.KeySize = 256;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.Key = key;
+            aes.IV = ivBytes;
+            using var enc = aes.CreateEncryptor();
+            var plain = plaintext.ToArray();
+            try
+            {
+                cipher = enc.TransformFinalBlock(plain, 0, plain.Length);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(plain);
+            }
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+            CryptographicOperations.ZeroMemory(ivBytes);
+        }
+
+        var mac = CbcFrameMac(contentKey, fileNonce, headerPrefix, index, iv, cipher);
+        try
+        {
+            destination.Write(iv);
+            destination.Write(cipher);
+            destination.Write(mac);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(cipher);
+            CryptographicOperations.ZeroMemory(mac);
+        }
+    }
+
+    public static int ReadCbcFrame(
+        Stream source,
+        ReadOnlySpan<byte> contentKey,
+        ReadOnlySpan<byte> fileNonce,
+        ReadOnlySpan<byte> headerPrefix,
+        uint index,
+        int expectedPlain,
+        Span<byte> plaintext)
+    {
+        if (expectedPlain < 0 || expectedPlain > plaintext.Length)
+            throw new CryptographicException("The envelope is corrupt.");
+
+        Span<byte> iv = stackalloc byte[CbcIvSize];
+        Envelope.ReadExact(source, iv);
+        var padded = CbcPaddedLength(expectedPlain);
+        var cipher = new byte[padded];
+        Envelope.ReadExact(source, cipher);
+        Span<byte> mac = stackalloc byte[CbcHmacSize];
+        Envelope.ReadExact(source, mac);
+
+        var expected = CbcFrameMac(contentKey, fileNonce, headerPrefix, index, iv, cipher);
+        try
+        {
+            if (!CryptographicOperations.FixedTimeEquals(expected, mac))
+                throw new CryptographicException("The envelope is corrupt.");
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(expected);
+        }
+
+        var key = contentKey.ToArray();
+        var ivBytes = iv.ToArray();
+        byte[] plain;
+        try
+        {
+            using var aes = Aes.Create();
+            aes.KeySize = 256;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.Key = key;
+            aes.IV = ivBytes;
+            using var dec = aes.CreateDecryptor();
+            try
+            {
+                plain = dec.TransformFinalBlock(cipher, 0, cipher.Length);
+            }
+            catch (CryptographicException)
+            {
+                throw new CryptographicException("The envelope is corrupt.");
+            }
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+            CryptographicOperations.ZeroMemory(ivBytes);
+            CryptographicOperations.ZeroMemory(cipher);
+        }
+
+        try
+        {
+            if (plain.Length != expectedPlain)
+                throw new CryptographicException("The envelope is corrupt.");
+            plain.CopyTo(plaintext);
+            return plain.Length;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plain);
+        }
+    }
+
+    public static byte[] CbcFrameMac(
+        ReadOnlySpan<byte> contentKey,
+        ReadOnlySpan<byte> fileNonce,
+        ReadOnlySpan<byte> headerPrefix,
+        uint index,
+        ReadOnlySpan<byte> iv,
+        ReadOnlySpan<byte> ciphertext)
+    {
+        Span<byte> macKey = stackalloc byte[32];
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, contentKey, macKey, fileNonce, CbcMacInfo);
+        var indexBytes = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(indexBytes, index);
+        var input = new byte[headerPrefix.Length + 4 + iv.Length + ciphertext.Length];
+        headerPrefix.CopyTo(input);
+        indexBytes.CopyTo(input.AsSpan(headerPrefix.Length));
+        iv.CopyTo(input.AsSpan(headerPrefix.Length + 4));
+        ciphertext.CopyTo(input.AsSpan(headerPrefix.Length + 4 + iv.Length));
+        try
+        {
+            return HMACSHA256.HashData(macKey, input);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(macKey);
+            CryptographicOperations.ZeroMemory(input);
         }
     }
 

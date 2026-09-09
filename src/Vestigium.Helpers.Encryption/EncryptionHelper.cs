@@ -7,7 +7,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Encryption;
 
 /// <summary>
-/// Authenticated encryption helpers (AES-256-GCM default, ChaCha20-Poly1305, Argon2id).
+/// Authenticated encryption helpers (AES-256-GCM default, ChaCha20-Poly1305, AES-256-CBC+HMAC v1.1, Argon2id).
 /// Libraries never call Initialize. Hashing lives in Vestigium.Helpers.Hashing.
 /// </summary>
 public static class EncryptionHelper
@@ -448,7 +448,7 @@ public static class EncryptionHelper
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
         ArgumentNullException.ThrowIfNull(secret);
-        if (alg is not (EncryptionAlgorithm.Aes256Gcm or EncryptionAlgorithm.ChaCha20Poly1305))
+        if (!FrameCipher.IsSupported(alg))
             throw new NotSupportedException("alg");
 
         var unknown = plaintextLength is null && !source.CanSeek;
@@ -496,11 +496,18 @@ public static class EncryptionHelper
                 n = ReadUpTo(source, plain.AsSpan(0, want));
                 if (n <= 0)
                     break;
-                var nonce = FrameCipher.FrameNonce(fileNonce, index);
-                var aad = FrameCipher.FrameAad(prefix, index);
-                FrameCipher.Encrypt(alg, key, nonce, aad, plain.AsSpan(0, n), cipher.AsSpan(0, n), tag);
-                destination.Write(cipher.AsSpan(0, n));
-                destination.Write(tag);
+                if (FrameCipher.IsAead(alg))
+                {
+                    var nonce = FrameCipher.FrameNonce(fileNonce, index);
+                    var aad = FrameCipher.FrameAad(prefix, index);
+                    FrameCipher.Encrypt(alg, key, nonce, aad, plain.AsSpan(0, n), cipher.AsSpan(0, n), tag);
+                    destination.Write(cipher.AsSpan(0, n));
+                    destination.Write(tag);
+                }
+                else
+                {
+                    FrameCipher.WriteCbcFrame(destination, key, fileNonce, prefix, index, plain.AsSpan(0, n));
+                }
                 writtenPlain += (uint)n;
                 frames++;
                 index++;
@@ -590,17 +597,33 @@ public static class EncryptionHelper
             var frameCount = trailer.FrameCount;
 
             var alg = (EncryptionAlgorithm)trailer.Alg;
+            if (!FrameCipher.IsSupported(alg))
+                throw new NotSupportedException("alg");
             source.Position = origin;
             Envelope.ReadHeader(source);
             ulong remaining = trailer.PlaintextLength;
             for (uint i = 0; i < frameCount; i++)
             {
                 var n = remaining == 0 ? 0 : (int)Math.Min(Envelope.FrameSize, remaining);
-                Envelope.ReadExact(source, cipher.AsSpan(0, n));
-                Envelope.ReadExact(source, tag);
-                var nonce = FrameCipher.FrameNonce(trailer.FileNonce, i);
-                var aad = FrameCipher.FrameAad(header.PrefixThroughFrameSize, i);
-                FrameCipher.Decrypt(alg, key, nonce, aad, cipher.AsSpan(0, n), tag, plain.AsSpan(0, n));
+                if (FrameCipher.IsAead(alg))
+                {
+                    Envelope.ReadExact(source, cipher.AsSpan(0, n));
+                    Envelope.ReadExact(source, tag);
+                    var nonce = FrameCipher.FrameNonce(trailer.FileNonce, i);
+                    var aad = FrameCipher.FrameAad(header.PrefixThroughFrameSize, i);
+                    FrameCipher.Decrypt(alg, key, nonce, aad, cipher.AsSpan(0, n), tag, plain.AsSpan(0, n));
+                }
+                else
+                {
+                    FrameCipher.ReadCbcFrame(
+                        source,
+                        key,
+                        trailer.FileNonce,
+                        header.PrefixThroughFrameSize,
+                        i,
+                        n,
+                        plain.AsSpan(0, n));
+                }
                 destination.Write(plain.AsSpan(0, n));
                 remaining -= (uint)n;
             }

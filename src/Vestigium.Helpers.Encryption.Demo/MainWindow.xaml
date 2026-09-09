@@ -16,17 +16,18 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Encryption gallery"/>
-        <TextBlock Opacity="0.7" Text="AES-256-GCM · ChaCha20-Poly1305 · Argon2id · 3/7-pass shred"/>
+        <TextBlock Opacity="0.7" Text="AES-256-GCM · ChaCha20-Poly1305 · AES-256-CBC+HMAC · Argon2id · 3/7-pass shred"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
-        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="AES-256-GCM · Argon2id · .aes / .argon" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="AES-256-GCM · CBC+HMAC · Argon2id · .aes / .argon" HorizontalAlignment="Right"/>
       </StackPanel>
     </DockPanel>
     <TabControl Grid.Row="1">
       <TabItem Header="Overview"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource OverviewTab}"/></TabItem>
       <TabItem Header="AES-256-GCM"><ContentControl Content="{Binding Gcm}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
       <TabItem Header="ChaCha20-Poly1305"><ContentControl Content="{Binding ChaCha}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
+      <TabItem Header="AES-256-CBC + HMAC"><ContentControl Content="{Binding Cbc}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
       <TabItem Header="Argon2id"><ContentControl Content="{Binding Argon}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
       <TabItem Header="Validate"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ValidateTab}"/></TabItem>
       <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>

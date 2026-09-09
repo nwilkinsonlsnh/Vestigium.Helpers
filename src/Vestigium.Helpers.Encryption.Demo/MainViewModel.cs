@@ -19,12 +19,14 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     {
         Gcm = new CipherSession(EncryptionAlgorithm.Aes256Gcm, SetStatus);
         ChaCha = new CipherSession(EncryptionAlgorithm.ChaCha20Poly1305, SetStatus);
+        Cbc = new CipherSession(EncryptionAlgorithm.Aes256CbcHmac, SetStatus);
         Argon = new CipherSession(EncryptionAlgorithm.Aes256Gcm, SetStatus, title: "Argon2id", lockPassphrase: true);
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Encryption}";
     }
 
     public CipherSession Gcm { get; }
     public CipherSession ChaCha { get; }
+    public CipherSession Cbc { get; }
     public CipherSession Argon { get; }
 
     public string Identity => EncryptionHelper.Identity;
@@ -42,13 +44,15 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string problemsText = "";
     [ObservableProperty] private string magicsText = "";
 
-    public IReadOnlyList<string> ValidateTargets { get; } = ["AES-256-GCM", "ChaCha20-Poly1305", "Argon2id"];
+    public IReadOnlyList<string> ValidateTargets { get; } = ["AES-256-GCM", "ChaCha20-Poly1305", "AES-256-CBC + HMAC", "Argon2id"];
 
     private CipherSession Current => ValidateTarget.StartsWith("ChaCha", StringComparison.Ordinal)
         ? ChaCha
-        : ValidateTarget.StartsWith("Argon", StringComparison.Ordinal)
-            ? Argon
-            : Gcm;
+        : ValidateTarget.Contains("CBC", StringComparison.Ordinal)
+            ? Cbc
+            : ValidateTarget.StartsWith("Argon", StringComparison.Ordinal)
+                ? Argon
+                : Gcm;
 
     [RelayCommand]
     private void RunProbe()
@@ -73,7 +77,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         var session = Current;
         if (string.IsNullOrWhiteSpace(session.EnvelopePath) || !File.Exists(session.EnvelopePath))
         {
-            ValidateSummary = "Seal a string or file on the AES-256-GCM or ChaCha20 tab first.";
+            ValidateSummary = "Seal a string or file on a cipher tab first.";
             return;
         }
 
@@ -209,7 +213,12 @@ public sealed partial class CipherSession : ObservableObject
     public CipherSession(EncryptionAlgorithm algorithm, Action<string> status, string? title = null, bool lockPassphrase = false)
     {
         Algorithm = algorithm;
-        Title = title ?? (algorithm == EncryptionAlgorithm.ChaCha20Poly1305 ? "ChaCha20-Poly1305" : "AES-256-GCM");
+        Title = title ?? algorithm switch
+        {
+            EncryptionAlgorithm.ChaCha20Poly1305 => "ChaCha20-Poly1305",
+            EncryptionAlgorithm.Aes256CbcHmac => "AES-256-CBC + HMAC",
+            _ => "AES-256-GCM"
+        };
         LockPassphrase = lockPassphrase;
         UsePassphrase = lockPassphrase;
         Passphrase = "gallery-demo-only";

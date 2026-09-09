@@ -6,7 +6,7 @@
         <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ENC  ·  SRS v1.0"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Two AEADs, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. Passphrases go through Argon2id. After Seal you can keep the plaintext or shred it (3- or 7-pass random + zero)."/>
+                   Text="Two AEADs, one CBC interop path, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. AES-256-CBC + HMAC-SHA256 is v1.1 interop (not default). Passphrases go through Argon2id. After Seal you can keep the plaintext or shred it (3- or 7-pass random + zero)."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
@@ -20,6 +20,13 @@
               <TextBlock Style="{StaticResource Caption}" Text="OPT-IN"/>
               <TextBlock FontWeight="SemiBold" Text="ChaCha20-Poly1305"/>
               <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Same frame size, same trailer. Open reads alg from the envelope."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="INTEROP"/>
+              <TextBlock FontWeight="SemiBold" Text="AES-256-CBC + HMAC"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="v1.1. Encrypt-then-MAC, per-frame IV, PKCS#7 per frame. Never CBC without HMAC."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">

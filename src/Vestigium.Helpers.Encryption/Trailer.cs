@@ -64,7 +64,7 @@ internal static class Trailer
         var body = new byte[Envelope.TrailerBodyLength];
         var w = 0;
         body[w++] = Envelope.SuiteMajor;
-        body[w++] = Envelope.SuiteMinor;
+        body[w++] = Envelope.SuiteMinorFor(alg);
         body[w++] = Envelope.TrailerMajor;
         body[w++] = Envelope.TrailerMinor;
         body[w++] = alg;
@@ -169,7 +169,7 @@ internal static class Trailer
         var kdfMem = body[r++];
         var kdfIter = body[r++];
         var kdfPar = body[r++];
-        if (alg is not (1 or 2))
+        if (alg is not (1 or 2 or 3))
             throw new NotSupportedException("alg");
         if (kdf is not (0 or 1))
             throw new NotSupportedException("kdf");
@@ -266,7 +266,7 @@ internal static class Trailer
         nameNonce = RandomNumberGenerator.GetBytes(12);
         nameCt = new byte[NameCtSize];
         FrameCipher.Encrypt(
-            alg,
+            FrameCipher.NameAlgorithm(alg),
             contentKey,
             nameNonce,
             FrameCipher.NameAad(),
@@ -288,7 +288,7 @@ internal static class Trailer
         try
         {
             FrameCipher.Decrypt(
-                alg,
+                FrameCipher.NameAlgorithm(alg),
                 contentKey,
                 trailer.NameNonce,
                 FrameCipher.NameAad(),

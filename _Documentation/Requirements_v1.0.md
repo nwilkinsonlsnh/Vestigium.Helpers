@@ -21,7 +21,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 |---|---|---|---|
 | HLP-CORE | Vestigium.Helpers | net10.0 | Guards, `HelperLog`, `HelperWpfHost` |
 | HLP-XLS | Vestigium.Helpers.ClosedXml | net10.0 | Wraps ClosedXML 0.105.1 |
-| HLP-ENC | Vestigium.Helpers.Encryption | net10.0 | AES-256-GCM, ChaCha20-Poly1305, Argon2id; no custom primitives |
+| HLP-ENC | Vestigium.Helpers.Encryption | net10.0 | AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC (v1.1), Argon2id; no custom primitives |
 | HLP-HASH | Vestigium.Helpers.Hashing | net10.0 | Skeleton. Later fills Encryption trailer sha256 slot |
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
 | HLP-JSON | Vestigium.Helpers.Json | net10.0 | System.Text.Json |

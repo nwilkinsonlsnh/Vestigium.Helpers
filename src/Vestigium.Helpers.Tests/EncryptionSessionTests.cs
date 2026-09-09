@@ -333,6 +333,97 @@ public sealed class EncryptionSessionTests
             EncryptionHelper.SecureDelete(Path.Combine(TempDir(), "x"), SecureDeleteMode.Keep));
     }
 
+    [Fact]
+    public void Cbc_string_round_trip_peeks_suite_1_1()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        var sealedText = EncryptionHelper.SealString("cbc interop", secret, EncryptionAlgorithm.Aes256CbcHmac);
+        Assert.Equal("cbc interop", EncryptionHelper.OpenString(sealedText, secret));
+        var info = PeekBlob(sealedText);
+        Assert.Equal(EncryptionAlgorithm.Aes256CbcHmac, info.Algorithm);
+        Assert.Equal("1.1", info.SuiteVersion);
+        Assert.Equal("1.0", info.TrailerVersion);
+        Assert.Equal("", EncryptionHelper.OpenString(EncryptionHelper.SealString("", secret, EncryptionAlgorithm.Aes256CbcHmac), secret));
+    }
+
+    [Fact]
+    public void Cbc_pkcs7_sizes_and_hidden_name()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        foreach (var n in new[] { 1, 15, 16, 17 })
+        {
+            var text = new string('x', n);
+            Assert.Equal(text, EncryptionHelper.OpenString(EncryptionHelper.SealString(text, secret, EncryptionAlgorithm.Aes256CbcHmac), secret));
+        }
+
+        var dir = TempDir();
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello");
+        var sealedPath = EncryptionHelper.SealFile(src, dir, secret, EncryptionAlgorithm.Aes256CbcHmac);
+        Assert.Equal("nathan.aes", Path.GetFileName(sealedPath));
+        Assert.True(EncryptionHelper.TryPeekFile(sealedPath, out var peek));
+        Assert.Equal(EncryptionAlgorithm.Aes256CbcHmac, peek.Algorithm);
+        Assert.Equal("1.1", peek.SuiteVersion);
+        Assert.True(peek.HasHiddenOriginalName);
+        Assert.Null(peek.OriginalFileName);
+        Assert.Equal("nathan.txt", EncryptionHelper.RevealOriginalFileName(sealedPath, secret));
+        var restoredDir = Path.Combine(dir, "out") + Path.DirectorySeparatorChar;
+        Directory.CreateDirectory(Path.Combine(dir, "out"));
+        var opened = EncryptionHelper.OpenFile(sealedPath, restoredDir, secret);
+        Assert.Equal("nathan.txt", Path.GetFileName(opened));
+        Assert.Equal("hello", File.ReadAllText(opened));
+    }
+
+    [Fact]
+    public void Cbc_flipped_frame_hmac_and_iv_fail_closed()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        var blob = Convert.FromBase64String(EncryptionHelper.SealString("keep", secret, EncryptionAlgorithm.Aes256CbcHmac));
+        var hmacFlip = blob.ToArray();
+        hmacFlip[^483] ^= 0xFF;
+        using (var ms = new MemoryStream(hmacFlip))
+        {
+            var check = EncryptionHelper.Validate(ms, secret);
+            Assert.True(check.StructuralMacValid);
+            ms.Position = 0;
+            Assert.Throws<CryptographicException>(() =>
+            {
+                using var dst = new MemoryStream();
+                EncryptionHelper.OpenFile(ms, dst, secret);
+            });
+        }
+
+        var ivFlip = blob.ToArray();
+        ivFlip[HeaderLenRawKey()] ^= 0xFF;
+        using (var ms = new MemoryStream(ivFlip))
+        {
+            Assert.Throws<CryptographicException>(() =>
+            {
+                using var dst = new MemoryStream();
+                EncryptionHelper.OpenFile(ms, dst, secret);
+            });
+        }
+    }
+
+    [Fact]
+    public void Cbc_multi_frame_file_round_trips()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        var dir = TempDir();
+        var src = Path.Combine(dir, "capture.bin");
+        var data = RandomNumberGenerator.GetBytes(200 * 1024);
+        File.WriteAllBytes(src, data);
+        var sealedPath = EncryptionHelper.SealFile(src, dir, secret, EncryptionAlgorithm.Aes256CbcHmac);
+        var opened = EncryptionHelper.OpenFile(sealedPath, Path.Combine(dir, "restored"), secret);
+        Assert.True(SHA256.HashData(data).AsSpan().SequenceEqual(SHA256.HashData(File.ReadAllBytes(opened))));
+        var peek = EncryptionHelper.PeekFile(sealedPath);
+        Assert.Equal(EncryptionAlgorithm.Aes256CbcHmac, peek.Algorithm);
+        Assert.Equal("1.1", peek.SuiteVersion);
+        Assert.Equal(4UL, peek.FrameCount);
+        Assert.Equal((ulong)data.Length, peek.PlaintextLength);
+        Assert.Equal("capture.bin", EncryptionHelper.RevealOriginalFileName(sealedPath, secret));
+    }
+
     private static EncryptionFileInfo PeekBlob(string sealedBase64)
     {
         using var ms = new MemoryStream(Convert.FromBase64String(sealedBase64));

@@ -29,6 +29,7 @@ internal static class Envelope
 
     public const byte SuiteMajor = 1;
     public const byte SuiteMinor = 0;
+    public const byte SuiteMinorCbc = 1;
     public const byte HeaderMajor = 1;
     public const byte HeaderMinor = 0;
     public const byte TrailerMajor = 1;
@@ -38,6 +39,9 @@ internal static class Envelope
     public const int TrailerBodyLength = 465;
     public const int TrailerFooterLength = 17;
     public const int TrailerTotalLength = TrailerBodyLength + TrailerFooterLength;
+
+    public static byte SuiteMinorFor(byte alg)
+        => alg == (byte)EncryptionAlgorithm.Aes256CbcHmac ? SuiteMinorCbc : SuiteMinor;
 
     public static bool LooksLikeHeader(ReadOnlySpan<byte> magic)
         => magic.Length >= 13 && magic[..13].SequenceEqual(HeaderMagic);
@@ -59,7 +63,7 @@ internal static class Envelope
         using var buffer = new MemoryStream();
         buffer.Write(HeaderMagic);
         buffer.WriteByte(SuiteMajor);
-        buffer.WriteByte(SuiteMinor);
+        buffer.WriteByte(SuiteMinorFor(alg));
         buffer.WriteByte(HeaderMajor);
         buffer.WriteByte(HeaderMinor);
         buffer.WriteByte(alg);
@@ -107,7 +111,7 @@ internal static class Envelope
             throw new NotSupportedException("suiteMajor");
         if (headerMajor != HeaderMajor)
             throw new NotSupportedException("headerMajor");
-        if (alg is not (1 or 2))
+        if (alg is not (1 or 2 or 3))
             throw new NotSupportedException("alg");
         if (kdf is not (0 or 1))
             throw new NotSupportedException("kdf");

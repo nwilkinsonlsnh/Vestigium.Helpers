@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-ENC-SRS-000  
 **Version:** 1.0  
-**Status:** Accepted. Implemented v1.0.  
+**Status:** Accepted. Implemented v1.0 + v1.1 AES-256-CBC (interop).  
 **Date:** 8 September 2026  
 **Package:** `Vestigium.Helpers.Encryption`  
 **TFM:** `net10.0` (not Windows-only)  
@@ -17,6 +17,7 @@ This replaces the 7 September 2026 skeleton note. If implementation and this fil
 It records:
 
 - two AEAD ciphers for **strings and files**: **AES-256-GCM** (default) and **ChaCha20-Poly1305**
+- one interop cipher: **AES-256-CBC + HMAC-SHA256** (v1.1, not default; never CBC without HMAC)
 - one password KDF: **Argon2id**
 - one on-disk / on-wire envelope so a UTF-8 string and a multi-gigabyte file share a format
 - framed streaming so large files never sit in RAM
@@ -25,7 +26,7 @@ It records:
 - HelperLog only; the library never calls `VestigiumLogger.Initialize`
 - original file name (`nathan.txt`) encrypted in the trailer; visible disk name is `{stem}.aes` or `{stem}.argon`
 - hashing and keyed MAC **out of this library** — siblings `Vestigium.Helpers.Hashing` and (later) `Vestigium.Helpers.Hmac` fill reserved trailer slots; they are not implemented here
-- **AES-256-CBC** and **RSA** on the roadmap only; when they land they must still stream large files (see §4.3 and §11)
+- **AES-256-CBC + HMAC-SHA256** ships in v1.1 as framed Encrypt-then-MAC, not the default. **RSA** stays on the roadmap; when it lands it must still stream large files (see §4.5, §5.3, and §11)
 
 ---
 
@@ -51,7 +52,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 
 | # | Decision | Locked as |
 |---|---|---|
-| 1 | Ciphers (v1) | **AES-256-GCM** default. **ChaCha20-Poly1305** opt-in. Both AEAD. |
+| 1 | Ciphers (v1) | **AES-256-GCM** default. **ChaCha20-Poly1305** opt-in. Both AEAD. **AES-256-CBC + HMAC-SHA256** is v1.1 interop, not default. Never CBC without HMAC. |
 | 2 | Password KDF | **Argon2id**. Raw 32-byte keys skip it. |
 | 3 | String and file | Same envelope. String is one frame (or zero). File is N frames. |
 | 4 | Large files | Streamed framed AEAD. Never `File.ReadAllBytes` the plaintext or ciphertext. |
@@ -60,7 +61,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 | 7 | Logging | `HelperLog` only. APPID = host (demo: `Encryption`). Never log plaintext, keys, passphrases, salts-as-secrets, Base64 ciphertext, or the hidden original name. Log alg, bytes in/out, **visible** path, frame count. |
 | 8 | Initialize | Library never calls `VestigiumLogger.Initialize`. |
 | 9 | Export folder | Encrypted **files** the demo writes go to `%DESKTOP%\Vestigium\Exports\{APPID}\`. Tests pass a temp path. |
-| 10 | CBC / RSA | Roadmap only. When they ship they must still stream large files (CBC framed + HMAC; RSA wraps the content key, never the payload). |
+| 10 | CBC / RSA | CBC ships in v1.1 as framed Encrypt-then-MAC (alg 3, suite 1.1). RSA still roadmap (wraps the content key, never the payload). |
 | 11 | File names | Visible suffix is `.aes` (AES-256-GCM / raw key) or `.argon` (Argon2id passphrase). `nathan.txt` → `nathan.aes` or `nathan.argon`. Original name is encrypted in the trailer. Open restores `nathan.txt`. |
 | 12 | Trailer | Every sealed blob ends in a `VESTIGIUM TRL` footer. Open may start from EOF. Header `frameCount = 0` means “trailer is authoritative.” |
 | 13 | Suite identity | ASCII magics `VESTIGIUM HDR` and `VESTIGIUM TRL`. Suite and trailer versions are **numeric fields**, not text inside the magic. |
@@ -75,7 +76,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 **G1.** One façade (`EncryptionHelper`) owns identity, paths, Seal, and Open.  
 **G2.** Seal and Open a UTF-8 string as Base64 of a Vestigium envelope (header + frames + trailer).  
 **G3.** Seal and Open a file of unbounded size by streaming 64 KiB frames.  
-**G4.** Default algorithm is AES-256-GCM. Caller may pick ChaCha20-Poly1305 on Seal. Open reads the algorithm from the envelope.  
+**G4.** Default algorithm is AES-256-GCM. Caller may pick ChaCha20-Poly1305 or AES-256-CBC+HMAC on Seal. Open reads the algorithm from the envelope.  
 **G5.** Passphrases become a 32-byte content key through Argon2id. Raw keys skip the KDF.  
 **G6.** Log Pending / Success / Failed through `HelperLog` only.  
 **G7.** Keep `EncryptionHelper.Identity` and `EncryptionHelper.Probe()` so existing smoke tests stay green.  
@@ -100,7 +101,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 
 Hardware AES-NI on typical PingIQ boxes. Default for `SealString` / `SealFile` when the caller does not pick an algorithm.
 
-“AES-256” in this library **means AES-256-GCM** in v1. Unauthenticated AES-256-CBC is not an alias and is not shipped here.
+“AES-256” in this library **means AES-256-GCM** unless the caller picks `Aes256CbcHmac`. Unauthenticated AES-256-CBC is not an alias and is not shipped.
 
 ### 4.2 ChaCha20-Poly1305 — opt-in
 
@@ -134,9 +135,22 @@ A raw key path exists: `EncryptionSecret.FromKey(byte[32])`. That path sets KDF 
 
 Do not SHA-256 a password. Do not use PBKDF2 as the default. PBKDF2-SHA256 may appear later as an interop KDF; it is not v1.
 
-### 4.4 Explicitly not v1 ciphers
+### 4.4 Explicitly not shipped ciphers
 
-AES-256-CBC, AES-128, 3DES, RC4, Blowfish, RSA payload encryption, “XOR with password”, unauthenticated CTR/CBC, homemade stream ciphers.
+Unauthenticated AES-256-CBC, AES-128, 3DES, RC4, Blowfish, RSA payload encryption, “XOR with password”, unauthenticated CTR/CBC, homemade stream ciphers.
+
+### 4.5 AES-256-CBC + HMAC-SHA256 — v1.1 interop
+
+Algorithm id **3**. Suite minor **1** (Peek reports `"1.1"`). Not the default. Exists so a host can read an old vendor dump or emit one.
+
+- Still 64 KiB frames. Same frame pump as GCM.
+- Fresh random 16-byte IV **per frame**. Never one IV for a multi-GB file.
+- **Encrypt-then-MAC**: AES-256-CBC (PKCS#7 per frame) then HMAC-SHA256 over header prefix + u32be frame index + IV + ciphertext.
+- HMAC key = HKDF-SHA256(contentKey, salt=fileNonce, info=`VESTIGIUM-CBC-HMAC`). AES key = content key. Never the same key for both.
+- Frame on disk: `IV(16) || PKCS#7 ciphertext || HMAC-SHA256(32)`. A full 64 KiB plaintext frame pads +16.
+- Reject CBC without HMAC. Do not ship “just CBC”. A missing or flipped per-frame HMAC fails closed: `The envelope is corrupt.`
+- Hidden original name stays AES-256-GCM (`NameAlgorithm`). The 272-byte nameCt slot cannot hold IV + padded CT + HMAC-32. Name AAD remains `VESTIGIUM-ORIG-NAME` || suite 1.0.
+- Visible suffix is still `.aes` / `.argon` (KDF, not AEAD).
 
 ---
 
@@ -160,7 +174,7 @@ Loading a 4 GB capture into a `byte[]`, encrypting it as one record, and writing
 
 String APIs use the same code path with one frame (or zero if the string is empty).
 
-Do not switch algorithm just because the file is large. Framing is the large-file story for AES-GCM, ChaCha20-Poly1305, and — when they ship — AES-256-CBC and RSA-wrapped payloads.
+Do not switch algorithm just because the file is large. Framing is the large-file story for AES-GCM, ChaCha20-Poly1305, and AES-256-CBC+HMAC. RSA-wrapped payloads (v1.2) keep the same pump.
 
 ### 5.2 Limits that follow from framing
 
@@ -176,13 +190,14 @@ Do not switch algorithm just because the file is large. Framing is the large-fil
 
 This is the “working around” that CBC and RSA will need. It is specified now so a later implementer cannot “just call `RSA.Encrypt` on the file.”
 
-**AES-256-CBC (v1.1)**
+**AES-256-CBC (v1.1) — shipped**
 
 - Still 64 KiB frames.
 - Fresh 16-byte IV **per frame**. Never one IV for a multi-GB file.
-- Encrypt-then-MAC: HMAC-SHA256 over header + frame index + IV + ciphertext. Reject CBC without HMAC.
+- Encrypt-then-MAC: HMAC-SHA256 over header prefix + frame index + IV + ciphertext. Reject CBC without HMAC.
 - Stream exactly as GCM: one frame in memory.
 - PKCS#7 padding applies **per frame**, not to the whole file.
+- Suite minor 1. Payload frames use alg 3. Hidden original name stays GCM.
 
 **RSA (v1.2)**
 
@@ -247,7 +262,7 @@ suiteMajor     u8     = 1
 suiteMinor     u8     = 0
 headerMajor    u8     = 1
 headerMinor    u8     = 0
-alg            u8     = 1 AES-256-GCM, 2 ChaCha20-Poly1305
+alg            u8     = 1 AES-256-GCM, 2 ChaCha20-Poly1305, 3 AES-256-CBC + HMAC-SHA256
 kdf            u8     = 0 raw key, 1 Argon2id
 kdfMemMiB      u8     = 64 when kdf=1, else 0
 kdfIter        u8     = 3  when kdf=1, else 0
@@ -256,8 +271,11 @@ salt           16 bytes when kdf=1, else omitted
 fileNonce      12 bytes
 frameSize      u32    = 65536
 frameCount     u64    hint; 0 means “read the trailer”
-frames         frameCount × (ciphertext || 16-byte tag)   // or unknown count, then trailer
+frames         AEAD: frameCount × (ciphertext || 16-byte tag)
+               CBC:  frameCount × (IV(16) || PKCS#7 ciphertext || HMAC-SHA256(32))
 ```
+
+`suiteMinor` is `0` for alg 1 and 2 (Peek `"1.0"`) and `1` for alg 3 (Peek `"1.1"`). GCM and ChaCha envelopes stay 1.0.
 
 `frameCount` in the header is the known count when the source length is known. For an unknown-length source, write `0` and set trailer flag bit 0. Empty known files still write a trailer with `frameCount = 0` and `plaintextLen = 0`.
 
@@ -290,7 +308,7 @@ Exactly two write suffixes. Nothing longer.
 | Raw 32-byte key (`FromKey`) | `.aes` | `nathan.aes` |
 | Passphrase (`FromPassphrase` → Argon2id) | `.argon` | `nathan.argon` |
 
-AES-256-GCM is still the default **cipher** in both rows. `.aes` vs `.argon` tells the operator how the key was made, not which AEAD ran. ChaCha20-Poly1305 uses the same two suffixes (raw key → `.aes`, passphrase → `.argon`). Peek/Validate name the actual `alg` byte.
+AES-256-GCM is still the default **cipher** in both rows. `.aes` vs `.argon` tells the operator how the key was made, not which AEAD ran. ChaCha20-Poly1305 and AES-256-CBC+HMAC use the same two suffixes (raw key → `.aes`, passphrase → `.argon`). Peek/Validate name the actual `alg` byte.
 
 Open aliases (accepted, never written by the helper): `.vestigium`, `.vest`, `.vest1`, `.aes.gcm`, `.cha.poly`, `.aes.cbc`, no suffix, `.bin`.
 
@@ -361,7 +379,7 @@ suiteMajor      u8     = 1
 suiteMinor      u8     = 0
 trailerMajor    u8     = 1
 trailerMinor    u8     = 0
-alg             u8     = 1 AES-256-GCM, 2 ChaCha20-Poly1305
+alg             u8     = 1 AES-256-GCM, 2 ChaCha20-Poly1305, 3 AES-256-CBC + HMAC-SHA256
 kdf             u8     = 0 raw key, 1 Argon2id
 kdfMemMiB       u8
 kdfIter         u8
@@ -484,11 +502,11 @@ These methods exist so a gallery or host can say “Vestigium encrypted this” 
 
 Validate does **not** Open payload frames. A host can light a green “Vestigium 1.0 / AES-256-GCM / 12 frames / 720 KB / has hidden name” row from Validate + Peek alone. The string `nathan.txt` appears only after a secret is supplied.
 
-Reserved algorithm ids for the roadmap (do not emit in v1):
+Reserved algorithm ids:
 
 | alg | Meaning | Version that may emit it |
 |---|---|---|
-| 3 | AES-256-CBC + HMAC-SHA256 | v1.1 |
+| 3 | AES-256-CBC + HMAC-SHA256 | v1.1 — **shipped** |
 | 4 | RSA-OAEP wrapped content key + AEAD frames | v1.2 |
 
 ---
@@ -632,7 +650,7 @@ Never log: plaintext, passphrase, key bytes, salt that could be reused as a key,
 `Vestigium.Helpers.Encryption.Demo` is a WPF gallery. After implementation:
 
 1. `HelperWpfHost.Start` with APPID `Encryption`. Gallery chrome, not the shared skeleton.
-2. Tabs: Overview, **AES-256-GCM**, **ChaCha20-Poly1305**, **Argon2id**, Validate, JSONL.
+2. Tabs: Overview, **AES-256-GCM**, **ChaCha20-Poly1305**, **AES-256-CBC + HMAC**, **Argon2id**, Validate, JSONL.
 3. AES and ChaCha default to a raw 32-byte key (`.aes`). Argon2id uses `EncryptionSecret.FromPassphrase` (`.argon`, 64 MiB / 3 / 1) with a visible throwaway passphrase field (`gallery-demo-only`).
 4. Each cipher tab round-trips a UTF-8 string (`SealString` / `OpenString`) and a file (`Choose file…` / `nathan.txt`, then Seal / Open). Open restores the hidden original name.
 5. File Seal offers **Keep original**, **3-pass random + zero**, or **7-pass random + zero**. Shred runs only after a successful seal and only on the unencrypted source.
@@ -675,6 +693,11 @@ v1.0 after implementation:
 - `SealFile(..., SecureDeleteMode.ThreePass)` deletes the source after a successful seal; the envelope still opens to the original bytes and hidden name.
 - `SecureDelete(path, SevenPass)` deletes an empty file. Missing path throws `FileNotFoundException`. `Keep` on `SecureDelete` throws `ArgumentOutOfRangeException`.
 - Open of a ChaCha file renamed to `.bin` into a directory still restores the hidden original name (header/trailer win).
+- `SealString` / `SealFile` with `Aes256CbcHmac` round-trips; Peek reports alg 3 and suite `"1.1"`. Trailer version stays `"1.0"`. Default Seal stays GCM / `"1.0"`.
+- CBC PKCS#7 frame sizes 1, 15, 16, 17 bytes round-trip. Empty CBC file is 0 frames + trailer.
+- CBC hidden original name: Seal `nathan.txt` writes `nathan.aes`; Peek does not reveal the name; Reveal/Open returns `nathan.txt`. Name slot is AES-256-GCM.
+- Flipping a CBC per-frame HMAC or IV throws `CryptographicException` on Open. Trailer structural mac may still validate.
+- CBC 200 KiB (4 frames) round-trips.
 - Tests never use the real Desktop.
 
 xUnit, serial logger collection, temp directories only. See `EncryptionSessionTests`.
@@ -686,7 +709,7 @@ xUnit, serial logger collection, temp directories only. See `EncryptionSessionTe
 | Item | Why |
 |---|---|
 | Hashing APIs | Sibling Hashing. |
-| AES-256-CBC | Roadmap v1.1. Needs HMAC or it is unsafe. |
+| AES-256-CBC without HMAC | Forbidden. v1.1 ships CBC **only** as Encrypt-then-MAC. |
 | RSA / ECC payload encrypt | Roadmap v1.2. RSA wraps a content key only. |
 | DPAPI / TPM / Windows Hello | Windows-only; this TFM is `net10.0`. |
 | Key vault, rotation UI | Host concern. |
@@ -714,14 +737,15 @@ xUnit, serial logger collection, temp directories only. See `EncryptionSessionTe
 - HelperLog, demo, tests
 - Large-file streaming is mandatory, not optional
 
-### v1.1 — AES-256-CBC (interop)
+### v1.1 — AES-256-CBC (interop) — shipped
 
 - Algorithm id 3.
-- **Encrypt-then-MAC**: AES-256-CBC then HMAC-SHA256 over header + frame index + IV + ciphertext.
+- **Encrypt-then-MAC**: AES-256-CBC then HMAC-SHA256 over header prefix + frame index + IV + ciphertext.
 - Still framed (same 64 KiB). Per-frame IV, never a single IV for a multi-GB file.
 - Not the default. Exists so a host can read an old vendor dump or emit one.
 - Reject CBC without HMAC. Do not ship “just CBC”.
 - Large-file workaround: same frame pump as GCM. PKCS#7 per frame.
+- Hidden original name stays AES-256-GCM. Suite minor 1 (Peek `"1.1"`).
 
 ### v1.2 — RSA envelope wrap
 
@@ -792,9 +816,9 @@ xUnit, serial logger collection, temp directories only. See `EncryptionSessionTe
 This SRS is accepted when:
 
 1. This file is on `main` under `src/Vestigium.Helpers.Encryption/_Documentation/`.
-2. Implementation of §7 + §9 demo + §10 tests follows without inventing a third v1 cipher or hashing APIs.
+2. Implementation of §7 + §9 demo + §10 tests follows without inventing hashing APIs. AES-256-CBC+HMAC is the v1.1 cipher (alg 3); RSA stays roadmap.
 3. Large-file Seals stream; a reviewer can see that `ReadAllBytes` is not the file path.
-4. Roadmap CBC and RSA text in §5.3 / §12 is not treated as v1 work.
+4. RSA text in §5.3 / §12 is not treated as shipped work. CBC in those sections is v1.1 and is implemented.
 5. `nathan.txt` → visible `.aes` / `.argon`, hidden original name round-trips on Open into a directory.
 
 Implementation is a separate change from this document.
