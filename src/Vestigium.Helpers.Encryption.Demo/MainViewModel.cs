@@ -19,11 +19,13 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     {
         Gcm = new CipherSession(EncryptionAlgorithm.Aes256Gcm, SetStatus);
         ChaCha = new CipherSession(EncryptionAlgorithm.ChaCha20Poly1305, SetStatus);
+        Argon = new CipherSession(EncryptionAlgorithm.Aes256Gcm, SetStatus, title: "Argon2id", lockPassphrase: true);
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Encryption}";
     }
 
     public CipherSession Gcm { get; }
     public CipherSession ChaCha { get; }
+    public CipherSession Argon { get; }
 
     public string Identity => EncryptionHelper.Identity;
     public string ExportFolder => EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
@@ -40,11 +42,13 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string problemsText = "";
     [ObservableProperty] private string magicsText = "";
 
-    public IReadOnlyList<string> ValidateTargets { get; } = ["AES-256-GCM", "ChaCha20-Poly1305"];
+    public IReadOnlyList<string> ValidateTargets { get; } = ["AES-256-GCM", "ChaCha20-Poly1305", "Argon2id"];
 
     private CipherSession Current => ValidateTarget.StartsWith("ChaCha", StringComparison.Ordinal)
         ? ChaCha
-        : Gcm;
+        : ValidateTarget.StartsWith("Argon", StringComparison.Ordinal)
+            ? Argon
+            : Gcm;
 
     [RelayCommand]
     private void RunProbe()
@@ -202,21 +206,34 @@ public sealed partial class CipherSession : ObservableObject
 {
     private readonly Action<string> _status;
 
-    public CipherSession(EncryptionAlgorithm algorithm, Action<string> status)
+    public CipherSession(EncryptionAlgorithm algorithm, Action<string> status, string? title = null, bool lockPassphrase = false)
     {
         Algorithm = algorithm;
-        Title = algorithm == EncryptionAlgorithm.ChaCha20Poly1305 ? "ChaCha20-Poly1305" : "AES-256-GCM";
+        Title = title ?? (algorithm == EncryptionAlgorithm.ChaCha20Poly1305 ? "ChaCha20-Poly1305" : "AES-256-GCM");
+        LockPassphrase = lockPassphrase;
+        UsePassphrase = lockPassphrase;
+        Passphrase = "gallery-demo-only";
+        ShredChoice = "Keep original";
         _status = status;
         PlainText = "token from Vestigium";
     }
 
     public EncryptionAlgorithm Algorithm { get; }
     public string Title { get; }
+    public bool LockPassphrase { get; }
+    public bool ShowPassphraseToggle => !LockPassphrase;
+    public bool PassphraseBoxVisible => UsePassphrase;
+
+    public IReadOnlyList<string> ShredChoices { get; } =
+        ["Keep original", "3-pass random + zero", "7-pass random + zero"];
 
     [ObservableProperty] private string plainText = "";
     [ObservableProperty] private string sealedBase64 = "";
     [ObservableProperty] private string openedText = "";
     [ObservableProperty] private bool usePassphrase;
+    [ObservableProperty] private string passphrase = "gallery-demo-only";
+    [ObservableProperty] private string shredChoice = "Keep original";
+    [ObservableProperty] private string shredSummary = "";
     [ObservableProperty] private string sourcePath = "";
     [ObservableProperty] private string sourceName = "";
     [ObservableProperty] private string envelopePath = "";
@@ -251,12 +268,18 @@ public sealed partial class CipherSession : ObservableObject
 
     public string SecretCaption => UsePassphrase ? "Passphrase → .argon" : "Raw key → .aes";
 
+    private SecureDeleteMode ShredMode =>
+        ShredChoice.StartsWith("7", StringComparison.Ordinal) ? SecureDeleteMode.SevenPass
+        : ShredChoice.StartsWith("3", StringComparison.Ordinal) ? SecureDeleteMode.ThreePass
+        : SecureDeleteMode.Keep;
+
     partial void OnUsePassphraseChanged(bool value)
     {
         OnPropertyChanged(nameof(VisibleName));
         OnPropertyChanged(nameof(SecretCaption));
         OnPropertyChanged(nameof(SealFileCaption));
         OnPropertyChanged(nameof(SourceLine));
+        OnPropertyChanged(nameof(PassphraseBoxVisible));
     }
 
     partial void OnSourceNameChanged(string value)
@@ -271,7 +294,7 @@ public sealed partial class CipherSession : ObservableObject
     partial void OnRestoredPathChanged(string value) => OnPropertyChanged(nameof(RestoredCaption));
 
     public EncryptionSecret MakeSecret() => UsePassphrase
-        ? EncryptionSecret.FromPassphrase("gallery-demo-only")
+        ? EncryptionSecret.FromPassphrase(string.IsNullOrWhiteSpace(Passphrase) ? "gallery-demo-only" : Passphrase)
         : EncryptionSecret.FromKey(MainViewModelKey);
 
     // Same demo key as MainViewModel (7 at 0, 9 at 31).
@@ -349,6 +372,7 @@ public sealed partial class CipherSession : ObservableObject
         RestoredPath = "";
         RestoredPreview = "";
         EnvelopePath = "";
+        ShredSummary = "";
         OnPropertyChanged(nameof(VisibleName));
         _status($"Selected {SourceName}");
     }
@@ -364,6 +388,7 @@ public sealed partial class CipherSession : ObservableObject
         RestoredPath = "";
         RestoredPreview = "";
         EnvelopePath = "";
+        ShredSummary = "";
         OnPropertyChanged(nameof(VisibleName));
         _status("Sample nathan.txt ready.");
     }
@@ -387,11 +412,25 @@ public sealed partial class CipherSession : ObservableObject
             var destDir = EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
             Directory.CreateDirectory(destDir);
             var alg = Algorithm;
-            EnvelopePath = await Task.Run(() => EncryptionHelper.SealFile(source, destDir, secret, alg));
+            var shred = ShredMode;
+            EnvelopePath = await Task.Run(() => EncryptionHelper.SealFile(source, destDir, secret, alg, shred));
             RestoredPath = "";
             RestoredPreview = "";
             var peek = EncryptionHelper.PeekFile(EnvelopePath);
             PeekLine = $"{Path.GetFileName(EnvelopePath)} · {peek.Algorithm} · {peek.FrameCount} frames · hidden={peek.HasHiddenOriginalName}";
+            if (shred != SecureDeleteMode.Keep)
+            {
+                var gone = !File.Exists(source);
+                ShredSummary = gone
+                    ? $"Shredded {SourceName} ({(int)shred} random + zero)."
+                    : "Shred failed — original still on disk.";
+                if (gone)
+                    SourcePath = "";
+            }
+            else
+            {
+                ShredSummary = "Original file kept.";
+            }
             _status($"Sealed {SourceName} → {Path.GetFileName(EnvelopePath)}");
         }
         catch (Exception ex)

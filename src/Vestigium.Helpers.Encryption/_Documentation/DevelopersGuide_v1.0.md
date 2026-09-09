@@ -28,7 +28,7 @@ This file is the design companion: how the pieces sit, how large files stay off 
 - Future AES-256-CBC is Encrypt-then-MAC and still framed.
 - Future RSA wraps the 32-byte content key. It never encrypts the payload.
 
-**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names. Hashing remains a sibling. CBC and RSA stay on the roadmap.
+**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source. Hashing remains a sibling. CBC and RSA stay on the roadmap.
 
 ## Why these three, not five
 
@@ -134,6 +134,8 @@ var check = EncryptionHelper.ValidateFile(sealedPath);                 // no sec
 var info  = EncryptionHelper.PeekFile(sealedPath);                     // suite 1.0, alg, sizes, HasHiddenOriginalName
 var name  = EncryptionHelper.RevealOriginalFileName(sealedPath, secret); // nathan.txt
 EncryptionHelper.OpenFile(sealedPath, exportDir, secret);              // writes nathan.txt
+EncryptionHelper.SealFile("nathan.txt", exportDir, secret, shredPlaintext: SecureDeleteMode.ThreePass);
+EncryptionHelper.SecureDelete(plaintextPath, SecureDeleteMode.SevenPass);
 ```
 
 `OpenFile` ignores the visible suffix. `.vest`, `.vestigium`, `.aes.gcm` remain Open aliases. Tests pass a temp path and use `*.aes` / `*.argon`.
@@ -144,7 +146,8 @@ EncryptionHelper.OpenFile(sealedPath, exportDir, secret);              // writes
 
 | File | Role |
 |---|---|
-| `EncryptionHelper.cs` | Identity, Probe, paths, Seal/Open, IsVestigium/Peek/Validate/RevealOriginalFileName |
+| `EncryptionHelper.cs` | Identity, Probe, paths, Seal/Open, IsVestigium/Peek/Validate/RevealOriginalFileName, SecureDelete |
+| `SecureDeleteMode.cs` | Keep / ThreePass (3 random + zero) / SevenPass (7 random + zero) |
 | `EncryptionSecret.cs` | Passphrase / raw key; dispose clears |
 | `EncryptionAlgorithm.cs` | Aes256Gcm, ChaCha20Poly1305 |
 | `EncryptionFileInfo.cs` | Peek DTO (suite version, alg, sizes) |
@@ -175,13 +178,13 @@ dotnet run --project src/Vestigium.Helpers.Encryption.Demo
 
 JSONL: `%ProgramData%\Vestigium\Logs\Encryption\`
 
-The demo probes in memory, then seals a temp `nathan.txt` to the Desktop export folder as `nathan.argon` and opens it back.
+The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, and Argon2id tabs each round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`.
 
 ## Roadmap (design)
 
 | Version | Work | Large-file workaround |
 |---|---|---|
-| v1.0 | GCM + ChaCha + Argon2id + VESTIGIUM HDR/TRL | 64 KiB frames; hidden original name; `.aes` / `.argon`; Peek/Validate |
+| v1.0 | GCM + ChaCha + Argon2id + VESTIGIUM HDR/TRL | 64 KiB frames; hidden original name; `.aes` / `.argon`; Peek/Validate; optional 3/7-pass shred |
 | v1.1 | AES-256-CBC + HMAC-SHA256, framed, not default | Per-frame IV + per-frame HMAC; PKCS#7 per frame |
 | v1.2 | RSA-OAEP wraps content key; payload still GCM/ChaCha frames | Hybrid: RSA cost is one wrap; file still streams |
 | v1.3 | Public-key trailer sig / frameSize override | Flag bit 2; keep EOF magic so Peek still works |

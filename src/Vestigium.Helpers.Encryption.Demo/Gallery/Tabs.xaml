@@ -6,7 +6,7 @@
         <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ENC  ·  SRS v1.0"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Two AEADs, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. Passphrases go through Argon2id. Choose a file, seal it, open it back — the original name is hidden in the trailer."/>
+                   Text="Two AEADs, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. Passphrases go through Argon2id. After Seal you can keep the plaintext or shred it (3- or 7-pass random + zero)."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
@@ -32,8 +32,8 @@
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
               <TextBlock Style="{StaticResource Caption}" Text="NAMES"/>
-              <TextBlock FontWeight="SemiBold" Text=".aes / .argon"/>
-              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="nathan.txt is encrypted in the trailer. Peek without a secret does not print it."/>
+              <TextBlock FontWeight="SemiBold" Text=".aes / .argon · shred"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="nathan.txt is encrypted in the trailer. Optional 3- or 7-pass + zero shred of the unencrypted source."/>
             </StackPanel>
           </Border>
         </WrapPanel>
@@ -58,8 +58,13 @@
       <StackPanel>
         <TextBlock Style="{StaticResource Id}" Text="{Binding Title}"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Round-trip a UTF-8 string, then pick any file. The visible name is .aes or .argon. Open restores the hidden original name."/>
-        <CheckBox Content="Use passphrase (writes .argon instead of .aes)" IsChecked="{Binding UsePassphrase}"/>
+                   Text="Round-trip a UTF-8 string, then pick any file. Argon2id writes .argon. After Seal you may shred the unencrypted source (3- or 7-pass random + zero)."/>
+        <CheckBox Content="Use passphrase (writes .argon instead of .aes)"
+                  IsChecked="{Binding UsePassphrase}"
+                  IsEnabled="{Binding ShowPassphraseToggle}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="PASSPHRASE"/>
+        <TextBox Text="{Binding Passphrase, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Opacity="0.6" Text="Argon2id 64 MiB / 3 / 1. Used when the passphrase box above is on, and always on the Argon2id tab." TextWrapping="Wrap"/>
 
         <TextBlock Style="{StaticResource Caption}" Text="STRING ROUND-TRIP"/>
         <TextBox Text="{Binding PlainText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
@@ -78,10 +83,13 @@
           <Button Content="Choose file…" Command="{Binding BrowseFileCommand}" Style="{StaticResource PrimaryButton}"/>
           <Button Content="Use nathan.txt" Command="{Binding UseNathanSampleCommand}"/>
         </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="AFTER SEAL, ORIGINAL FILE"/>
+        <ComboBox ItemsSource="{Binding ShredChoices}" SelectedItem="{Binding ShredChoice}"/>
         <WrapPanel>
           <Button Content="{Binding SealFileCaption}" Command="{Binding SealFileCommand}" Style="{StaticResource PrimaryButton}"/>
           <Button Content="Open → original name" Command="{Binding OpenFileCommand}"/>
         </WrapPanel>
+        <TextBlock Opacity="0.85" Text="{Binding ShredSummary}" TextWrapping="Wrap"/>
         <TextBlock Opacity="0.85" Text="{Binding PeekLine}" TextWrapping="Wrap"/>
         <TextBlock Opacity="0.7" Text="{Binding EnvelopePath}" TextWrapping="Wrap"/>
         <TextBlock FontWeight="SemiBold" Text="{Binding RestoredCaption}" TextWrapping="Wrap"/>

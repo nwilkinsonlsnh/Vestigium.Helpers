@@ -295,7 +295,12 @@ public static class EncryptionHelper
         return Encoding.UTF8.GetString(destination.ToArray());
     }
 
-    public static string SealFile(string sourcePath, string destinationPath, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm)
+    public static string SealFile(
+        string sourcePath,
+        string destinationPath,
+        EncryptionSecret secret,
+        EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm,
+        SecureDeleteMode shredPlaintext = SecureDeleteMode.Keep)
     {
         var source = HelperGuard.NotBlank(sourcePath, nameof(sourcePath));
         var destArg = HelperGuard.NotBlank(destinationPath, nameof(destinationPath));
@@ -320,7 +325,6 @@ public static class EncryptionHelper
             using var output = File.Create(destFile);
             SealFile(input, output, secret, alg, input.Length, originalName);
             Log("Seal", VestigiumStatus.Success, $"path={Path.GetFileName(destFile)} frames done");
-            return destFile;
         }
         catch (Exception ex)
         {
@@ -329,6 +333,11 @@ public static class EncryptionHelper
                 TryDelete(destFile);
             throw;
         }
+
+        if (shredPlaintext != SecureDeleteMode.Keep)
+            SecureDelete(source, shredPlaintext);
+
+        return destFile;
     }
 
     public static string OpenFile(string sourcePath, string destinationPath, EncryptionSecret secret)
@@ -365,6 +374,66 @@ public static class EncryptionHelper
             if (created)
                 TryDelete(destFile);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Overwrite <paramref name="path"/> with random bytes, then zeros, then delete it.
+    /// <see cref="SecureDeleteMode.ThreePass"/> is 3 random + 1 zero.
+    /// <see cref="SecureDeleteMode.SevenPass"/> is 7 random + 1 zero.
+    /// Flash media may still retain prior cells; this is the on-disk contract for magnetic / ordinary files.
+    /// </summary>
+    public static void SecureDelete(string path, SecureDeleteMode mode)
+    {
+        if (mode is not (SecureDeleteMode.ThreePass or SecureDeleteMode.SevenPass))
+            throw new ArgumentOutOfRangeException(nameof(mode), "Use ThreePass or SevenPass.");
+
+        var file = HelperGuard.NotBlank(path, nameof(path));
+        if (Directory.Exists(file) && !File.Exists(file))
+            throw new IOException("Refusing to shred a directory.");
+        if (!File.Exists(file))
+        {
+            var missing = new FileNotFoundException("Source file was not found.", file);
+            LogFailed("Source file was not found.", missing);
+            throw missing;
+        }
+
+        var randomPasses = (int)mode;
+        Log("Shred", VestigiumStatus.Pending, $"passes={randomPasses}+zero");
+        const int chunk = 65536;
+        var buffer = new byte[chunk];
+        try
+        {
+            var attrs = File.GetAttributes(file);
+            if (attrs.HasFlag(FileAttributes.ReadOnly))
+                File.SetAttributes(file, attrs & ~FileAttributes.ReadOnly);
+
+            using (var stream = new FileStream(
+                       file,
+                       FileMode.Open,
+                       FileAccess.Write,
+                       FileShare.None,
+                       chunk,
+                       FileOptions.SequentialScan | FileOptions.WriteThrough))
+            {
+                var length = stream.Length;
+                for (var pass = 0; pass < randomPasses; pass++)
+                    OverwritePass(stream, length, buffer, random: true);
+                OverwritePass(stream, length, buffer, random: false);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Delete(file);
+            Log("Shred", VestigiumStatus.Success, $"passes={randomPasses}+zero");
+        }
+        catch (Exception ex) when (ex is not FileNotFoundException)
+        {
+            LogFailed("Shred failed.", ex);
+            throw;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(buffer);
         }
     }
 
@@ -620,6 +689,24 @@ public static class EncryptionHelper
 
     private static long FrameCountFor(long length)
         => length <= 0 ? 0 : (length + Envelope.FrameSize - 1) / Envelope.FrameSize;
+
+    private static void OverwritePass(FileStream stream, long length, byte[] buffer, bool random)
+    {
+        stream.Position = 0;
+        var remaining = length;
+        while (remaining > 0)
+        {
+            var n = (int)Math.Min(buffer.Length, remaining);
+            if (random)
+                RandomNumberGenerator.Fill(buffer.AsSpan(0, n));
+            else
+                Array.Clear(buffer, 0, n);
+            stream.Write(buffer, 0, n);
+            remaining -= n;
+        }
+
+        stream.Flush(flushToDisk: true);
+    }
 
     private static string ResolveSealDestination(string destinationPath, string originalName, EncryptionSecret secret)
     {

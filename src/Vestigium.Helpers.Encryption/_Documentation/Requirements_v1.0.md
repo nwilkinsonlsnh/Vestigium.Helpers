@@ -66,6 +66,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 | 13 | Suite identity | ASCII magics `VESTIGIUM HDR` and `VESTIGIUM TRL`. Suite and trailer versions are **numeric fields**, not text inside the magic. |
 | 14 | Validation | `IsVestigiumFile` / `PeekFile` / `ValidateFile` inspect header+trailer without decrypting frames. Structural MAC check needs a secret; Peek does not. |
 | 15 | Reserved integrity slots | Trailer always contains 32-byte `sha256` and 32-byte `hmacSha256` fields. v1.0 writes zeros. Later Hashing / Hmac libraries fill them. Do not compute them in Encryption v1.0. |
+| 16 | Secure delete | After a successful `SealFile`, the caller may shred the unencrypted source. **3-pass** = 3 random overwrites + 1 zero pass, then delete. **7-pass** = 7 random + 1 zero, then delete. Default is **Keep** (do not touch the plaintext file). Stream `SealFile` does not shred — there is no path. Flash / SSD wear-leveling is best-effort; the passes still run. |
 
 ---
 
@@ -82,7 +83,8 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 **G9.** Wrong secret, bit flip, or truncated envelope fails closed with `CryptographicException`. Do not distinguish “wrong password” from “corrupt file” in the message.  
 **G10.** Every file (and every Base64 string blob) ends with the `VESTIGIUM TRL` trailer so Open can recover algorithm, KDF, salt, nonce, frame count, and plaintext length from EOF.  
 **G11.** A host can ask “is this a Vestigium file?” and print suite version, trailer version, algorithm, and sizes without a secret.  
-**G12.** Seal of `nathan.txt` writes `nathan.aes` (raw key / AES-256-GCM) or `nathan.argon` (passphrase / Argon2id). Original name is hidden in the trailer. Open restores `nathan.txt`.
+**G12.** Seal of `nathan.txt` writes `nathan.aes` (raw key / AES-256-GCM) or `nathan.argon` (passphrase / Argon2id). Original name is hidden in the trailer. Open restores `nathan.txt`.  
+**G13.** Optional secure delete of the unencrypted source after Seal: 3 random + zero, or 7 random + zero. Off by default.
 
 ---
 
@@ -518,8 +520,9 @@ public static class EncryptionHelper
     public static string SealString(string plaintext, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm);
     public static string OpenString(string sealedBase64, EncryptionSecret secret);
 
-    public static string SealFile(string sourcePath, string destinationPath, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm);
+    public static string SealFile(string sourcePath, string destinationPath, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm, SecureDeleteMode shredPlaintext = SecureDeleteMode.Keep);
     public static string OpenFile(string sourcePath, string destinationPath, EncryptionSecret secret);
+    public static void SecureDelete(string path, SecureDeleteMode mode);
 
     public static void SealFile(Stream source, Stream destination, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm, long? plaintextLength = null, string? originalFileName = null);
     public static void OpenFile(Stream source, Stream destination, EncryptionSecret secret);
@@ -560,6 +563,13 @@ public enum EncryptionAlgorithm
     ChaCha20Poly1305 = 2
 }
 
+public enum SecureDeleteMode
+{
+    Keep = 0,       // leave the unencrypted source
+    ThreePass = 3,  // 3 random + 1 zero, then delete
+    SevenPass = 7   // 7 random + 1 zero, then delete
+}
+
 public sealed class EncryptionSecret : IDisposable
 {
     public static EncryptionSecret FromPassphrase(string passphrase);
@@ -588,6 +598,8 @@ Rules:
 - `Open*` reads `alg` and `kdf` from the header and confirms them against the trailer. The caller does not pass the algorithm on decrypt.
 - Wrong passphrase / wrong key / bit flip → `CryptographicException`. Do not distinguish “wrong password” from “corrupt file” in the exception message.
 - `EncryptionSecret` is not serializable and must not override `ToString` with the passphrase or key.
+- `SealFile(..., shredPlaintext)` shreds the **source** only after a successful seal. A failed seal leaves the plaintext file and deletes a dest the helper just created. Default is `Keep`.
+- `SecureDelete(path, ThreePass | SevenPass)` overwrites the whole length in 64 KiB chunks (random, then zeros), `Flush(flushToDisk: true)` after each pass, then `File.Delete`. `Keep` is invalid on this method. Missing source → `FileNotFoundException`. Directories are refused. Read-only is cleared, then shredded. Never log file contents.
 
 `Probe` seals and opens a short fixture in memory. It must not write `%DESKTOP%` and must not log the fixture text.
 
@@ -605,6 +617,9 @@ Rules:
 | Missing source file | Error | Failed |
 | Unsupported envelope field | Error | Failed |
 | Peek (path, alg, frames, plaintext length — not secrets) | Information | Success |
+| Shred start (pass count — not contents) | Information | Pending |
+| Shred complete | Information | Success |
+| Shred failed | Error | Failed |
 
 Category = `Helpers`. Subcategory = `Encryption`. APPID = host APPID.
 
@@ -614,13 +629,14 @@ Never log: plaintext, passphrase, key bytes, salt that could be reused as a key,
 
 ## 9. Demo contract
 
-`Vestigium.Helpers.Encryption.Demo` is the CLI host. After implementation:
+`Vestigium.Helpers.Encryption.Demo` is a WPF gallery. After implementation:
 
-1. `HelperWpfHost.Start` is not required for the CLI; the CLI uses `HelperDemoHost.Run` with APPID `Encryption`.
-2. `EncryptionHelper.Probe()`.
-3. After the engine ships: Seal a short string with a demo passphrase; Open it back; print only lengths and alg to the console.
-4. After the engine ships: Seal a small temp file named like `nathan.txt` into `%DESKTOP%\Vestigium\Exports\Encryption\` as `nathan.aes` or `nathan.argon`. Open it back to `nathan.txt`. Print the visible name, not the hidden one, until Open succeeds.
-5. JSONL under `%ProgramData%\Vestigium\Logs\Encryption\`.
+1. `HelperWpfHost.Start` with APPID `Encryption`. Gallery chrome, not the shared skeleton.
+2. Tabs: Overview, **AES-256-GCM**, **ChaCha20-Poly1305**, **Argon2id**, Validate, JSONL.
+3. AES and ChaCha default to a raw 32-byte key (`.aes`). Argon2id uses `EncryptionSecret.FromPassphrase` (`.argon`, 64 MiB / 3 / 1) with a visible throwaway passphrase field (`gallery-demo-only`).
+4. Each cipher tab round-trips a UTF-8 string (`SealString` / `OpenString`) and a file (`Choose file…` / `nathan.txt`, then Seal / Open). Open restores the hidden original name.
+5. File Seal offers **Keep original**, **3-pass random + zero**, or **7-pass random + zero**. Shred runs only after a successful seal and only on the unencrypted source.
+6. JSONL under `%ProgramData%\Vestigium\Logs\Encryption\`. Desktop exports under `%DESKTOP%\Vestigium\Exports\Encryption\`.
 
 Do not put a real production passphrase in the gallery source. A throwaway gallery secret is fine if it is obviously fake (`gallery-demo-only`).
 
@@ -655,6 +671,9 @@ v1.0 after implementation:
 - `SealedFileName("nathan.txt", rawKeySecret)` is `nathan.aes`.
 - `SealedFileName("nathan.txt", passphraseSecret)` is `nathan.argon`.
 - Seal `nathan.txt` into a temp directory writes `nathan.aes` (raw key) or `nathan.argon` (passphrase). Peek without a secret does not contain `nathan.txt`. Reveal/Open with the secret returns `nathan.txt`.
+- Default `SealFile` leaves the unencrypted source on disk.
+- `SealFile(..., SecureDeleteMode.ThreePass)` deletes the source after a successful seal; the envelope still opens to the original bytes and hidden name.
+- `SecureDelete(path, SevenPass)` deletes an empty file. Missing path throws `FileNotFoundException`. `Keep` on `SecureDelete` throws `ArgumentOutOfRangeException`.
 - Open of a ChaCha file renamed to `.bin` into a directory still restores the hidden original name (header/trailer win).
 - Tests never use the real Desktop.
 

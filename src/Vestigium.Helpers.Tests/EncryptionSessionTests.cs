@@ -287,6 +287,52 @@ public sealed class EncryptionSessionTests
         Assert.EndsWith("nathan.argon", EncryptionHelper.NewExportPath("Encryption", "nathan.txt", pass));
     }
 
+    [Fact]
+    public void Seal_keeps_plaintext_by_default()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        var dir = TempDir();
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello from Vestigium");
+        EncryptionHelper.SealFile(src, dir, secret);
+        Assert.True(File.Exists(src));
+        Assert.Equal("hello from Vestigium", File.ReadAllText(src));
+    }
+
+    [Fact]
+    public void Seal_with_three_pass_shred_deletes_plaintext()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        var dir = TempDir();
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello from Vestigium");
+        var sealedPath = EncryptionHelper.SealFile(src, dir, secret, EncryptionAlgorithm.Aes256Gcm, SecureDeleteMode.ThreePass);
+        Assert.False(File.Exists(src));
+        Assert.True(File.Exists(sealedPath));
+        var opened = EncryptionHelper.OpenFile(sealedPath, Path.Combine(dir, "out") + Path.DirectorySeparatorChar, secret);
+        Assert.Equal("nathan.txt", Path.GetFileName(opened));
+        Assert.Equal("hello from Vestigium", File.ReadAllText(opened));
+    }
+
+    [Fact]
+    public void Seven_pass_shred_deletes_empty_file()
+    {
+        var dir = TempDir();
+        var src = Path.Combine(dir, "empty.bin");
+        File.WriteAllBytes(src, []);
+        EncryptionHelper.SecureDelete(src, SecureDeleteMode.SevenPass);
+        Assert.False(File.Exists(src));
+    }
+
+    [Fact]
+    public void SecureDelete_missing_file_throws()
+    {
+        Assert.Throws<FileNotFoundException>(() =>
+            EncryptionHelper.SecureDelete(Path.Combine(TempDir(), "nope.txt"), SecureDeleteMode.ThreePass));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            EncryptionHelper.SecureDelete(Path.Combine(TempDir(), "x"), SecureDeleteMode.Keep));
+    }
+
     private static EncryptionFileInfo PeekBlob(string sealedBase64)
     {
         using var ms = new MemoryStream(Convert.FromBase64String(sealedBase64));
