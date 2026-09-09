@@ -1,0 +1,261 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-FILEIO  ·  SRS v1.0"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Validated file and directory jobs. Robocopy is the behavior reference; FileIo is the record. A recon team fills five size buckets, consumers drain them after a 0–180 s lead (default 15 s in the library, 2 s in this gallery), and certainty is 100% only when every recon worker is in. Default collision is UniqueName. Audit Mode writes the full Would* log and changes nothing. Category Helpers, APPID FileIo."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="ENGINE"/>
+              <TextBlock FontWeight="SemiBold" Text="Recon + buckets"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Tiny 8 · Small 4 · Medium 2 · Large 1 · Huge 1 with watermark 32."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="DEFAULT"/>
+              <TextBlock FontWeight="SemiBold" Text="UniqueName .##"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="report.txt → report.01.txt. Cap fails the file. Never silent overwrite."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="AUDIT"/>
+              <TextBlock FontWeight="SemiBold" Text="Audit Mode"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Same recon, same decisions, zero mutations. The protocol print."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="CONTROL"/>
+              <TextBlock FontWeight="SemiBold" Text="Pause / Cancel"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Pause resumes committed bytes. Cancel aborts the current write."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="LOG"/>
+              <TextBlock FontWeight="SemiBold" Text="ALCOA+ JSONL"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Job / Recon / Copy / Move / Delete / Mirror / Index / Progress. Sparse on disk."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="LATER"/>
+              <TextBlock FontWeight="SemiBold" Text="LAD · monitor · ACL"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Not this revision. No admin, no scheduler, no robocopy.exe."/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Open demo folder" Command="{Binding OpenDemoFolderCommand}"/>
+              <Button Content="Reset volumes" Command="{Binding ResetVolumesCommand}"/>
+            </WrapPanel>
+            <TextBlock Opacity="0.7" Text="{Binding DemoRoot}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="JobTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="340"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+        <StackPanel>
+          <TextBlock Style="{StaticResource Id}" Text="{Binding Title}"/>
+          <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8" Text="{Binding Blurb}"/>
+          <TextBlock Style="{StaticResource Caption}" Text="COLLISION"/>
+          <ComboBox ItemsSource="{Binding CollisionChoices}" SelectedItem="{Binding CollisionChoice}"/>
+          <TextBlock Style="{StaticResource Caption}" Text="UNIQUENAME PATTERN"/>
+          <TextBox Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged}" FontFamily="Cascadia Mono, Consolas"/>
+          <TextBlock Style="{StaticResource Caption}" Text="RECON LEAD (SECONDS)"/>
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding LeadSeconds}" Width="36" TextAlignment="Right"/>
+            <Slider Minimum="0" Maximum="180" SmallChange="1" LargeChange="15"
+                    Value="{Binding LeadSeconds}" TickFrequency="15"/>
+          </DockPanel>
+          <CheckBox Content="Copy only unique content (SHA-256)" IsChecked="{Binding UniqueContent}"/>
+          <CheckBox Content="Audit Mode (no disk changes)" IsChecked="{Binding Audit}" IsEnabled="{Binding AuditEnabled}"/>
+          <CheckBox Content="Include empty directories (/E)" IsChecked="{Binding IncludeEmpty}"/>
+          <CheckBox Content="Purge dest extras (Mirror)" IsChecked="{Binding Purge}"/>
+          <CheckBox Content="SecureDelete recipe (Delete)" IsChecked="{Binding Shred}"/>
+          <WrapPanel Margin="0,8,0,0">
+            <Button Content="Run" Command="{Binding RunCommand}" Style="{StaticResource PrimaryButton}"/>
+            <Button Content="Pause" Command="{Binding PauseCommand}"/>
+            <Button Content="Resume" Command="{Binding ResumeCommand}"/>
+            <Button Content="Cancel" Command="{Binding CancelCommand}"/>
+          </WrapPanel>
+          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#7DD3FC"
+                     Text="{Binding Summary}" TextWrapping="Wrap"/>
+        </StackPanel>
+      </ScrollViewer>
+      <Grid Grid.Column="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Border Style="{StaticResource Panel}" Margin="0,0,0,8">
+          <StackPanel>
+            <DockPanel LastChildFill="False">
+              <TextBlock Style="{StaticResource Caption}" Text="LIVE PROGRESS"/>
+              <TextBlock DockPanel.Dock="Right" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC"
+                         Text="{Binding Certainty, StringFormat=Certainty {0}%}"/>
+            </DockPanel>
+            <DockPanel>
+              <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding PercentText}"/>
+              <TextBlock Margin="12,8,0,0" Opacity="0.7" Text="{Binding PhaseText}"/>
+              <TextBlock DockPanel.Dock="Right" Opacity="0.55" Text="{Binding CertaintyCaption}"/>
+            </DockPanel>
+            <ProgressBar Height="8" Minimum="0" Maximum="100" Value="{Binding Percent}" Margin="0,8,0,4"/>
+            <ProgressBar Height="4" Minimum="0" Maximum="100" Value="{Binding Certainty}" Opacity="0.5"/>
+            <ItemsControl ItemsSource="{Binding Buckets}" Margin="0,8,0,0">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Columns="5"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource Chip}" Margin="0,0,8,0">
+                    <StackPanel>
+                      <TextBlock FontSize="11" Opacity="0.7" Text="{Binding Name}"/>
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Percent, StringFormat={}{0}%}"/>
+                      <TextBlock FontSize="11" Opacity="0.7" Text="{Binding Caption}"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Opacity="0.7" FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding Counts}"/>
+          </StackPanel>
+        </Border>
+        <Grid Grid.Row="1">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <DockPanel Margin="0,0,6,0">
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="EXPORT (SOURCE)"/>
+            <ListView ItemsSource="{Binding ExportRows}">
+              <ListView.View>
+                <GridView>
+                  <GridViewColumn Header="Path" DisplayMemberBinding="{Binding Path=Path}" Width="180"/>
+                  <GridViewColumn Header="Size" DisplayMemberBinding="{Binding Size}" Width="80"/>
+                  <GridViewColumn Header="Bucket" DisplayMemberBinding="{Binding Bucket}" Width="70"/>
+                </GridView>
+              </ListView.View>
+            </ListView>
+          </DockPanel>
+          <DockPanel Grid.Column="1" Margin="6,0,0,0">
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="ARCHIVE (DESTINATION)"/>
+            <ListView ItemsSource="{Binding ArchiveRows}">
+              <ListView.View>
+                <GridView>
+                  <GridViewColumn Header="Path" DisplayMemberBinding="{Binding Path=Path}" Width="180"/>
+                  <GridViewColumn Header="Size" DisplayMemberBinding="{Binding Size}" Width="80"/>
+                  <GridViewColumn Header="Bucket" DisplayMemberBinding="{Binding Bucket}" Width="70"/>
+                </GridView>
+              </ListView.View>
+            </ListView>
+          </DockPanel>
+        </Grid>
+      </Grid>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="UniqueNameTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="340"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Style="{StaticResource Id}" Text="UniqueName"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Default collision. Numeric .## writes report.01.txt then .02. Alpha A## writes report.A01.txt … A99 then B01. Width never shrinks. Cap is NameCap, never overwrite."/>
+        <TextBlock Style="{StaticResource Caption}" Text="ORIGINAL NAME"/>
+        <TextBox Text="{Binding Original, UpdateSourceTrigger=PropertyChanged}" FontFamily="Cascadia Mono, Consolas"/>
+        <TextBlock Style="{StaticResource Caption}" Text="PATTERN"/>
+        <TextBox Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged}" FontFamily="Cascadia Mono, Consolas"/>
+        <WrapPanel>
+          <Button Content="Mint next" Command="{Binding MintCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Reset list" Command="{Binding ResetListCommand}"/>
+          <Button Content="Use A##" Command="{Binding UseAlphaCommand}"/>
+        </WrapPanel>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="{Binding Caption}" TextWrapping="Wrap"/>
+        <TextBlock Opacity="0.7" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+      <DockPanel Grid.Column="1">
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="EXISTING NAMES"/>
+        <ListView ItemsSource="{Binding Existing}"/>
+      </DockPanel>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="CompareTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="420"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Style="{StaticResource Id}" Text="Compare"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="FileIo.CompareFiles hashes both sides with SHA-256 (Hashing sibling). Name collision is a different switch from unique-content skip."/>
+        <TextBlock Style="{StaticResource Caption}" Text="EXPORT"/>
+        <ComboBox ItemsSource="{Binding LeftChoices}" SelectedItem="{Binding LeftPath}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="ARCHIVE"/>
+        <ComboBox ItemsSource="{Binding RightChoices}" SelectedItem="{Binding RightPath}"/>
+        <Button Content="Compare SHA-256" Command="{Binding CompareCommand}" Style="{StaticResource PrimaryButton}"/>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="{Binding Result}" TextWrapping="Wrap"/>
+      </StackPanel>
+      <Border Grid.Column="1" Style="{StaticResource Panel}">
+        <StackPanel>
+          <TextBlock Style="{StaticResource Caption}" Text="DIGESTS"/>
+          <TextBlock Opacity="0.6" Text="left"/>
+          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap" Text="{Binding LeftDigest}"/>
+          <TextBlock Opacity="0.6" Margin="0,12,0,0" Text="right"/>
+          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap" Text="{Binding RightDigest}"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="IndexTab">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Style="{StaticResource Id}" Text="Content index"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Unique-content skip hashes file bytes (SHA-256). Name collision is a different switch. Demo volumes seed Tiny through Large under %TEMP%. Reset restores nathan.txt, the 300 KiB frame, the 5 MiB trace, and the 40 MiB clip."/>
+        <WrapPanel Margin="0,0,0,8">
+          <Button Content="Reset volumes" Command="{Binding ResetVolumesCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Open demo folder" Command="{Binding OpenDemoFolderCommand}"/>
+        </WrapPanel>
+      </StackPanel>
+      <ListView ItemsSource="{Binding IndexRows}">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Volume" DisplayMemberBinding="{Binding Volume}" Width="90"/>
+            <GridViewColumn Header="Path" DisplayMemberBinding="{Binding Path=Path}" Width="280"/>
+            <GridViewColumn Header="Bucket" DisplayMemberBinding="{Binding Bucket}" Width="80"/>
+            <GridViewColumn Header="Size" DisplayMemberBinding="{Binding Size}" Width="100"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+    </DockPanel>
+  </DataTemplate>
+</ResourceDictionary>

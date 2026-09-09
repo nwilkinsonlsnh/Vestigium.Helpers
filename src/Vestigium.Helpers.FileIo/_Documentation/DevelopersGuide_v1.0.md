@@ -46,4 +46,6 @@ Recon workers cap 8. Buckets: Tiny 0–256 KiB (8), Small 256 KiB–4 MiB (4), M
 
 Hashing for digests. Encryption for envelopes. Logging for JSONL. FileIo does not absorb those façades.
 
-The WPF gallery and the web gallery both host APPID FileIo. Probe is `%TEMP%` only.
+The WPF gallery (`Vestigium.Helpers.FileIo.Demo`) and the web gallery both host APPID FileIo. Probe is `%TEMP%` only.
+
+WPF tabs: Overview, Copy, Move, Delete, Mirror, Audit Mode, UniqueName, Compare, Index, JSONL. Demo volumes live under `%TEMP%\Vestigium.Helpers.FileIo.Demo`. Default collision UniqueName. Gallery recon lead is 2 s (library default remains 15 s).
