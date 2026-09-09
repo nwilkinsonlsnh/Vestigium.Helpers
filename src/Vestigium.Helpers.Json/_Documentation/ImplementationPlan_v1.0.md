@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-JSON-PLAN-000  
 **Version:** 1.0  
-**Status:** Proposed. Do not start engine phases until the SRS is Accepted.  
+**Status:** Accepted.  
 **Date:** 9 September 2026  
 **Package:** `Vestigium.Helpers.Json`  
 **Contract:** [`Requirements_v1.0.md`](Requirements_v1.0.md)  

@@ -2,10 +2,10 @@
 
 **Document ID:** VEST-HLP-JSON-DEV-000  
 **Version:** 1.0  
-**Status:** Proposed with SRS v1.0.  
+**Status:** Accepted with SRS v1.0.  
 **Date:** 9 September 2026
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md) is the phase map. Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Json/` **after** the SRS is Accepted.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md) is the phase map. Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Json/`.
 
 ## What this library is
 
@@ -80,7 +80,7 @@ Default dest folder: `%DESKTOP%\\Vestigium\\Exports\\Json\\`. Tests replace that
 - Collision default Fail. AtomicWrite default true.
 - JSONL: append + full rewrite. No mid-file splice in v1.
 - HelperLog: paths and counts, never bodies.
-- Façade stays Identity + Probe until this SRS is Accepted on `main`.
+- Phase 1 ships Identity, Probe, ToJson/FromJson, Parse, and the path parser. Session and files start at Phase 2.
 
 ## Sibling fences
 

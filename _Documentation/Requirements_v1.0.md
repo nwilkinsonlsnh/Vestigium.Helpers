@@ -24,7 +24,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-ENC | Vestigium.Helpers.Encryption | net10.0 | AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC (v1.1), RSA-OAEP wrap (v1.2), Argon2id; no custom primitives |
 | HLP-HASH | Vestigium.Helpers.Hashing | net10.0 | SHA-256 default, SHA-384/512, SHA-3, HMAC-SHA256/384/512/SHA3, KMAC, SHAKE, Argon2id PHC. Hex default + Base64 converters. |
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
-| HLP-JSON | Vestigium.Helpers.Json | net10.0 | System.Text.Json |
+| HLP-JSON | Vestigium.Helpers.Json | net10.0 | SRS v1.0 accepted. System.Text.Json payload helper (not the audit logger). |
 | HLP-XML | Vestigium.Helpers.Xml | net10.0 | |
 | HLP-FIO | Vestigium.Helpers.FileIo | net10.0 | SRS v1.0 implemented. Recon, UniqueName, Audit Mode, Pause/Cancel, retries, Analytics sizes/rates. |
 | HLP-PRC | Vestigium.Helpers.Processes | net10.0 | |

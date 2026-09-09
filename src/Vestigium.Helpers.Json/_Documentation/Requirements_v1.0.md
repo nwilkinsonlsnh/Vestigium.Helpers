@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-JSON-SRS-000  
 **Version:** 1.0  
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 9 September 2026  
 **Package:** `Vestigium.Helpers.Json`  
 **TFM:** `net10.0` (not Windows-only)  
@@ -319,10 +319,10 @@ Never here: being the suite logger; being FileIo; being Csv.
 
 ## 13. Acceptance
 
-This SRS is **Proposed** until you flip Status to Accepted on `main` (Phase 0). Acceptance means:
+This SRS is **Accepted** on `main` (Phase 0). Acceptance means:
 
 1. This file and the Developers Guide and Implementation Plan live under `src/Vestigium.Helpers.Json/_Documentation/`.
 2. §8 subcategories are registered in `HelperLog.CreateTaxonomy` (Phase 0 commit).
 3. A follow-up implementation PR can be reviewed against this text without inventing UniqueName, a second logger, or Newtonsoft.
 
-Do not grow `JsonHelper` past Identity + Probe until Status is Accepted.
+Do not grow `JsonHelper` past Identity + Probe until Status is Accepted. Phase 0 closed that gate.
