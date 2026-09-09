@@ -47,6 +47,17 @@ public static class HelperLog
         public const string Crypto = "Crypto";
         public const string Token = "Token";
         public const string Encryption = "Encryption";
+        public const string Job = "Job";
+        public const string Recon = "Recon";
+        public const string Copy = "Copy";
+        public const string Move = "Move";
+        public const string Delete = "Delete";
+        public const string Mirror = "Mirror";
+        public const string Index = "Index";
+        public const string Progress = "Progress";
+        public const string Compare = "Compare";
+        public const string Prune = "Prune";
+        public const string SecureDelete = "SecureDelete";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -257,7 +268,18 @@ public static class HelperLog
             Subcategories.Limits,
             Subcategories.Crypto,
             Subcategories.Token,
-            Subcategories.Encryption);
+            Subcategories.Encryption,
+            Subcategories.Job,
+            Subcategories.Recon,
+            Subcategories.Copy,
+            Subcategories.Move,
+            Subcategories.Delete,
+            Subcategories.Mirror,
+            Subcategories.Index,
+            Subcategories.Progress,
+            Subcategories.Compare,
+            Subcategories.Prune,
+            Subcategories.SecureDelete);
         return t;
     }
 

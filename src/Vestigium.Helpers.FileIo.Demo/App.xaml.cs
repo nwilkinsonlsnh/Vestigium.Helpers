@@ -18,11 +18,11 @@ public partial class App : Application
                 AppId = HelperLog.AppIds.FileIo,
                 Identity = FileIoHelper.Identity,
                 Title = "Vestigium.Helpers.FileIo gallery",
-                Role = "File and directory helpers",
-                DocumentId = "VEST-HLP-FIO  ·  skeleton",
-                Blurb = "File and directory helpers. Probe is a no-op for JSONL until this gallery calls InitializeHost.",
+                Role = "Validated file jobs · recon · UniqueName · Audit Mode",
+                DocumentId = "VEST-HLP-FIO  ·  SRS v1.0",
+                Blurb = "Validated file and directory jobs. Recon, five buckets, UniqueName default, Audit Mode, Pause/Cancel, ALCOA+ JSONL.",
                 Probe = FileIoHelper.Probe,
-                StatusNote = "Skeleton until its own SRS is accepted. Probe writes Pending then Success through HelperLog.",
+                StatusNote = "SRS v1.0. Copy / Move / Delete / Mirror. UniqueName default. Probe is %TEMP% only.",
             })
         }.Show();
     }
