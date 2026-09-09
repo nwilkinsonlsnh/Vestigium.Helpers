@@ -3,11 +3,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.Hashing</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Hashing</AssemblyName>
-    <Description>String and file hashing (SHA-2, SHA-3, HMAC-SHA256/384/512, Argon2id, CRC-32/64, xxHash). Separate from Encryption.</Description>
-    <Version>1.2.0</Version>
+    <Description>String and file hashing (SHA-2, SHA-3, HMAC-SHA2/SHA3, KMAC, SHAKE, Argon2id, CRC-32/64, xxHash). Separate from Encryption.</Description>
+    <Version>1.3.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>hash;sha256;hmac;hmacsha384;hmacsha512;argon2id;crc32;xxhash;vestigium</PackageTags>
+    <PackageTags>hash;sha256;hmac;hmacsha3;kmac;shake;argon2id;crc32;xxhash;vestigium</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +20,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         Interop = new HashPane(HashingAlgorithm.Md5, SetStatus, [HashingAlgorithm.Md5, HashingAlgorithm.Sha1], interop: true);
         Checksum = new ChecksumPane(SetStatus);
         Hmac = new HmacPane(SetStatus);
+        KmacShake = new KmacShakePane(SetStatus);
         Password = new PasswordPane(SetStatus);
         HexText = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Hashing}";
@@ -30,6 +32,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public HashPane Interop { get; }
     public ChecksumPane Checksum { get; }
     public HmacPane Hmac { get; }
+    public KmacShakePane KmacShake { get; }
     public PasswordPane Password { get; }
 
     public string Identity => HashingHelper.Identity;
@@ -38,7 +41,9 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         "var hex = HashingHelper.HashString(\"abc\");\n" +
         "var crc = HashingHelper.ChecksumCrc32(\"123456789\");\n" +
         "using var key = HmacKey.Generate();\n" +
-        "var mac = HashingHelper.HmacString(msg, key, HmacAlgorithm.Sha384);";
+        "var mac = HashingHelper.HmacString(msg, key, HmacAlgorithm.Sha3_256);\n" +
+        "var kmac = HashingHelper.Kmac128(msg, key);\n" +
+        "var shake = HashingHelper.Shake128(\"abc\");";
 
     [ObservableProperty] private string hexText = "";
     [ObservableProperty] private string base64Text = "";
@@ -420,7 +425,11 @@ public sealed partial class HmacPane : ObservableObject
     {
         _status = status;
         Algorithm = HmacAlgorithm.Sha256;
-        var list = new[] { HmacAlgorithm.Sha256, HmacAlgorithm.Sha384, HmacAlgorithm.Sha512 };
+        var list = new[]
+        {
+            HmacAlgorithm.Sha256, HmacAlgorithm.Sha384, HmacAlgorithm.Sha512,
+            HmacAlgorithm.Sha3_256, HmacAlgorithm.Sha3_384, HmacAlgorithm.Sha3_512,
+        };
         AlgorithmChoices = list.Select(HashingHelper.HmacName).ToList();
         foreach (var alg in list)
             _map[HashingHelper.HmacName(alg)] = alg;
@@ -507,6 +516,179 @@ public sealed partial class HmacPane : ObservableObject
             var ok = HashingHelper.VerifyHmacString(InputText ?? "", key, MacHex, Algorithm);
             VerifyCaption = ok ? "Match." : "No match.";
             _status($"VerifyHmacString {(ok ? "ok" : "failed")}");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    private HmacKey ResolveKey()
+    {
+        if (!string.IsNullOrWhiteSpace(TypedSecret))
+            return HmacKey.FromString(TypedSecret.Trim());
+        if (!string.IsNullOrWhiteSpace(KeyBase64))
+            return HmacKey.FromBase64(KeyBase64);
+        throw new InvalidOperationException("Generate a key or type a secret of at least 16 UTF-8 bytes.");
+    }
+
+    private HmacKeySize ParseSize() => SizeChoice.StartsWith("16", StringComparison.Ordinal)
+        ? HmacKeySize.Bytes16
+        : SizeChoice.StartsWith("64", StringComparison.Ordinal)
+            ? HmacKeySize.Bytes64
+            : SizeChoice.StartsWith("128", StringComparison.Ordinal)
+                ? HmacKeySize.Bytes128
+                : HmacKeySize.Bytes32;
+}
+
+public sealed partial class KmacShakePane : ObservableObject
+{
+    private readonly Action<string> _status;
+    private HmacKey? _generated;
+
+    public KmacShakePane(Action<string> status)
+    {
+        _status = status;
+        AlgorithmChoices =
+        [
+            "KMAC128",
+            "KMAC256",
+            "SHAKE128",
+            "SHAKE256",
+        ];
+        AlgorithmChoice = "KMAC128";
+        SizeChoices = ["16 bytes", "32 bytes (default)", "64 bytes", "128 bytes"];
+        SizeChoice = SizeChoices[1];
+        InputText = "abc";
+        Customization = "";
+        OutputLength = "32";
+        TypedSecret = "";
+        KeyBase64 = "";
+        DigestHex = "";
+        VerifyCaption = "";
+        ErrorText = "";
+    }
+
+    public IReadOnlyList<string> AlgorithmChoices { get; }
+    public IReadOnlyList<string> SizeChoices { get; }
+
+    [ObservableProperty] private string algorithmChoice = "";
+    [ObservableProperty] private string sizeChoice = "";
+    [ObservableProperty] private string keyBase64 = "";
+    [ObservableProperty] private string typedSecret = "";
+    [ObservableProperty] private string inputText = "";
+    [ObservableProperty] private string customization = "";
+    [ObservableProperty] private string outputLength = "32";
+    [ObservableProperty] private string digestHex = "";
+    [ObservableProperty] private string verifyCaption = "";
+    [ObservableProperty] private string errorText = "";
+
+    public bool IsKmac => AlgorithmChoice.StartsWith("KMAC", StringComparison.Ordinal);
+    partial void OnAlgorithmChoiceChanged(string value)
+    {
+        OutputLength = value is "KMAC256" or "SHAKE256" ? "64" : "32";
+        DigestHex = "";
+        VerifyCaption = "";
+        OnPropertyChanged(nameof(IsKmac));
+    }
+
+    [RelayCommand]
+    private void Generate()
+    {
+        _generated?.Dispose();
+        _generated = HmacKey.Generate(ParseSize());
+        KeyBase64 = _generated.ToBase64();
+        TypedSecret = "";
+        _status($"Generated key · {_generated.Length} bytes");
+    }
+
+    [RelayCommand]
+    private void LoadNist()
+    {
+        try
+        {
+            ErrorText = "";
+            if (IsKmac)
+            {
+                var raw = Enumerable.Range(0x40, 32).Select(i => (byte)i).ToArray();
+                KeyBase64 = Convert.ToBase64String(raw);
+                TypedSecret = "";
+                InputText = "";
+                Customization = "";
+                OutputLength = AlgorithmChoice == "KMAC256" ? "64" : "32";
+                using var key = HmacKey.FromBytes(raw);
+                var alg = AlgorithmChoice == "KMAC256" ? KmacAlgorithm.Kmac256 : KmacAlgorithm.Kmac128;
+                var len = int.Parse(OutputLength);
+                DigestHex = HashingHelper.KmacBytes([0x00, 0x01, 0x02, 0x03], key, alg, len);
+                VerifyCaption = "NIST SP 800-185 sample 1 (4 raw bytes 00010203, not UTF-8).";
+                _status("Loaded NIST SP 800-185 sample 1.");
+            }
+            else
+            {
+                InputText = "abc";
+                OutputLength = AlgorithmChoice == "SHAKE256" ? "64" : "32";
+                var alg = AlgorithmChoice == "SHAKE256" ? ShakeAlgorithm.Shake256 : ShakeAlgorithm.Shake128;
+                DigestHex = HashingHelper.ShakeString("abc", alg, int.Parse(OutputLength));
+                VerifyCaption = "FIPS 202 SHAKE(\"abc\").";
+                _status("Loaded FIPS 202 SHAKE(\"abc\").");
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void Compute()
+    {
+        try
+        {
+            ErrorText = "";
+            var len = int.Parse(OutputLength);
+            if (IsKmac)
+            {
+                using var key = ResolveKey();
+                var alg = AlgorithmChoice == "KMAC256" ? KmacAlgorithm.Kmac256 : KmacAlgorithm.Kmac128;
+                var custom = string.IsNullOrEmpty(Customization) ? ReadOnlySpan<byte>.Empty : Encoding.UTF8.GetBytes(Customization);
+                DigestHex = HashingHelper.KmacString(InputText ?? "", key, alg, len, HashingTextFormat.HexLower, custom);
+                _status($"{HashingHelper.KmacName(alg)} complete.");
+            }
+            else
+            {
+                var alg = AlgorithmChoice == "SHAKE256" ? ShakeAlgorithm.Shake256 : ShakeAlgorithm.Shake128;
+                DigestHex = HashingHelper.ShakeString(InputText ?? "", alg, len);
+                _status($"{HashingHelper.ShakeName(alg)} complete.");
+            }
+            VerifyCaption = "";
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void Verify()
+    {
+        try
+        {
+            ErrorText = "";
+            var len = int.Parse(OutputLength);
+            bool ok;
+            if (IsKmac)
+            {
+                using var key = ResolveKey();
+                var alg = AlgorithmChoice == "KMAC256" ? KmacAlgorithm.Kmac256 : KmacAlgorithm.Kmac128;
+                var custom = string.IsNullOrEmpty(Customization) ? ReadOnlySpan<byte>.Empty : Encoding.UTF8.GetBytes(Customization);
+                ok = HashingHelper.VerifyKmacString(InputText ?? "", key, DigestHex, alg, HashingTextFormat.HexLower, len, custom);
+            }
+            else
+            {
+                var alg = AlgorithmChoice == "SHAKE256" ? ShakeAlgorithm.Shake256 : ShakeAlgorithm.Shake128;
+                ok = HashingHelper.VerifyShakeString(InputText ?? "", DigestHex, alg, HashingTextFormat.HexLower, len);
+            }
+            VerifyCaption = ok ? "Match." : "No match.";
         }
         catch (Exception ex)
         {

@@ -166,6 +166,125 @@ public sealed class HashingSessionTests
     }
 
     [Fact]
+    public void Hmac_sha3_rfc4231_style_when_os_supports_it()
+    {
+        if (!HashingHelper.IsHmacSupported(HmacAlgorithm.Sha3_256))
+            return;
+
+        var key = HmacKey.FromBytes(Enumerable.Repeat((byte)0x0b, 20).ToArray());
+        Assert.Equal(
+            "ba85192310dffa96e2a3a40e69774351140bb7185e1202cdcc917589f95e16bb",
+            HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha3_256));
+        Assert.Equal(
+            "68d2dcf7fd4ddd0a2240c8a437305f61fb7334cfb5d0226e1bc27dc10a2e723a20d370b47743130e26ac7e3d532886bd",
+            HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha3_384));
+        Assert.Equal(
+            "eb3fbd4b2eaab8f5c504bd3a41465aacec15770a7cabac531e482f860b5ec7ba47ccb2c6f2afce8f88d22b6dc61380f23a668fd3888bb80537c0a0b86407689e",
+            HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha3_512));
+        var sha256 = HashingHelper.HmacString("Hi There", key);
+        Assert.NotEqual(sha256, HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha3_256));
+        Assert.Equal(32, HashingHelper.HmacLength(HmacAlgorithm.Sha3_256));
+        Assert.Equal(48, HashingHelper.HmacLength(HmacAlgorithm.Sha3_384));
+        Assert.Equal(64, HashingHelper.HmacLength(HmacAlgorithm.Sha3_512));
+        Assert.True(HashingHelper.VerifyHmacString(
+            "Hi There",
+            key,
+            "ba85192310dffa96e2a3a40e69774351140bb7185e1202cdcc917589f95e16bb",
+            HmacAlgorithm.Sha3_256));
+    }
+
+    [Fact]
+    public void Shake_fips202_abc_when_os_supports_it()
+    {
+        if (!HashingHelper.IsShakeSupported)
+            return;
+
+        Assert.Equal(
+            "5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8",
+            HashingHelper.Shake128("abc"));
+        Assert.Equal(
+            "483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4",
+            HashingHelper.Shake256("abc"));
+        Assert.Equal(32, HashingHelper.ShakeDefaultLength(ShakeAlgorithm.Shake128));
+        Assert.Equal(64, HashingHelper.ShakeDefaultLength(ShakeAlgorithm.Shake256));
+        Assert.NotEqual(HashingHelper.HashString("abc"), HashingHelper.Shake128("abc"));
+        Assert.True(HashingHelper.VerifyShakeString("abc", HashingHelper.Shake128("abc")));
+        Assert.False(HashingHelper.VerifyShakeString("abd", HashingHelper.Shake128("abc")));
+        Assert.Equal(64, HashingHelper.ShakeString("abc", ShakeAlgorithm.Shake128, 32).Length);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            HashingHelper.ShakeString("abc", ShakeAlgorithm.Shake128, 0));
+    }
+
+    [Fact]
+    public void Kmac_nist_sp800185_sample1_when_os_supports_it()
+    {
+        if (!HashingHelper.IsKmacSupported)
+            return;
+
+        var keyBytes = Enumerable.Range(0x40, 32).Select(i => (byte)i).ToArray();
+        using var key = HmacKey.FromBytes(keyBytes);
+        ReadOnlySpan<byte> msg = [0x00, 0x01, 0x02, 0x03];
+        Assert.Equal(
+            "e5780b0d3ea6f7d3a429c5706aa43a00fadbd7d49628839e3187243f456ee14e",
+            HashingHelper.KmacBytes(msg, key, KmacAlgorithm.Kmac128));
+        Assert.Equal(
+            "2ebd1622de2de44174e3477206060d7f64489a639b7545649132317609fa214f4c8ac90630fb4c757fba074b15186fe452ae71b6a1e443bf54059e090c11ae20",
+            HashingHelper.KmacBytes(msg, key, KmacAlgorithm.Kmac256));
+        var tagged = Encoding.UTF8.GetBytes("My Tagged Application");
+        Assert.Equal(
+            "3b1fba963cd8b0b59e8c1a6d71888b7143651af8ba0a7070c0979e2811324aa5",
+            HashingHelper.KmacBytes(msg, key, KmacAlgorithm.Kmac128, 32, HashingTextFormat.HexLower, tagged));
+        var hmac = HashingHelper.HmacBytes(msg, key);
+        Assert.NotEqual(hmac, HashingHelper.KmacBytes(msg, key));
+        Assert.True(HashingHelper.VerifyKmacString("Hi There", key, HashingHelper.KmacString("Hi There", key)));
+        Assert.Equal(32, HashingHelper.KmacDefaultLength(KmacAlgorithm.Kmac128));
+        Assert.Equal(64, HashingHelper.KmacDefaultLength(KmacAlgorithm.Kmac256));
+    }
+
+    [Fact]
+    public void Kmac_and_shake_file_over_64kib_matches_in_memory()
+    {
+        if (!HashingHelper.IsKmacSupported && !HashingHelper.IsShakeSupported)
+            return;
+
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHashTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "nathan.bin");
+        var payload = new byte[200_000];
+        RandomNumberGenerator.Fill(payload);
+        File.WriteAllBytes(path, payload);
+        using var key = HmacKey.Generate();
+        try
+        {
+            if (HashingHelper.IsKmacSupported)
+            {
+                foreach (var alg in new[] { KmacAlgorithm.Kmac128, KmacAlgorithm.Kmac256 })
+                {
+                    var fileHex = HashingHelper.KmacFile(path, key, alg);
+                    var memHex = HashingHelper.KmacBytes(payload, key, alg);
+                    Assert.Equal(memHex, fileHex);
+                    Assert.True(HashingHelper.VerifyKmacFile(path, key, fileHex, alg));
+                }
+            }
+
+            if (HashingHelper.IsShakeSupported)
+            {
+                foreach (var alg in new[] { ShakeAlgorithm.Shake128, ShakeAlgorithm.Shake256 })
+                {
+                    var fileHex = HashingHelper.ShakeFile(path, alg);
+                    var memHex = HashingHelper.ShakeBytes(payload, alg);
+                    Assert.Equal(memHex, fileHex);
+                    Assert.True(HashingHelper.VerifyShakeFile(path, fileHex, alg));
+                }
+            }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Hmac_file_over_64kib_matches_in_memory()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHashTests", Guid.NewGuid().ToString("N"));
@@ -183,6 +302,17 @@ public sealed class HashingSessionTests
                 var memHex = HashingHelper.HmacBytes(payload, key, alg);
                 Assert.Equal(memHex, fileHex);
                 Assert.True(HashingHelper.VerifyHmacFile(path, key, fileHex, alg));
+            }
+
+            if (HashingHelper.IsHmacSupported(HmacAlgorithm.Sha3_256))
+            {
+                foreach (var alg in new[] { HmacAlgorithm.Sha3_256, HmacAlgorithm.Sha3_384, HmacAlgorithm.Sha3_512 })
+                {
+                    var fileHex = HashingHelper.HmacFile(path, key, alg);
+                    var memHex = HashingHelper.HmacBytes(payload, key, alg);
+                    Assert.Equal(memHex, fileHex);
+                    Assert.True(HashingHelper.VerifyHmacFile(path, key, fileHex, alg));
+                }
             }
         }
         finally

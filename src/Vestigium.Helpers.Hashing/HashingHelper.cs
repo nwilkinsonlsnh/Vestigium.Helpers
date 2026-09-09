@@ -8,10 +8,10 @@ using Vestigium.Helpers;
 namespace Vestigium.Helpers.Hashing;
 
 /// <summary>
-/// String and file hashing. SHA-256 default, SHA-384/512 and SHA-3 opt-in, HMAC-SHA256/384/512 keyed,
-/// Argon2id PHC password verifiers, CRC-32 / CRC-64 / xxHash checksums. Not encryption.
+/// String and file hashing. SHA-256 default, SHA-384/512 and SHA-3 opt-in, HMAC-SHA256/384/512 and HMAC-SHA3 keyed,
+/// KMAC128/256, SHAKE128/256 XOF, Argon2id PHC password verifiers, CRC-32 / CRC-64 / xxHash checksums. Not encryption.
 /// </summary>
-public static class HashingHelper
+public static partial class HashingHelper
 {
     public const int StreamBufferSize = 64 * 1024;
 
@@ -34,6 +34,24 @@ public static class HashingHelper
             throw new CryptographicException("HMAC-SHA384 probe vector failed.");
         if (ChecksumCrc32("123456789") != "cbf43926")
             throw new CryptographicException("CRC-32 probe vector failed.");
+        if (HMACSHA3_256.IsSupported &&
+            HmacString("Hi There", rfcKey, HmacAlgorithm.Sha3_256) !=
+            "ba85192310dffa96e2a3a40e69774351140bb7185e1202cdcc917589f95e16bb")
+            throw new CryptographicException("HMAC-SHA3-256 probe vector failed.");
+        if (System.Security.Cryptography.Shake128.IsSupported &&
+            Shake128("abc") != "5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8")
+            throw new CryptographicException("SHAKE128 probe vector failed.");
+        if (System.Security.Cryptography.Kmac128.IsSupported)
+        {
+            Span<byte> nistKey = stackalloc byte[32];
+            for (var i = 0; i < nistKey.Length; i++)
+                nistKey[i] = (byte)(0x40 + i);
+            using var nist = HmacKey.FromBytes(nistKey);
+            ReadOnlySpan<byte> nistMsg = [0x00, 0x01, 0x02, 0x03];
+            if (KmacBytes(nistMsg, nist, KmacAlgorithm.Kmac128) !=
+                "e5780b0d3ea6f7d3a429c5706aa43a00fadbd7d49628839e3187243f456ee14e")
+                throw new CryptographicException("KMAC128 probe vector failed.");
+        }
         HashingLog.Success("Probe", "Hashing probe complete. Identity=" + Identity);
         return Identity;
     }
@@ -387,15 +405,27 @@ public static class HashingHelper
         HmacAlgorithm.Sha256 => "HMAC-SHA256",
         HmacAlgorithm.Sha384 => "HMAC-SHA384",
         HmacAlgorithm.Sha512 => "HMAC-SHA512",
+        HmacAlgorithm.Sha3_256 => "HMAC-SHA3-256",
+        HmacAlgorithm.Sha3_384 => "HMAC-SHA3-384",
+        HmacAlgorithm.Sha3_512 => "HMAC-SHA3-512",
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
     };
 
     public static int HmacLength(HmacAlgorithm algorithm) => algorithm switch
     {
-        HmacAlgorithm.Sha256 => 32,
-        HmacAlgorithm.Sha384 => 48,
-        HmacAlgorithm.Sha512 => 64,
+        HmacAlgorithm.Sha256 or HmacAlgorithm.Sha3_256 => 32,
+        HmacAlgorithm.Sha384 or HmacAlgorithm.Sha3_384 => 48,
+        HmacAlgorithm.Sha512 or HmacAlgorithm.Sha3_512 => 64,
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
+    public static bool IsHmacSupported(HmacAlgorithm algorithm) => algorithm switch
+    {
+        HmacAlgorithm.Sha256 or HmacAlgorithm.Sha384 or HmacAlgorithm.Sha512 => true,
+        HmacAlgorithm.Sha3_256 => HMACSHA3_256.IsSupported,
+        HmacAlgorithm.Sha3_384 => HMACSHA3_384.IsSupported,
+        HmacAlgorithm.Sha3_512 => HMACSHA3_512.IsSupported,
+        _ => false,
     };
 
     public static string HmacString(
@@ -451,11 +481,15 @@ public static class HashingHelper
     public static byte[] HmacData(ReadOnlySpan<byte> data, HmacKey key, HmacAlgorithm algorithm = HmacAlgorithm.Sha256)
     {
         ArgumentNullException.ThrowIfNull(key);
+        EnsureHmacSupported(algorithm);
         return algorithm switch
         {
             HmacAlgorithm.Sha256 => HMACSHA256.HashData(key.Span, data),
             HmacAlgorithm.Sha384 => HMACSHA384.HashData(key.Span, data),
             HmacAlgorithm.Sha512 => HMACSHA512.HashData(key.Span, data),
+            HmacAlgorithm.Sha3_256 => HMACSHA3_256.HashData(key.Span, data),
+            HmacAlgorithm.Sha3_384 => HMACSHA3_384.HashData(key.Span, data),
+            HmacAlgorithm.Sha3_512 => HMACSHA3_512.HashData(key.Span, data),
             _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
         };
     }
@@ -494,6 +528,7 @@ public static class HashingHelper
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(key);
+        EnsureHmacSupported(algorithm);
         var visible = VisiblePath(pathName);
         using var scope = HashingLog.Begin("HmacFile", $"alg={HmacName(algorithm)} path={visible} keyBytes={key.Length}");
         HashingLog.Pending("HmacFile", $"alg={HmacName(algorithm)} path={visible} keyBytes={key.Length}");
@@ -623,6 +658,9 @@ public static class HashingHelper
         HmacAlgorithm.Sha256 => HashAlgorithmName.SHA256,
         HmacAlgorithm.Sha384 => HashAlgorithmName.SHA384,
         HmacAlgorithm.Sha512 => HashAlgorithmName.SHA512,
+        HmacAlgorithm.Sha3_256 => HashAlgorithmName.SHA3_256,
+        HmacAlgorithm.Sha3_384 => HashAlgorithmName.SHA3_384,
+        HmacAlgorithm.Sha3_512 => HashAlgorithmName.SHA3_512,
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
     };
 
@@ -784,6 +822,12 @@ public static class HashingHelper
     {
         if (!IsSupported(algorithm))
             throw new NotSupportedException($"{AlgorithmName(algorithm)} is not available on this OS.");
+    }
+
+    private static void EnsureHmacSupported(HmacAlgorithm algorithm)
+    {
+        if (!IsHmacSupported(algorithm))
+            throw new NotSupportedException($"{HmacName(algorithm)} is not available on this OS.");
     }
 
     private static string VisiblePath(string? path)

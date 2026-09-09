@@ -3,10 +3,10 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-HASH  ·  SRS v1.2"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-HASH  ·  SRS v1.3"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Digests, HMAC-SHA256 / SHA-384 / SHA-512, Argon2id password verifiers, and non-cryptographic checksums. SHA-256 is the default and prints lowercase hex. HMAC-SHA256 is the default MAC. Convert hex to Base64 when a host needs JSON. CRC-32 / CRC-64 / xxHash live on Checksum*, never Hash(). This is not Encryption: no Seal, no envelope, no trailer fill. HMAC lives here — there is no Helpers.Hmac project."/>
+                   Text="Digests, HMAC-SHA256 / SHA-384 / SHA-512 / HMAC-SHA3, KMAC, SHAKE XOF, Argon2id password verifiers, and non-cryptographic checksums. SHA-256 is the default and prints lowercase hex. HMAC-SHA256 is the default MAC. Convert hex to Base64 when a host needs JSON. CRC-32 / CRC-64 / xxHash live on Checksum*, never Hash(). KMAC is not HMAC. SHAKE is not Hash(). This is not Encryption."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
@@ -18,8 +18,8 @@
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
               <TextBlock Style="{StaticResource Caption}" Text="KEYED"/>
-              <TextBlock FontWeight="SemiBold" Text="HMAC-SHA256 / 384 / 512"/>
-              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Default SHA-256. Min 16-byte key. Generate default 32. RFC 4231."/>
+              <TextBlock FontWeight="SemiBold" Text="HMAC-SHA2 / SHA-3"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Default SHA-256. SHA-384 / 512 / SHA-3 opt-in. Min 16-byte key. RFC 4231."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">
@@ -34,6 +34,13 @@
               <TextBlock Style="{StaticResource Caption}" Text="CHECKSUM"/>
               <TextBlock FontWeight="SemiBold" Text="CRC-32 / CRC-64 / xxHash"/>
               <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Catalogue hex. Seed 0. Integrity only — never authenticate with these."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="SHA-3 MAC / XOF"/>
+              <TextBlock FontWeight="SemiBold" Text="KMAC / SHAKE"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="KMAC128/256 NIST SP 800-185. SHAKE128/256 FIPS 202. OS-gated. Not Hash()."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">
@@ -128,9 +135,9 @@
   <DataTemplate x:Key="HmacTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="HMAC-SHA256 / SHA-384 / SHA-512"/>
+        <TextBlock Style="{StaticResource Id}" Text="HMAC-SHA256 / SHA-384 / SHA-512 / SHA-3"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="HMAC-SHA256 is the default (32 bytes). SHA-384 is 48, SHA-512 is 64. Generate a random key (16 / 32 / 64 / 128 bytes) or type a UTF-8 secret of at least 16 bytes. FromBase64 decodes a generated key; FromString would hash the letters. RFC 4231 case 1 is a 20-byte 0x0b key and the message Hi There."/>
+                   Text="HMAC-SHA256 is the default (32 bytes). SHA-384 is 48, SHA-512 is 64. HMAC-SHA3 is opt-in and OS-gated. Generate a random key (16 / 32 / 64 / 128 bytes) or type a UTF-8 secret of at least 16 bytes. RFC 4231 case 1 is a 20-byte 0x0b key and the message Hi There — same key/message for SHA-3."/>
         <TextBlock Style="{StaticResource Caption}" Text="ALGORITHM"/>
         <ComboBox ItemsSource="{Binding AlgorithmChoices}" SelectedItem="{Binding AlgorithmChoice}"/>
         <TextBlock Style="{StaticResource Caption}" Text="KEY SIZE"/>
@@ -151,6 +158,42 @@
         </WrapPanel>
         <TextBlock Style="{StaticResource Caption}" Text="MAC (hex lower)"/>
         <TextBox IsReadOnly="True" Text="{Binding MacHex}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding VerifyCaption}"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="KmacShakeTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="KMAC128 / KMAC256  ·  SHAKE128 / SHAKE256"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="KMAC is NIST SP 800-185, not HMAC. SHAKE is FIPS 202 XOF, not Hash(). Same HmacKey (min 16) for KMAC. Default output 32 bytes (KMAC128 / SHAKE128) or 64 (KMAC256 / SHAKE256). Customization is optional UTF-8 for KMAC. NIST sample 1 uses 4 raw bytes — not the text box."/>
+        <TextBlock Style="{StaticResource Caption}" Text="ALGORITHM"/>
+        <ComboBox ItemsSource="{Binding AlgorithmChoices}" SelectedItem="{Binding AlgorithmChoice}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="OUTPUT BYTES"/>
+        <TextBox Text="{Binding OutputLength, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="KEY SIZE (KMAC)"/>
+        <ComboBox ItemsSource="{Binding SizeChoices}" SelectedItem="{Binding SizeChoice}"/>
+        <WrapPanel>
+          <Button Content="Generate key" Command="{Binding GenerateCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="NIST / FIPS vector" Command="{Binding LoadNistCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="GENERATED KEY (Base64)"/>
+        <TextBox IsReadOnly="True" Text="{Binding KeyBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock Style="{StaticResource Caption}" Text="OR TYPED SECRET (UTF-8, ≥ 16)"/>
+        <TextBox Text="{Binding TypedSecret, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="CUSTOMIZATION (KMAC S, optional)"/>
+        <TextBox Text="{Binding Customization, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="MESSAGE (UTF-8)"/>
+        <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" Height="72" AcceptsReturn="True" TextWrapping="Wrap"/>
+        <WrapPanel>
+          <Button Content="Compute" Command="{Binding ComputeCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Verify" Command="{Binding VerifyCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="OUTPUT (hex lower)"/>
+        <TextBox IsReadOnly="True" Text="{Binding DigestHex}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"/>
         <TextBlock Text="{Binding VerifyCaption}"/>
         <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
       </StackPanel>
