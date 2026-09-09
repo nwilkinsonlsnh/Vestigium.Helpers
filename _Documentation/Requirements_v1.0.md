@@ -22,7 +22,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-CORE | Vestigium.Helpers | net10.0 | Guards, `HelperLog`, `HelperWpfHost` |
 | HLP-XLS | Vestigium.Helpers.ClosedXml | net10.0 | Wraps ClosedXML 0.105.1 |
 | HLP-ENC | Vestigium.Helpers.Encryption | net10.0 | AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC (v1.1), RSA-OAEP wrap (v1.2), Argon2id; no custom primitives |
-| HLP-HASH | Vestigium.Helpers.Hashing | net10.0 | Skeleton. Later fills Encryption trailer sha256 slot |
+| HLP-HASH | Vestigium.Helpers.Hashing | net10.0 | SHA-256 default, SHA-384/512, SHA-3, HMAC-SHA256, Argon2id PHC. Hex default + Base64 converters. |
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
 | HLP-JSON | Vestigium.Helpers.Json | net10.0 | System.Text.Json |
 | HLP-XML | Vestigium.Helpers.Xml | net10.0 | |
@@ -35,7 +35,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-CSV | Vestigium.Helpers.Csv | net10.0 | RFC 4180 read/write, settable delimiter; not ClosedXml |
 | HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
 
-Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, Charts, Csv, and Encryption are shipped galleries with accepted SRS + design companion. The rest use the shared skeleton in `Vestigium.Helpers.Gallery` until their own lossless SRS is accepted. **Hashing is next.**
+Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, Charts, Csv, Encryption, and Hashing are shipped galleries with accepted SRS + design companion. The rest use the shared skeleton in `Vestigium.Helpers.Gallery` until their own lossless SRS is accepted.
 
 ## 4. Logging
 
@@ -57,7 +57,7 @@ Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics,
 
 ## 6. Open items
 
-- **Hashing lossless SRS** (next library). String and file SHA-256. Fills Encryption trailer reserved `sha256` slot.
+- **Hashing lossless SRS** — accepted and shipped v1.0 (SHA-2, SHA-3, HMAC-SHA256, Argon2id PHC). Trailer fill remains an Encryption minor revision.
 - Whether Services targets Service Control Manager only, or also `IHostedService`.
 
-Accepted with a future roadmap: ClosedXml (SRS v1.1), Analytics (SRS v1.5), Charts (SRS v1.1), Csv (SRS v1.0), Encryption (SRS v1.0, v1.1 CBC + v1.2 RSA wrap shipped).
+Accepted with a future roadmap: ClosedXml (SRS v1.1), Analytics (SRS v1.5), Charts (SRS v1.1), Csv (SRS v1.0), Encryption (SRS v1.0, v1.1 CBC + v1.2 RSA wrap shipped), Hashing (SRS v1.0).

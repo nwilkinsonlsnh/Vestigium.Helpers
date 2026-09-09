@@ -1,0 +1,41 @@
+<Window x:Class="Vestigium.Helpers.Hashing.Demo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vestigium.Helpers.Hashing gallery"
+        Height="820" Width="1180"
+        MinHeight="600" MinWidth="880"
+        Background="#0B1A30" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20,16,20,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <DockPanel LastChildFill="False" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Hashing gallery"/>
+        <TextBlock Opacity="0.7" Text="SHA-256 default · SHA-2 / SHA-3 · HMAC-SHA256 · Argon2id PHC · hex ↔ Base64"/>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="APPID Hashing · not Encryption" HorizontalAlignment="Right"/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Grid.Row="1">
+      <TabItem Header="Overview"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource OverviewTab}"/></TabItem>
+      <TabItem Header="SHA-256"><ContentControl Content="{Binding Sha256}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
+      <TabItem Header="SHA-384 / 512"><ContentControl Content="{Binding Sha2}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
+      <TabItem Header="SHA-3"><ContentControl Content="{Binding Sha3}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
+      <TabItem Header="HMAC-SHA256"><ContentControl Content="{Binding Hmac}" ContentTemplate="{StaticResource HmacTab}"/></TabItem>
+      <TabItem Header="Password"><ContentControl Content="{Binding Password}" ContentTemplate="{StaticResource PasswordTab}"/></TabItem>
+      <TabItem Header="MD5 / SHA-1"><ContentControl Content="{Binding Interop}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
+      <TabItem Header="Convert"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ConvertTab}"/></TabItem>
+      <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>
+    </TabControl>
+    <DockPanel Grid.Row="2" Margin="0,10,0,0">
+      <TextBlock Opacity="0.55" Text="{Binding StatusText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+    </DockPanel>
+  </Grid>
+</Window>

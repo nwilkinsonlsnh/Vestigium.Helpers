@@ -1,0 +1,165 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-HASH  ·  SRS v1.0"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Digests, HMAC-SHA256, and Argon2id password verifiers. SHA-256 is the default and prints lowercase hex. Convert hex to Base64 when a host needs JSON. This is not Encryption: no Seal, no envelope, no trailer fill this milestone. HMAC lives here — there is no Helpers.Hmac project."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="DEFAULT"/>
+              <TextBlock FontWeight="SemiBold" Text="SHA-256 · hex lower"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="FIPS vectors. Empty input is legal. File APIs stream 64 KiB."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="KEYED"/>
+              <TextBlock FontWeight="SemiBold" Text="HMAC-SHA256"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Min 16-byte key. Generate default 32. Enum 16 / 32 / 64 / 128."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="PASSWORD"/>
+              <TextBlock FontWeight="SemiBold" Text="Argon2id PHC"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="19 MiB / t=2 / p=1. Not Encryption’s 64 MiB content-key KDF."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="CONVERT"/>
+              <TextBlock FontWeight="SemiBold" Text="Hex ↔ Base64"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Default stays hex. Converters move a digest into JSON without changing the hash."/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}" Style="{StaticResource PrimaryButton}"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="HashTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="{Binding Title}"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8" Text="{Binding Blurb}"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding Warning}" TextWrapping="Wrap"/>
+        <ComboBox ItemsSource="{Binding AlgorithmChoices}" SelectedItem="{Binding AlgorithmChoice}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="STRING"/>
+        <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                 Height="72" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        <WrapPanel>
+          <Button Content="HashString" Command="{Binding HashStringCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="VerifyString" Command="{Binding VerifyStringCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="DIGEST (hex lower)"/>
+        <TextBox IsReadOnly="True" Text="{Binding DigestHex}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap" Height="56" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock Style="{StaticResource Caption}" Text="BASE64"/>
+        <TextBox IsReadOnly="True" Text="{Binding DigestBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding VerifyCaption}" FontFamily="Cascadia Mono, Consolas"/>
+
+        <TextBlock Style="{StaticResource Caption}" Text="FILE"/>
+        <TextBlock Opacity="0.85" Text="{Binding SourceLine}" TextWrapping="Wrap"/>
+        <WrapPanel>
+          <Button Content="Choose file…" Command="{Binding BrowseFileCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Use nathan.txt" Command="{Binding UseNathanSampleCommand}"/>
+          <Button Content="HashFile" Command="{Binding HashFileCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.85" Text="{Binding FileDigestLine}" TextWrapping="Wrap"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="HmacTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="HMAC-SHA256"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Keyed SHA-256. Generate a random key (16 / 32 / 64 / 128 bytes) or type a UTF-8 secret of at least 16 bytes. FromBase64 decodes a generated key; FromString would hash the letters — the gallery uses FromBase64 for generated keys."/>
+        <TextBlock Style="{StaticResource Caption}" Text="KEY SIZE"/>
+        <ComboBox ItemsSource="{Binding SizeChoices}" SelectedItem="{Binding SizeChoice}"/>
+        <WrapPanel>
+          <Button Content="Generate key" Command="{Binding GenerateCommand}" Style="{StaticResource PrimaryButton}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="GENERATED KEY (Base64)"/>
+        <TextBox IsReadOnly="True" Text="{Binding KeyBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock Style="{StaticResource Caption}" Text="OR TYPED SECRET (UTF-8, ≥ 16)"/>
+        <TextBox Text="{Binding TypedSecret, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="MESSAGE"/>
+        <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" Height="72" AcceptsReturn="True" TextWrapping="Wrap"/>
+        <WrapPanel>
+          <Button Content="HmacString" Command="{Binding HmacStringCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="VerifyHmacString" Command="{Binding VerifyCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="MAC (hex lower)"/>
+        <TextBox IsReadOnly="True" Text="{Binding MacHex}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding VerifyCaption}"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="PasswordTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="ARGON2ID PHC  ·  NOT THE ENCRYPTION KDF"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Stores a verifier string, not a 32-byte content key. Cost is 19 MiB / t=2 / p=1 (OWASP interactive). Encryption .argon files stay 64 MiB / t=3 / p=1. This tab uses a throwaway password. JSONL never contains the password or the PHC."/>
+        <TextBlock Style="{StaticResource Caption}" Text="PASSWORD (8–128)"/>
+        <TextBox Text="{Binding PasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+        <WrapPanel>
+          <Button Content="HashPassword" Command="{Binding HashCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="VerifyPassword" Command="{Binding VerifyCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="STORED PHC"/>
+        <TextBox IsReadOnly="True" Text="{Binding StoredPhc}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap" Height="72" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock FontWeight="SemiBold" Text="{Binding VerifyCaption}"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ConvertTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="HEX ↔ BASE64"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Default HashString is lowercase hex. Use these converters when a host needs Base64 (JSON) or Base64 URL. The digest bytes do not change."/>
+        <TextBlock Style="{StaticResource Caption}" Text="HEX"/>
+        <TextBox Text="{Binding HexText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Cascadia Mono, Consolas"
+                 TextWrapping="Wrap" Height="56"/>
+        <WrapPanel>
+          <Button Content="Hex → Base64" Command="{Binding HexToBase64Command}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Hex → Base64 URL" Command="{Binding HexToBase64UrlCommand}"/>
+          <Button Content="Use SHA-256 of abc" Command="{Binding LoadAbcCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="BASE64"/>
+        <TextBox Text="{Binding Base64Text, UpdateSourceTrigger=PropertyChanged}" FontFamily="Cascadia Mono, Consolas"
+                 TextWrapping="Wrap" Height="56"/>
+        <WrapPanel>
+          <Button Content="Base64 → Hex" Command="{Binding Base64ToHexCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Base64 URL → Hex" Command="{Binding Base64UrlToHexCommand}"/>
+        </WrapPanel>
+        <TextBlock FontWeight="SemiBold" Text="{Binding ConvertCaption}"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ConvertError}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+</ResourceDictionary>

@@ -25,7 +25,7 @@ It records:
 - validation APIs so a host can say “this is a Vestigium envelope” and print trailer facts without decrypting frames
 - HelperLog only; the library never calls `VestigiumLogger.Initialize`
 - original file name (`nathan.txt`) encrypted in the trailer; visible disk name is `{stem}.aes` or `{stem}.argon`
-- hashing and keyed MAC **out of this library** — siblings `Vestigium.Helpers.Hashing` and (later) `Vestigium.Helpers.Hmac` fill reserved trailer slots; they are not implemented here
+- hashing and keyed MAC **out of this library** — sibling `Vestigium.Helpers.Hashing` owns SHA-2/SHA-3, HMAC-SHA256, and Argon2id PHC password verifiers. Trailer `sha256` / `hmacSha256` slots stay zeros until an Encryption minor revision fills them. There is **no** `Vestigium.Helpers.Hmac` project.
 - **AES-256-CBC + HMAC-SHA256** ships in v1.1 as framed Encrypt-then-MAC, not the default
 - **RSA-OAEP-SHA256 wrap** ships in v1.2. It is **not** a payload algorithm. Payload `alg` stays 1 / 2 / 3. RSA wraps the 32-byte content key only; a wrap **list** (1..8) lives in the trailer after the hidden name and before the structural `mac`. Suite minor **2** (Peek `"1.2"`) when the wrap list is present. GCM/ChaCha without wraps stay `"1.0"`; CBC without wraps stays `"1.1"`. Types live in this project (`EncryptionRsaKey`, `EncryptionKeyRing`). There is no separate KeyRing library. See §4.6, §4.7, §5.3, §6.2, and §12
 
@@ -69,7 +69,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 | 3 | String and file | Same envelope. String is one frame (or zero). File is N frames. |
 | 4 | Large files | Streamed framed AEAD. Never `File.ReadAllBytes` the plaintext or ciphertext. |
 | 5 | Engine | BCL (`AesGcm`, `ChaCha20Poly1305`, `RSA` OAEP SHA-256, `RandomNumberGenerator`). Argon2id: BCL if present on net10; otherwise one approved NuGet (`Konscious.Security.Cryptography.Argon2`). No home-grown S-boxes. |
-| 6 | Hashing / HMAC libs | **Out of this project.** `Vestigium.Helpers.Hashing` (skeleton) and future `Vestigium.Helpers.Hmac` own those APIs. Trailer reserves 32+32 zero bytes for them. |
+| 6 | Hashing / HMAC libs | **Out of this project.** `Vestigium.Helpers.Hashing` owns digests, HMAC-SHA256, and password PHC. Trailer reserves 32+32 zero bytes. No `Vestigium.Helpers.Hmac` project. |
 | 7 | Logging | `HelperLog` only. APPID = host (demo: `Encryption`). **ALCOA+**: attributable (APPID + 8-hex key prefix + override actor), contemporaneous (logger timestamp), complete (Pending then Success/Failed; Warning on Disable/Expire/Refuse/Override), never original secret material. Never log plaintext, keys, passphrases, salts-as-secrets, Base64 ciphertext, the hidden original name, PKCS8, SPKI, company / subject / issuedTo. Log alg, bytes in/out, **visible** path, frame count, wrap **count**. Do not attach `exception` even at Debug — Vestigium.Logging `EXCEPTION` is `exception?.ToString()`. |
 | 8 | Initialize | Library never calls `VestigiumLogger.Initialize`. |
 | 9 | Export folder | Encrypted **files** the demo writes go to `%DESKTOP%\Vestigium\Exports\{APPID}\`. Tests pass a temp path. |
@@ -78,7 +78,7 @@ This is **not** TLS, BitLocker, DPAPI, a key vault, or full-disk encryption. It 
 | 12 | Trailer | Every sealed blob ends in a `VESTIGIUM TRL` footer. Open may start from EOF. Header `frameCount = 0` means “trailer is authoritative.” Wrap list (when present) grows the body; `bodyLength` in the footer is the source of truth. |
 | 13 | Suite identity | ASCII magics `VESTIGIUM HDR` and `VESTIGIUM TRL`. Suite and trailer versions are **numeric fields**, not text inside the magic. |
 | 14 | Validation | `IsVestigiumFile` / `PeekFile` / `ValidateFile` inspect header+trailer without decrypting frames. Structural MAC check needs a secret **or** a matching RSA private / ring. Peek does not. Peek may list wrap **thumbprints**. Peek never returns company name or subject. |
-| 15 | Reserved integrity slots | Trailer always contains 32-byte `sha256` and 32-byte `hmacSha256` fields. v1.0 writes zeros. Later Hashing / Hmac libraries fill them. Do not compute them in Encryption. |
+| 15 | Reserved integrity slots | Trailer always contains 32-byte `sha256` and 32-byte `hmacSha256` fields. v1.0 writes zeros. Hashing produces digests; an Encryption minor revision fills the slots. Do not compute them in Encryption v1.2. |
 | 16 | Secure delete | After a successful `SealFile`, the caller may shred the unencrypted source. **3-pass** = 3 random overwrites + 1 zero pass, then delete. **7-pass** = 7 random + 1 zero, then delete. Default is **Keep** (do not touch the plaintext file). Stream `SealFile` does not shred — there is no path. Flash / SSD wear-leveling is best-effort; the passes still run. |
 | 17 | Isolation | Isolation is **per public key** (thumbprint of SubjectPublicKeyInfo), not a friendly name. Company X Application X and Company X Application Y are two moduli. A file sealed to AppX cannot be opened by AppY. Trailer stores **thumbprints only**. |
 | 18 | Key ring | Two lists in one JSON format `VESTIGIUM-KEYRING` 1.1: **pairs** (private+public, receive / Open) and **contacts** (public only, send / Seal). Many keys per `issuedTo`. Default Issue is issue-and-forget (public contact kept; private returned as a slip and not stored). `escrow: true` is explicit. Types live beside Encryption. Format minor 1 adds status, expiry, and status-changed. |
@@ -599,9 +599,9 @@ Three different integrity ideas share the tail. Keep them apart:
 |---|---|---|---|
 | `mac` (last 32 of body) | Encryption | Written. HKDF+HMAC over the trailer prefix including wraps. Proves preamble + counts + wrap list. | Stays. |
 | `sha256` | `Vestigium.Helpers.Hashing` | 32 zero bytes. Flag bit 3 clear. | SHA-256 of **plaintext** (streamed while Sealing). Flag bit 3 set. |
-| `hmacSha256` | `Vestigium.Helpers.Hmac` | 32 zero bytes. Flag bit 4 clear. | HMAC-SHA256 over ciphertext frames or over the header+frames, using a caller MAC key distinct from the content key. Flag bit 4 set. |
+| `hmacSha256` | `Vestigium.Helpers.Hashing` HMAC | 32 zero bytes. Flag bit 4 clear. | HMAC-SHA256 with a caller MAC key (coverage A/B/C stored). Flag bit 4 set. Encryption writes the slot; Hashing produces the primitive. |
 
-Do not reuse `mac` as the future Helpers.Hmac field. `mac` is how Encryption knows its own trailer was not clipped. Helpers.Hmac is a different key and a different library.
+Do not reuse `mac` as the Hashing HMAC field. `mac` is how Encryption knows its own trailer was not clipped. Hashing HMAC is a different key and a different library.
 
 Structural `mac`:
 
@@ -626,7 +626,7 @@ Wrap bytes sit **inside** the MAC input (they are before the last 32). Tampering
 - Not a plaintext filename sidecar. The original name is AEAD-encrypted.
 - Not a full path store. Name only (`nathan.txt`).
 - Not a company directory. Thumbprints only.
-- Not `Vestigium.Helpers.Hmac` and not `Vestigium.Helpers.Hashing`. Those libraries fill reserved slots when they exist.
+- Not `Vestigium.Helpers.Hashing`. That library produces digests and HMAC; Encryption fills reserved slots in a later minor revision. There is no `Vestigium.Helpers.Hmac` project.
 
 ### 6.3 Validation (no decrypt of frames)
 
@@ -993,17 +993,20 @@ xUnit, serial logger collection, temp directories only. See `EncryptionSessionTe
 
 ---
 
-## 13. Siblings: Hashing and Hmac
+## 13. Sibling: Hashing
 
-`Vestigium.Helpers.Hashing` already exists as a skeleton (Identity + Probe). `Vestigium.Helpers.Hmac` is a planned sibling, not created in this change.
+`Vestigium.Helpers.Hashing` is the digest / HMAC / password-verifier library (v1.0 shipped). There is **no** `Vestigium.Helpers.Hmac` project.
 
-- Hashing must not encrypt. Hmac must not encrypt.
+- Hashing must not encrypt.
 - Encryption must not grow `Hash*` or `Hmac*` public APIs.
-- v1.0 trailer already has a 32-byte slot for each. Both are zeros until those libraries exist and an Encryption minor revision fills them.
-- Different APPIDs (`Encryption`, `Hashing`, later `Hmac`).
-- Hashing / Hmac file APIs must stream. Same “do not `ReadAllBytes` a capture” rule.
+- v1.0 trailer already has a 32-byte slot for a plaintext SHA-256 and a 32-byte slot for a caller HMAC. Both are zeros until an Encryption minor revision fills them. Hashing produces the bytes; Encryption writes the envelope.
+- Later fill of `hmacSha256` offers coverage A (ciphertext frames), B (header+frames), C (plaintext). The mode is stored in the trailer.
+- Different APPIDs (`Encryption`, `Hashing`).
+- Hashing file APIs stream. Same “do not `ReadAllBytes` a capture” rule.
+- Hashing Argon2id PHC (19 MiB / t=2 / p=1) is a login verifier. Encryption Argon2id (64 MiB / t=3 / p=1) is the envelope KDF. They are not interchangeable.
 
 There is no `Vestigium.Helpers.KeyRing` sibling. Wrap keys live in Encryption.
+
 
 ---
 

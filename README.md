@@ -52,7 +52,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.ClosedXml` | `net10.0` | ClosedXML write-first Excel (`.xlsx`) |
 | `Vestigium.Helpers.Csv` | `net10.0` | RFC 4180 CSV / TSV (settable delimiter; not ClosedXml) |
 | `Vestigium.Helpers.Encryption` | `net10.0` | AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC (v1.1), RSA-OAEP wrap + key ring (v1.2), Argon2id. `nathan.txt` → `nathan.aes` / `nathan.argon` |
-| `Vestigium.Helpers.Hashing` | `net10.0` | String and file digests (skeleton). Fills Encryption trailer `sha256` later |
+| `Vestigium.Helpers.Hashing` | `net10.0` | SHA-256 default, SHA-384/512, SHA-3, HMAC-SHA256, Argon2id PHC. Hex default; Base64 converters. |
 | `Vestigium.Helpers.WinReg` | `net10.0-windows` | Windows Registry helpers |
 | `Vestigium.Helpers.Json` | `net10.0` | System.Text.Json helpers |
 | `Vestigium.Helpers.Xml` | `net10.0` | XML document helpers |
@@ -64,14 +64,14 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial; ChartView tests run on Windows) |
 
-Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, Charts, Csv, and Encryption are shipped; the rest are Probe + JSONL skeletons until their SRS is accepted.
+Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, Charts, Csv, Encryption, and Hashing are shipped; the rest are Probe + JSONL skeletons until their SRS is accepted.
 
 ## Open in Visual Studio
 
 1. Clone this repository **and** `Vestigium.Logging` next to it.
 2. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
 3. Restore NuGet.
-4. Set any `*.Demo` project as startup, F5. Analytics, ClosedXml, Charts, Csv, and Encryption open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
+4. Set any `*.Demo` project as startup, F5. Analytics, ClosedXml, Charts, Csv, Encryption, and Hashing open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
 5. Run `Vestigium.Helpers.Tests` for the contract.
 
 ```
@@ -80,6 +80,7 @@ dotnet run --project src/Vestigium.Helpers.Analytics.Demo
 dotnet run --project src/Vestigium.Helpers.Charts.Demo
 dotnet run --project src/Vestigium.Helpers.Csv.Demo
 dotnet run --project src/Vestigium.Helpers.Encryption.Demo
+dotnet run --project src/Vestigium.Helpers.Hashing.Demo
 dotnet test src/Vestigium.Helpers.Tests
 ```
 

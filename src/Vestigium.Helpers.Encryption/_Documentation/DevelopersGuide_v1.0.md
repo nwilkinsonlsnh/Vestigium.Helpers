@@ -9,7 +9,7 @@ Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.En
 
 ## Read first
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. AES-256-GCM default, ChaCha20-Poly1305 opt-in, AES-256-CBC+HMAC v1.1 interop, Argon2id for passphrases, RSA-OAEP-SHA256 wrap of the 32-byte content key (v1.2), `VESTIGIUM HDR` / `VESTIGIUM TRL` envelope. Hashing and Hmac are siblings; this project only reserves their trailer slots. Key-ring types live here — there is no separate KeyRing library.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. AES-256-GCM default, ChaCha20-Poly1305 opt-in, AES-256-CBC+HMAC v1.1 interop, Argon2id for passphrases, RSA-OAEP-SHA256 wrap of the 32-byte content key (v1.2), `VESTIGIUM HDR` / `VESTIGIUM TRL` envelope. Hashing (`Vestigium.Helpers.Hashing`) is the sibling for digests, HMAC-SHA256, and Argon2id PHC; this project only reserves their trailer slots. There is no `Vestigium.Helpers.Hmac` project and no separate KeyRing library.
 
 This file is the design companion: how the pieces sit, how large files stay off the heap, and how RSA wrap lands on the **same** envelope family.
 
@@ -24,7 +24,7 @@ This file is the design companion: how the pieces sit, how large files stay off 
 - Never log plaintext, keys, passphrases, PKCS8, company names, issuedTo, or full thumbprints — even at Debug. Override actor + reason only after `LooksLikeSecret` rejection.
 - Large files are framed (64 KiB). Do not load the file.
 - Every blob ends in a `VESTIGIUM TRL` footer. v1.0 body is 465 bytes plus 17-byte length+magic (482 at EOF) when there is **no** wrap list. Wrap list grows the body; `bodyLength` is the seek contract. VerifyMac uses `body.Length - 32`.
-- Hashing is `Vestigium.Helpers.Hashing`. Hmac is a later sibling. Do not fill their 32-byte slots.
+- Hashing is `Vestigium.Helpers.Hashing` (SHA-2/SHA-3, HMAC-SHA256, Argon2id PHC). Do not fill the 32-byte trailer slots from Encryption v1.2. There is no Hmac sibling project.
 - AES-256-CBC is Encrypt-then-MAC and still framed (v1.1, not default).
 - RSA wraps the 32-byte content key. It never encrypts the payload. Payload `alg` stays 1 / 2 / 3. Suite minor 2 when wraps are present. Flag bit 5 (`32`), not bit 2.
 - Isolation is per public key (SHA-256 of SPKI). Trailer stores thumbprints only.
@@ -32,7 +32,7 @@ This file is the design companion: how the pieces sit, how large files stay off 
 - Issue-and-forget is the default. `escrow: true` is explicit.
 - Token edition lives on the ring: Enable / Disable / Expire / Retire / Compromise. Disabled and Expired need `EncryptionKeyOverride`. Compromised and Retired fail closed.
 
-**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1), RSA-OAEP wrap list (suite 1.2), `EncryptionRsaKey`, `EncryptionKeyRing` (status, expiry, override), `EncryptionKeyOverride`, `EncryptionTokenException`. Hashing remains a sibling.
+**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1), RSA-OAEP wrap list (suite 1.2), `EncryptionRsaKey`, `EncryptionKeyRing` (status, expiry, override), `EncryptionKeyOverride`, `EncryptionTokenException`. Hashing is a shipped sibling (digests, HMAC-SHA256, Argon2id PHC) and does not fill trailer slots in this revision.
 
 ## Why these algorithms
 
@@ -272,6 +272,4 @@ v1.1 extended `EncryptionAlgorithm` (alg 3). v1.2 does **not** add alg 4 — it 
 
 ## Sibling
 
-`Vestigium.Helpers.Hashing` — string and file digests. Separate APPID. Separate gallery. Encryption tests may call Hashing (or BCL `SHA256`) to compare file bytes after a round-trip. Encryption must not grow `HashString` / `HashFile`.
-
-`Vestigium.Helpers.Hmac` is planned, not created yet. Trailer already reserves its 32-byte slot.
+`Vestigium.Helpers.Hashing` — string and file digests, HMAC-SHA256, Argon2id PHC. Separate APPID. Separate gallery. Encryption tests may call Hashing (or BCL `SHA256`) to compare file bytes after a round-trip. Encryption must not grow `HashString` / `HashFile`. There is no `Vestigium.Helpers.Hmac` project; HMAC lives in Hashing. Trailer slots stay zeros until an Encryption minor revision.
