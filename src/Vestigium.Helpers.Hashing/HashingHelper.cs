@@ -760,7 +760,7 @@ public static partial class HashingHelper
 
     private static byte[] ChecksumStream(Stream stream, ChecksumAlgorithm algorithm, out long bytes)
     {
-        using var hasher = CreateChecksum(algorithm);
+        var hasher = CreateChecksum(algorithm);
         bytes = PumpChecksum(stream, hasher);
         var digest = hasher.GetHashAndReset();
         return algorithm is ChecksumAlgorithm.Crc32 ? ReverseCopy(digest) : digest;
@@ -771,7 +771,7 @@ public static partial class HashingHelper
         ChecksumAlgorithm algorithm,
         CancellationToken cancellationToken)
     {
-        using var hasher = CreateChecksum(algorithm);
+        var hasher = CreateChecksum(algorithm);
         var buffer = ArrayPool<byte>.Shared.Rent(StreamBufferSize);
         long total = 0;
         try
