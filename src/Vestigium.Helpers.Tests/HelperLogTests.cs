@@ -98,6 +98,27 @@ public sealed class HelperLogTests
             Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, sub), sub);
     }
 
+    [Fact]
+    public void Json_subcategories_are_registered()
+    {
+        string[] required =
+        [
+            HelperLog.Subcategories.Probe,
+            HelperLog.Subcategories.Identity,
+            HelperLog.Subcategories.Guard,
+            HelperLog.Subcategories.Session,
+            HelperLog.Subcategories.Document,
+            HelperLog.Subcategories.Query,
+            HelperLog.Subcategories.Snapshot,
+            HelperLog.Subcategories.Diff,
+            HelperLog.Subcategories.Commit,
+            HelperLog.Subcategories.Save,
+            HelperLog.Subcategories.Jsonl
+        ];
+        foreach (var sub in required)
+            Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, sub), sub);
+    }
+
     private static string Probe(string appId) => appId switch
     {
         HelperLog.AppIds.Core => HelperGuard.Probe(),
