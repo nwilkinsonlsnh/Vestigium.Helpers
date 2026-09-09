@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Vestigium.Helpers.Json;
 using Vestigium.Logging;
 
@@ -191,7 +192,8 @@ public sealed class JsonFileTests : IDisposable
         var lines = HelperLog.RecentJsonLines;
         Assert.DoesNotContain(lines, l => l.Contains(secret));
         Assert.Contains(lines, l => l.Contains("\"SUBCATEGORY\":\"Save\"") && l.Contains("bytes="));
-        Assert.Contains(lines, l => l.Contains(path));
+        var loggedPath = JsonSerializer.Serialize(Path.GetFullPath(path))[1..^1];
+        Assert.Contains(lines, l => l.Contains(loggedPath));
         Assert.All(lines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
     }
 }
