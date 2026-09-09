@@ -8,3 +8,4 @@
 TestResults/
 *.nupkg
 _deps/
+/_Documentation
