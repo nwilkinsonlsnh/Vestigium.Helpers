@@ -89,7 +89,8 @@ internal static class FrameCipher
         ReadOnlySpan<byte> fileNonce,
         ReadOnlySpan<byte> headerPrefix,
         uint index,
-        ReadOnlySpan<byte> plaintext)
+        ReadOnlySpan<byte> plaintext,
+        IncrementalHash? callerMac = null)
     {
         Span<byte> iv = stackalloc byte[CbcIvSize];
         RandomNumberGenerator.Fill(iv);
@@ -127,12 +128,30 @@ internal static class FrameCipher
             destination.Write(iv);
             destination.Write(cipher);
             destination.Write(mac);
+            callerMac?.AppendData(iv);
+            callerMac?.AppendData(cipher);
+            callerMac?.AppendData(mac);
         }
         finally
         {
             CryptographicOperations.ZeroMemory(cipher);
             CryptographicOperations.ZeroMemory(mac);
         }
+    }
+
+    public static void AbsorbCbcFrameBytes(Stream source, int expectedPlain, IncrementalHash callerMac)
+    {
+        Span<byte> iv = stackalloc byte[CbcIvSize];
+        Envelope.ReadExact(source, iv);
+        callerMac.AppendData(iv);
+        var padded = CbcPaddedLength(expectedPlain);
+        var cipher = new byte[padded];
+        Envelope.ReadExact(source, cipher);
+        callerMac.AppendData(cipher);
+        Span<byte> mac = stackalloc byte[CbcHmacSize];
+        Envelope.ReadExact(source, mac);
+        callerMac.AppendData(mac);
+        CryptographicOperations.ZeroMemory(cipher);
     }
 
     public static int ReadCbcFrame(
