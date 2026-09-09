@@ -1,4 +1,6 @@
 using System.Buffers;
+using System.Buffers.Binary;
+using System.IO.Hashing;
 using System.Security.Cryptography;
 using System.Text;
 using Vestigium.Helpers;
@@ -6,8 +8,8 @@ using Vestigium.Helpers;
 namespace Vestigium.Helpers.Hashing;
 
 /// <summary>
-/// String and file hashing. SHA-256 default, SHA-384/512 and SHA-3 opt-in, HMAC-SHA256 keyed,
-/// Argon2id PHC password verifiers. Not encryption. Libraries never call Initialize.
+/// String and file hashing. SHA-256 default, SHA-384/512 and SHA-3 opt-in, HMAC-SHA256/384/512 keyed,
+/// Argon2id PHC password verifiers, CRC-32 / CRC-64 / xxHash checksums. Not encryption.
 /// </summary>
 public static class HashingHelper
 {
@@ -24,6 +26,14 @@ public static class HashingHelper
         _ = HashingConvert.HexToBase64(digest);
         using var key = HmacKey.Generate();
         _ = HmacString("probe-message-16", key);
+        Span<byte> rfc = stackalloc byte[20];
+        rfc.Fill(0x0b);
+        using var rfcKey = HmacKey.FromBytes(rfc);
+        if (HmacString("Hi There", rfcKey, HmacAlgorithm.Sha384) !=
+            "afd03944d84895626b0825f4ab46907f15f9dadbe4101ec682aa034c7cebc59cfaea9ea9076ede7f4af152e8b2fa9cb6")
+            throw new CryptographicException("HMAC-SHA384 probe vector failed.");
+        if (ChecksumCrc32("123456789") != "cbf43926")
+            throw new CryptographicException("CRC-32 probe vector failed.");
         HashingLog.Success("Probe", "Hashing probe complete. Identity=" + Identity);
         return Identity;
     }
@@ -137,6 +147,152 @@ public static class HashingHelper
     public static string HashSha1(string text, HashingTextFormat format = HashingTextFormat.HexLower)
         => HashString(text, HashingAlgorithm.Sha1, format);
 
+    public static string ChecksumName(ChecksumAlgorithm algorithm) => algorithm switch
+    {
+        ChecksumAlgorithm.Crc32 => "CRC-32",
+        ChecksumAlgorithm.Crc64 => "CRC-64",
+        ChecksumAlgorithm.XxHash32 => "XXH32",
+        ChecksumAlgorithm.XxHash64 => "XXH64",
+        ChecksumAlgorithm.XxHash3 => "XXH3",
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
+    public static int ChecksumLength(ChecksumAlgorithm algorithm) => algorithm switch
+    {
+        ChecksumAlgorithm.Crc32 or ChecksumAlgorithm.XxHash32 => 4,
+        ChecksumAlgorithm.Crc64 or ChecksumAlgorithm.XxHash64 or ChecksumAlgorithm.XxHash3 => 8,
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
+    public static string ChecksumCrc32(string text, HashingTextFormat format = HashingTextFormat.HexLower)
+        => ChecksumString(text, ChecksumAlgorithm.Crc32, format);
+
+    public static string ChecksumCrc64(string text, HashingTextFormat format = HashingTextFormat.HexLower)
+        => ChecksumString(text, ChecksumAlgorithm.Crc64, format);
+
+    public static string ChecksumXxHash(string text, HashingTextFormat format = HashingTextFormat.HexLower)
+        => ChecksumString(text, ChecksumAlgorithm.XxHash64, format);
+
+    public static string ChecksumString(
+        string text,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var utf8 = Encoding.UTF8.GetBytes(text);
+        try
+        {
+            using var scope = HashingLog.Begin("ChecksumString", $"alg={ChecksumName(algorithm)} bytes={utf8.Length}");
+            HashingLog.Pending("ChecksumString", $"alg={ChecksumName(algorithm)} bytes={utf8.Length}");
+            var digest = ChecksumData(utf8, algorithm);
+            var printed = HashingConvert.Format(digest, format);
+            HashingLog.Success("ChecksumString", $"alg={ChecksumName(algorithm)} bytes={utf8.Length}");
+            return printed;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(utf8);
+        }
+    }
+
+    public static string ChecksumBytes(
+        ReadOnlySpan<byte> data,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+    {
+        using var scope = HashingLog.Begin("ChecksumBytes", $"alg={ChecksumName(algorithm)} bytes={data.Length}");
+        HashingLog.Pending("ChecksumBytes", $"alg={ChecksumName(algorithm)} bytes={data.Length}");
+        var printed = HashingConvert.Format(ChecksumData(data, algorithm), format);
+        HashingLog.Success("ChecksumBytes", $"alg={ChecksumName(algorithm)} bytes={data.Length}");
+        return printed;
+    }
+
+    public static byte[] ChecksumData(ReadOnlySpan<byte> data, ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32)
+    {
+        return algorithm switch
+        {
+            ChecksumAlgorithm.Crc32 => U32Be(Crc32.HashToUInt32(data)),
+            ChecksumAlgorithm.Crc64 => Crc64.Hash(data),
+            ChecksumAlgorithm.XxHash32 => XxHash32.Hash(data),
+            ChecksumAlgorithm.XxHash64 => XxHash64.Hash(data),
+            ChecksumAlgorithm.XxHash3 => XxHash3.Hash(data),
+            _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+        };
+    }
+
+    public static string ChecksumFile(
+        string path,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+    {
+        var file = HelperGuard.NotBlank(path, nameof(path));
+        using var stream = OpenRead(file);
+        return ChecksumFile(stream, algorithm, format, file);
+    }
+
+    public static string ChecksumFile(
+        Stream stream,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower,
+        string? pathName = null)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        var visible = VisiblePath(pathName);
+        using var scope = HashingLog.Begin("ChecksumFile", $"alg={ChecksumName(algorithm)} path={visible}");
+        HashingLog.Pending("ChecksumFile", $"alg={ChecksumName(algorithm)} path={visible}");
+        var digest = ChecksumStream(stream, algorithm, out var bytes);
+        var printed = HashingConvert.Format(digest, format);
+        HashingLog.Success("ChecksumFile", $"alg={ChecksumName(algorithm)} path={visible} bytes={bytes} digest={printed}");
+        return printed;
+    }
+
+    public static async Task<string> ChecksumFileAsync(
+        Stream stream,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower,
+        string? pathName = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        var visible = VisiblePath(pathName);
+        using var scope = HashingLog.Begin("ChecksumFileAsync", $"alg={ChecksumName(algorithm)} path={visible}");
+        HashingLog.Pending("ChecksumFileAsync", $"alg={ChecksumName(algorithm)} path={visible}");
+        var (digest, bytes) = await ChecksumStreamAsync(stream, algorithm, cancellationToken).ConfigureAwait(false);
+        var printed = HashingConvert.Format(digest, format);
+        HashingLog.Success("ChecksumFileAsync", $"alg={ChecksumName(algorithm)} path={visible} bytes={bytes} digest={printed}");
+        return printed;
+    }
+
+    public static bool VerifyChecksumString(
+        string text,
+        string expected,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentException.ThrowIfNullOrEmpty(expected);
+        var actual = ChecksumData(Encoding.UTF8.GetBytes(text), algorithm);
+        var want = HashingConvert.Parse(expected, format);
+        var ok = actual.Length == want.Length && CryptographicOperations.FixedTimeEquals(actual, want);
+        HashingLog.Success("VerifyChecksumString", $"alg={ChecksumName(algorithm)} match={(ok ? "yes" : "no")}");
+        return ok;
+    }
+
+    public static bool VerifyChecksumFile(
+        string path,
+        string expected,
+        ChecksumAlgorithm algorithm = ChecksumAlgorithm.Crc32,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(expected);
+        var actualHex = ChecksumFile(path, algorithm, HashingTextFormat.HexLower);
+        var actual = HashingConvert.Parse(actualHex, HashingTextFormat.HexLower);
+        var want = HashingConvert.Parse(expected, format);
+        var ok = actual.Length == want.Length && CryptographicOperations.FixedTimeEquals(actual, want);
+        HashingLog.Success("VerifyChecksumFile", $"alg={ChecksumName(algorithm)} path={VisiblePath(path)} match={(ok ? "yes" : "no")}");
+        return ok;
+    }
+
     public static string HashFile(
         string path,
         HashingAlgorithm algorithm = HashingAlgorithm.Sha256,
@@ -226,9 +382,32 @@ public static class HashingHelper
         return ok;
     }
 
+    public static string HmacName(HmacAlgorithm algorithm) => algorithm switch
+    {
+        HmacAlgorithm.Sha256 => "HMAC-SHA256",
+        HmacAlgorithm.Sha384 => "HMAC-SHA384",
+        HmacAlgorithm.Sha512 => "HMAC-SHA512",
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
+    public static int HmacLength(HmacAlgorithm algorithm) => algorithm switch
+    {
+        HmacAlgorithm.Sha256 => 32,
+        HmacAlgorithm.Sha384 => 48,
+        HmacAlgorithm.Sha512 => 64,
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
     public static string HmacString(
         string text,
         HmacKey key,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+        => HmacString(text, key, HmacAlgorithm.Sha256, format);
+
+    public static string HmacString(
+        string text,
+        HmacKey key,
+        HmacAlgorithm algorithm,
         HashingTextFormat format = HashingTextFormat.HexLower)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -236,11 +415,11 @@ public static class HashingHelper
         var utf8 = Encoding.UTF8.GetBytes(text);
         try
         {
-            using var scope = HashingLog.Begin("HmacString", $"bytes={utf8.Length} keyBytes={key.Length}");
-            HashingLog.Pending("HmacString", $"bytes={utf8.Length} keyBytes={key.Length}");
-            var mac = HmacData(utf8, key);
+            using var scope = HashingLog.Begin("HmacString", $"alg={HmacName(algorithm)} bytes={utf8.Length} keyBytes={key.Length}");
+            HashingLog.Pending("HmacString", $"alg={HmacName(algorithm)} bytes={utf8.Length} keyBytes={key.Length}");
+            var mac = HmacData(utf8, key, algorithm);
             var printed = HashingConvert.Format(mac, format);
-            HashingLog.Success("HmacString", $"bytes={utf8.Length} keyBytes={key.Length}");
+            HashingLog.Success("HmacString", $"alg={HmacName(algorithm)} bytes={utf8.Length} keyBytes={key.Length}");
             return printed;
         }
         finally
@@ -253,31 +432,50 @@ public static class HashingHelper
         ReadOnlySpan<byte> data,
         HmacKey key,
         HashingTextFormat format = HashingTextFormat.HexLower)
+        => HmacBytes(data, key, HmacAlgorithm.Sha256, format);
+
+    public static string HmacBytes(
+        ReadOnlySpan<byte> data,
+        HmacKey key,
+        HmacAlgorithm algorithm,
+        HashingTextFormat format = HashingTextFormat.HexLower)
     {
         ArgumentNullException.ThrowIfNull(key);
-        using var scope = HashingLog.Begin("HmacBytes", $"bytes={data.Length} keyBytes={key.Length}");
-        HashingLog.Pending("HmacBytes", $"bytes={data.Length} keyBytes={key.Length}");
-        var mac = HmacData(data, key);
-        var printed = HashingConvert.Format(mac, format);
-        HashingLog.Success("HmacBytes", $"bytes={data.Length} keyBytes={key.Length}");
+        using var scope = HashingLog.Begin("HmacBytes", $"alg={HmacName(algorithm)} bytes={data.Length} keyBytes={key.Length}");
+        HashingLog.Pending("HmacBytes", $"alg={HmacName(algorithm)} bytes={data.Length} keyBytes={key.Length}");
+        var printed = HashingConvert.Format(HmacData(data, key, algorithm), format);
+        HashingLog.Success("HmacBytes", $"alg={HmacName(algorithm)} bytes={data.Length} keyBytes={key.Length}");
         return printed;
     }
 
-    public static byte[] HmacData(ReadOnlySpan<byte> data, HmacKey key)
+    public static byte[] HmacData(ReadOnlySpan<byte> data, HmacKey key, HmacAlgorithm algorithm = HmacAlgorithm.Sha256)
     {
         ArgumentNullException.ThrowIfNull(key);
-        return HMACSHA256.HashData(key.Span, data);
+        return algorithm switch
+        {
+            HmacAlgorithm.Sha256 => HMACSHA256.HashData(key.Span, data),
+            HmacAlgorithm.Sha384 => HMACSHA384.HashData(key.Span, data),
+            HmacAlgorithm.Sha512 => HMACSHA512.HashData(key.Span, data),
+            _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+        };
     }
 
     public static string HmacFile(
         string path,
         HmacKey key,
         HashingTextFormat format = HashingTextFormat.HexLower)
+        => HmacFile(path, key, HmacAlgorithm.Sha256, format);
+
+    public static string HmacFile(
+        string path,
+        HmacKey key,
+        HmacAlgorithm algorithm,
+        HashingTextFormat format = HashingTextFormat.HexLower)
     {
         ArgumentNullException.ThrowIfNull(key);
         var file = HelperGuard.NotBlank(path, nameof(path));
         using var stream = OpenRead(file);
-        return HmacFile(stream, key, format, file);
+        return HmacFile(stream, key, algorithm, format, file);
     }
 
     public static string HmacFile(
@@ -285,38 +483,70 @@ public static class HashingHelper
         HmacKey key,
         HashingTextFormat format = HashingTextFormat.HexLower,
         string? pathName = null)
+        => HmacFile(stream, key, HmacAlgorithm.Sha256, format, pathName);
+
+    public static string HmacFile(
+        Stream stream,
+        HmacKey key,
+        HmacAlgorithm algorithm,
+        HashingTextFormat format = HashingTextFormat.HexLower,
+        string? pathName = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(key);
         var visible = VisiblePath(pathName);
-        using var scope = HashingLog.Begin("HmacFile", $"path={visible} keyBytes={key.Length}");
-        HashingLog.Pending("HmacFile", $"path={visible} keyBytes={key.Length}");
-        using var hmac = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA256, key.Span);
+        using var scope = HashingLog.Begin("HmacFile", $"alg={HmacName(algorithm)} path={visible} keyBytes={key.Length}");
+        HashingLog.Pending("HmacFile", $"alg={HmacName(algorithm)} path={visible} keyBytes={key.Length}");
+        using var hmac = IncrementalHash.CreateHMAC(HmacAlgName(algorithm), key.Span);
         var bytes = Pump(stream, hmac);
         var mac = hmac.GetHashAndReset();
         var printed = HashingConvert.Format(mac, format);
-        HashingLog.Success("HmacFile", $"path={visible} bytes={bytes} keyBytes={key.Length} digest={printed}");
+        HashingLog.Success("HmacFile", $"alg={HmacName(algorithm)} path={visible} bytes={bytes} keyBytes={key.Length} digest={printed}");
         return printed;
     }
 
-    public static bool VerifyHmacString(string text, HmacKey key, string expected, HashingTextFormat format = HashingTextFormat.HexLower)
+    public static bool VerifyHmacString(
+        string text,
+        HmacKey key,
+        string expected,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+        => VerifyHmacString(text, key, expected, HmacAlgorithm.Sha256, format);
+
+    public static bool VerifyHmacString(
+        string text,
+        HmacKey key,
+        string expected,
+        HmacAlgorithm algorithm,
+        HashingTextFormat format = HashingTextFormat.HexLower)
     {
         ArgumentException.ThrowIfNullOrEmpty(expected);
-        var actual = HmacData(Encoding.UTF8.GetBytes(text), key);
+        var actual = HmacData(Encoding.UTF8.GetBytes(text), key, algorithm);
         var want = HashingConvert.Parse(expected, format);
         var ok = actual.Length == want.Length && CryptographicOperations.FixedTimeEquals(actual, want);
-        HashingLog.Success("VerifyHmacString", $"match={(ok ? "yes" : "no")}");
+        HashingLog.Success("VerifyHmacString", $"alg={HmacName(algorithm)} match={(ok ? "yes" : "no")}");
         return ok;
     }
 
-    public static bool VerifyHmacFile(string path, HmacKey key, string expected, HashingTextFormat format = HashingTextFormat.HexLower)
+    public static bool VerifyHmacFile(
+        string path,
+        HmacKey key,
+        string expected,
+        HashingTextFormat format = HashingTextFormat.HexLower)
+        => VerifyHmacFile(path, key, expected, HmacAlgorithm.Sha256, format);
+
+    public static bool VerifyHmacFile(
+        string path,
+        HmacKey key,
+        string expected,
+        HmacAlgorithm algorithm,
+        HashingTextFormat format = HashingTextFormat.HexLower)
     {
         ArgumentException.ThrowIfNullOrEmpty(expected);
-        var actualHex = HmacFile(path, key, HashingTextFormat.HexLower);
+        var actualHex = HmacFile(path, key, algorithm, HashingTextFormat.HexLower);
         var actual = HashingConvert.Parse(actualHex, HashingTextFormat.HexLower);
         var want = HashingConvert.Parse(expected, format);
         var ok = actual.Length == want.Length && CryptographicOperations.FixedTimeEquals(actual, want);
-        HashingLog.Success("VerifyHmacFile", $"path={VisiblePath(path)} match={(ok ? "yes" : "no")}");
+        HashingLog.Success("VerifyHmacFile", $"alg={HmacName(algorithm)} path={VisiblePath(path)} match={(ok ? "yes" : "no")}");
         return ok;
     }
 
@@ -388,6 +618,14 @@ public static class HashingHelper
         }
     }
 
+    private static HashAlgorithmName HmacAlgName(HmacAlgorithm algorithm) => algorithm switch
+    {
+        HmacAlgorithm.Sha256 => HashAlgorithmName.SHA256,
+        HmacAlgorithm.Sha384 => HashAlgorithmName.SHA384,
+        HmacAlgorithm.Sha512 => HashAlgorithmName.SHA512,
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
     private static HashAlgorithmName AlgName(HashingAlgorithm algorithm) => algorithm switch
     {
         HashingAlgorithm.Sha256 => HashAlgorithmName.SHA256,
@@ -446,6 +684,88 @@ public static class HashingHelper
             while ((read = stream.Read(buffer, 0, StreamBufferSize)) > 0)
             {
                 hasher.AppendData(buffer.AsSpan(0, read));
+                total += read;
+            }
+
+            return total;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+        }
+    }
+
+    private static NonCryptographicHashAlgorithm CreateChecksum(ChecksumAlgorithm algorithm) => algorithm switch
+    {
+        ChecksumAlgorithm.Crc32 => new Crc32(),
+        ChecksumAlgorithm.Crc64 => new Crc64(),
+        ChecksumAlgorithm.XxHash32 => new XxHash32(),
+        ChecksumAlgorithm.XxHash64 => new XxHash64(),
+        ChecksumAlgorithm.XxHash3 => new XxHash3(),
+        _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
+    };
+
+    private static byte[] U32Be(uint value)
+    {
+        var dest = new byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(dest, value);
+        return dest;
+    }
+
+    private static byte[] ReverseCopy(byte[] source)
+    {
+        var dest = new byte[source.Length];
+        for (var i = 0; i < source.Length; i++)
+            dest[i] = source[source.Length - 1 - i];
+        return dest;
+    }
+
+    private static byte[] ChecksumStream(Stream stream, ChecksumAlgorithm algorithm, out long bytes)
+    {
+        using var hasher = CreateChecksum(algorithm);
+        bytes = PumpChecksum(stream, hasher);
+        var digest = hasher.GetHashAndReset();
+        return algorithm is ChecksumAlgorithm.Crc32 ? ReverseCopy(digest) : digest;
+    }
+
+    private static async Task<(byte[] digest, long bytes)> ChecksumStreamAsync(
+        Stream stream,
+        ChecksumAlgorithm algorithm,
+        CancellationToken cancellationToken)
+    {
+        using var hasher = CreateChecksum(algorithm);
+        var buffer = ArrayPool<byte>.Shared.Rent(StreamBufferSize);
+        long total = 0;
+        try
+        {
+            while (true)
+            {
+                var read = await stream.ReadAsync(buffer.AsMemory(0, StreamBufferSize), cancellationToken).ConfigureAwait(false);
+                if (read == 0)
+                    break;
+                hasher.Append(buffer.AsSpan(0, read));
+                total += read;
+            }
+
+            var digest = hasher.GetHashAndReset();
+            return (algorithm is ChecksumAlgorithm.Crc32 ? ReverseCopy(digest) : digest, total);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+        }
+    }
+
+    private static long PumpChecksum(Stream stream, NonCryptographicHashAlgorithm hasher)
+    {
+        var buffer = ArrayPool<byte>.Shared.Rent(StreamBufferSize);
+        long total = 0;
+        try
+        {
+            int read;
+            while ((read = stream.Read(buffer, 0, StreamBufferSize)) > 0)
+            {
+                hasher.Append(buffer.AsSpan(0, read));
                 total += read;
             }
 

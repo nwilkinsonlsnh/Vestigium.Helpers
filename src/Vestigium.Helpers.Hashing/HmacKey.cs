@@ -4,7 +4,7 @@ using System.Text;
 namespace Vestigium.Helpers.Hashing;
 
 /// <summary>
-/// HMAC-SHA256 key. Generate random bytes, take UTF-8 of a typed secret, or decode Base64.
+/// HMAC key for SHA-256 / SHA-384 / SHA-512. Generate random bytes, take UTF-8 of a typed secret, or decode Base64.
 /// Minimum 16 bytes. Default generate size is 32. Dispose zeros the key.
 /// Passing a Base64 string to <see cref="FromString"/> treats the letters as the key — use <see cref="FromBase64"/>.
 /// </summary>

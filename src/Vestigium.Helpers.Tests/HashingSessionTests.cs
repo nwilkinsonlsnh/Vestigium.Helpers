@@ -143,6 +143,55 @@ public sealed class HashingSessionTests
     }
 
     [Fact]
+    public void Hmac_rfc4231_case1_sha384_and_sha512()
+    {
+        var key = HmacKey.FromBytes(Enumerable.Repeat((byte)0x0b, 20).ToArray());
+        Assert.Equal(
+            "afd03944d84895626b0825f4ab46907f15f9dadbe4101ec682aa034c7cebc59cfaea9ea9076ede7f4af152e8b2fa9cb6",
+            HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha384));
+        Assert.Equal(
+            "87aa7cdea5ef619d4ff0b4241a1d6cb02379f4e2ce4ec2787ad0b30545e17cdedaa833b7d6b8a702038b274eaea3f4e4be9d914eeb61f1702e696c203a126854",
+            HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha512));
+        Assert.Equal(32, HashingHelper.HmacLength(HmacAlgorithm.Sha256));
+        Assert.Equal(48, HashingHelper.HmacLength(HmacAlgorithm.Sha384));
+        Assert.Equal(64, HashingHelper.HmacLength(HmacAlgorithm.Sha512));
+        var sha256 = HashingHelper.HmacString("Hi There", key);
+        Assert.NotEqual(sha256, HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha384));
+        Assert.True(HashingHelper.VerifyHmacString(
+            "Hi There",
+            key,
+            "afd03944d84895626b0825f4ab46907f15f9dadbe4101ec682aa034c7cebc59cfaea9ea9076ede7f4af152e8b2fa9cb6",
+            HmacAlgorithm.Sha384));
+        Assert.False(HashingHelper.VerifyHmacString("Hi There", key, sha256, HmacAlgorithm.Sha384));
+    }
+
+    [Fact]
+    public void Hmac_file_over_64kib_matches_in_memory()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHashTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "nathan.bin");
+        var payload = new byte[200_000];
+        RandomNumberGenerator.Fill(payload);
+        File.WriteAllBytes(path, payload);
+        using var key = HmacKey.Generate();
+        try
+        {
+            foreach (var alg in new[] { HmacAlgorithm.Sha256, HmacAlgorithm.Sha384, HmacAlgorithm.Sha512 })
+            {
+                var fileHex = HashingHelper.HmacFile(path, key, alg);
+                var memHex = HashingHelper.HmacBytes(payload, key, alg);
+                Assert.Equal(memHex, fileHex);
+                Assert.True(HashingHelper.VerifyHmacFile(path, key, fileHex, alg));
+            }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Hmac_from_base64_does_not_utf8_the_letters()
     {
         using var key = HmacKey.Generate();
@@ -207,5 +256,62 @@ public sealed class HashingSessionTests
         Assert.False(HashingHelper.VerifyString("abd", hex));
         var b64 = HashingConvert.HexToBase64(hex);
         Assert.True(HashingHelper.VerifyString("abc", b64, HashingAlgorithm.Sha256, HashingTextFormat.Base64));
+    }
+
+    [Fact]
+    public void Checksum_crc32_crc64_xxhash_published_vectors()
+    {
+        Assert.Equal("00000000", HashingHelper.ChecksumCrc32(""));
+        Assert.Equal("cbf43926", HashingHelper.ChecksumCrc32("123456789"));
+        Assert.Equal("0000000000000000", HashingHelper.ChecksumCrc64(""));
+        Assert.Equal("6c40df5f0b497347", HashingHelper.ChecksumCrc64("123456789"));
+        Assert.Equal("02cc5d05", HashingHelper.ChecksumString("", ChecksumAlgorithm.XxHash32));
+        Assert.Equal("32d153ff", HashingHelper.ChecksumString("abc", ChecksumAlgorithm.XxHash32));
+        Assert.Equal("ef46db3751d8e999", HashingHelper.ChecksumXxHash(""));
+        Assert.Equal("44bc2cf5ad770999", HashingHelper.ChecksumXxHash("abc"));
+        Assert.Equal("d24ec4f1a98c6e5b", HashingHelper.ChecksumXxHash("a"));
+        Assert.Equal("02a2e85470d6fd96", HashingHelper.ChecksumXxHash("Call me Ishmael. Some years ago--never mind how long precisely-"));
+        Assert.Equal("2d06800538d394c2", HashingHelper.ChecksumString("", ChecksumAlgorithm.XxHash3));
+        Assert.Equal("78af5f94892f3950", HashingHelper.ChecksumString("abc", ChecksumAlgorithm.XxHash3));
+        Assert.True(HashingHelper.VerifyChecksumString("123456789", "cbf43926"));
+        Assert.False(HashingHelper.VerifyChecksumString("123456788", "cbf43926"));
+        Assert.Equal(4, HashingHelper.ChecksumLength(ChecksumAlgorithm.Crc32));
+        Assert.Equal(8, HashingHelper.ChecksumLength(ChecksumAlgorithm.XxHash64));
+    }
+
+    [Fact]
+    public void Checksum_file_over_64kib_matches_in_memory()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHashTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "nathan.bin");
+        var payload = new byte[200_000];
+        RandomNumberGenerator.Fill(payload);
+        File.WriteAllBytes(path, payload);
+        try
+        {
+            foreach (var alg in new[] { ChecksumAlgorithm.Crc32, ChecksumAlgorithm.Crc64, ChecksumAlgorithm.XxHash64, ChecksumAlgorithm.XxHash3 })
+            {
+                var fileHex = HashingHelper.ChecksumFile(path, alg);
+                var memHex = HashingHelper.ChecksumBytes(payload, alg);
+                Assert.Equal(memHex, fileHex);
+                Assert.True(HashingHelper.VerifyChecksumFile(path, fileHex, alg));
+            }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Checksum_is_not_hash_and_never_the_default()
+    {
+        var hash = HashingHelper.HashString("123456789");
+        var crc = HashingHelper.ChecksumCrc32("123456789");
+        Assert.NotEqual(hash, crc);
+        Assert.Equal(64, hash.Length);
+        Assert.Equal(8, crc.Length);
+        Assert.Equal("cbf43926", crc);
     }
 }

@@ -17,6 +17,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         Sha2 = new HashPane(HashingAlgorithm.Sha384, SetStatus, [HashingAlgorithm.Sha384, HashingAlgorithm.Sha512]);
         Sha3 = new HashPane(HashingAlgorithm.Sha3_256, SetStatus, [HashingAlgorithm.Sha3_256, HashingAlgorithm.Sha3_384, HashingAlgorithm.Sha3_512]);
         Interop = new HashPane(HashingAlgorithm.Md5, SetStatus, [HashingAlgorithm.Md5, HashingAlgorithm.Sha1], interop: true);
+        Checksum = new ChecksumPane(SetStatus);
         Hmac = new HmacPane(SetStatus);
         Password = new PasswordPane(SetStatus);
         HexText = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
@@ -27,6 +28,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public HashPane Sha2 { get; }
     public HashPane Sha3 { get; }
     public HashPane Interop { get; }
+    public ChecksumPane Checksum { get; }
     public HmacPane Hmac { get; }
     public PasswordPane Password { get; }
 
@@ -34,9 +36,9 @@ public sealed partial class MainViewModel : GalleryViewModelBase
 
     public string StartupSnippet =>
         "var hex = HashingHelper.HashString(\"abc\");\n" +
-        "var b64 = HashingConvert.HexToBase64(hex);\n" +
+        "var crc = HashingHelper.ChecksumCrc32(\"123456789\");\n" +
         "using var key = HmacKey.Generate();\n" +
-        "var mac = HashingHelper.HmacFile(path, key);";
+        "var mac = HashingHelper.HmacString(msg, key, HmacAlgorithm.Sha384);";
 
     [ObservableProperty] private string hexText = "";
     [ObservableProperty] private string base64Text = "";
@@ -272,6 +274,143 @@ public sealed partial class HashPane : ObservableObject
     }
 }
 
+public sealed partial class ChecksumPane : ObservableObject
+{
+    private readonly Action<string> _status;
+    private readonly Dictionary<string, ChecksumAlgorithm> _map = [];
+
+    public ChecksumPane(Action<string> status)
+    {
+        _status = status;
+        Algorithm = ChecksumAlgorithm.Crc32;
+        var list = new[]
+        {
+            ChecksumAlgorithm.Crc32,
+            ChecksumAlgorithm.Crc64,
+            ChecksumAlgorithm.XxHash32,
+            ChecksumAlgorithm.XxHash64,
+            ChecksumAlgorithm.XxHash3,
+        };
+        AlgorithmChoices = list.Select(HashingHelper.ChecksumName).ToList();
+        foreach (var alg in list)
+            _map[HashingHelper.ChecksumName(alg)] = alg;
+        AlgorithmChoice = HashingHelper.ChecksumName(Algorithm);
+        InputText = "123456789";
+        SourceLine = "No file selected.";
+        FileDigestLine = "";
+        VerifyCaption = "";
+        ErrorText = "";
+    }
+
+    public IReadOnlyList<string> AlgorithmChoices { get; }
+    public ChecksumAlgorithm Algorithm { get; private set; }
+
+    [ObservableProperty] private string algorithmChoice = "";
+    [ObservableProperty] private string inputText = "123456789";
+    [ObservableProperty] private string digestHex = "";
+    [ObservableProperty] private string verifyCaption = "";
+    [ObservableProperty] private string sourceLine = "";
+    [ObservableProperty] private string fileDigestLine = "";
+    [ObservableProperty] private string errorText = "";
+    private string? _filePath;
+
+    public string NamedMethod => Algorithm switch
+    {
+        ChecksumAlgorithm.Crc32 => "ChecksumCrc32",
+        ChecksumAlgorithm.Crc64 => "ChecksumCrc64",
+        ChecksumAlgorithm.XxHash64 => "ChecksumXxHash",
+        _ => "ChecksumString",
+    };
+
+    partial void OnAlgorithmChoiceChanged(string value)
+    {
+        if (_map.TryGetValue(value, out var alg))
+        {
+            Algorithm = alg;
+            DigestHex = "";
+            VerifyCaption = "";
+            OnPropertyChanged(nameof(NamedMethod));
+        }
+    }
+
+    [RelayCommand]
+    private void ChecksumString()
+    {
+        try
+        {
+            ErrorText = "";
+            DigestHex = HashingHelper.ChecksumString(InputText ?? "", Algorithm, HashingTextFormat.HexLower);
+            VerifyCaption = "";
+            _status($"{HashingHelper.ChecksumName(Algorithm)} string · {DigestHex}");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void VerifyString()
+    {
+        try
+        {
+            ErrorText = "";
+            var ok = HashingHelper.VerifyChecksumString(InputText ?? "", DigestHex, Algorithm);
+            VerifyCaption = ok ? "Match." : "No match.";
+            _status($"VerifyChecksumString {(ok ? "ok" : "failed")}");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void BrowseFile()
+    {
+        var dlg = new OpenFileDialog { Title = "Choose a file to checksum" };
+        if (dlg.ShowDialog() == true)
+        {
+            _filePath = dlg.FileName;
+            SourceLine = Path.GetFileName(_filePath);
+        }
+    }
+
+    [RelayCommand]
+    private void UseNathanSample()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHashingDemo");
+        Directory.CreateDirectory(dir);
+        _filePath = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(_filePath, "hello from Vestigium hashing");
+        SourceLine = "nathan.txt (temp sample)";
+        _status("Wrote nathan.txt sample.");
+    }
+
+    [RelayCommand]
+    private void ChecksumFile()
+    {
+        try
+        {
+            ErrorText = "";
+            if (string.IsNullOrWhiteSpace(_filePath) || !File.Exists(_filePath))
+            {
+                ErrorText = "Choose a file first.";
+                return;
+            }
+
+            var hex = HashingHelper.ChecksumFile(_filePath, Algorithm);
+            FileDigestLine = hex;
+            DigestHex = hex;
+            _status($"{HashingHelper.ChecksumName(Algorithm)} file · {hex}");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+}
+
 public sealed partial class HmacPane : ObservableObject
 {
     private readonly Action<string> _status;
@@ -280,6 +419,12 @@ public sealed partial class HmacPane : ObservableObject
     public HmacPane(Action<string> status)
     {
         _status = status;
+        Algorithm = HmacAlgorithm.Sha256;
+        var list = new[] { HmacAlgorithm.Sha256, HmacAlgorithm.Sha384, HmacAlgorithm.Sha512 };
+        AlgorithmChoices = list.Select(HashingHelper.HmacName).ToList();
+        foreach (var alg in list)
+            _map[HashingHelper.HmacName(alg)] = alg;
+        AlgorithmChoice = HashingHelper.HmacName(Algorithm);
         SizeChoices = ["16 bytes", "32 bytes (default)", "64 bytes", "128 bytes"];
         SizeChoice = SizeChoices[1];
         InputText = "Hi There";
@@ -291,7 +436,11 @@ public sealed partial class HmacPane : ObservableObject
     }
 
     public IReadOnlyList<string> SizeChoices { get; }
+    public IReadOnlyList<string> AlgorithmChoices { get; }
+    public HmacAlgorithm Algorithm { get; private set; }
+    private readonly Dictionary<string, HmacAlgorithm> _map = [];
 
+    [ObservableProperty] private string algorithmChoice = "";
     [ObservableProperty] private string sizeChoice = "";
     [ObservableProperty] private string keyBase64 = "";
     [ObservableProperty] private string typedSecret = "";
@@ -299,6 +448,16 @@ public sealed partial class HmacPane : ObservableObject
     [ObservableProperty] private string macHex = "";
     [ObservableProperty] private string verifyCaption = "";
     [ObservableProperty] private string errorText = "";
+
+    partial void OnAlgorithmChoiceChanged(string value)
+    {
+        if (_map.TryGetValue(value, out var alg))
+        {
+            Algorithm = alg;
+            MacHex = "";
+            VerifyCaption = "";
+        }
+    }
 
     [RelayCommand]
     private void Generate()
@@ -311,15 +470,26 @@ public sealed partial class HmacPane : ObservableObject
     }
 
     [RelayCommand]
+    private void LoadRfc4231()
+    {
+        TypedSecret = "";
+        KeyBase64 = Convert.ToBase64String(Enumerable.Repeat((byte)0x0b, 20).ToArray());
+        InputText = "Hi There";
+        MacHex = "";
+        VerifyCaption = "";
+        _status("Loaded RFC 4231 case 1 key and message.");
+    }
+
+    [RelayCommand]
     private void HmacString()
     {
         try
         {
             ErrorText = "";
             using var key = ResolveKey();
-            MacHex = HashingHelper.HmacString(InputText ?? "", key);
+            MacHex = HashingHelper.HmacString(InputText ?? "", key, Algorithm);
             VerifyCaption = "";
-            _status("HmacString complete.");
+            _status($"{HashingHelper.HmacName(Algorithm)} complete.");
         }
         catch (Exception ex)
         {
@@ -334,7 +504,7 @@ public sealed partial class HmacPane : ObservableObject
         {
             ErrorText = "";
             using var key = ResolveKey();
-            var ok = HashingHelper.VerifyHmacString(InputText ?? "", key, MacHex);
+            var ok = HashingHelper.VerifyHmacString(InputText ?? "", key, MacHex, Algorithm);
             VerifyCaption = ok ? "Match." : "No match.";
             _status($"VerifyHmacString {(ok ? "ok" : "failed")}");
         }

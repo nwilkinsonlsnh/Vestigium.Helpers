@@ -16,7 +16,7 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Hashing gallery"/>
-        <TextBlock Opacity="0.7" Text="SHA-256 default · SHA-2 / SHA-3 · HMAC-SHA256 · Argon2id PHC · hex ↔ Base64"/>
+        <TextBlock Opacity="0.7" Text="SHA-256 default · SHA-2 / SHA-3 · CRC / xxHash · HMAC-SHA256 / 384 / 512 · Argon2id PHC"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
@@ -28,7 +28,8 @@
       <TabItem Header="SHA-256"><ContentControl Content="{Binding Sha256}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
       <TabItem Header="SHA-384 / 512"><ContentControl Content="{Binding Sha2}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
       <TabItem Header="SHA-3"><ContentControl Content="{Binding Sha3}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
-      <TabItem Header="HMAC-SHA256"><ContentControl Content="{Binding Hmac}" ContentTemplate="{StaticResource HmacTab}"/></TabItem>
+      <TabItem Header="Checksum"><ContentControl Content="{Binding Checksum}" ContentTemplate="{StaticResource ChecksumTab}"/></TabItem>
+      <TabItem Header="HMAC"><ContentControl Content="{Binding Hmac}" ContentTemplate="{StaticResource HmacTab}"/></TabItem>
       <TabItem Header="Password"><ContentControl Content="{Binding Password}" ContentTemplate="{StaticResource PasswordTab}"/></TabItem>
       <TabItem Header="MD5 / SHA-1"><ContentControl Content="{Binding Interop}" ContentTemplate="{StaticResource HashTab}"/></TabItem>
       <TabItem Header="Convert"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ConvertTab}"/></TabItem>

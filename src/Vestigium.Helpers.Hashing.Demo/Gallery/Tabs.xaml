@@ -3,10 +3,10 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-HASH  ·  SRS v1.0"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-HASH  ·  SRS v1.2"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Digests, HMAC-SHA256, and Argon2id password verifiers. SHA-256 is the default and prints lowercase hex. Convert hex to Base64 when a host needs JSON. This is not Encryption: no Seal, no envelope, no trailer fill this milestone. HMAC lives here — there is no Helpers.Hmac project."/>
+                   Text="Digests, HMAC-SHA256 / SHA-384 / SHA-512, Argon2id password verifiers, and non-cryptographic checksums. SHA-256 is the default and prints lowercase hex. HMAC-SHA256 is the default MAC. Convert hex to Base64 when a host needs JSON. CRC-32 / CRC-64 / xxHash live on Checksum*, never Hash(). This is not Encryption: no Seal, no envelope, no trailer fill. HMAC lives here — there is no Helpers.Hmac project."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
@@ -18,8 +18,8 @@
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
               <TextBlock Style="{StaticResource Caption}" Text="KEYED"/>
-              <TextBlock FontWeight="SemiBold" Text="HMAC-SHA256"/>
-              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Min 16-byte key. Generate default 32. Enum 16 / 32 / 64 / 128."/>
+              <TextBlock FontWeight="SemiBold" Text="HMAC-SHA256 / 384 / 512"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Default SHA-256. Min 16-byte key. Generate default 32. RFC 4231."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">
@@ -27,6 +27,13 @@
               <TextBlock Style="{StaticResource Caption}" Text="PASSWORD"/>
               <TextBlock FontWeight="SemiBold" Text="Argon2id PHC"/>
               <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="19 MiB / t=2 / p=1. Not Encryption’s 64 MiB content-key KDF."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="CHECKSUM"/>
+              <TextBlock FontWeight="SemiBold" Text="CRC-32 / CRC-64 / xxHash"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Catalogue hex. Seed 0. Integrity only — never authenticate with these."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">
@@ -86,16 +93,51 @@
     </ScrollViewer>
   </DataTemplate>
 
+  <DataTemplate x:Key="ChecksumTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="CHECKSUM  ·  NOT A HASH"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Non-cryptographic checksums. CRC-32 is IEEE / ISO-HDLC (PKZIP, PNG). CRC-64 is ECMA-182, not XZ. xxHash seed is 0. These do not authenticate — use HMAC-SHA256 / SHA-384 / SHA-512 or SHA-256 against an adversary. Named methods: ChecksumCrc32, ChecksumCrc64, ChecksumXxHash (XXH64)."/>
+        <ComboBox ItemsSource="{Binding AlgorithmChoices}" SelectedItem="{Binding AlgorithmChoice}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="STRING"/>
+        <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                 Height="72" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        <WrapPanel>
+          <Button Content="{Binding NamedMethod}" Command="{Binding ChecksumStringCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="VerifyChecksumString" Command="{Binding VerifyStringCommand}"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="CHECKSUM (hex lower)"/>
+        <TextBox IsReadOnly="True" Text="{Binding DigestHex}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap" Height="56" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock Text="{Binding VerifyCaption}" FontFamily="Cascadia Mono, Consolas"/>
+
+        <TextBlock Style="{StaticResource Caption}" Text="FILE"/>
+        <TextBlock Opacity="0.85" Text="{Binding SourceLine}" TextWrapping="Wrap"/>
+        <WrapPanel>
+          <Button Content="Choose file…" Command="{Binding BrowseFileCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Use nathan.txt" Command="{Binding UseNathanSampleCommand}"/>
+          <Button Content="ChecksumFile" Command="{Binding ChecksumFileCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.85" Text="{Binding FileDigestLine}" TextWrapping="Wrap"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
   <DataTemplate x:Key="HmacTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="HMAC-SHA256"/>
+        <TextBlock Style="{StaticResource Id}" Text="HMAC-SHA256 / SHA-384 / SHA-512"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Keyed SHA-256. Generate a random key (16 / 32 / 64 / 128 bytes) or type a UTF-8 secret of at least 16 bytes. FromBase64 decodes a generated key; FromString would hash the letters — the gallery uses FromBase64 for generated keys."/>
+                   Text="HMAC-SHA256 is the default (32 bytes). SHA-384 is 48, SHA-512 is 64. Generate a random key (16 / 32 / 64 / 128 bytes) or type a UTF-8 secret of at least 16 bytes. FromBase64 decodes a generated key; FromString would hash the letters. RFC 4231 case 1 is a 20-byte 0x0b key and the message Hi There."/>
+        <TextBlock Style="{StaticResource Caption}" Text="ALGORITHM"/>
+        <ComboBox ItemsSource="{Binding AlgorithmChoices}" SelectedItem="{Binding AlgorithmChoice}"/>
         <TextBlock Style="{StaticResource Caption}" Text="KEY SIZE"/>
         <ComboBox ItemsSource="{Binding SizeChoices}" SelectedItem="{Binding SizeChoice}"/>
         <WrapPanel>
           <Button Content="Generate key" Command="{Binding GenerateCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="RFC 4231 case 1" Command="{Binding LoadRfc4231Command}"/>
         </WrapPanel>
         <TextBlock Style="{StaticResource Caption}" Text="GENERATED KEY (Base64)"/>
         <TextBox IsReadOnly="True" Text="{Binding KeyBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"/>

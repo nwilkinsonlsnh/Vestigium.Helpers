@@ -1,9 +1,9 @@
 # Vestigium.Helpers.Hashing — Requirements Specification
 
 **Document ID:** VEST-HLP-HASH-SRS-000  
-**Version:** 1.0  
-**Status:** Accepted. Implemented v1.0 (SHA-2, SHA-3, HMAC-SHA256, Argon2id PHC, hex↔Base64 converters).  
-**Date:** 8 September 2026  
+**Version:** 1.2  
+**Status:** Accepted. Implemented v1.2 (SHA-2, SHA-3, HMAC-SHA256 / SHA-384 / SHA-512, Argon2id PHC, CRC-32 / CRC-64 / xxHash, hex↔Base64 converters).  
+**Date:** 9 September 2026  
 **Package:** `Vestigium.Helpers.Hashing`  
 **TFM:** `net10.0` (not Windows-only)  
 **Companion:** [`DevelopersGuide_v1.0.md`](DevelopersGuide_v1.0.md)
@@ -14,16 +14,19 @@ This replaces the 8 September 2026 skeleton note. If implementation and this fil
 
 ## 1. Purpose
 
-String and file **digests**, keyed **HMAC-SHA256**, and **password verifiers** for Vestigium hosts. Integrity checks, cache keys, “did this capture change,” shared MAC secrets, stored credentials.
+String and file **digests**, keyed **HMAC-SHA256 / SHA-384 / SHA-512**, **password verifiers**, and non-cryptographic **checksums** for Vestigium hosts. Integrity checks, cache keys, “did this capture change,” shared MAC secrets, stored credentials.
 
 This library does **not** encrypt. Encryption Seals. Hashing digests. Neither project grows the other’s APIs. There is **no** `Vestigium.Helpers.Hmac` project — HMAC lives here.
 
 ```csharp
 var hex = HashingHelper.HashString("abc");                 // SHA-256 lowercase hex
+var crc = HashingHelper.ChecksumCrc32("123456789");        // cbf43926
+var xxh = HashingHelper.ChecksumXxHash("abc");             // XXH64
 var b64 = HashingConvert.HexToBase64(hex);
 var file = HashingHelper.HashFile(path);                   // streams; no ReadAllBytes
 using var key = HmacKey.Generate();                        // 32 random bytes
-var mac = HashingHelper.HmacFile(path, key);
+var mac = HashingHelper.HmacFile(path, key);               // HMAC-SHA256
+var mac384 = HashingHelper.HmacString(msg, key, HmacAlgorithm.Sha384);
 var phc = HashingHelper.HashPassword("correct horse");
 HashingHelper.VerifyPassword("correct horse", phc);        // true
 ```
@@ -37,17 +40,17 @@ HashingHelper.VerifyPassword("correct horse", phc);        // true
 | 1 | Default digest | **SHA-256**. Empty input is legal (FIPS vector). |
 | 2 | SHA-2 family | SHA-256, SHA-384, SHA-512. |
 | 3 | SHA-3 family | SHA3-256 / 384 / 512. Opt-in. Default stays SHA-256. SHA3-256 is not “SHA-256 version 3.” OS-gated (`SHA3_256.IsSupported`). |
-| 4 | HMAC | **HMAC-SHA256** in this library. No sibling Hmac project. Encryption structural `mac` and CBC frame HMAC stay Encryption. |
+| 4 | HMAC | **HMAC-SHA256 default.** HMAC-SHA384 / HMAC-SHA512 opt-in via `HmacAlgorithm`. No sibling Hmac project. Encryption structural `mac` and CBC frame HMAC stay Encryption. |
 | 5 | HMAC keys | UTF-8 string or bytes. **Min 16 bytes.** Generate default **32**. Enum `HmacKeySize`: 16 / 32 / 64 / 128. No silent KDF. `FromBase64` ≠ `FromString`. |
 | 6 | MD5 / SHA-1 | Named interop (`HashMd5`, `HashSha1` / enum 10 and 11). **Never default.** |
 | 7 | Password | **Argon2id PHC** this milestone. `$argon2id$v=19$m=19456,t=2,p=1$…`. Not Encryption’s content-key KDF (64 MiB / t=3 / p=1). |
 | 8 | Password length | 8–128 characters. Unique 16-byte salt every hash. Verify uses **stored** m,t,p. Cap on verify: m ≤ 64 MiB, t ≤ 10, p ≤ 4. |
 | 9 | Text default | **Lowercase hex** (FIPS / sha256sum). Caller may request HexUpper, Base64, Base64Url. |
 | 10 | Converters | `HashingConvert.HexToBase64` / `Base64ToHex` / URL variants. Password PHC ignores the format enum. |
-| 11 | Checksums | CRC32 / CRC64 / xxHash are **roadmap**, `Checksum*` family, never `Hash()`. |
+| 11 | Checksums | **v1.1.** CRC-32 (IEEE / ISO-HDLC, PKZIP, PNG), CRC-64/ECMA-182 (BCL `Crc64`, not XZ), XXH32 / XXH64 / XXH3. `Checksum*` family, **never** `Hash()`. Engine `System.IO.Hashing`, seed 0. Default checksum CRC-32. Catalogue (big-endian) lowercase hex. These do **not** authenticate. |
 | 12 | Trailer fill | **Not this milestone.** Encryption already reserves 32-byte `sha256` and `hmacSha256` slots (zeros). A later Encryption revision consumes Hashing output. Hashing does not reference Encryption. |
 | 13 | HMAC coverage A/B/C | Later Encryption Seal option (ciphertext frames / header+frames / plaintext). Mode stored in the trailer. Hashing HMAC is always “these bytes + this key.” |
-| 14 | Engine | BCL (`SHA256`, `SHA384`, `SHA512`, `SHA3_*`, `HMACSHA256`, `IncrementalHash`, `MD5`, `SHA1`). Argon2id: `Konscious.Security.Cryptography.Argon2` (same package Encryption uses). No home-grown hashes. |
+| 14 | Engine | BCL (`SHA256`, `SHA384`, `SHA512`, `SHA3_*`, `HMACSHA256`, `HMACSHA384`, `HMACSHA512`, `IncrementalHash`, `MD5`, `SHA1`). Argon2id: `Konscious.Security.Cryptography.Argon2` (same package Encryption uses). Checksums: `System.IO.Hashing` (`Crc32`, `Crc64`, `XxHash32`, `XxHash64`, `XxHash3`). No home-grown hashes. |
 | 15 | Large files | Stream, 64 KiB buffer. Never `File.ReadAllBytes` a capture. |
 | 16 | Logging | `HelperLog` APPID `Hashing`. Library never calls `Initialize`. **ALCOA+**: Pending then Success/Failed. Log alg, byte counts, **visible path name**, file digest hex. Never input string, HMAC key, password, salt, PHC — even at Debug. |
 | 17 | Strings | UTF-8 no BOM. |
@@ -57,13 +60,15 @@ HashingHelper.VerifyPassword("correct horse", phc);        // true
 
 ## 3. Goals
 
-**G1.** One façade (`HashingHelper`) owns Identity, Probe, Hash, HMAC, password, verify.  
+**G1.** One façade (`HashingHelper`) owns Identity, Probe, Hash, HMAC, password, checksum, verify.  
 **G2.** Default `HashString` / `HashFile` is SHA-256 lowercase hex.  
 **G3.** File APIs stream 64 KiB. Empty files are legal.  
 **G4.** HMAC cannot be called without a key.  
 **G5.** `HashPassword` never returns SHA-256(password).  
-**G6.** Probe is in-memory: SHA-256 of `"abc"` matches FIPS, HMAC generate runs, converters run. Probe does not HashPassword (cost). Probe does not write Desktop.  
-**G7.** Keep `Identity` and `Probe()` so existing smoke tests stay green.
+**G6.** Probe is in-memory: SHA-256 of `"abc"` matches FIPS, HMAC generate runs, HMAC-SHA384 RFC 4231 case 1 runs, converters run, CRC-32 of `"123456789"` is `cbf43926`. Probe does not HashPassword (cost). Probe does not write Desktop.  
+**G7.** Keep `Identity` and `Probe()` so existing smoke tests stay green.  
+**G8.** `ChecksumCrc32` / `ChecksumCrc64` / `ChecksumXxHash` (XXH64) never share `Hash()`; checksums are not cryptographic.  
+**G9.** Default `HmacString` / `HmacFile` is HMAC-SHA256. HMAC-SHA384 / HMAC-SHA512 are opt-in and never the default.
 
 ---
 
@@ -92,17 +97,39 @@ public static class HashingHelper
     public static string HashMd5(string text, HashingTextFormat format = HexLower);
     public static string HashSha1(string text, HashingTextFormat format = HexLower);
 
+    public static string ChecksumName(ChecksumAlgorithm algorithm);
+    public static int ChecksumLength(ChecksumAlgorithm algorithm);
+    public static string ChecksumCrc32(string text, HashingTextFormat format = HexLower);
+    public static string ChecksumCrc64(string text, HashingTextFormat format = HexLower);
+    public static string ChecksumXxHash(string text, HashingTextFormat format = HexLower); // XXH64
+    public static string ChecksumString(string text, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower);
+    public static string ChecksumBytes(ReadOnlySpan<byte> data, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower);
+    public static byte[] ChecksumData(ReadOnlySpan<byte> data, ChecksumAlgorithm algorithm = Crc32);
+    public static string ChecksumFile(string path, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower);
+    public static string ChecksumFile(Stream stream, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower, string? pathName = null);
+    public static Task<string> ChecksumFileAsync(Stream stream, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower, string? pathName = null, CancellationToken ct = default);
+    public static bool VerifyChecksumString(string text, string expected, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower);
+    public static bool VerifyChecksumFile(string path, string expected, ChecksumAlgorithm algorithm = Crc32, HashingTextFormat format = HexLower);
+
     public static bool VerifyString(string text, string expected, HashingAlgorithm algorithm = Sha256, HashingTextFormat format = HexLower);
     public static bool VerifyBytes(ReadOnlySpan<byte> data, string expected, HashingAlgorithm algorithm = Sha256, HashingTextFormat format = HexLower);
     public static bool VerifyFile(string path, string expected, HashingAlgorithm algorithm = Sha256, HashingTextFormat format = HexLower);
 
+    public static string HmacName(HmacAlgorithm algorithm);
+    public static int HmacLength(HmacAlgorithm algorithm);
     public static string HmacString(string text, HmacKey key, HashingTextFormat format = HexLower);
+    public static string HmacString(string text, HmacKey key, HmacAlgorithm algorithm, HashingTextFormat format = HexLower);
     public static string HmacBytes(ReadOnlySpan<byte> data, HmacKey key, HashingTextFormat format = HexLower);
-    public static byte[] HmacData(ReadOnlySpan<byte> data, HmacKey key);
+    public static string HmacBytes(ReadOnlySpan<byte> data, HmacKey key, HmacAlgorithm algorithm, HashingTextFormat format = HexLower);
+    public static byte[] HmacData(ReadOnlySpan<byte> data, HmacKey key, HmacAlgorithm algorithm = Sha256);
     public static string HmacFile(string path, HmacKey key, HashingTextFormat format = HexLower);
+    public static string HmacFile(string path, HmacKey key, HmacAlgorithm algorithm, HashingTextFormat format = HexLower);
     public static string HmacFile(Stream stream, HmacKey key, HashingTextFormat format = HexLower, string? pathName = null);
+    public static string HmacFile(Stream stream, HmacKey key, HmacAlgorithm algorithm, HashingTextFormat format = HexLower, string? pathName = null);
     public static bool VerifyHmacString(string text, HmacKey key, string expected, HashingTextFormat format = HexLower);
+    public static bool VerifyHmacString(string text, HmacKey key, string expected, HmacAlgorithm algorithm, HashingTextFormat format = HexLower);
     public static bool VerifyHmacFile(string path, HmacKey key, string expected, HashingTextFormat format = HexLower);
+    public static bool VerifyHmacFile(string path, HmacKey key, string expected, HmacAlgorithm algorithm, HashingTextFormat format = HexLower);
 
     public static string HashPassword(string password);          // PHC
     public static bool VerifyPassword(string password, string stored);
@@ -143,7 +170,21 @@ public sealed class HmacKey : IDisposable
 | Md5 | 16 | interop | `HashMd5` |
 | Sha1 | 20 | interop | `HashSha1` |
 
-HMAC-SHA256 digest is always 32 bytes. HMAC-SHA384/512 are later.
+HMAC-SHA256 digest is always 32 bytes. HMAC-SHA384 is 48. HMAC-SHA512 is 64. Default `HmacString` stays HMAC-SHA256.
+
+```csharp
+public enum HmacAlgorithm { Sha256 = 1, Sha384 = 2, Sha512 = 3 }
+```
+
+Checksums (v1.1):
+
+| Enum | Output | Named method | Notes |
+|---|---|---|---|
+| Crc32 | 4 | `ChecksumCrc32` | IEEE / ISO-HDLC. Catalogue hex `cbf43926` for `"123456789"`. |
+| Crc64 | 8 | `ChecksumCrc64` | ECMA-182, not XZ. Catalogue hex `6c40df5f0b497347`. |
+| XxHash32 | 4 | `ChecksumString(..., XxHash32)` | Seed 0. |
+| XxHash64 | 8 | `ChecksumXxHash` | Seed 0. The “xxHash” named method. |
+| XxHash3 | 8 | `ChecksumString(..., XxHash3)` | 64-bit XXH3, seed 0. |
 
 ---
 
@@ -163,8 +204,8 @@ HMAC-SHA256 digest is always 32 bytes. HMAC-SHA384/512 are later.
 ## 7. Logging (ALCOA+)
 
 - APPID `Hashing`. Category Helpers.
-- File Hash / HMAC: log alg, visible file name, byte count, **digest hex** (the audit record).
-- String Hash / HMAC: log alg and byte count. **Not** the digest (it might be a hashed secret). **Not** the input.
+- File Hash / HMAC / Checksum: log alg, visible file name, byte count, **digest hex** (the audit record).
+- String Hash / HMAC / Checksum: log alg and byte count. **Not** the digest (it might be a hashed secret). **Not** the input.
 - Password: `"password hashed"` / `"password verify ok|failed"`. Never PHC, never salt, never password.
 - HMAC generate: log `keyBytes=32`. Never the key hex/Base64.
 - `HashingLog.Safe` redacts `$argon2`, PEM, `password=`, `hmac-key=`, `salt=`.
@@ -176,7 +217,7 @@ HMAC-SHA256 digest is always 32 bytes. HMAC-SHA384/512 are later.
 
 `Vestigium.Helpers.Hashing.Demo` is a WPF gallery (`HelperWpfHost.Start` APPID `Hashing`).
 
-Tabs: Overview, SHA-256, SHA-384/512, SHA-3, HMAC-SHA256, Password, MD5/SHA-1 (warning), Convert, JSONL.
+Tabs: Overview, SHA-256, SHA-384/512, SHA-3, Checksum, HMAC (SHA-256 / 384 / 512), Password, MD5/SHA-1 (warning), Convert, JSONL.
 
 String + real file. Convert tab is hex ↔ Base64. Password tab uses a throwaway (`gallery-demo-only`) and must not log it.
 
@@ -193,10 +234,16 @@ JSONL: `%ProgramData%\Vestigium\Logs\Hashing\`
 - SHA3-256 `"abc"` when `IsSupported`; skip if not.
 - MD5 / SHA-1 named interop vectors. `IsInterop` true only for those two.
 - File > 64 KiB matches `SHA256.HashData` of the same bytes.
-- HMAC RFC 4231 case 1 (20-byte `0x0b` key, `"Hi There"`).
+- HMAC RFC 4231 case 1 (20-byte `0x0b` key, `"Hi There"`) for SHA-256, SHA-384, and SHA-512.
+- HMAC-SHA384 / HMAC-SHA512 are not the default of `HmacString`.
+- File HMAC > 64 KiB matches in-memory `HmacBytes` for SHA-256 / 384 / 512.
 - HMAC key < 16 bytes throws. Generate 16/32/64/128.
 - `FromBase64` of a generated key ≠ `FromString` of the same Base64 letters.
 - Argon2id PHC prefix `m=19456,t=2,p=1`. Verify true/false. Short password throws.
+- CRC-32 empty = `00000000`; `"123456789"` = `cbf43926`. CRC-64 `"123456789"` = `6c40df5f0b497347`.
+- XXH32 / XXH64 / XXH3 `"abc"` published vectors. `ChecksumXxHash` is XXH64.
+- File checksum > 64 KiB matches in-memory `ChecksumBytes` of the same payload.
+- `ChecksumCrc32` is not `HashString` of the same input.
 - JSONL after HashPassword / HMAC does not contain the password, PHC, or key hex.
 - Tests never use the real Desktop or live ProgramData.
 
@@ -208,7 +255,6 @@ JSONL: `%ProgramData%\Vestigium\Logs\Hashing\`
 |---|---|
 | Encryption / Seal / Open | Sibling Encryption. |
 | Filling trailer slots | Encryption v1.3. Hashing only *produces* 32-byte digests. |
-| CRC / xxHash | Roadmap `Checksum*`. |
 | HMAC-SHA3 / KMAC / SHAKE | Nobody asked. |
 | BLAKE3 | Not BCL. |
 | Password pepper | Hosts would store it next to the PHC. |
@@ -238,11 +284,11 @@ There is **no** `Vestigium.Helpers.Hmac` project.
 
 | Version | Work |
 |---|---|
-| v1.0 (this) | SHA-2, SHA-3, HMAC-SHA256, Argon2id PHC, converters, gallery |
-| later | `ChecksumCrc32` / `ChecksumCrc64` / xxHash |
-| later | HMAC-SHA384 / HMAC-SHA512 |
+| v1.0 | SHA-2, SHA-3, HMAC-SHA256, Argon2id PHC, converters, gallery |
+| v1.1 | `ChecksumCrc32` / `ChecksumCrc64` / `ChecksumXxHash` (XXH32 / XXH64 / XXH3) |
+| v1.2 (this) | HMAC-SHA384 / HMAC-SHA512 |
 | Encryption v1.3 | `embedPlaintextSha256`; `callerMacKey` + `HmacCoverage` A/B/C; `trailerMinor` bump |
-| later | SHAKE / KMAC if a host asks |
+| later | HMAC-SHA3 / KMAC / SHAKE if a host asks |
 
 ---
 
@@ -251,7 +297,7 @@ There is **no** `Vestigium.Helpers.Hmac` project.
 | Term | Meaning |
 |---|---|
 | Digest | Unkeyed hash of caller bytes |
-| HMAC | Keyed SHA-256 of caller bytes |
+| HMAC | Keyed SHA-2 MAC of caller bytes (SHA-256 default, SHA-384 / SHA-512 opt-in) |
 | PHC | Password Hashing Competition string (`$argon2id$…`) |
 | Coverage A/B/C | Later Encryption HMAC slot: ciphertext / header+frames / plaintext |
 | Interop | MD5 / SHA-1, never default |
