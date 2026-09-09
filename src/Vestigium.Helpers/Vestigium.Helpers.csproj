@@ -17,4 +17,7 @@
       <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="_Documentation\Reports\" />
+  </ItemGroup>
 </Project>
