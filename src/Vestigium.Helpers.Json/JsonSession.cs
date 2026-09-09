@@ -7,7 +7,7 @@ namespace Vestigium.Helpers.Json;
 
 /// <summary>
 /// Owns one working tree and one committed tree. Not thread-safe — one session, one owner.
-/// Phase 2 is in-memory: Snapshot, Set, Diff, Commit, Revert, Cancel. Files start at Phase 3.
+/// Phase 3 adds Open/Save/SaveAs with atomic replace. JSONL starts at Phase 4.
 /// </summary>
 public sealed class JsonSession : IDisposable
 {
@@ -38,7 +38,7 @@ public sealed class JsonSession : IDisposable
 
     public string SessionId { get; }
 
-    public string? Path { get; }
+    public string? Path { get; private set; }
 
     public JsonDocumentKind Kind { get; }
 
@@ -154,6 +154,30 @@ public sealed class JsonSession : IDisposable
         HelperLog.Information(App, VestigiumStatus.Success, HelperLog.Subcategories.Commit, $"Cancel session={SessionId}");
     }
 
+    public string Save()
+    {
+        ThrowIfDisposed();
+        if (string.IsNullOrWhiteSpace(Path))
+            return SaveAs(JsonHelper.NewExportPath(), Options.Collision);
+        return WriteTree(_committed, Path, replaceInPlace: true, Options.Collision, working: false, "Save");
+    }
+
+    public string SaveWorking()
+    {
+        ThrowIfDisposed();
+        var target = string.IsNullOrWhiteSpace(Path) ? JsonHelper.NewExportPath() : Path;
+        var replace = JsonIO.SamePath(Path, target);
+        return WriteTree(_working, target, replace, Options.Collision, working: true, "SaveWorking");
+    }
+
+    public string SaveAs(string path, JsonCollision collision = JsonCollision.Fail)
+    {
+        ThrowIfDisposed();
+        var target = System.IO.Path.GetFullPath(HelperGuard.NotBlank(path, nameof(path)));
+        var replace = JsonIO.SamePath(Path, target);
+        return WriteTree(_committed, target, replace, collision, working: false, "SaveAs");
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -164,6 +188,49 @@ public sealed class JsonSession : IDisposable
             VestigiumStatus.Success,
             HelperLog.Subcategories.Session,
             $"disposed session={SessionId}");
+    }
+
+    private string WriteTree(JsonNode tree, string path, bool replaceInPlace, JsonCollision collision, bool working, string method)
+    {
+        using var scope = HelperLog.Begin(App, HelperLog.Subcategories.Save, method, $"path={path} session={SessionId}", SessionId);
+        try
+        {
+            JsonIO.RejectCollision(path, collision, replaceInPlace);
+            var bytes = JsonIO.Write(path, tree, indented: true, Options.AtomicWrite);
+            Path = path;
+            _saved = tree.DeepClone();
+            if (working)
+            {
+                HelperLog.Warning(
+                    App,
+                    VestigiumStatus.Success,
+                    HelperLog.Subcategories.Save,
+                    $"SaveWorking path={path} bytes={bytes} collision={collision} atomic={Options.AtomicWrite} session={SessionId}");
+            }
+            else
+            {
+                HelperLog.Information(
+                    App,
+                    VestigiumStatus.Success,
+                    HelperLog.Subcategories.Save,
+                    $"Saved path={path} bytes={bytes} collision={collision} atomic={Options.AtomicWrite} session={SessionId}");
+            }
+
+            return path;
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (IOException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     private void ThrowIfDisposed() => HelperGuard.NotDisposed(_disposed, this);

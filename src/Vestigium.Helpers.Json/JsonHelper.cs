@@ -7,7 +7,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Json;
 
 /// <summary>
-/// System.Text.Json helpers for payload documents. Phase 2: typed serialize, path parse, in-memory session.
+/// System.Text.Json helpers for payload documents. Phase 3: files, atomic replace, export folder.
 /// The class library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class JsonHelper
@@ -24,6 +24,32 @@ public static class JsonHelper
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Probe, "JSON probe complete. Identity=" + Identity);
         HelperLog.Exit(app, HelperLog.Subcategories.Probe, "Probe", $"chars={json.Length}");
         return Identity;
+    }
+
+    public static string DefaultExportDirectory()
+    {
+        if (!string.IsNullOrWhiteSpace(JsonTestHooks.ExportRoot))
+            return Path.GetFullPath(JsonTestHooks.ExportRoot);
+
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        if (string.IsNullOrWhiteSpace(desktop))
+            desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        if (string.IsNullOrWhiteSpace(desktop))
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
+        }
+
+        return Path.Combine(desktop, "Vestigium", "Exports", "Json");
+    }
+
+    public static string NewExportPath(string? stem = null, JsonDocumentKind kind = JsonDocumentKind.Json)
+    {
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+        var name = string.IsNullOrWhiteSpace(stem)
+            ? $"vestigium-Json-{stamp}"
+            : stem.Trim();
+        return JsonIO.ResolveExportFile(DefaultExportDirectory(), name, kind);
     }
 
     public static string ToJson<T>(T value, JsonWriteOptions? options = null)
@@ -208,13 +234,101 @@ public static class JsonHelper
         try
         {
             HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Creating a blank JSON session={sessionId}");
-            var stored = string.IsNullOrWhiteSpace(path) ? null : path.Trim();
+            var stored = string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
             return new JsonSession(
                 new JsonObject(),
                 stored,
                 JsonDocumentKind.Json,
                 options ?? new JsonSessionOptions(),
                 sessionId);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
+    public static JsonSession Open(string path, JsonSessionOptions? options = null)
+    {
+        var app = HelperLog.AppIds.Json;
+        var sessionId = HelperLog.NewId();
+        var target = Path.GetFullPath(HelperGuard.FileExists(path, nameof(path)));
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
+        try
+        {
+            HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Opening JSON path={target} session={sessionId}");
+            var node = JsonIO.Read(target);
+            var bytes = new FileInfo(target).Length;
+            HelperLog.Information(
+                app,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Document,
+                $"Open kind={(node is JsonObject ? "object" : node is JsonArray ? "array" : "value")} path={target} bytes={bytes} session={sessionId}");
+            return new JsonSession(node, target, JsonDocumentKind.Json, options ?? new JsonSessionOptions(), sessionId);
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (JsonException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
+    public static JsonSession OpenExport(string stem, JsonDocumentKind kind = JsonDocumentKind.Json, JsonSessionOptions? options = null)
+    {
+        var name = HelperGuard.NotBlank(stem, nameof(stem));
+        if (kind == JsonDocumentKind.Jsonl)
+        {
+            HelperLog.Reject("jsonl open is not available");
+            throw new InvalidOperationException("OpenJsonl ships in Phase 4.");
+        }
+
+        return Open(JsonIO.ResolveExportFile(DefaultExportDirectory(), name, kind), options);
+    }
+
+    public static void WriteFile<T>(string path, T value, JsonWriteOptions? options = null)
+    {
+        var app = HelperLog.AppIds.Json;
+        var target = Path.GetFullPath(HelperGuard.NotBlank(path, nameof(path)));
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Save, "WriteFile", "path=" + target);
+        try
+        {
+            if (value is null)
+            {
+                HelperLog.Reject("value is null");
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            var opts = options ?? new JsonWriteOptions();
+            JsonIO.RejectCollision(target, opts.Collision, replaceInPlace: false);
+            var node = JsonCodec.ToNode(value)
+                ?? throw new JsonException("RFC 8259 JSON null is not a document root.");
+            var bytes = JsonIO.Write(target, node, opts.WriteIndented, opts.AtomicWrite);
+            HelperLog.Information(
+                app,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Save,
+                $"WriteFile path={target} bytes={bytes} collision={opts.Collision} atomic={opts.AtomicWrite}");
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (IOException)
+        {
+            throw;
+        }
+        catch (JsonException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
