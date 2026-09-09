@@ -588,6 +588,133 @@ public sealed class WorkbookSessionTests
         Assert.Contains(xml, x => x.Contains("c:scatterChart", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void SheetChrome_default_is_bold_freeze_filter_print()
+    {
+        var chrome = SheetChrome.Default;
+        Assert.True(chrome.BoldHeader);
+        Assert.True(chrome.FreezeHeader);
+        Assert.True(chrome.AutoFilter);
+        Assert.True(chrome.OperatorPrint);
+        Assert.Null(chrome.TabColor);
+    }
+
+    [Fact]
+    public void ApplyChrome_on_empty_sheet_sets_tab_and_print()
+    {
+        var path = TempXlsx();
+        using (var book = WorkbookHelper.Create("Blank", "ClosedXml"))
+        {
+            book.Sheet("Blank").ApplyChrome(new SheetChrome
+            {
+                TabColor = "#112233",
+                OperatorPrint = true
+            });
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        var ws = wb.Worksheet("Blank");
+        Assert.Equal(XLColor.FromHtml("#112233"), ws.TabColor);
+        Assert.Equal(XLPageOrientation.Landscape, ws.PageSetup.PageOrientation);
+    }
+
+    [Fact]
+    public void ApplyChrome_on_written_sheet_freezes_filters_and_can_skip_chrome()
+    {
+        var path = TempXlsx();
+        using (var book = WorkbookHelper.Create("Data", "ClosedXml"))
+        {
+            book.Sheet("Data").WriteTable(
+                SheetTable.Create(["Name", "Value"], [["a", 1], ["b", 2]]),
+                new SheetWriteOptions { CreateExcelTable = false, Autosize = false, FreezeHeader = false, AutoFilter = false, OperatorPrint = false });
+            book.Sheet("Data").ApplyChrome(new SheetChrome
+            {
+                BoldHeader = true,
+                FreezeHeader = true,
+                AutoFilter = true,
+                TabColor = "#3EC6FF",
+                OperatorPrint = true
+            });
+            book.SaveAs(path);
+        }
+
+        using var wb = new XLWorkbook(path);
+        var ws = wb.Worksheet("Data");
+        Assert.True(ws.SheetView.SplitRow >= 1);
+        Assert.True(ws.AutoFilter.IsEnabled);
+        Assert.Equal(XLColor.FromHtml("#3EC6FF"), ws.TabColor);
+        Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+    }
+
+    [Fact]
+    public void ApplyChrome_can_turn_features_off()
+    {
+        using var book = WorkbookHelper.Create("Data", "ClosedXml");
+        book.Sheet("Data").WriteTable(
+            SheetTable.Create(["X"], [[1]]),
+            new SheetWriteOptions { CreateExcelTable = false, FreezeHeader = false, AutoFilter = false, OperatorPrint = false });
+        book.Sheet("Data").ApplyChrome(new SheetChrome
+        {
+            BoldHeader = false,
+            FreezeHeader = false,
+            AutoFilter = false,
+            OperatorPrint = false
+        });
+        Assert.Equal("Data", book.Sheet("Data").Name);
+    }
+
+    [Fact]
+    public void WriteTable_covers_numeric_date_guid_and_null_cells()
+    {
+        var path = TempXlsx();
+        var utc = new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero);
+        var guid = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        using (var book = WorkbookHelper.Create("Types", "ClosedXml"))
+        {
+            book.Sheet("Types").WriteTable(SheetTable.Create(
+                ["Byte", "Short", "ULong", "Dec", "When", "Id", "Blank"],
+                [
+                    [(byte)7, (short)-2, ((ulong)long.MaxValue) + 1UL, 1.25m, utc, guid, null]
+                ]),
+                new SheetWriteOptions { CreateExcelTable = false, Autosize = false });
+            book.SaveAs(path);
+        }
+
+        using var reopen = WorkbookHelper.Open(path, "ClosedXml");
+        var table = reopen.Sheet("Types").ReadUsedRange();
+        Assert.Equal(7d, Convert.ToDouble(table.Rows[0][0], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(-2d, Convert.ToDouble(table.Rows[0][1], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Null(table.Rows[0][6]);
+        Assert.Equal("blank", SheetTable.CellKind(null));
+    }
+
+    [Fact]
+    public void Highlight_on_empty_sheet_throws()
+    {
+        using var book = WorkbookHelper.Create("Blank", "ClosedXml");
+        var empty = Assert.Throws<InvalidOperationException>(() => book.Sheet("Blank").HighlightGreaterThan("X", 1));
+        Assert.Contains("no used range", empty.Message, StringComparison.Ordinal);
+        book.Sheet("Blank").WriteTable(SheetTable.Create(["X"], [[1]]));
+        var missing = Assert.Throws<ArgumentException>(() => book.Sheet("Blank").HighlightGreaterThan("Nope", 1));
+        Assert.Contains("Nope", missing.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SheetTable_create_rejects_empty_headers()
+        => Assert.Throws<ArgumentException>(() => SheetTable.Create([], [[1]]));
+
+    [Fact]
+    public void RemoveSheet_keeps_one_worksheet()
+    {
+        using var book = WorkbookHelper.Create("A", "ClosedXml");
+        book.AddSheet("B");
+        Assert.True(book.RemoveSheet("B"));
+        Assert.False(book.RemoveSheet("Nope"));
+        var last = Assert.Throws<InvalidOperationException>(() => book.RemoveSheet("A"));
+        Assert.Contains("at least one worksheet", last.Message, StringComparison.Ordinal);
+    }
+
     private static string TinyPngPath()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));

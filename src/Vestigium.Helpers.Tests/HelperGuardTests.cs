@@ -234,6 +234,73 @@ public sealed class HelperGuardTests
         }
     }
 
+    [Fact]
+    public void NotEmpty_InRange_Finite_and_state_guards()
+    {
+        Assert.Throws<ArgumentNullException>(() => HelperGuard.NotEmpty<int>(null, "items"));
+        var empty = Assert.Throws<ArgumentException>(() => HelperGuard.NotEmpty(Array.Empty<int>(), "items"));
+        Assert.Equal("items", empty.ParamName);
+        Assert.Contains("Value must contain at least one item.", empty.Message);
+        Assert.Equal([1], HelperGuard.NotEmpty(new[] { 1 }, "items"));
+
+        var range = Assert.Throws<ArgumentOutOfRangeException>(() => HelperGuard.InRange(0, 1, "row"));
+        Assert.Equal("row", range.ParamName);
+        Assert.Contains("row must be at least 1", range.Message, StringComparison.Ordinal);
+        Assert.Equal(2, HelperGuard.InRange(2, 1, "row"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => HelperGuard.Finite(double.NaN, "v"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HelperGuard.Finite(float.PositiveInfinity, "v"));
+        Assert.Equal(1.5d, HelperGuard.Finite(1.5d, "v"));
+        Assert.Equal(1.5f, HelperGuard.Finite(1.5f, "v"));
+
+        HelperGuard.Require(true, "chart", "ok");
+        var require = Assert.Throws<ArgumentException>(() => HelperGuard.Require(false, "chart", "A chart needs a sheet name."));
+        Assert.Equal("chart", require.ParamName);
+        Assert.Contains("A chart needs a sheet name.", require.Message);
+
+        HelperGuard.RequireState(true, "ok");
+        var state = Assert.Throws<InvalidOperationException>(() =>
+            HelperGuard.RequireState(false, "A workbook must keep at least one worksheet."));
+        Assert.Equal("A workbook must keep at least one worksheet.", state.Message);
+
+        HelperGuard.NotDisposed(false, this);
+        Assert.Throws<ObjectDisposedException>(() => HelperGuard.NotDisposed(true, this));
+    }
+
+    [Fact]
+    public void FileExists_rejects_blank_and_missing()
+    {
+        var blank = Assert.Throws<ArgumentException>(() => HelperGuard.FileExists("  ", "path"));
+        Assert.Equal("path", blank.ParamName);
+        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "nope.txt");
+        var ex = Assert.Throws<FileNotFoundException>(() => HelperGuard.FileExists(missing, "path"));
+        Assert.Equal(missing, ex.FileName);
+        Assert.Contains("path was not found", ex.Message, StringComparison.Ordinal);
+
+        var dir = NewDir();
+        var file = Path.Combine(dir, "held.txt");
+        File.WriteAllText(file, "x");
+        Assert.Equal(file, HelperGuard.FileExists(file, "path"));
+    }
+
+    [Fact]
+    public void Core_probe_logs_pending_then_success()
+    {
+        var dir = NewDir();
+        HelperLog.InitializeHost(HelperLog.AppIds.Core, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            Assert.Equal("Vestigium.Helpers", HelperGuard.Probe());
+            Assert.Contains(HelperLog.RecentJsonLines, l => l.Contains("\"STATUS\":\"Pending\""));
+            Assert.Contains(HelperLog.RecentJsonLines, l =>
+                l.Contains("\"STATUS\":\"Success\"") && l.Contains("Identity=Vestigium.Helpers"));
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+        }
+    }
+
     private static string NewDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
