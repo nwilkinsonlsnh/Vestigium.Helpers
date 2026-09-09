@@ -3,16 +3,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.FileIo</RootNamespace>
     <AssemblyName>Vestigium.Helpers.FileIo</AssemblyName>
-    <Description>File and directory I/O helpers with safe path handling.</Description>
+    <Description>Validated file jobs: recon, five buckets, UniqueName default, Audit Mode, Pause/Cancel, ALCOA+ JSONL. Not robocopy.exe.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>fileio;filesystem;vestigium</PackageTags>
+    <PackageTags>fileio;filesystem;robocopy;uniquename;alcoa;vestigium</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Hashing\Vestigium.Helpers.Hashing.csproj" />
   </ItemGroup>
 </Project>
