@@ -6,7 +6,7 @@ namespace Vestigium.Helpers.FileIo;
 
 /// <summary>
 /// Validated file and directory jobs. Robocopy is the behavior reference; FileIo is the record.
-/// Recon + five buckets, UniqueName default, Audit Mode, Pause/Cancel, ALCOA+ JSONL.
+/// Recon + five buckets, UniqueName default, Audit Mode, Pause/Cancel, Analytics sizes/rates, ALCOA+ JSONL.
 /// Category Helpers, APPID FileIo. Never spawns robocopy.exe. Never ReadAllBytes on a payload.
 /// </summary>
 public static class FileIoHelper
@@ -142,8 +142,12 @@ public static class FileIoHelper
         FileIoLog.Success(HelperLog.Subcategories.Index, $"CleanIndexesOlderThan age={age}");
     }
 
-    static string IndexRoot() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Vestigium", "FileIo", "Indexes");
+    /// <summary>Tests inject a temp folder. Production uses %ProgramData%\Vestigium\FileIo\Indexes\.</summary>
+    internal static string? IndexRootOverride { get; set; }
+
+    internal static string IndexRoot() =>
+        IndexRootOverride
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Vestigium", "FileIo", "Indexes");
 
     static string IndexPath(string destinationRoot)
     {

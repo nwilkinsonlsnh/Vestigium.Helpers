@@ -1,4 +1,5 @@
 using Vestigium.Helpers.FileIo;
+using Vestigium.Helpers.Hashing;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Tests;
@@ -80,6 +81,37 @@ public sealed class FileIoSessionTests
         Assert.Equal("Success", result.Status);
         Assert.Equal("older nathan\n", File.ReadAllText(Path.Combine(dst, "nathan.txt")));
         Assert.Equal("nathan capture\n", File.ReadAllText(Path.Combine(dst, "nathan.01.txt")));
+        Assert.NotNull(result.Stats);
+        Assert.True(result.Stats!.FileSizes.Count >= 1);
+        Assert.NotNull(result.Stats.FileSizes.Median);
+        Assert.True(result.Stats.TransferRates.Count >= 1);
+        Assert.NotNull(result.Stats.FileSizes.Series);
+    }
+
+    [Fact]
+    public async Task Analytics_describes_sizes_per_bucket_and_omits_rates_in_audit()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "tiny.txt"), "x");
+        File.WriteAllBytes(Path.Combine(src, "small.bin"), new byte[300 * 1024]);
+        File.WriteAllBytes(Path.Combine(src, "medium.bin"), new byte[5 * 1024 * 1024]);
+        var live = await FileIoHelper.Copy(src, dst, new FileIoJobOptions { ReconLeadTime = TimeSpan.Zero }).RunAsync();
+        Assert.Equal("Success", live.Status);
+        Assert.NotNull(live.Stats);
+        Assert.True(live.Stats!.FileSizes.Count >= 3);
+        Assert.True(live.Stats.Buckets.Count(b => b.FileSizes.Count > 0) >= 3);
+        Assert.True(live.Stats.TransferRates.Count >= 1);
+        Assert.NotNull(live.Stats.FileSizes.P95);
+        Assert.True(live.Stats.FileSizes.Mean is > 0);
+
+        var audit = await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            AuditMode = true,
+        }).RunAsync();
+        Assert.True(audit.Stats!.FileSizes.Count >= 3);
+        Assert.Equal(0, audit.Stats.TransferRates.Count);
+        Assert.Null(audit.Stats.TransferRates.Series);
     }
 
     [Fact]
@@ -217,6 +249,7 @@ public sealed class FileIoSessionTests
         Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, HelperLog.Subcategories.Recon));
         Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, HelperLog.Subcategories.Copy));
         Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, HelperLog.Subcategories.SecureDelete));
+        Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, HelperLog.Subcategories.Stats));
     }
 
     [Fact]
@@ -231,6 +264,226 @@ public sealed class FileIoSessionTests
                 RequestedBy = "-----BEGIN PRIVATE KEY-----",
             }));
     }
+
+    [Fact]
+    public void RequestedBy_over_50_characters_is_rejected()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "a.txt"), "x");
+        Assert.Throws<ArgumentException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                RequestedBy = new string('n', 51),
+            }));
+    }
+
+    [Fact]
+    public async Task Copy_bytes_match_hashing_sha256()
+    {
+        var (src, dst) = Tree();
+        var from = Path.Combine(src, "session.jsonl");
+        File.WriteAllText(from, "{\"STATUS\":\"Pending\"}\n");
+        var to = Path.Combine(dst, "session.jsonl");
+        await FileIoHelper.Copy(from, to, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            Collision = FileIoCollision.Overwrite,
+        }).RunAsync();
+        Assert.Equal(HashingHelper.HashFile(from), HashingHelper.HashFile(to));
+    }
+
+    [Fact]
+    public async Task MaxDepth_1_does_not_copy_grandchildren()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "root.txt"), "root");
+        var sub = Path.Combine(src, "nested");
+        Directory.CreateDirectory(sub);
+        File.WriteAllText(Path.Combine(sub, "child.txt"), "child");
+        await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            MaxDepth = 1,
+        }).RunAsync();
+        Assert.True(File.Exists(Path.Combine(dst, "root.txt")));
+        Assert.False(File.Exists(Path.Combine(dst, "nested", "child.txt")));
+    }
+
+    [Fact]
+    public async Task IncludeEmptyDirectories_creates_empty_dest_dirs()
+    {
+        var (src, dst) = Tree();
+        Directory.CreateDirectory(Path.Combine(src, "empty"));
+        File.WriteAllText(Path.Combine(src, "held.txt"), "x");
+        await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            IncludeEmptyDirectories = false,
+        }).RunAsync();
+        Assert.False(Directory.Exists(Path.Combine(dst, "empty")));
+        await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            IncludeEmptyDirectories = true,
+        }).RunAsync();
+        Assert.True(Directory.Exists(Path.Combine(dst, "empty")));
+    }
+
+    [Fact]
+    public async Task Certainty_is_100_and_progress_has_five_buckets()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "a.txt"), "x");
+        var job = FileIoHelper.Copy(src, dst, new FileIoJobOptions { ReconLeadTime = TimeSpan.Zero });
+        FileIoProgress? last = null;
+        job.ProgressChanged += (_, p) => last = p;
+        await job.RunAsync();
+        Assert.True(job.Progress.ReconComplete);
+        Assert.Equal(100, job.Progress.CertaintyPercent);
+        Assert.Equal(5, job.Progress.Buckets.Length);
+        Assert.NotNull(last);
+        Assert.Equal(5, last!.Buckets.Length);
+    }
+
+    [Fact]
+    public async Task Mirror_without_purge_leaves_dest_extras()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "keep.txt"), "keep");
+        File.WriteAllText(Path.Combine(dst, "extra.txt"), "stay");
+        await FileIoHelper.Mirror(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            Purge = false,
+            Collision = FileIoCollision.Overwrite,
+        }).RunAsync();
+        Assert.True(File.Exists(Path.Combine(dst, "extra.txt")));
+    }
+
+    [Fact]
+    public void SecureDelete_removes_file_and_does_not_log_payload()
+    {
+        var dir = TempDir();
+        HelperLog.InitializeHost(HelperLog.AppIds.FileIo, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            var file = Path.Combine(dir, "gone.txt");
+            File.WriteAllText(file, "secret-payload-bytes");
+            FileIoHelper.SecureDelete(file, FileIoShredRecipe.ZeroRandomZero);
+            Assert.False(File.Exists(file));
+            var lines = HelperLog.RecentJsonLines;
+            Assert.Contains(lines, l => l.Contains("\"SUBCATEGORY\":\"SecureDelete\""));
+            Assert.DoesNotContain(lines, l => l.Contains("secret-payload-bytes"));
+            Assert.DoesNotContain(lines, HasExceptionPayload);
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+        }
+    }
+
+    [Fact]
+    public async Task Job_pending_includes_by_and_reason_and_jsonl_has_no_payload()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "nathan.txt"), "nathan capture\n");
+        var dir = TempDir();
+        HelperLog.InitializeHost(HelperLog.AppIds.FileIo, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            var result = await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                RequestedBy = "wilkinson",
+                Reason = "export-archive",
+            }).RunAsync();
+            Assert.Equal("Success", result.Status);
+            var lines = string.Join('\n', HelperLog.RecentJsonLines);
+            Assert.Contains("by=wilkinson", lines);
+            Assert.Contains("reason=export-archive", lines);
+            Assert.Contains("Stats job=", lines);
+            Assert.DoesNotContain("nathan capture", lines);
+            Assert.DoesNotContain("\"EXCEPTION\":\"", lines);
+            Assert.DoesNotContain("\"EXCEPTION\":{", lines);
+            Assert.DoesNotContain("BEGIN ", lines);
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+        }
+    }
+
+    [Fact]
+    public async Task Copy_collision_with_directory_is_InUse_and_other_files_continue()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "a.txt"), "payload-a");
+        File.WriteAllText(Path.Combine(src, "b.txt"), "payload-b");
+        Directory.CreateDirectory(Path.Combine(dst, "a.txt"));
+        var dir = TempDir();
+        HelperLog.InitializeHost(HelperLog.AppIds.FileIo, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            var result = await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                RetryCount = 0,
+                RetryWait = TimeSpan.FromMilliseconds(1),
+            }).RunAsync();
+            Assert.True(result.Failed >= 1);
+            Assert.True(File.Exists(Path.Combine(dst, "b.txt")));
+            Assert.Contains(HelperLog.RecentJsonLines, l => l.Contains("reason=InUse") || l.Contains("Failed"));
+            Assert.DoesNotContain(HelperLog.RecentJsonLines, HasExceptionPayload);
+            Assert.DoesNotContain(HelperLog.RecentJsonLines, l => l.Contains("payload-a"));
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+        }
+    }
+
+    [Fact]
+    public async Task Cancel_of_new_file_does_not_leave_a_complete_dest()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllBytes(Path.Combine(src, "big.bin"), new byte[4 * 1024 * 1024]);
+        var job = FileIoHelper.Copy(src, dst, new FileIoJobOptions { ReconLeadTime = TimeSpan.Zero });
+        var run = job.RunAsync();
+        job.Cancel();
+        var result = await run;
+        Assert.Equal("Cancelled", result.Status);
+        var dest = Path.Combine(dst, "big.bin");
+        if (File.Exists(dest))
+            Assert.True(new FileInfo(dest).Length < 4 * 1024 * 1024);
+    }
+
+    [Fact]
+    public void CleanIndexesOlderThan_uses_injected_root()
+    {
+        var root = TempDir();
+        FileIoHelper.IndexRootOverride = root;
+        try
+        {
+            var oldFile = Path.Combine(root, "old.jsonl");
+            File.WriteAllText(oldFile, "{}");
+            File.SetLastWriteTimeUtc(oldFile, DateTime.UtcNow.AddDays(-2));
+            var keep = Path.Combine(root, "keep.jsonl");
+            File.WriteAllText(keep, "{}");
+            FileIoHelper.CleanIndexesOlderThan(TimeSpan.FromHours(12));
+            Assert.False(File.Exists(oldFile));
+            Assert.True(File.Exists(keep));
+        }
+        finally
+        {
+            FileIoHelper.IndexRootOverride = null;
+        }
+    }
+
+    static bool HasExceptionPayload(string line)
+        => line.Contains("\"EXCEPTION\":\"", StringComparison.Ordinal)
+           || line.Contains("\"EXCEPTION\":{", StringComparison.Ordinal)
+           || line.Contains("   at ", StringComparison.Ordinal);
 
     static (string Src, string Dst) Tree()
     {

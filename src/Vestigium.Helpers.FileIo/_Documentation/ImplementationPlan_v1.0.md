@@ -37,7 +37,7 @@ Phase 0 is **paper + taxonomy**. It does not grow `FileIoHelper` past Identity a
 | 2 Copy engine | Recon, buckets, Copy, progress | Shipped (`91c35a9`) |
 | 3 Pause / Cancel / Audit / unique-content | Mid-file pause, cancel, Would*, SkipDuplicate | Shipped (`91c35a9`) |
 | 4 Move / Delete / Mirror / demo | Purge on/off, seeded gallery | Shipped (`91c35a9`, `4aafae2`) |
-| 5 Harden | Full SRS §10, retries, guide | Mostly shipped. Analytics handoff is a later SRS minor, not Phase 0. |
+| 5 Harden | Full SRS §10, retries, guide | **This phase.** Mid-file retry resume, `by=`/`reason=`, InUse/Unauthorized, injected index root, Developers Guide rewrite, §10 tests. |
 
 Do not revert shipped engine code to satisfy a skeleton-era “do not grow the façade” note. Do not mix Encryption/Hashing dirty files into a FileIo commit.
 

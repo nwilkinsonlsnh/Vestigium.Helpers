@@ -1,8 +1,8 @@
 # Vestigium.Helpers.FileIo — Requirements Specification
 
 **Document ID:** VEST-HLP-FILEIO-SRS-000  
-**Version:** 1.0  
-**Status:** Accepted.  
+**Version:** 1.1  
+**Status:** Accepted. Replaces the 9 September 2026 v1.0 draft.  
 **Date:** 9 September 2026  
 **Package:** `Vestigium.Helpers.FileIo`  
 **TFM:** `net10.0` (not Windows-only)  
@@ -30,6 +30,7 @@ It records:
 - HelperLog only; Category `Helpers`; APPID `FileIo`; registered FileIo subcategories
 - no last-access (LAD) filters in v1
 - no scheduler, no admin/backup mode, no ACL/owner/SACL copy in v1
+- Analytics handoff at finalize: file-size and transfer-rate NumericSeries for the whole job and each bin
 
 ---
 
@@ -74,6 +75,7 @@ This is not Encryption. Encryption still Seals envelopes. This is not Hashing. H
 | 16 | Unique content | Optional. Digest from `Vestigium.Helpers.Hashing`, default SHA-256. Name collision and content identity are different switches. |
 | 17 | Dry meaning | The product name is **Audit Mode**, not "dry run." |
 | 18 | Default retries | `RetryCount = 3`, `RetryWait = 2 seconds`. Not robocopy’s 1,000,000 / 30 s. |
+| 19 | Analytics | FileIo is the **host**. It accumulates per-file size, duration, and bytes/sec, then at **Finalize** constructs `NumericSeries` snapshots via `Vestigium.Helpers.Analytics`. Job-wide **and** each of the five bins. Empty bins are null series, never NaN. Audit Mode still describes sizes; transfer-rate series is empty because no bytes moved. Charting stays in Charts. One sparse `Stats` JSONL line. |
 
 ---
 
@@ -91,7 +93,8 @@ This is not Encryption. Encryption still Seals envelopes. This is not Hashing. H
 **G10.** Permission failures are logged and do not require elevation. The job continues unless `StopOnError` is set.  
 **G11.** `Probe` is in-memory / `%TEMP%` only. It must not write the Desktop and must not start a durable job.  
 **G12.** Prune empty directories as an explicit finalize option.  
-**G13.** Optional dest content index so "copy only unique files" means digest, not name.
+**G13.** Optional dest content index so "copy only unique files" means digest, not name.  
+**G14.** At finalize, publish Analytics snapshots of file sizes and transfer rates for the job and for each bucket so a host can summarize without inventing statistics.
 
 ---
 
@@ -256,6 +259,35 @@ Opt-in `Zero` / `Random` passes, 64 KiB, flush, then `File.Delete`. Presets: `Th
 
 `CompareFiles(left, right, algorithm)` returns equal / not equal / missing, plus both hex digests. Uses Hashing.
 
+### 5.9 Analytics handoff (v1.1)
+
+FileIo does not invent statistics. It is a host of `Vestigium.Helpers.Analytics`.
+
+During consume, each work item becomes a `FileIoTransferObservation`:
+
+| Field | When |
+|---|---|
+| `SizeBytes` | Every Done and Skip (recon already knew the size) |
+| `DurationMs`, `RateBytesPerSec` | Done, and only when this job actually moved or deleted bytes. `rate = size / max(1 ms, elapsed)` |
+| neither duration nor rate | Audit Mode, Skip, Fail, cancelled mid-write |
+
+At Finalize the job constructs:
+
+- `file-size-bytes` — all Done/Skip sizes
+- `transfer-rate-Bps` — positive rates only
+- `duration-ms` — positive durations only
+- the same three series **per bucket** (`file-size-bytes.Tiny` … `Huge`)
+
+Empty input does not call `NumericSeries.From`. The snapshot is Count = 0, Series = null, descriptors null. Analytics A11 (empty throws) is honored by not constructing.
+
+Each snapshot publishes the Analytics descriptor set the host already knows: five-number, mean, P90/P95/P99, stddev, CV, skewness, Tukey high-outlier count, mean 95% t-interval when n ≥ 2.
+
+Job wall-clock rate (`BytesDone / elapsed`) is a single number on `FileIoJobStats`, not a series.
+
+One JSONL line, subcategory `Stats`, at job end. Not a line per observation. Paths stay in the existing per-file decision lines; Stats never lists files.
+
+`FileIoJobResult.Stats` is the handoff. Charts may later draw the series. FileIo does not reference Charts.
+
 ---
 
 ## 6. Progress — two channels
@@ -281,6 +313,7 @@ JSONL through HelperLog. Sparse.
 - Per file: only decisions (UniqueName, Skip, SkipDuplicate, Overwrite, Unauthorized, InUse, NameCap, Failed, Would*)
 - One `Progress` line every 15 seconds while consumers run
 - Job end: one Success, Failed, or Cancelled summary
+- Stats: one line at finalize (`sizes n=… mean=… P50=… P95=… rates n=… meanBps=… P95Bps=… jobBps=…`)
 
 Do not write a JSONL line per 64 KiB or per quiet Success on a large tree.
 
@@ -348,6 +381,20 @@ public sealed class FileIoJobOptions
     public string? Reason { get; init; }
     public IProgress<FileIoProgress>? Progress { get; init; }
 }
+
+public sealed class FileIoJobResult
+{
+    public required string JobId { get; init; }
+    public required FileIoVerb Verb { get; init; }
+    public required string Status { get; init; }
+    public int Copied { get; init; }
+    public int Skipped { get; init; }
+    public int Failed { get; init; }
+    public int Deleted { get; init; }
+    public long Bytes { get; init; }
+    public bool AuditMode { get; init; }
+    public FileIoJobStats? Stats { get; init; }
+}
 ```
 
 Rules: blank paths throw. `ReconLeadTime` outside 0–180 s throws. `UniqueNamePattern` must be `.#`…`#####` or `A#`…`A#####`. `RequestedBy` / `Reason` reject PEM / long hex / long Base64. Stream copy uses 64 KiB. Missing single-file source throws `FileNotFoundException` before the job starts.
@@ -358,7 +405,7 @@ Rules: blank paths throw. `ReconLeadTime` outside 0–180 s throws. `UniqueNameP
 
 Category = `Helpers`. APPID = `FileIo`. JSONL under `%ProgramData%\Vestigium\Logs\FileIo\`.
 
-Subcategories that **must** be added to `HelperLog.Subcategories` and registered in `CreateTaxonomy()`: `Job`, `Recon`, `Copy`, `Move`, `Delete`, `Mirror`, `Index`, `Progress`, `Compare`, `Prune`, `SecureDelete` (plus existing `Probe`, `Identity`, `Guard`).
+Subcategories that **must** be added to `HelperLog.Subcategories` and registered in `CreateTaxonomy()`: `Job`, `Recon`, `Copy`, `Move`, `Delete`, `Mirror`, `Index`, `Progress`, `Compare`, `Prune`, `SecureDelete`, `Stats` (plus existing `Probe`, `Identity`, `Guard`).
 
 ALCOA+: attributable job id + optional `by=` / `reason=`; append-only JSONL; Pending then Success/Failed/Cancelled; no exception dumps; never file contents.
 
@@ -366,7 +413,7 @@ ALCOA+: attributable job id + optional `by=` / `reason=`; append-only JSONL; Pen
 
 ## 9. Demo contract
 
-WPF gallery APPID `FileIo`. Tabs: Overview, Copy, Move, Delete, Mirror, Audit Mode, Index, JSONL. Show job certainty, job progress, and five bucket meters. Pause and Cancel buttons. Audit Mode fills Would* lines and does not change dest. Tests never use the real Desktop.
+WPF gallery APPID `FileIo`. Tabs: Overview, Copy, Move, Delete, Mirror, Audit Mode, UniqueName, Compare, Index, Stats, JSONL. Show job certainty, job progress, five bucket meters, and after a job the Analytics snapshot (five-number, P95, mean CI, per-bucket table). Pause and Cancel buttons. Audit Mode fills Would* lines and does not change dest. Tests never use the real Desktop.
 
 ---
 
@@ -374,7 +421,7 @@ WPF gallery APPID `FileIo`. Tabs: Overview, Copy, Move, Delete, Mirror, Audit Mo
 
 xUnit, temp directories only.
 
-Identity, Probe, copy bytes, `/S` vs `/E`, MaxDepth, UniqueName sequence and NameCap, A## width, Skip, Overwrite, unique-content SkipDuplicate, lead time 0 and 181 rejected, certainty 100 after recon, five buckets on progress, Audit Mode dest unchanged, delete buckets, Pause/Resume mid-file, Cancel leaves no complete dest, SecureDelete, Mirror purge off/on, no payload bytes in logs, no EXCEPTION payload.
+Identity, Probe, copy bytes, `/S` vs `/E`, MaxDepth, UniqueName sequence and NameCap, A## width, Skip, Overwrite, unique-content SkipDuplicate, lead time 0 and 181 rejected, certainty 100 after recon, five buckets on progress, Audit Mode dest unchanged, delete buckets, Pause/Resume mid-file, Cancel leaves no complete dest, SecureDelete, Mirror purge off/on, no payload bytes in logs, no EXCEPTION payload, Analytics sizes n matches Done+Skip, five populated bins on the demo seed, Audit Mode rate series empty, Stats subcategory registered, Stats JSONL line present.
 
 ---
 
@@ -386,9 +433,11 @@ LAD filters, scheduler, admin/`/B`/VSS, ACL copy, archive-bit flags, alternate s
 
 ## 12. Roadmap
 
-**v1.0** — this document: engine, Copy/Move/Delete, UniqueName default, Audit Mode, Pause/Cancel, progress+certainty, taxonomy, index, SecureDelete, prune, Mirror+explicit Purge, size/mtime/depth/exclude, gallery, tests.
+**v1.0** — engine, Copy/Move/Delete, UniqueName default, Audit Mode, Pause/Cancel, progress+certainty, taxonomy, index, SecureDelete, prune, Mirror+explicit Purge, size/mtime/depth/exclude, gallery, tests.
 
-**Later** — LAD, monitor, attribute flags, streams, configurable bins, Analytics handoff, scheduler, ACL only if a future elevation story is accepted.
+**v1.1** — Analytics handoff: file-size and transfer-rate NumericSeries for the job and each bin; `Stats` subcategory; Stats gallery tab.
+
+**Later** — LAD, monitor, attribute flags, streams, configurable bins, scheduler, ACL only if a future elevation story is accepted.
 
 **Never** — filter drivers, elevation as a v1 feature, `robocopy.exe`, logging contents, `ReadAllBytes` on a capture.
 
@@ -396,18 +445,18 @@ LAD filters, scheduler, admin/`/B`/VSS, ACL copy, archive-bit flags, alternate s
 
 ## 13. Siblings
 
-Hashing for digests. Encryption for envelopes. Analytics later. Logging is the only log engine.
+Hashing for digests. Encryption for envelopes. Analytics for descriptors (FileIo is the host; it does not absorb the façade). Logging is the only log engine. Charts may draw the series FileIo publishes; FileIo does not reference Charts.
 
 ---
 
 ## 14. Glossary
 
-Job, Recon, Lead time (0–180 s), Bucket, Certainty (100 means recon finished), Live progress, Audit log, Audit Mode, UniqueName, Unique content, Pause, Cancel, Purge.
+Job, Recon, Lead time (0–180 s), Bucket, Certainty (100 means recon finished), Live progress, Audit log, Audit Mode, UniqueName, Unique content, Pause, Cancel, Purge, Analytics handoff, File size series, Transfer rate series.
 
 ---
 
 ## 15. Acceptance
 
-Paper (Phase 0) is accepted on this revision: this file lives under `src/Vestigium.Helpers.FileIo/_Documentation/`, HelperLog FileIo subcategories in §8 are registered, and [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md) is the build-mode map.
+This SRS is accepted when this file is on `main` under `src/Vestigium.Helpers.FileIo/_Documentation/`, and implementation of §7 + §9 + §10 follows without spawning robocopy and without inventing hashing or encryption APIs.
 
-Implementation of §7 + §9 + §10 follows that plan without spawning robocopy and without inventing hashing or encryption APIs.
+Phase 5 hardening: retries with mid-file resume, `by=` / `reason=` on the Job Pending line, InUse/Unauthorized item failures without elevation, injected index cleanup, sparse JSONL without payload or EXCEPTION dumps, and the §10 suite.

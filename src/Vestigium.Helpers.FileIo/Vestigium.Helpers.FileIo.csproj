@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.FileIo</RootNamespace>
     <AssemblyName>Vestigium.Helpers.FileIo</AssemblyName>
-    <Description>Validated file jobs: recon, five buckets, UniqueName default, Audit Mode, Pause/Cancel, ALCOA+ JSONL. Not robocopy.exe.</Description>
+    <Description>Validated file jobs: recon, five buckets, UniqueName default, Audit Mode, Pause/Cancel, Analytics sizes/rates, ALCOA+ JSONL. Not robocopy.exe.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
@@ -13,7 +13,11 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Hashing\Vestigium.Helpers.Hashing.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
   </ItemGroup>
 </Project>

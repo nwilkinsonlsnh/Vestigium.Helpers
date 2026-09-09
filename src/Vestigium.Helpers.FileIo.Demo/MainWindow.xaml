@@ -16,11 +16,11 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.FileIo gallery"/>
-        <TextBlock Opacity="0.7" Text="Recon team · five buckets · UniqueName · Audit Mode · Pause/Cancel · ALCOA+"/>
+        <TextBlock Opacity="0.7" Text="Recon team · five buckets · UniqueName · Audit Mode · Analytics sizes/rates · ALCOA+"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
-        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="APPID FileIo · recon + buckets · UniqueName default" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="APPID FileIo · recon + buckets · Analytics sizes/rates" HorizontalAlignment="Right"/>
       </StackPanel>
     </DockPanel>
     <TabControl Grid.Row="1">
@@ -33,6 +33,7 @@
       <TabItem Header="UniqueName"><ContentControl Content="{Binding Unique}" ContentTemplate="{StaticResource UniqueNameTab}"/></TabItem>
       <TabItem Header="Compare"><ContentControl Content="{Binding Compare}" ContentTemplate="{StaticResource CompareTab}"/></TabItem>
       <TabItem Header="Index"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource IndexTab}"/></TabItem>
+      <TabItem Header="Stats"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource StatsTab}"/></TabItem>
       <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>
     </TabControl>
     <DockPanel Grid.Row="2" Margin="0,10,0,0">

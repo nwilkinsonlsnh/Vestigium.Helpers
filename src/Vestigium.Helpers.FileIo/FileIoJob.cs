@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Vestigium.Helpers;
 using Vestigium.Helpers.Hashing;
@@ -29,10 +30,12 @@ public sealed class FileIoJob
     readonly bool _sourceIsFile;
     readonly ConcurrentQueue<WorkItem>[] _queues;
     readonly ConcurrentDictionary<string, byte> _created = new(StringComparer.OrdinalIgnoreCase);
+    readonly ConcurrentBag<FileIoTransferObservation> _observations = [];
     readonly object _gate = new();
     readonly CancellationTokenSource _cts = new();
     TaskCompletionSource? _pauseWait;
     TaskCompletionSource? _reconDone;
+    DateTimeOffset _started = DateTimeOffset.UtcNow;
     DateTimeOffset _lastRateAt = DateTimeOffset.UtcNow;
     DateTimeOffset _lastProgressLog = DateTimeOffset.MinValue;
     volatile bool _reconComplete;
@@ -90,6 +93,10 @@ public sealed class FileIoJob
             throw new ArgumentException("requestedBy looks like a secret.", nameof(options));
         if (FileIoLog.LooksLikeSecret(o.Reason))
             throw new ArgumentException("reason looks like a secret.", nameof(options));
+        if (o.RequestedBy is { Length: > 50 })
+            throw new ArgumentException("requestedBy exceeds 50 characters.", nameof(options));
+        if (o.Reason is { Length: > 80 })
+            throw new ArgumentException("reason exceeds 80 characters.", nameof(options));
         var srcIsFile = File.Exists(src);
         if (!srcIsFile && !Directory.Exists(src))
             throw new FileNotFoundException("source was not found.", src);
@@ -121,16 +128,20 @@ public sealed class FileIoJob
         _pauseWait?.TrySetResult();
         _pauseWait = null;
         _cts.Cancel();
+        FileIoLog.Failed(HelperLog.Subcategories.Job, $"Cancel job={JobId}");
     }
 
     public async Task<FileIoJobResult> RunAsync(CancellationToken cancellation = default)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _cts.Token);
         var token = linked.Token;
+        _started = DateTimeOffset.UtcNow;
         var verbName = VerbLabel();
+        var by = string.IsNullOrWhiteSpace(_options.RequestedBy) ? "" : $" by={_options.RequestedBy}";
+        var reason = string.IsNullOrWhiteSpace(_options.Reason) ? "" : $" reason={_options.Reason}";
         FileIoLog.Pending(
             HelperLog.Subcategories.Job,
-            $"{verbName} start job={JobId} src={Source} dest={Destination} collision={_options.Collision} pattern={_options.UniqueNamePattern} leadMs={(int)_options.ReconLeadTime.TotalMilliseconds} audit={_options.AuditMode} uniqueContent={_options.CopyOnlyUniqueContent} purge={_options.Purge}");
+            $"{verbName} start job={JobId} src={Source} dest={Destination} collision={_options.Collision} pattern={_options.UniqueNamePattern} leadMs={(int)_options.ReconLeadTime.TotalMilliseconds} audit={_options.AuditMode} uniqueContent={_options.CopyOnlyUniqueContent} purge={_options.Purge} retry={_options.RetryCount}/{_options.RetryWait.TotalSeconds:0.#}s{by}{reason}");
         FileIoLog.Pending(HelperLog.Subcategories.Recon, $"Recon start job={JobId}");
 
         var destIndex = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -195,6 +206,8 @@ public sealed class FileIoJob
         if (Progress.ReconComplete)
             Progress.CertaintyPercent = 100;
         Emit();
+        var stats = FileIoJobStats.From(_observations.ToArray(), DateTimeOffset.UtcNow - _started, Progress.BytesDone);
+        FileIoLog.Success(HelperLog.Subcategories.Stats, stats.FormatLine(JobId));
         var sub = HelperLog.Subcategories.Job;
         if (status == "Success")
             FileIoLog.Success(sub, $"{status} job={JobId} found={Progress.FilesFound} done={Progress.FilesDone} skipped={Progress.FilesSkipped} failed={Progress.FilesFailed} bytes={Progress.BytesDone}");
@@ -211,6 +224,7 @@ public sealed class FileIoJob
             Deleted = Verb == FileIoVerb.Delete ? Progress.FilesDone : deleted,
             Bytes = Progress.BytesDone,
             AuditMode = _options.AuditMode,
+            Stats = stats,
         };
     }
 
@@ -427,7 +441,8 @@ public sealed class FileIoJob
             {
                 if (attempt == retries)
                 {
-                    Fail(item, ex is UnauthorizedAccessException ? "Unauthorized" : "Unavailable");
+                    Fail(item, ex is UnauthorizedAccessException ? "Unauthorized" : "InUse");
+                    Observe(item, "Fail");
                     if (_options.StopOnError)
                         Cancel();
                     return;
@@ -444,8 +459,10 @@ public sealed class FileIoJob
         {
             FileIoLog.Success(sub, $"WouldDelete path={item.SourcePath} size={item.Size}");
             Done(item);
+            Observe(item, "Done");
             return Task.CompletedTask;
         }
+        var sw = Stopwatch.StartNew();
         if (_options.Shred is { } recipe)
         {
             FileIoLog.Pending(HelperLog.Subcategories.SecureDelete, $"Shred path={item.SourcePath} passes={recipe}");
@@ -453,7 +470,9 @@ public sealed class FileIoJob
         }
         else if (File.Exists(item.SourcePath))
             File.Delete(item.SourcePath);
+        sw.Stop();
         Done(item);
+        Observe(item, "Done", sw.Elapsed);
         return Task.CompletedTask;
     }
 
@@ -468,6 +487,7 @@ public sealed class FileIoJob
             {
                 FileIoLog.Success(HelperLog.Subcategories.Index, $"SkipDuplicate digest={digest[..Math.Min(12, digest.Length)]}… name={Path.GetFileName(item.SourcePath)} matched={hit}");
                 Skip(item);
+                Observe(item, "Skip");
                 return;
             }
         }
@@ -480,6 +500,7 @@ public sealed class FileIoJob
             {
                 FileIoLog.Success(VerbSub(), $"Skip path={destPath}");
                 Skip(item);
+                Observe(item, "Skip");
                 return;
             }
             if (_options.Collision == FileIoCollision.UniqueName)
@@ -493,6 +514,7 @@ public sealed class FileIoJob
                 {
                     FileIoLog.Failed(VerbSub(), $"NameCap path={destPath}");
                     Fail(item, "NameCap");
+                    Observe(item, "Fail");
                     return;
                 }
                 finalPath = Path.Combine(parent, next);
@@ -507,6 +529,7 @@ public sealed class FileIoJob
             var would = exists && _options.Collision == FileIoCollision.UniqueName ? "WouldUniqueName" : "WouldCopy";
             FileIoLog.Success(VerbSub(), $"{would} path={finalPath} size={item.Size}");
             Done(item);
+            Observe(item, "Done");
             return;
         }
 
@@ -514,8 +537,14 @@ public sealed class FileIoJob
         if (!string.IsNullOrEmpty(parentDir))
             Directory.CreateDirectory(parentDir);
 
-        var created = !File.Exists(finalPath);
-        await CopyStreamAsync(item.SourcePath, finalPath, token, created).ConfigureAwait(false);
+        var resume = _created.ContainsKey(finalPath);
+        var deleteOnCancel = resume
+            ? _created.TryGetValue(finalPath, out var flag) && flag == 1
+            : !File.Exists(finalPath);
+        _created[finalPath] = deleteOnCancel ? (byte)1 : (byte)0;
+        var sw = Stopwatch.StartNew();
+        await CopyStreamAsync(item.SourcePath, finalPath, token, resume, deleteOnCancel).ConfigureAwait(false);
+        sw.Stop();
         if (_cancelled || token.IsCancellationRequested)
             return;
         if (_options.CopyTimestampsAndAttributes)
@@ -523,8 +552,6 @@ public sealed class FileIoJob
             File.SetLastWriteTimeUtc(finalPath, item.WriteTimeUtc);
             File.SetAttributes(finalPath, item.Attributes);
         }
-        if (created)
-            _created[finalPath] = 0;
         if (_options.CopyOnlyUniqueContent)
         {
             try
@@ -539,16 +566,30 @@ public sealed class FileIoJob
         if (Verb == FileIoVerb.Move && File.Exists(item.SourcePath))
             File.Delete(item.SourcePath);
         Done(item);
+        Observe(item, "Done", sw.Elapsed);
         NoteRate(item.Size);
     }
 
-    async Task CopyStreamAsync(string source, string dest, CancellationToken token, bool created)
+    async Task CopyStreamAsync(string source, string dest, CancellationToken token, bool resume, bool deleteOnCancel)
     {
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(StreamBufferSize);
         try
         {
             await using var src = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            await using var dst = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            await using var dst = new FileStream(dest, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            long committed = 0;
+            if (resume && dst.Length > 0 && dst.Length < src.Length)
+                committed = dst.Length;
+            if (committed > 0)
+            {
+                src.Seek(committed, SeekOrigin.Begin);
+                dst.Seek(committed, SeekOrigin.Begin);
+            }
+            else
+            {
+                dst.SetLength(0);
+            }
+
             int read;
             while ((read = await src.ReadAsync(buffer.AsMemory(0, StreamBufferSize), token).ConfigureAwait(false)) > 0)
             {
@@ -557,26 +598,27 @@ public sealed class FileIoJob
                 if (_cancelled || token.IsCancellationRequested)
                 {
                     await dst.DisposeAsync().ConfigureAwait(false);
-                    if (created)
-                    {
-                        try { File.Delete(dest); } catch (IOException) { }
-                    }
+                    DropOwnedDest(dest, deleteOnCancel);
                     return;
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            if (created)
-            {
-                try { File.Delete(dest); } catch (IOException) { }
-            }
+            DropOwnedDest(dest, deleteOnCancel);
             throw;
         }
         finally
         {
             System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
         }
+    }
+
+    static void DropOwnedDest(string dest, bool deleteOnCancel)
+    {
+        if (!deleteOnCancel)
+            return;
+        try { File.Delete(dest); } catch (IOException) { }
     }
 
     int PurgeDest()
@@ -663,6 +705,24 @@ public sealed class FileIoJob
             b.BytesDone += item.Size;
         }
         Emit();
+    }
+
+    void Observe(WorkItem item, string outcome, TimeSpan? elapsed = null)
+    {
+        double? durationMs = null;
+        double? rate = null;
+        if (elapsed is { } e && !_options.AuditMode && outcome == "Done")
+        {
+            durationMs = Math.Max(1, e.TotalMilliseconds);
+            rate = item.Size * 1000.0 / durationMs.Value;
+        }
+        _observations.Add(new FileIoTransferObservation(
+            item.Bucket,
+            item.Size,
+            DateTimeOffset.UtcNow,
+            durationMs,
+            rate,
+            outcome));
     }
 
     void NoteRate(long bytes)

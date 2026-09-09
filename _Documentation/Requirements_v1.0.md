@@ -26,7 +26,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
 | HLP-JSON | Vestigium.Helpers.Json | net10.0 | System.Text.Json |
 | HLP-XML | Vestigium.Helpers.Xml | net10.0 | |
-| HLP-FIO | Vestigium.Helpers.FileIo | net10.0 | SRS v1.0 accepted. Recon job engine, UniqueName, Audit Mode, Pause/Cancel. |
+| HLP-FIO | Vestigium.Helpers.FileIo | net10.0 | SRS v1.0 implemented. Recon, UniqueName, Audit Mode, Pause/Cancel, retries, Analytics sizes/rates. |
 | HLP-PRC | Vestigium.Helpers.Processes | net10.0 | |
 | HLP-SVC | Vestigium.Helpers.Services | net10.0 | SCM / hosted services |
 | HLP-ANL | Vestigium.Helpers.Analytics | net10.0 | In-process only in v1 |

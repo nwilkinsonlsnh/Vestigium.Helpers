@@ -17,11 +17,11 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     {
         Volumes = new DemoVolumes();
         Volumes.Seed();
-        Copy = new JobPane(FileIoVerb.Copy, Volumes, SetStatus, RefreshLines);
-        Move = new JobPane(FileIoVerb.Move, Volumes, SetStatus, RefreshLines);
-        Delete = new JobPane(FileIoVerb.Delete, Volumes, SetStatus, RefreshLines);
-        Mirror = new JobPane(FileIoVerb.Mirror, Volumes, SetStatus, RefreshLines) { IncludeEmpty = true };
-        Audit = new JobPane(FileIoVerb.Copy, Volumes, SetStatus, RefreshLines, auditForce: true);
+        Copy = new JobPane(FileIoVerb.Copy, Volumes, SetStatus, RefreshLines, BindStats);
+        Move = new JobPane(FileIoVerb.Move, Volumes, SetStatus, RefreshLines, BindStats);
+        Delete = new JobPane(FileIoVerb.Delete, Volumes, SetStatus, RefreshLines, BindStats);
+        Mirror = new JobPane(FileIoVerb.Mirror, Volumes, SetStatus, RefreshLines, BindStats) { IncludeEmpty = true };
+        Audit = new JobPane(FileIoVerb.Copy, Volumes, SetStatus, RefreshLines, BindStats, auditForce: true);
         Unique = new UniqueNamePane(SetStatus);
         Compare = new ComparePane(Volumes, SetStatus);
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.FileIo}";
@@ -36,6 +36,11 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public JobPane Audit { get; }
     public UniqueNamePane Unique { get; }
     public ComparePane Compare { get; }
+    public ObservableCollection<StatsRow> StatsRows { get; } = [];
+    public ObservableCollection<StatsRow> BucketStatsRows { get; } = [];
+
+    [ObservableProperty] private string statsHeadline = "Run Copy, Move, Delete, or Mirror. Analytics describes the finished job.";
+    [ObservableProperty] private string statsLine = "";
 
     public string Identity => FileIoHelper.Identity;
     public string DemoRoot => Volumes.Root;
@@ -43,7 +48,8 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public string StartupSnippet =>
         "var job = FileIoHelper.Copy(export, archive);\n" +
         "job.ProgressChanged += (_, p) => ui.Render(p);\n" +
-        "await job.RunAsync();  // UniqueName default, 15 s recon lead";
+        "await job.RunAsync();  // UniqueName default, 15 s recon lead\n" +
+        "var sizes = result.Stats.FileSizes;  // NumericSeries snapshot";
 
     public ObservableCollection<TreeRow> ExportRows { get; } = [];
     public ObservableCollection<TreeRow> ArchiveRows { get; } = [];
@@ -103,6 +109,60 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         StatusText = text;
         RefreshTrees();
         RefreshLines();
+    }
+
+    void BindStats(FileIoJobStats? stats)
+    {
+        StatsRows.Clear();
+        BucketStatsRows.Clear();
+        if (stats is null)
+        {
+            StatsHeadline = "Run Copy, Move, Delete, or Mirror. Analytics describes the finished job.";
+            StatsLine = "";
+            return;
+        }
+        StatsHeadline = $"n={stats.FileSizes.Count}  P50={FmtSize(stats.FileSizes.Median)}  P95={FmtSize(stats.FileSizes.P95)}  mean={FmtSize(stats.FileSizes.Mean)}  rates n={stats.TransferRates.Count}  job={FmtRate(stats.JobRateBytesPerSec)}";
+        StatsLine = stats.FormatLine("job");
+        AddStat("File size n", stats.FileSizes.Count.ToString(CultureInfo.InvariantCulture));
+        AddStat("Min", FmtSize(stats.FileSizes.Min));
+        AddStat("Q1", FmtSize(stats.FileSizes.Q1));
+        AddStat("Median", FmtSize(stats.FileSizes.Median));
+        AddStat("Q3", FmtSize(stats.FileSizes.Q3));
+        AddStat("Max", FmtSize(stats.FileSizes.Max));
+        AddStat("Mean", FmtSize(stats.FileSizes.Mean));
+        AddStat("P90", FmtSize(stats.FileSizes.P90));
+        AddStat("P95", FmtSize(stats.FileSizes.P95));
+        AddStat("P99", FmtSize(stats.FileSizes.P99));
+        AddStat("StdDev", FmtSize(stats.FileSizes.StdDev));
+        AddStat("CV", stats.FileSizes.CoefficientOfVariation is { } cv ? cv.ToString("0.000", CultureInfo.InvariantCulture) : "—");
+        AddStat("High outliers", stats.FileSizes.HighOutlierCount.ToString(CultureInfo.InvariantCulture));
+        AddStat("Mean 95% CI", stats.FileSizes.MeanCiLower is { } lo
+            ? $"{FmtSize(lo)} – {FmtSize(stats.FileSizes.MeanCiUpper)}"
+            : "undefined (n < 2)");
+        AddStat("Rate mean", FmtRate(stats.TransferRates.Mean));
+        AddStat("Rate P95", FmtRate(stats.TransferRates.P95 is { } p ? (double)p : null));
+        AddStat("Job rate", FmtRate(stats.JobRateBytesPerSec));
+        AddStat("Elapsed", stats.JobElapsedMs + " ms");
+        foreach (var b in stats.Buckets)
+        {
+            BucketStatsRows.Add(new StatsRow
+            {
+                Metric = b.Name,
+                Value = $"n={b.FileSizes.Count}  P50={FmtSize(b.FileSizes.Median)}  P95={FmtSize(b.FileSizes.P95)}  rate={FmtRate(b.TransferRates.Mean)}"
+            });
+        }
+    }
+
+    void AddStat(string metric, string value) => StatsRows.Add(new StatsRow { Metric = metric, Value = value });
+
+    static string FmtSize(decimal? n) => n is { } d ? DemoVolumes.FormatSize((long)Math.Round(d)) : "—";
+    static string FmtSize(double? n) => n is { } d && double.IsFinite(d) ? DemoVolumes.FormatSize((long)Math.Round(d)) : "—";
+    static string FmtRate(double? n)
+    {
+        if (n is not { } d || !double.IsFinite(d) || d <= 0) return "—";
+        if (d < 1024) return Math.Round(d).ToString("0", CultureInfo.InvariantCulture) + " B/s";
+        if (d < 1024 * 1024) return (d / 1024).ToString("N1", CultureInfo.InvariantCulture) + " KiB/s";
+        return (d / (1024.0 * 1024.0)).ToString("N1", CultureInfo.InvariantCulture) + " MiB/s";
     }
 
     public override void Dispose()
@@ -204,6 +264,12 @@ public sealed record TreeRow
     public string Volume { get; init; } = "";
 }
 
+public sealed record StatsRow
+{
+    public string Metric { get; init; } = "";
+    public string Value { get; init; } = "";
+}
+
 public sealed partial class BucketRow : ObservableObject
 {
     [ObservableProperty] private string name = "";
@@ -216,15 +282,17 @@ public sealed partial class JobPane : ObservableObject
     readonly DemoVolumes _volumes;
     readonly Action<string> _status;
     readonly Action _refreshLines;
+    readonly Action<FileIoJobStats?> _onStats;
     readonly bool _auditForce;
     FileIoJob? _job;
 
-    public JobPane(FileIoVerb verb, DemoVolumes volumes, Action<string> status, Action refreshLines, bool auditForce = false)
+    public JobPane(FileIoVerb verb, DemoVolumes volumes, Action<string> status, Action refreshLines, Action<FileIoJobStats?> onStats, bool auditForce = false)
     {
         Verb = verb;
         _volumes = volumes;
         _status = status;
         _refreshLines = refreshLines;
+        _onStats = onStats;
         _auditForce = auditForce;
         Audit = auditForce;
         IncludeEmpty = verb == FileIoVerb.Mirror;
@@ -335,6 +403,11 @@ public sealed partial class JobPane : ObservableObject
             var result = await _job.RunAsync().ConfigureAwait(true);
             Summary = $"{result.Status} · done {Math.Max(result.Copied, result.Deleted)} · skipped {result.Skipped} · failed {result.Failed} · {DemoVolumes.FormatSize(result.Bytes)}"
                 + (result.AuditMode ? " · audit" : "");
+            if (result.Stats is { } stats)
+            {
+                Summary += $" · sizes n={stats.FileSizes.Count} P50={DemoVolumes.FormatSize((long)(stats.FileSizes.Median ?? 0))} rates n={stats.TransferRates.Count}";
+                _onStats(stats);
+            }
             _status($"{Title} {result.Status}");
         }
         catch (Exception ex)

@@ -134,6 +134,7 @@ public sealed class FileIoJobResult
     public int Deleted { get; init; }
     public long Bytes { get; init; }
     public bool AuditMode { get; init; }
+    public FileIoJobStats? Stats { get; init; }
 }
 
 public sealed class FileIoCompareResult

@@ -3,7 +3,7 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-FILEIO  ·  SRS v1.0"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-FILEIO  ·  SRS v1.1"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
                    Text="Validated file and directory jobs. Robocopy is the behavior reference; FileIo is the record. A recon team fills five size buckets, consumers drain them after a 0–180 s lead (default 15 s in the library, 2 s in this gallery), and certainty is 100% only when every recon worker is in. Default collision is UniqueName. Audit Mode writes the full Would* log and changes nothing. Category Helpers, APPID FileIo."/>
@@ -41,6 +41,13 @@
               <TextBlock Style="{StaticResource Caption}" Text="LOG"/>
               <TextBlock FontWeight="SemiBold" Text="ALCOA+ JSONL"/>
               <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Job / Recon / Copy / Move / Delete / Mirror / Index / Progress. Sparse on disk."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="ANALYTICS"/>
+              <TextBlock FontWeight="SemiBold" Text="Sizes + rates"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="NumericSeries at finalize. Five-number, P95, mean 95% CI, per-bucket and job-wide."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">
@@ -257,5 +264,42 @@
         </ListView.View>
       </ListView>
     </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="StatsTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <DockPanel Margin="0,0,8,0">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+          <TextBlock Style="{StaticResource Id}" Text="Analytics handoff"/>
+          <TextBlock Opacity="0.75" TextWrapping="Wrap"
+                     Text="FileIo is the host. At finalize it constructs NumericSeries snapshots of file sizes and transfer rates for the whole job and each bin. Empty bins stay null. Audit Mode still describes sizes; rates stay empty."/>
+          <TextBlock FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" TextWrapping="Wrap" Margin="0,8,0,0"
+                     Text="{Binding StatsHeadline}"/>
+        </StackPanel>
+        <ListView ItemsSource="{Binding StatsRows}">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Metric" DisplayMemberBinding="{Binding Metric}" Width="160"/>
+              <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" Width="240"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+      </DockPanel>
+      <DockPanel Grid.Column="1" Margin="8,0,0,0">
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="PER BUCKET"/>
+        <ListView ItemsSource="{Binding BucketStatsRows}">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="Bucket" DisplayMemberBinding="{Binding Metric}" Width="90"/>
+              <GridViewColumn Header="Summary" DisplayMemberBinding="{Binding Value}" Width="420"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+      </DockPanel>
+    </Grid>
   </DataTemplate>
 </ResourceDictionary>

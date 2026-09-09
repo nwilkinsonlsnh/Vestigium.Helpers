@@ -58,6 +58,7 @@ public static class HelperLog
         public const string Compare = "Compare";
         public const string Prune = "Prune";
         public const string SecureDelete = "SecureDelete";
+        public const string Stats = "Stats";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -279,7 +280,8 @@ public static class HelperLog
             Subcategories.Progress,
             Subcategories.Compare,
             Subcategories.Prune,
-            Subcategories.SecureDelete);
+            Subcategories.SecureDelete,
+            Subcategories.Stats);
         return t;
     }
 

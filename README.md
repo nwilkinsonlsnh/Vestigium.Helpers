@@ -56,7 +56,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.WinReg` | `net10.0-windows` | Windows Registry helpers |
 | `Vestigium.Helpers.Json` | `net10.0` | System.Text.Json helpers |
 | `Vestigium.Helpers.Xml` | `net10.0` | XML document helpers |
-| `Vestigium.Helpers.FileIo` | `net10.0` | Validated file jobs: recon, five buckets, UniqueName, Audit Mode, Pause/Cancel. Not robocopy.exe. |
+| `Vestigium.Helpers.FileIo` | `net10.0` | Validated file jobs: recon, five buckets, UniqueName, Audit Mode, Pause/Cancel, Analytics sizes/rates. Not robocopy.exe. |
 | `Vestigium.Helpers.Processes` | `net10.0` | Process launch and capture |
 | `Vestigium.Helpers.Services` | `net10.0` | Service control helpers |
 | `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals, **ControlLimits** |
