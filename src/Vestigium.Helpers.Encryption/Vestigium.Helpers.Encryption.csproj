@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.Encryption</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Encryption</AssemblyName>
-    <Description>Authenticated encryption helpers (AES-256-GCM, ChaCha20-Poly1305, Argon2id). Separate from Hashing.</Description>
+    <Description>Authenticated encryption helpers (AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, RSA-OAEP wrap, Argon2id). Separate from Hashing.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>

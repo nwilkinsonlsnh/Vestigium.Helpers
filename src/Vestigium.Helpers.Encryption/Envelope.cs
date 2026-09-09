@@ -30,6 +30,7 @@ internal static class Envelope
     public const byte SuiteMajor = 1;
     public const byte SuiteMinor = 0;
     public const byte SuiteMinorCbc = 1;
+    public const byte SuiteMinorRsa = 2;
     public const byte HeaderMajor = 1;
     public const byte HeaderMinor = 0;
     public const byte TrailerMajor = 1;
@@ -37,11 +38,14 @@ internal static class Envelope
     public const uint FrameSize = 65536;
     public const int TagSize = 16;
     public const int TrailerBodyLength = 465;
+    public const int TrailerFieldsLength = 433;
     public const int TrailerFooterLength = 17;
     public const int TrailerTotalLength = TrailerBodyLength + TrailerFooterLength;
 
-    public static byte SuiteMinorFor(byte alg)
-        => alg == (byte)EncryptionAlgorithm.Aes256CbcHmac ? SuiteMinorCbc : SuiteMinor;
+    public static byte SuiteMinorFor(byte alg, bool hasRsaWrap = false)
+        => hasRsaWrap
+            ? SuiteMinorRsa
+            : alg == (byte)EncryptionAlgorithm.Aes256CbcHmac ? SuiteMinorCbc : SuiteMinor;
 
     public static bool LooksLikeHeader(ReadOnlySpan<byte> magic)
         => magic.Length >= 13 && magic[..13].SequenceEqual(HeaderMagic);
@@ -58,12 +62,13 @@ internal static class Envelope
         byte kdfPar,
         ReadOnlySpan<byte> salt,
         ReadOnlySpan<byte> fileNonce,
-        ulong frameCount)
+        ulong frameCount,
+        bool hasRsaWrap = false)
     {
         using var buffer = new MemoryStream();
         buffer.Write(HeaderMagic);
         buffer.WriteByte(SuiteMajor);
-        buffer.WriteByte(SuiteMinorFor(alg));
+        buffer.WriteByte(SuiteMinorFor(alg, hasRsaWrap));
         buffer.WriteByte(HeaderMajor);
         buffer.WriteByte(HeaderMinor);
         buffer.WriteByte(alg);

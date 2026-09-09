@@ -15,4 +15,7 @@ public sealed class EncryptionFileInfo
     public bool HmacSha256ReservedFilled { get; init; }
     public bool HasHiddenOriginalName { get; init; }
     public string? OriginalFileName { get; init; }
+    public bool HasRsaWrap { get; init; }
+    public int WrapCount { get; init; }
+    public IReadOnlyList<string> WrapThumbprints { get; init; } = [];
 }

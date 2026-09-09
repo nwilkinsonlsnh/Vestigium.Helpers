@@ -51,7 +51,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers` | `net10.0` | Guards, `HelperLog`, `HelperWpfHost` |
 | `Vestigium.Helpers.ClosedXml` | `net10.0` | ClosedXML write-first Excel (`.xlsx`) |
 | `Vestigium.Helpers.Csv` | `net10.0` | RFC 4180 CSV / TSV (settable delimiter; not ClosedXml) |
-| `Vestigium.Helpers.Encryption` | `net10.0` | AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC (v1.1), Argon2id. `nathan.txt` → `nathan.aes` / `nathan.argon` |
+| `Vestigium.Helpers.Encryption` | `net10.0` | AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC (v1.1), RSA-OAEP wrap + key ring (v1.2), Argon2id. `nathan.txt` → `nathan.aes` / `nathan.argon` |
 | `Vestigium.Helpers.Hashing` | `net10.0` | String and file digests (skeleton). Fills Encryption trailer `sha256` later |
 | `Vestigium.Helpers.WinReg` | `net10.0-windows` | Windows Registry helpers |
 | `Vestigium.Helpers.Json` | `net10.0` | System.Text.Json helpers |

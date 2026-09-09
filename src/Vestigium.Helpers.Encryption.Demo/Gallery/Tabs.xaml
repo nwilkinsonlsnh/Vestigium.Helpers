@@ -3,10 +3,10 @@
   <DataTemplate x:Key="OverviewTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ENC  ·  SRS v1.0"/>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-ENC  ·  SRS v1.0 + v1.2"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
-                   Text="Two AEADs, one CBC interop path, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. AES-256-CBC + HMAC-SHA256 is v1.1 interop (not default). Passphrases go through Argon2id. After Seal you can keep the plaintext or shred it (3- or 7-pass random + zero)."/>
+                   Text="Two AEADs, one CBC interop path, one RSA wrap list, one envelope. AES-256-GCM is the default. ChaCha20-Poly1305 is the same contract with different math. AES-256-CBC + HMAC-SHA256 is v1.1 interop (not default). RSA-OAEP wraps the 32-byte content key (v1.2). Passphrases go through Argon2id. After Seal you can keep the plaintext or shred it (3- or 7-pass random + zero)."/>
         <WrapPanel>
           <Border Style="{StaticResource Card}" Width="260">
             <StackPanel>
@@ -27,6 +27,13 @@
               <TextBlock Style="{StaticResource Caption}" Text="INTEROP"/>
               <TextBlock FontWeight="SemiBold" Text="AES-256-CBC + HMAC"/>
               <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="v1.1. Encrypt-then-MAC, per-frame IV, PKCS#7 per frame. Never CBC without HMAC."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="WRAP"/>
+              <TextBlock FontWeight="SemiBold" Text="RSA-OAEP SHA-256"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="v1.2. Wraps the 32-byte content key. Isolation per public key. Trailer stores thumbprints only."/>
             </StackPanel>
           </Border>
           <Border Style="{StaticResource Card}" Width="260">
@@ -130,6 +137,44 @@
         <TextBlock Style="{StaticResource Caption}" Text="PROBLEMS"/>
         <TextBox IsReadOnly="True" Text="{Binding ProblemsText}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                  Height="140" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="RsaTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="RSA-OAEP WRAP  ·  SUITE 1.2"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="RSA wraps the 32-byte content key, never the file. Isolation is per public key: CompanyX / ApplicationX cannot open a file sealed to ApplicationY. Gallery keys are 2048-bit; the library default is 3072. Trailer stores thumbprints only."/>
+        <WrapPanel>
+          <Button Content="Generate Ops pair" Command="{Binding GenerateOpsCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Issue CompanyX / AppX" Command="{Binding IssueAppXCommand}"/>
+          <Button Content="Issue CompanyX / AppY" Command="{Binding IssueAppYCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.85" FontFamily="Cascadia Mono, Consolas" Text="{Binding KeySummary}" TextWrapping="Wrap"/>
+        <TextBlock Style="{StaticResource Caption}" Text="SEAL TO"/>
+        <ComboBox ItemsSource="{Binding Recipients}" SelectedItem="{Binding Recipient}"/>
+        <CheckBox Content="Also wrap to Ops" IsChecked="{Binding AlsoWrapToOps}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="STRING ROUND-TRIP"/>
+        <TextBox Text="{Binding PlainText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                 Height="72" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        <WrapPanel>
+          <Button Content="SealString" Command="{Binding SealStringCommand}" Style="{StaticResource PrimaryButton}"/>
+          <ComboBox ItemsSource="{Binding OpenAsChoices}" SelectedItem="{Binding OpenAs}" Width="160"/>
+          <Button Content="OpenString" Command="{Binding OpenStringCommand}"/>
+        </WrapPanel>
+        <TextBox IsReadOnly="True" Text="{Binding SealedBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap" Height="56" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock Text="{Binding OpenedCaption}" FontFamily="Cascadia Mono, Consolas"/>
+        <TextBlock Style="{StaticResource Caption}" Text="FILE ROUND-TRIP"/>
+        <WrapPanel>
+          <Button Content="Seal nathan.txt → nathan.aes" Command="{Binding SealFileCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Open → original name" Command="{Binding OpenFileCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.85" Text="{Binding PeekLine}" TextWrapping="Wrap"/>
+        <TextBlock FontWeight="SemiBold" Text="{Binding RestoredCaption}" TextWrapping="Wrap"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
       </StackPanel>
     </ScrollViewer>
   </DataTemplate>

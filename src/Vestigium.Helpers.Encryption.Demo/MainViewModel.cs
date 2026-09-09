@@ -21,6 +21,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         ChaCha = new CipherSession(EncryptionAlgorithm.ChaCha20Poly1305, SetStatus);
         Cbc = new CipherSession(EncryptionAlgorithm.Aes256CbcHmac, SetStatus);
         Argon = new CipherSession(EncryptionAlgorithm.Aes256Gcm, SetStatus, title: "Argon2id", lockPassphrase: true);
+        Rsa = new RsaSession(SetStatus);
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Encryption}";
     }
 
@@ -28,6 +29,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public CipherSession ChaCha { get; }
     public CipherSession Cbc { get; }
     public CipherSession Argon { get; }
+    public RsaSession Rsa { get; }
 
     public string Identity => EncryptionHelper.Identity;
     public string ExportFolder => EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
@@ -44,7 +46,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     [ObservableProperty] private string problemsText = "";
     [ObservableProperty] private string magicsText = "";
 
-    public IReadOnlyList<string> ValidateTargets { get; } = ["AES-256-GCM", "ChaCha20-Poly1305", "AES-256-CBC + HMAC", "Argon2id"];
+    public IReadOnlyList<string> ValidateTargets { get; } = ["AES-256-GCM", "ChaCha20-Poly1305", "AES-256-CBC + HMAC", "Argon2id", "RSA wrap"];
 
     private CipherSession Current => ValidateTarget.StartsWith("ChaCha", StringComparison.Ordinal)
         ? ChaCha
@@ -495,4 +497,256 @@ public sealed partial class CipherSession : ObservableObject
         var text = Encoding.UTF8.GetString(bytes);
         return text.Length > 800 ? text[..800] + "…" : text;
     }
+}
+
+public sealed partial class RsaSession : ObservableObject
+{
+    private readonly Action<string> _status;
+    private readonly EncryptionKeyRing _ring = EncryptionKeyRing.Create("Ops ring");
+    private EncryptionRsaKey? _ops;
+    private EncryptionRsaKey? _appXSlip;
+    private EncryptionRsaKey? _appYSlip;
+    private EncryptionKeyRecord? _appX;
+    private EncryptionKeyRecord? _appY;
+
+    public RsaSession(Action<string> status)
+    {
+        _status = status;
+        PlainText = "token from Vestigium";
+        Recipient = "CompanyX / AppX";
+        OpenAs = "AppX";
+        AlsoWrapToOps = true;
+        KeySummary = "Generate an Ops pair, then Issue AppX and AppY (2048-bit gallery keys).";
+    }
+
+    public IReadOnlyList<string> Recipients { get; } = ["CompanyX / AppX", "CompanyX / AppY"];
+    public IReadOnlyList<string> OpenAsChoices { get; } = ["Ops", "AppX", "AppY"];
+
+    [ObservableProperty] private string plainText = "";
+    [ObservableProperty] private string sealedBase64 = "";
+    [ObservableProperty] private string openedText = "";
+    [ObservableProperty] private string recipient = "CompanyX / AppX";
+    [ObservableProperty] private string openAs = "AppX";
+    [ObservableProperty] private bool alsoWrapToOps = true;
+    [ObservableProperty] private string keySummary = "";
+    [ObservableProperty] private string peekLine = "";
+    [ObservableProperty] private string envelopePath = "";
+    [ObservableProperty] private string restoredPath = "";
+    [ObservableProperty] private string errorText = "";
+
+    public string OpenedCaption => string.IsNullOrEmpty(OpenedText) ? "" : $"Opened: {OpenedText}";
+    public string RestoredCaption => string.IsNullOrWhiteSpace(RestoredPath) ? "" : $"Restored {Path.GetFileName(RestoredPath)}";
+
+    partial void OnOpenedTextChanged(string value) => OnPropertyChanged(nameof(OpenedCaption));
+    partial void OnRestoredPathChanged(string value) => OnPropertyChanged(nameof(RestoredCaption));
+
+    private void RefreshKeys()
+    {
+        KeySummary =
+            $"Ops {Short(_ops)}  ·  AppX {Short(_appX?.Key)}  ·  AppY {Short(_appY?.Key)}";
+    }
+
+    private static string Short(EncryptionRsaKey? key)
+        => key is null ? "(none)" : key.ThumbprintHex[..12] + "…";
+
+    [RelayCommand]
+    private async Task GenerateOpsAsync()
+    {
+        ErrorText = "";
+        try
+        {
+            _ops?.Dispose();
+            _ops = await Task.Run(() => EncryptionRsaKey.Generate(2048));
+            RefreshKeys();
+            _status("Ops pair ready (2048-bit).");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private async Task IssueAppXAsync()
+    {
+        ErrorText = "";
+        try
+        {
+            var issued = await Task.Run(() =>
+                _ring.Issue("Company X AppX", "AppX wrap", "CompanyX", application: "ApplicationX", keyBits: 2048));
+            _appXSlip?.Dispose();
+            _appX = issued.Contact;
+            _appXSlip = issued.PrivateExport;
+            RefreshKeys();
+            _status("Issued CompanyX / ApplicationX (public contact kept; slip in gallery).");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private async Task IssueAppYAsync()
+    {
+        ErrorText = "";
+        try
+        {
+            var issued = await Task.Run(() =>
+                _ring.Issue("Company X AppY", "AppY wrap", "CompanyX", application: "ApplicationY", keyBits: 2048));
+            _appYSlip?.Dispose();
+            _appY = issued.Contact;
+            _appYSlip = issued.PrivateExport;
+            RefreshKeys();
+            _status("Issued CompanyX / ApplicationY (public contact kept; slip in gallery).");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SealStringAsync()
+    {
+        ErrorText = "";
+        var contact = Contact();
+        if (contact is null)
+        {
+            ErrorText = "Issue AppX or AppY first.";
+            return;
+        }
+        if (AlsoWrapToOps && _ops is null)
+        {
+            ErrorText = "Generate the Ops pair first, or turn off also wrap to Ops.";
+            return;
+        }
+
+        try
+        {
+            var text = PlainText ?? "";
+            var also = AlsoWrapToOps ? _ops : null;
+            SealedBase64 = await Task.Run(() => EncryptionHelper.SealString(text, [contact], alsoWrapTo: also));
+            OpenedText = "";
+            var blob = Convert.FromBase64String(SealedBase64);
+            var dir = EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
+            Directory.CreateDirectory(dir);
+            EnvelopePath = Path.Combine(dir, "rsa-string.bin");
+            File.WriteAllBytes(EnvelopePath, blob);
+            var peek = EncryptionHelper.PeekFile(EnvelopePath);
+            PeekLine = $"suite {peek.SuiteVersion} · wraps={peek.WrapCount} · {string.Join(", ", peek.WrapThumbprints.Select(t => t[..12] + "…"))}";
+            _status($"Sealed string · suite {peek.SuiteVersion} · {peek.WrapCount} wrap(s)");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+            _status(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenStringAsync()
+    {
+        ErrorText = "";
+        if (string.IsNullOrWhiteSpace(SealedBase64))
+        {
+            ErrorText = "Seal the string first.";
+            return;
+        }
+        var key = Opener();
+        if (key is null)
+        {
+            ErrorText = "Generate / issue the Open-as key first.";
+            return;
+        }
+
+        try
+        {
+            var sealedText = SealedBase64;
+            OpenedText = await Task.Run(() => EncryptionHelper.OpenString(sealedText, key));
+            _status($"Opened as {OpenAs} · {OpenedText.Length} chars");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+            _status(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SealFileAsync()
+    {
+        ErrorText = "";
+        var contact = Contact();
+        if (contact is null)
+        {
+            ErrorText = "Issue AppX or AppY first.";
+            return;
+        }
+        if (AlsoWrapToOps && _ops is null)
+        {
+            ErrorText = "Generate the Ops pair first, or turn off also wrap to Ops.";
+            return;
+        }
+
+        try
+        {
+            var inbox = Path.Combine(Path.GetTempPath(), "vestigium-encryption-demo");
+            Directory.CreateDirectory(inbox);
+            var src = Path.Combine(inbox, "nathan.txt");
+            File.WriteAllText(src, "hello from Vestigium");
+            var destDir = EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption);
+            Directory.CreateDirectory(destDir);
+            var also = AlsoWrapToOps ? _ops : null;
+            EnvelopePath = await Task.Run(() => EncryptionHelper.SealFile(src, destDir, [contact], alsoWrapTo: also));
+            RestoredPath = "";
+            var peek = EncryptionHelper.PeekFile(EnvelopePath);
+            PeekLine = $"{Path.GetFileName(EnvelopePath)} · suite {peek.SuiteVersion} · wraps={peek.WrapCount} · hidden={peek.HasHiddenOriginalName}";
+            _status($"Sealed nathan.txt → {Path.GetFileName(EnvelopePath)}");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+            _status(ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenFileAsync()
+    {
+        ErrorText = "";
+        if (string.IsNullOrWhiteSpace(EnvelopePath) || !File.Exists(EnvelopePath))
+        {
+            ErrorText = "Seal a file first.";
+            return;
+        }
+        var key = Opener();
+        if (key is null)
+        {
+            ErrorText = "Generate / issue the Open-as key first.";
+            return;
+        }
+
+        try
+        {
+            var source = EnvelopePath;
+            var restoredDir = Path.Combine(EncryptionHelper.DefaultExportDirectory(HelperLog.AppIds.Encryption), "restored");
+            Directory.CreateDirectory(restoredDir);
+            RestoredPath = await Task.Run(() => EncryptionHelper.OpenFile(source, restoredDir + Path.DirectorySeparatorChar, key));
+            _status($"Opened as {OpenAs} → {Path.GetFileName(RestoredPath)}");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+            _status(ex.Message);
+        }
+    }
+
+    private EncryptionRsaKey? Contact()
+        => Recipient.Contains("AppY", StringComparison.Ordinal) ? _appY?.Key : _appX?.Key;
+
+    private EncryptionRsaKey? Opener()
+        => OpenAs.Equals("Ops", StringComparison.OrdinalIgnoreCase) ? _ops
+            : OpenAs.Equals("AppY", StringComparison.OrdinalIgnoreCase) ? _appYSlip
+            : _appXSlip;
 }

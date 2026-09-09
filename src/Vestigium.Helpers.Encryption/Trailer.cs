@@ -29,9 +29,11 @@ internal sealed class TrailerFields
     public byte[] NameCt { get; init; } = new byte[272];
     public byte[] Mac { get; init; } = new byte[32];
     public byte[] Body { get; init; } = [];
+    public IReadOnlyList<RsaWrapRecord> Wraps { get; init; } = [];
 
     public bool UnknownLength => (Flags & 1) != 0;
     public bool HasHiddenName => (Flags & 2) != 0;
+    public bool HasRsaWrap => (Flags & Trailer.FlagHasWrap) != 0 || Wraps.Count > 0;
     public bool Sha256Filled => (Flags & 8) != 0 || Sha256.Any(b => b != 0);
     public bool HmacFilled => (Flags & 16) != 0 || HmacSha256.Any(b => b != 0);
 }
@@ -40,8 +42,10 @@ internal static class Trailer
 {
     public const ushort FlagUnknownLength = 1;
     public const ushort FlagHasName = 2;
+    public const ushort FlagHasWrap = 32;
     public const int NamePlainSize = 256;
     public const int NameCtSize = 272;
+    public const int MaxWraps = 8;
 
     public static byte[] Write(
         Stream destination,
@@ -59,12 +63,19 @@ internal static class Trailer
         ReadOnlySpan<byte> nameNonce,
         ushort nameLen,
         ReadOnlySpan<byte> nameCt,
-        ReadOnlySpan<byte> contentKey)
+        ReadOnlySpan<byte> contentKey,
+        IReadOnlyList<RsaWrapRecord>? wraps = null)
     {
-        var body = new byte[Envelope.TrailerBodyLength];
+        wraps ??= [];
+        var wrapBytes = EncodeWraps(wraps);
+        var hasWrap = wrapBytes.Length > 0;
+        if (hasWrap)
+            flags |= FlagHasWrap;
+        var fields = Envelope.TrailerFieldsLength;
+        var body = new byte[fields + wrapBytes.Length + 32];
         var w = 0;
         body[w++] = Envelope.SuiteMajor;
-        body[w++] = Envelope.SuiteMinorFor(alg);
+        body[w++] = Envelope.SuiteMinorFor(alg, hasWrap);
         body[w++] = Envelope.TrailerMajor;
         body[w++] = Envelope.TrailerMinor;
         body[w++] = alg;
@@ -95,12 +106,18 @@ internal static class Trailer
         w += 2;
         nameCt[..NameCtSize].CopyTo(body.AsSpan(w));
         w += NameCtSize;
+        if (wrapBytes.Length > 0)
+        {
+            wrapBytes.CopyTo(body.AsSpan(w));
+            w += wrapBytes.Length;
+        }
+
         var mac = ComputeMac(contentKey, fileNonce, body.AsSpan(0, w));
         mac.CopyTo(body.AsSpan(w));
 
         destination.Write(body);
         Span<byte> len = stackalloc byte[4];
-        BinaryPrimitives.WriteUInt32LittleEndian(len, Envelope.TrailerBodyLength);
+        BinaryPrimitives.WriteUInt32LittleEndian(len, (uint)body.Length);
         destination.Write(len);
         destination.Write(Envelope.TrailerMagic);
         return body;
@@ -201,7 +218,11 @@ internal static class Trailer
         r += 2;
         var nameCt = body.AsSpan(r, NameCtSize).ToArray();
         r += NameCtSize;
-        var mac = body.AsSpan(r, 32).ToArray();
+        if (body.Length < r + 32)
+            throw new CryptographicException("The envelope is corrupt.");
+        var wrapRegion = body.AsSpan(r, body.Length - r - 32);
+        var wraps = DecodeWraps(wrapRegion);
+        var mac = body.AsSpan(body.Length - 32, 32).ToArray();
 
         return new TrailerFields
         {
@@ -227,8 +248,76 @@ internal static class Trailer
             NameLen = nameLen,
             NameCt = nameCt,
             Mac = mac,
-            Body = body
+            Body = body,
+            Wraps = wraps
         };
+    }
+
+    public static byte[] EncodeWraps(IReadOnlyList<RsaWrapRecord> wraps)
+    {
+        if (wraps.Count == 0)
+            return [];
+        if (wraps.Count > MaxWraps)
+            throw new ArgumentOutOfRangeException(nameof(wraps), "At most 8 RSA wraps.");
+        using var ms = new MemoryStream();
+        ms.WriteByte((byte)wraps.Count);
+        Span<byte> u16 = stackalloc byte[2];
+        foreach (var wrap in wraps)
+        {
+            if (wrap.Thumbprint.Length != 32 || wrap.WrappedKey.Length == 0)
+                throw new CryptographicException("The envelope is corrupt.");
+            ms.WriteByte(wrap.WrapAlg);
+            BinaryPrimitives.WriteUInt16LittleEndian(u16, wrap.KeyBits);
+            ms.Write(u16);
+            ms.Write(wrap.Thumbprint);
+            BinaryPrimitives.WriteUInt16LittleEndian(u16, (ushort)wrap.WrappedKey.Length);
+            ms.Write(u16);
+            ms.Write(wrap.WrappedKey);
+        }
+
+        return ms.ToArray();
+    }
+
+    public static IReadOnlyList<RsaWrapRecord> DecodeWraps(ReadOnlySpan<byte> region)
+    {
+        if (region.Length == 0)
+            return [];
+        var count = region[0];
+        if (count == 0 || count > MaxWraps)
+            throw new CryptographicException("The envelope is corrupt.");
+        var list = new List<RsaWrapRecord>(count);
+        var o = 1;
+        for (var i = 0; i < count; i++)
+        {
+            if (o + 1 + 2 + 32 + 2 > region.Length)
+                throw new CryptographicException("The envelope is corrupt.");
+            var wrapAlg = region[o++];
+            var keyBits = BinaryPrimitives.ReadUInt16LittleEndian(region[o..]);
+            o += 2;
+            var thumb = region.Slice(o, 32).ToArray();
+            o += 32;
+            var wrappedLen = BinaryPrimitives.ReadUInt16LittleEndian(region[o..]);
+            o += 2;
+            if (wrappedLen == 0 || o + wrappedLen > region.Length)
+                throw new CryptographicException("The envelope is corrupt.");
+            if (wrapAlg != EncryptionRsaKey.WrapAlgOaepSha256)
+                throw new NotSupportedException("wrapAlg");
+            if (keyBits < EncryptionRsaKey.MinBits)
+                throw new NotSupportedException("keyBits");
+            var wrapped = region.Slice(o, wrappedLen).ToArray();
+            o += wrappedLen;
+            list.Add(new RsaWrapRecord
+            {
+                WrapAlg = wrapAlg,
+                KeyBits = keyBits,
+                Thumbprint = thumb,
+                WrappedKey = wrapped
+            });
+        }
+
+        if (o != region.Length)
+            throw new CryptographicException("The envelope is corrupt.");
+        return list;
     }
 
     public static byte[] ComputeMac(ReadOnlySpan<byte> contentKey, ReadOnlySpan<byte> fileNonce, ReadOnlySpan<byte> bodyWithoutMac)
@@ -247,7 +336,9 @@ internal static class Trailer
 
     public static bool VerifyMac(ReadOnlySpan<byte> contentKey, TrailerFields trailer)
     {
-        var expected = ComputeMac(contentKey, trailer.FileNonce, trailer.Body.AsSpan(0, Envelope.TrailerBodyLength - 32));
+        if (trailer.Body.Length < 32)
+            return false;
+        var expected = ComputeMac(contentKey, trailer.FileNonce, trailer.Body.AsSpan(0, trailer.Body.Length - 32));
         return CryptographicOperations.FixedTimeEquals(expected, trailer.Mac);
     }
 

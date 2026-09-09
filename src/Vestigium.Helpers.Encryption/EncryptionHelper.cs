@@ -7,8 +7,8 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Encryption;
 
 /// <summary>
-/// Authenticated encryption helpers (AES-256-GCM default, ChaCha20-Poly1305, AES-256-CBC+HMAC v1.1, Argon2id).
-/// Libraries never call Initialize. Hashing lives in Vestigium.Helpers.Hashing.
+/// Authenticated encryption helpers (AES-256-GCM default, ChaCha20-Poly1305, AES-256-CBC+HMAC v1.1, RSA-OAEP wrap v1.2, Argon2id).
+/// Libraries never call Initialize. Hashing lives in Vestigium.Helpers.Hashing. RSA never encrypts payload frames.
 /// </summary>
 public static class EncryptionHelper
 {
@@ -72,7 +72,19 @@ public static class EncryptionHelper
     public static string? RevealOriginalFileName(string path, EncryptionSecret secret)
     {
         using var source = OpenRead(path);
-        return RevealOriginalFileName(source, secret);
+        return RevealOriginalFileName(source, secret, rsa: null, ring: null);
+    }
+
+    public static string? RevealOriginalFileName(string path, EncryptionRsaKey rsa)
+    {
+        using var source = OpenRead(path);
+        return RevealOriginalFileName(source, secret: null, rsa, ring: null);
+    }
+
+    public static string? RevealOriginalFileName(string path, EncryptionKeyRing ring)
+    {
+        using var source = OpenRead(path);
+        return RevealOriginalFileName(source, secret: null, rsa: null, ring);
     }
 
     public static bool IsVestigiumFile(string path)
@@ -264,21 +276,49 @@ public static class EncryptionHelper
         }
     }
 
-    public static string SealString(string plaintext, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm)
+    public static string SealString(string plaintext, EncryptionSecret secret, EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm, IReadOnlyList<EncryptionRsaKey>? rsaRecipients = null)
     {
         ArgumentNullException.ThrowIfNull(plaintext);
         ArgumentNullException.ThrowIfNull(secret);
         var bytes = Encoding.UTF8.GetBytes(plaintext);
         using var source = new MemoryStream(bytes, writable: false);
         using var destination = new MemoryStream();
-        SealFile(source, destination, secret, alg, bytes.LongLength);
+        SealFile(source, destination, secret, alg, bytes.LongLength, originalFileName: null, rsaRecipients);
         return Convert.ToBase64String(destination.ToArray());
     }
 
+    public static string SealString(
+        string plaintext,
+        IReadOnlyList<EncryptionRsaKey> rsaRecipients,
+        EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm,
+        EncryptionRsaKey? alsoWrapTo = null)
+    {
+        ArgumentNullException.ThrowIfNull(rsaRecipients);
+        var raw = RandomNumberGenerator.GetBytes(32);
+        try
+        {
+            using var secret = EncryptionSecret.FromKey(raw);
+            var wraps = CombineWraps(rsaRecipients, alsoWrapTo);
+            return SealString(plaintext, secret, alg, wraps);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(raw);
+        }
+    }
+
     public static string OpenString(string sealedBase64, EncryptionSecret secret)
+        => OpenStringCore(sealedBase64, secret, rsa: null, ring: null);
+
+    public static string OpenString(string sealedBase64, EncryptionRsaKey rsa)
+        => OpenStringCore(sealedBase64, secret: null, rsa, ring: null);
+
+    public static string OpenString(string sealedBase64, EncryptionKeyRing ring)
+        => OpenStringCore(sealedBase64, secret: null, rsa: null, ring);
+
+    private static string OpenStringCore(string sealedBase64, EncryptionSecret? secret, EncryptionRsaKey? rsa, EncryptionKeyRing? ring)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sealedBase64);
-        ArgumentNullException.ThrowIfNull(secret);
         byte[] blob;
         try
         {
@@ -291,7 +331,7 @@ public static class EncryptionHelper
 
         using var source = new MemoryStream(blob, writable: false);
         using var destination = new MemoryStream();
-        OpenFile(source, destination, secret);
+        OpenFileCore(source, destination, secret, rsa, ring);
         return Encoding.UTF8.GetString(destination.ToArray());
     }
 
@@ -300,7 +340,8 @@ public static class EncryptionHelper
         string destinationPath,
         EncryptionSecret secret,
         EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm,
-        SecureDeleteMode shredPlaintext = SecureDeleteMode.Keep)
+        SecureDeleteMode shredPlaintext = SecureDeleteMode.Keep,
+        IReadOnlyList<EncryptionRsaKey>? rsaRecipients = null)
     {
         var source = HelperGuard.NotBlank(sourcePath, nameof(sourcePath));
         var destArg = HelperGuard.NotBlank(destinationPath, nameof(destinationPath));
@@ -323,7 +364,7 @@ public static class EncryptionHelper
         {
             using var input = File.OpenRead(source);
             using var output = File.Create(destFile);
-            SealFile(input, output, secret, alg, input.Length, originalName);
+            SealFile(input, output, secret, alg, input.Length, originalName, rsaRecipients);
             Log("Seal", VestigiumStatus.Success, $"path={Path.GetFileName(destFile)} frames done");
         }
         catch (Exception ex)
@@ -340,11 +381,44 @@ public static class EncryptionHelper
         return destFile;
     }
 
+    public static string SealFile(
+        string sourcePath,
+        string destinationPath,
+        IReadOnlyList<EncryptionRsaKey> rsaRecipients,
+        EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm,
+        SecureDeleteMode shredPlaintext = SecureDeleteMode.Keep,
+        EncryptionRsaKey? alsoWrapTo = null)
+    {
+        var raw = RandomNumberGenerator.GetBytes(32);
+        try
+        {
+            using var secret = EncryptionSecret.FromKey(raw);
+            return SealFile(sourcePath, destinationPath, secret, alg, shredPlaintext, CombineWraps(rsaRecipients, alsoWrapTo));
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(raw);
+        }
+    }
+
     public static string OpenFile(string sourcePath, string destinationPath, EncryptionSecret secret)
+        => OpenFilePath(sourcePath, destinationPath, secret, rsa: null, ring: null);
+
+    public static string OpenFile(string sourcePath, string destinationPath, EncryptionRsaKey rsa)
+        => OpenFilePath(sourcePath, destinationPath, secret: null, rsa, ring: null);
+
+    public static string OpenFile(string sourcePath, string destinationPath, EncryptionKeyRing ring)
+        => OpenFilePath(sourcePath, destinationPath, secret: null, rsa: null, ring);
+
+    private static string OpenFilePath(
+        string sourcePath,
+        string destinationPath,
+        EncryptionSecret? secret,
+        EncryptionRsaKey? rsa,
+        EncryptionKeyRing? ring)
     {
         var source = HelperGuard.NotBlank(sourcePath, nameof(sourcePath));
         var destArg = HelperGuard.NotBlank(destinationPath, nameof(destinationPath));
-        ArgumentNullException.ThrowIfNull(secret);
         if (!File.Exists(source))
         {
             var missing = new FileNotFoundException("Source file was not found.", source);
@@ -353,7 +427,7 @@ public static class EncryptionHelper
         }
 
         using var input = File.OpenRead(source);
-        var originalName = RevealOriginalFileName(input, secret);
+        var originalName = RevealOriginalFileName(input, secret, rsa, ring);
         input.Position = 0;
         var destFile = ResolveOpenDestination(destArg, originalName);
         if (PathsEqual(source, destFile))
@@ -364,7 +438,7 @@ public static class EncryptionHelper
         try
         {
             using var output = File.Create(destFile);
-            OpenFile(input, output, secret);
+            OpenFileCore(input, output, secret, rsa, ring);
             Log("Open", VestigiumStatus.Success, $"path={Path.GetFileName(destFile)}");
             return destFile;
         }
@@ -443,13 +517,15 @@ public static class EncryptionHelper
         EncryptionSecret secret,
         EncryptionAlgorithm alg = EncryptionAlgorithm.Aes256Gcm,
         long? plaintextLength = null,
-        string? originalFileName = null)
+        string? originalFileName = null,
+        IReadOnlyList<EncryptionRsaKey>? rsaRecipients = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
         ArgumentNullException.ThrowIfNull(secret);
         if (!FrameCipher.IsSupported(alg))
             throw new NotSupportedException("alg");
+        var hasWrap = rsaRecipients is { Count: > 0 };
 
         var unknown = plaintextLength is null && !source.CanSeek;
         long length;
@@ -479,8 +555,8 @@ public static class EncryptionHelper
         {
             key = secret.DeriveContentKey(kdf, salt, kdfMem, kdfIter, kdfPar);
             var headerCount = unknown ? 0UL : (ulong)FrameCountFor(length);
-            Log("Seal", VestigiumStatus.Pending, $"alg={algByte} kdf={kdf} bytes={(unknown ? -1 : length)} frames={headerCount}");
-            var prefix = Envelope.WriteHeader(destination, algByte, kdf, kdfMem, kdfIter, kdfPar, salt, fileNonce, headerCount);
+            Log("Seal", VestigiumStatus.Pending, $"alg={algByte} kdf={kdf} wrap={hasWrap} bytes={(unknown ? -1 : length)} frames={headerCount}");
+            var prefix = Envelope.WriteHeader(destination, algByte, kdf, kdfMem, kdfIter, kdfPar, salt, fileNonce, headerCount, hasWrap);
 
             ulong frames = 0;
             ulong writtenPlain = 0;
@@ -526,6 +602,7 @@ public static class EncryptionHelper
             }
 
             var created = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var wraps = BuildWraps(rsaRecipients, key);
             Trailer.Write(
                 destination,
                 algByte,
@@ -542,8 +619,9 @@ public static class EncryptionHelper
                 nameNonce,
                 nameLen,
                 nameCt,
-                key);
-            Log("Seal", VestigiumStatus.Success, $"alg={algByte} kdf={kdf} frames={frames} bytes={writtenPlain}");
+                key,
+                wraps);
+            Log("Seal", VestigiumStatus.Success, $"alg={algByte} kdf={kdf} wraps={wraps.Count} frames={frames} bytes={writtenPlain}");
         }
         finally
         {
@@ -555,10 +633,25 @@ public static class EncryptionHelper
     }
 
     public static void OpenFile(Stream source, Stream destination, EncryptionSecret secret)
+        => OpenFileCore(source, destination, secret, rsa: null, ring: null);
+
+    public static void OpenFile(Stream source, Stream destination, EncryptionRsaKey rsa)
+        => OpenFileCore(source, destination, secret: null, rsa, ring: null);
+
+    public static void OpenFile(Stream source, Stream destination, EncryptionKeyRing ring)
+        => OpenFileCore(source, destination, secret: null, rsa: null, ring);
+
+    private static void OpenFileCore(
+        Stream source,
+        Stream destination,
+        EncryptionSecret? secret,
+        EncryptionRsaKey? rsa,
+        EncryptionKeyRing? ring)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
-        ArgumentNullException.ThrowIfNull(secret);
+        if (secret is null && rsa is null && ring is null)
+            throw new ArgumentNullException(nameof(secret));
         if (!source.CanSeek)
             throw new CryptographicException("The envelope is corrupt.");
 
@@ -590,8 +683,8 @@ public static class EncryptionHelper
         var tag = new byte[Envelope.TagSize];
         try
         {
-            key = secret.DeriveContentKey(trailer.Kdf, trailer.Salt, trailer.KdfMemMiB, trailer.KdfIter, trailer.KdfPar);
-            if (!Trailer.VerifyMac(key, trailer))
+            key = ResolveContentKey(trailer, secret, rsa, ring);
+            if (key is null || !Trailer.VerifyMac(key, trailer))
                 throw new CryptographicException("The envelope is corrupt.");
 
             var frameCount = trailer.FrameCount;
@@ -638,16 +731,19 @@ public static class EncryptionHelper
         }
     }
 
-    private static string? RevealOriginalFileName(Stream source, EncryptionSecret secret)
+    private static string? RevealOriginalFileName(
+        Stream source,
+        EncryptionSecret? secret,
+        EncryptionRsaKey? rsa,
+        EncryptionKeyRing? ring)
     {
-        ArgumentNullException.ThrowIfNull(secret);
         var origin = source.CanSeek ? source.Position : 0;
         byte[]? key = null;
         try
         {
             var trailer = Trailer.Read(source);
-            key = secret.DeriveContentKey(trailer.Kdf, trailer.Salt, trailer.KdfMemMiB, trailer.KdfIter, trailer.KdfPar);
-            if (!Trailer.VerifyMac(key, trailer))
+            key = ResolveContentKey(trailer, secret, rsa, ring);
+            if (key is null || !Trailer.VerifyMac(key, trailer))
                 throw new CryptographicException("The envelope is corrupt.");
             return Trailer.OpenOriginalName((EncryptionAlgorithm)trailer.Alg, key, trailer);
         }
@@ -677,7 +773,10 @@ public static class EncryptionHelper
             Sha256ReservedFilled = trailer.Sha256Filled,
             HmacSha256ReservedFilled = trailer.HmacFilled,
             HasHiddenOriginalName = trailer.HasHiddenName,
-            OriginalFileName = originalName
+            OriginalFileName = originalName,
+            HasRsaWrap = trailer.HasRsaWrap,
+            WrapCount = trailer.Wraps.Count,
+            WrapThumbprints = trailer.Wraps.Select(w => Convert.ToHexString(w.Thumbprint).ToLowerInvariant()).ToArray()
         };
 
     private static bool HeadersAgree(EnvelopeHeader header, TrailerFields trailer, List<string> problems)
@@ -775,6 +874,87 @@ public static class EncryptionHelper
         }
 
         return total;
+    }
+
+    private static IReadOnlyList<EncryptionRsaKey> CombineWraps(IReadOnlyList<EncryptionRsaKey> recipients, EncryptionRsaKey? alsoWrapTo)
+    {
+        ArgumentNullException.ThrowIfNull(recipients);
+        if (recipients.Count == 0 && alsoWrapTo is null)
+            throw new ArgumentException("At least one RSA wrap key is required.", nameof(recipients));
+        var list = new List<EncryptionRsaKey>(recipients);
+        if (alsoWrapTo is not null)
+            list.Add(alsoWrapTo);
+        return list;
+    }
+
+    private static IReadOnlyList<RsaWrapRecord> BuildWraps(IReadOnlyList<EncryptionRsaKey>? recipients, byte[] contentKey)
+    {
+        if (recipients is null || recipients.Count == 0)
+            return [];
+        if (recipients.Count > Trailer.MaxWraps)
+            throw new ArgumentOutOfRangeException(nameof(recipients), "At most 8 RSA wraps.");
+        var wraps = new List<RsaWrapRecord>(recipients.Count);
+        foreach (var rsa in recipients)
+        {
+            ArgumentNullException.ThrowIfNull(rsa);
+            wraps.Add(new RsaWrapRecord
+            {
+                WrapAlg = EncryptionRsaKey.WrapAlgOaepSha256,
+                KeyBits = (ushort)rsa.KeyBits,
+                Thumbprint = rsa.Thumbprint,
+                WrappedKey = rsa.Wrap(contentKey)
+            });
+        }
+
+        return wraps;
+    }
+
+    private static byte[]? ResolveContentKey(
+        TrailerFields trailer,
+        EncryptionSecret? secret,
+        EncryptionRsaKey? rsa,
+        EncryptionKeyRing? ring)
+    {
+        if (secret is not null)
+        {
+            byte[]? derived = null;
+            try
+            {
+                derived = secret.DeriveContentKey(trailer.Kdf, trailer.Salt, trailer.KdfMemMiB, trailer.KdfIter, trailer.KdfPar);
+                if (Trailer.VerifyMac(derived, trailer))
+                    return derived;
+            }
+            catch (CryptographicException)
+            {
+                // try RSA wraps next
+            }
+            if (derived is not null)
+                CryptographicOperations.ZeroMemory(derived);
+        }
+
+        foreach (var wrap in trailer.Wraps)
+        {
+            EncryptionRsaKey? key = null;
+            if (rsa is not null && rsa.CanUnwrap && rsa.ThumbprintEquals(wrap.Thumbprint))
+                key = rsa;
+            else if (ring is not null)
+                key = ring.FindPrivate(wrap.Thumbprint);
+            if (key is null)
+                continue;
+            try
+            {
+                var unwrapped = key.Unwrap(wrap.WrappedKey);
+                if (Trailer.VerifyMac(unwrapped, trailer))
+                    return unwrapped;
+                CryptographicOperations.ZeroMemory(unwrapped);
+            }
+            catch (CryptographicException)
+            {
+                // next wrap
+            }
+        }
+
+        return null;
     }
 
     private static void TryDelete(string path)

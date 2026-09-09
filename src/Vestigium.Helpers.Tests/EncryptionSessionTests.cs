@@ -424,6 +424,160 @@ public sealed class EncryptionSessionTests
         Assert.Equal("capture.bin", EncryptionHelper.RevealOriginalFileName(sealedPath, secret));
     }
 
+    [Fact]
+    public void Rsa_wrap_round_trips_and_peeks_suite_1_2()
+    {
+        using var appX = EncryptionRsaKey.Generate(2048);
+        var sealedText = EncryptionHelper.SealString("token from Vestigium", [appX]);
+        Assert.Equal("token from Vestigium", EncryptionHelper.OpenString(sealedText, appX));
+        var info = PeekBlob(sealedText);
+        Assert.Equal("1.2", info.SuiteVersion);
+        Assert.Equal("1.0", info.TrailerVersion);
+        Assert.Equal(EncryptionAlgorithm.Aes256Gcm, info.Algorithm);
+        Assert.True(info.HasRsaWrap);
+        Assert.Equal(1, info.WrapCount);
+        Assert.Equal(appX.ThumbprintHex, info.WrapThumbprints[0]);
+        Assert.False(info.UsedArgon2id);
+    }
+
+    [Fact]
+    public void Rsa_wrap_isolates_appx_from_appy()
+    {
+        using var appX = EncryptionRsaKey.Generate(2048);
+        using var appY = EncryptionRsaKey.Generate(2048);
+        var sealedText = EncryptionHelper.SealString("only AppX", [appX]);
+        Assert.Equal("only AppX", EncryptionHelper.OpenString(sealedText, appX));
+        var ex = Assert.Throws<CryptographicException>(() => EncryptionHelper.OpenString(sealedText, appY));
+        Assert.Equal("The envelope is corrupt.", ex.Message);
+        var blob = Convert.FromBase64String(sealedText);
+        var ascii = Encoding.ASCII.GetString(blob);
+        Assert.DoesNotContain("CompanyX", ascii);
+        Assert.DoesNotContain("ApplicationX", ascii);
+        Assert.DoesNotContain("AppX wrap", ascii);
+    }
+
+    [Fact]
+    public void Rsa_also_wrap_to_me_opens_with_either_key()
+    {
+        using var ops = EncryptionRsaKey.Generate(2048);
+        using var appX = EncryptionRsaKey.Generate(2048);
+        var sealedText = EncryptionHelper.SealString("shared", [appX], alsoWrapTo: ops);
+        Assert.Equal("shared", EncryptionHelper.OpenString(sealedText, appX));
+        Assert.Equal("shared", EncryptionHelper.OpenString(sealedText, ops));
+        var info = PeekBlob(sealedText);
+        Assert.Equal(2, info.WrapCount);
+        Assert.Contains(appX.ThumbprintHex, info.WrapThumbprints);
+        Assert.Contains(ops.ThumbprintHex, info.WrapThumbprints);
+    }
+
+    [Fact]
+    public void Rsa_wrap_hides_nathan_and_round_trips_file()
+    {
+        using var appX = EncryptionRsaKey.Generate(2048);
+        var dir = TempDir();
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello");
+        var sealedPath = EncryptionHelper.SealFile(src, dir, [appX]);
+        Assert.EndsWith(".aes", sealedPath);
+        Assert.Equal("nathan.aes", Path.GetFileName(sealedPath));
+        var peek = EncryptionHelper.PeekFile(sealedPath);
+        Assert.Equal("1.2", peek.SuiteVersion);
+        Assert.True(peek.HasHiddenOriginalName);
+        Assert.Null(peek.OriginalFileName);
+        Assert.DoesNotContain("nathan.txt", File.ReadAllText(sealedPath));
+        Assert.Equal("nathan.txt", EncryptionHelper.RevealOriginalFileName(sealedPath, appX));
+        var restoredDir = Path.Combine(dir, "out") + Path.DirectorySeparatorChar;
+        Directory.CreateDirectory(Path.Combine(dir, "out"));
+        var opened = EncryptionHelper.OpenFile(sealedPath, restoredDir, appX);
+        Assert.Equal("nathan.txt", Path.GetFileName(opened));
+        Assert.Equal("hello", File.ReadAllText(opened));
+    }
+
+    [Fact]
+    public void Rsa_wrap_200kib_file_round_trips()
+    {
+        using var appX = EncryptionRsaKey.Generate(2048);
+        var dir = TempDir();
+        var src = Path.Combine(dir, "capture.bin");
+        var data = RandomNumberGenerator.GetBytes(200 * 1024);
+        File.WriteAllBytes(src, data);
+        var sealedPath = EncryptionHelper.SealFile(src, dir, [appX]);
+        var opened = EncryptionHelper.OpenFile(sealedPath, Path.Combine(dir, "restored"), appX);
+        Assert.True(SHA256.HashData(data).AsSpan().SequenceEqual(SHA256.HashData(File.ReadAllBytes(opened))));
+        var peek = EncryptionHelper.PeekFile(sealedPath);
+        Assert.Equal("1.2", peek.SuiteVersion);
+        Assert.Equal(4UL, peek.FrameCount);
+        Assert.Equal("capture.bin", EncryptionHelper.RevealOriginalFileName(sealedPath, appX));
+    }
+
+    [Fact]
+    public void Rsa_secret_plus_wrap_opens_with_either()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        using var appX = EncryptionRsaKey.Generate(2048);
+        var sealedText = EncryptionHelper.SealString("both", secret, EncryptionAlgorithm.Aes256Gcm, [appX]);
+        Assert.Equal("both", EncryptionHelper.OpenString(sealedText, secret));
+        Assert.Equal("both", EncryptionHelper.OpenString(sealedText, appX));
+        Assert.Equal("1.2", PeekBlob(sealedText).SuiteVersion);
+    }
+
+    [Fact]
+    public void Rsa_cbc_wrap_is_suite_1_2_with_alg_3()
+    {
+        using var appX = EncryptionRsaKey.Generate(2048);
+        var sealedText = EncryptionHelper.SealString("cbc wrap", [appX], EncryptionAlgorithm.Aes256CbcHmac);
+        Assert.Equal("cbc wrap", EncryptionHelper.OpenString(sealedText, appX));
+        var info = PeekBlob(sealedText);
+        Assert.Equal("1.2", info.SuiteVersion);
+        Assert.Equal(EncryptionAlgorithm.Aes256CbcHmac, info.Algorithm);
+        Assert.Equal(1, info.WrapCount);
+    }
+
+    [Fact]
+    public void Key_ring_issue_is_public_only_unless_escrowed()
+    {
+        using var ring = EncryptionKeyRing.Create("Ops ring");
+        var (contact, slip) = ring.Issue("Company X AppX", "AppX wrap", "CompanyX", application: "ApplicationX", keyBits: 2048);
+        Assert.False(contact.Key.CanUnwrap);
+        Assert.Null(ring.FindPrivate(contact.Key.Thumbprint));
+        Assert.True(slip.CanUnwrap);
+        var sealedText = EncryptionHelper.SealString("slip", [contact.Key]);
+        Assert.Equal("slip", EncryptionHelper.OpenString(sealedText, slip));
+        Assert.Throws<CryptographicException>(() => EncryptionHelper.OpenString(sealedText, ring));
+        slip.Dispose();
+
+        var (escrowed, kept) = ring.Issue("Company X AppY", "AppY wrap", "CompanyX", application: "ApplicationY", keyBits: 2048, escrow: true);
+        Assert.NotNull(ring.FindPrivate(escrowed.Key.Thumbprint));
+        var sealedY = EncryptionHelper.SealString("escrow", [escrowed.Key]);
+        Assert.Equal("escrow", EncryptionHelper.OpenString(sealedY, ring));
+        kept.Dispose();
+    }
+
+    [Fact]
+    public void Key_ring_json_round_trips_and_rejects_over_limit()
+    {
+        using var ring = EncryptionKeyRing.Create("Ops ring");
+        ring.AddPair("Ops receive", "Ops", "Wilkinson", application: "Gallery", keyBits: 2048);
+        using var pub = EncryptionRsaKey.Generate(2048);
+        ring.AddContact("Company X AppX", "AppX wrap", "CompanyX", pub, application: "ApplicationX");
+        var json = ring.ToJson();
+        Assert.Contains("VESTIGIUM-KEYRING", json);
+        using var back = EncryptionKeyRing.FromJson(json);
+        Assert.Single(back.Pairs);
+        Assert.Single(back.Contacts);
+        Assert.True(back.Pairs[0].Key.CanUnwrap);
+        Assert.False(back.Contacts[0].Key.CanUnwrap);
+        Assert.Equal("ApplicationX", back.Contacts[0].Application);
+        Assert.Equal(ring.Pairs[0].ThumbprintSha256, back.Pairs[0].ThumbprintSha256);
+
+        Assert.Throws<ArgumentException>(() => EncryptionKeyRing.Create(new string('T', 76)));
+        Assert.Throws<ArgumentException>(() => ring.AddContact(new string('T', 76), "s", "c", pub));
+        Assert.Throws<ArgumentException>(() => ring.AddContact("t", new string('S', 51), "c", pub));
+        Assert.Throws<ArgumentException>(() => ring.AddContact("t", "s", new string('C', 76), pub));
+        Assert.Throws<ArgumentException>(() => ring.AddContact("t", "s", "c", pub, application: new string('A', 51)));
+        Assert.Throws<ArgumentException>(() => ring.AddContact("t", "s", "c", pub, description: new string('D', 221)));
+    }
+
     private static EncryptionFileInfo PeekBlob(string sealedBase64)
     {
         using var ms = new MemoryStream(Convert.FromBase64String(sealedBase64));

@@ -2,33 +2,36 @@
 
 **Document ID:** VEST-HLP-ENC-DEV-000  
 **Version:** 1.0  
-**Status:** Implemented v1.0 + v1.1 CBC.  
+**Status:** Implemented v1.0 + v1.1 CBC + v1.2 RSA-OAEP wrap + key ring.  
 **Date:** 8 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Encryption/`.
 
 ## Read first
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. AES-256-GCM default, ChaCha20-Poly1305 opt-in, AES-256-CBC+HMAC v1.1 interop, Argon2id for passphrases, `VESTIGIUM HDR` / `VESTIGIUM TRL` envelope. Hashing and Hmac are siblings; this project only reserves their trailer slots.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. AES-256-GCM default, ChaCha20-Poly1305 opt-in, AES-256-CBC+HMAC v1.1 interop, Argon2id for passphrases, RSA-OAEP-SHA256 wrap of the 32-byte content key (v1.2), `VESTIGIUM HDR` / `VESTIGIUM TRL` envelope. Hashing and Hmac are siblings; this project only reserves their trailer slots. Key-ring types live here — there is no separate KeyRing library.
 
-This file is the design companion: how the pieces sit, how large files stay off the heap, and how RSA can land later without a second envelope family.
+This file is the design companion: how the pieces sit, how large files stay off the heap, and how RSA wrap lands on the **same** envelope family.
 
 ## Design
 
-**Intent.** One envelope, two AEADs, streamed frames. A password string and a 10 GB capture use the same code path.
+**Intent.** One envelope, two AEADs, one CBC interop path, streamed frames, optional RSA wrap list. A password string, a 10 GB capture, and a file sealed to Company X share a code path.
 
 **Locked decisions.** See SRS §2. The ones that must not drift:
 
-- No custom primitives. BCL AEAD types. One approved Argon2 package only if net10 has no Argon2id type.
+- No custom primitives. BCL AEAD types and BCL RSA-OAEP SHA-256. One approved Argon2 package only if net10 has no Argon2id type.
 - Library never calls `Initialize`. `HelperLog` APPID `Encryption`.
-- Never log plaintext, keys, or passphrases.
+- Never log plaintext, keys, passphrases, PKCS8, company names.
 - Large files are framed (64 KiB). Do not load the file.
-- Every blob ends in a `VESTIGIUM TRL` footer. v1.0 body is 465 bytes plus 17-byte length+magic (482 at EOF).
-- Hashing is `Vestigium.Helpers.Hashing`. Hmac is a later sibling. Do not fill their 32-byte slots in v1.0.
+- Every blob ends in a `VESTIGIUM TRL` footer. v1.0 body is 465 bytes plus 17-byte length+magic (482 at EOF) when there is **no** wrap list. Wrap list grows the body; `bodyLength` is the seek contract. VerifyMac uses `body.Length - 32`.
+- Hashing is `Vestigium.Helpers.Hashing`. Hmac is a later sibling. Do not fill their 32-byte slots.
 - AES-256-CBC is Encrypt-then-MAC and still framed (v1.1, not default).
-- Future RSA wraps the 32-byte content key. It never encrypts the payload.
+- RSA wraps the 32-byte content key. It never encrypts the payload. Payload `alg` stays 1 / 2 / 3. Suite minor 2 when wraps are present. Flag bit 5 (`32`), not bit 2.
+- Isolation is per public key (SHA-256 of SPKI). Trailer stores thumbprints only.
+- One private key is one modulus. Many pairs per `issuedTo` if a company needs AppX and AppY.
+- Issue-and-forget is the default. `escrow: true` is explicit.
 
-**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1). Hashing remains a sibling. RSA stays on the roadmap.
+**Status.** Implemented. Public surface is Identity, Probe, Seal/Open string and file, Peek/Validate/RevealOriginalFileName, `.aes` / `.argon` names, optional 3- or 7-pass + zero secure delete of the unencrypted source, AES-256-CBC+HMAC (alg 3, suite 1.1), RSA-OAEP wrap list (suite 1.2), `EncryptionRsaKey`, `EncryptionKeyRing`. Hashing remains a sibling.
 
 ## Why these algorithms
 
@@ -38,7 +41,7 @@ This file is the design companion: how the pieces sit, how large files stay off 
 | ChaCha20-Poly1305 | Same contract, different math. Opt-in. | Soft default on hosts without AES-NI if a profile asks. |
 | Argon2id | Only passphrase → key path. | Parameters may bump; id and params live in the header. |
 | AES-256-CBC + HMAC | v1.1 interop. Encrypt-then-MAC, framed, not default. | Per-frame IV + HMAC. Hidden name stays GCM. |
-| RSA-OAEP | Not v1. | Wraps the content key. Payload still AEAD frames. |
+| RSA-OAEP-SHA256 | v1.2 wrap of the 32-byte content key. Wrap list 1..8. | Payload still AEAD/CBC frames. Never RSA on the file body. |
 
 Unauthenticated AES-CBC and “RSA the whole file” are the two designs this library exists to prevent.
 
@@ -52,6 +55,9 @@ See SRS §6 for the byte map. Design notes:
 - Header `frameCount` is a hint when the source length is known. The trailer is authoritative. Header `0` + flag bit 0 means unknown-length Seal.
 - AEAD AAD is the header through `frameSize` only, so a zero header count does not change the frame tags.
 - String output is the same blob including the trailer, Base64. There is no “string-only” cipher.
+- RSA wrap does not change the header layout. Suite minor 2 is the only header signal besides the trailer wrap region.
+
+`suiteMinor` = 2 if wraps, else 1 if CBC, else 0.
 
 ## Trailer (design)
 
@@ -61,27 +67,63 @@ Seek path:
 
 ```
 seek EOF-17 → read bodyLength (u32) + "VESTIGIUM TRL"
-seek EOF-17-bodyLength → parse body (465 bytes in v1.0)
+seek EOF-17-bodyLength → parse body (465 bytes with no wraps; longer with a wrap list)
 ```
 
-`bodyLength` is the seek contract so a later minor version can grow the body. v1.0 still writes 465.
+`bodyLength` is the seek contract so a later minor version can grow the body. v1.0 still writes 465 when there are no wraps.
+
+Fixed prefix through `nameCt` is 433 bytes. Wrap region (optional) sits between `nameCt` and `mac`. MAC is always the last 32 of the body.
 
 HMAC key is HKDF-SHA256(contentKey, salt=fileNonce, info=`VESTIGIUM-TRL-HMAC`). That is Encryption’s structural `mac`. The 32-byte `sha256` and `hmacSha256` slots stay zeros until Hashing / Hmac exist.
 
-`IsVestigiumFile` / `PeekFile` / `ValidateFile` read this record. Peek needs no secret. Validate with a secret checks `mac` and still does not decrypt frames.
+`IsVestigiumFile` / `PeekFile` / `ValidateFile` read this record. Peek needs no secret. Validate with a secret checks `mac` and still does not decrypt frames. Peek of a wrap file may list thumbprints; it never lists company names.
 
-Expected extra types after implementation: `Trailer.cs`, `EncryptionFileInfo.cs`, `EncryptionValidationResult.cs`.
+Wrap record: `wrapAlg u8` + `keyBits u16 LE` + 32-byte thumbprint + `wrappedLen u16 LE` + wrapped key. Count 1..8. `FlagHasWrap = 32`.
+
+## RSA wrap (design)
+
+```
+contentKey = derive(secret) or random 32 bytes
+for each recipient (max 8)
+    wrapped = RSA-OAEP-SHA256(recipient.public, contentKey)
+    emit wrapAlg=1, keyBits, SHA256(SPKI), wrapped
+payload frames as today
+trailer mac over prefix + wrap bytes
+```
+
+Open:
+
+```
+if secret present and trailer mac verifies → use that content key
+else match wrap thumbprint to a private (caller key or Active ring pair)
+    unwrap → verify mac
+else fail closed: The envelope is corrupt.
+```
+
+Do not try every private key. Do not distinguish “wrong company” from “corrupt.”
+
+Thumbprint = SHA-256 of SubjectPublicKeyInfo DER so C# and Web Crypto agree.
+
+## Key ring (design)
+
+JSON `VESTIGIUM-KEYRING` 1.0. Two arrays: `pairs` (may include PKCS8) and `contacts` (SPKI only).
+
+`Issue` copies PKCS8 into the returned slip (`FromPkcs8`) and disposes the generated key when not escrowed, so the ring does not double-dispose.
+
+Field clamps: title 75, subject 50, description 220, issuedTo 75, application 50.
+
+The ring file on disk should itself be a Vestigium envelope (host Seals the JSON). `ToJson` is plaintext so tests can round-trip without a second envelope.
 
 ## Large-file pump (design)
 
 ```
-write header (frameCount known, or 0 if unknown)
+write header (frameCount known, or 0 if unknown; suiteMinor 2 if wraps)
 loop
     read up to 65536 plaintext bytes (stop at EOF)
     nonce = fileNonce[0..7] || BE32(i)
     ciphertext || tag = AEAD(key, nonce, aad=headerPrefix||i, plaintext)
     write ciphertext || tag
-write VESTIGIUM TRL (versions, counts, zeroed hash/HMAC slots, structural mac)
+write VESTIGIUM TRL (versions, counts, zeroed hash/HMAC slots, optional wrap list, structural mac)
 dispose secret
 ```
 
@@ -94,7 +136,7 @@ Open is the inverse. On any tag failure:
 
 Do not encrypt in place. Do not write frames into the source path.
 
-Expected RAM: header + 64 KiB plaintext + 64 KiB + 16 ciphertext/tag + 482-byte trailer. Not the file.
+Expected RAM: header + 64 KiB plaintext + 64 KiB + 16 ciphertext/tag + trailer (482 bytes, or a few KB with wraps). Not the file.
 
 ## Usage (after implementation)
 
@@ -120,18 +162,35 @@ Raw key (no Argon2):
 using var secret = EncryptionSecret.FromKey(key32);
 ```
 
+RSA wrap (Company X cannot be opened by Company Y):
+
+```csharp
+using var ring = EncryptionKeyRing.Create("Ops");
+using var ops = EncryptionRsaKey.Generate(2048); // tests; default Generate is 3072
+ring.AddPair("Ops receive", "Ops", "Wilkinson", application: "Gallery");
+
+var (appX, slipX) = ring.Issue("Company X AppX", "AppX wrap", "CompanyX", application: "ApplicationX");
+var (appY, slipY) = ring.Issue("Company X AppY", "AppY wrap", "CompanyX", application: "ApplicationY");
+
+var sealedToX = EncryptionHelper.SealString(token, [appX.Key], alsoWrapTo: ops);
+EncryptionHelper.OpenString(sealedToX, slipX);   // ok
+EncryptionHelper.OpenString(sealedToX, ops);     // also wrap to me
+// EncryptionHelper.OpenString(sealedToX, slipY); // CryptographicException
+```
+
 Visible names are short. The original name is hidden in the trailer:
 
 ```
 nathan.txt  + raw key      →  %DESKTOP%\Vestigium\Exports\{APPID}\nathan.aes
 nathan.txt  + passphrase   →  %DESKTOP%\Vestigium\Exports\{APPID}\nathan.argon
+nathan.txt  + RSA wrap     →  %DESKTOP%\Vestigium\Exports\{APPID}\nathan.aes
 Open into a folder         →  nathan.txt
 ```
 
 ```csharp
 var sealedPath = EncryptionHelper.SealFile("nathan.txt", exportDir, secret);
 var check = EncryptionHelper.ValidateFile(sealedPath);                 // no secret; no nathan.txt
-var info  = EncryptionHelper.PeekFile(sealedPath);                     // suite 1.0, alg, sizes, HasHiddenOriginalName
+var info  = EncryptionHelper.PeekFile(sealedPath);                     // suite 1.0 / 1.1 / 1.2, alg, sizes, HasHiddenOriginalName, wrap count
 var name  = EncryptionHelper.RevealOriginalFileName(sealedPath, secret); // nathan.txt
 EncryptionHelper.OpenFile(sealedPath, exportDir, secret);              // writes nathan.txt
 EncryptionHelper.SealFile("nathan.txt", exportDir, secret, shredPlaintext: SecureDeleteMode.ThreePass);
@@ -146,27 +205,29 @@ EncryptionHelper.SecureDelete(plaintextPath, SecureDeleteMode.SevenPass);
 
 | File | Role |
 |---|---|
-| `EncryptionHelper.cs` | Identity, Probe, paths, Seal/Open, IsVestigium/Peek/Validate/RevealOriginalFileName, SecureDelete |
+| `EncryptionHelper.cs` | Identity, Probe, paths, Seal/Open, IsVestigium/Peek/Validate/RevealOriginalFileName, SecureDelete, RSA overloads |
 | `SecureDeleteMode.cs` | Keep / ThreePass (3 random + zero) / SevenPass (7 random + zero) |
 | `EncryptionSecret.cs` | Passphrase / raw key; dispose clears |
-| `EncryptionAlgorithm.cs` | Aes256Gcm, ChaCha20Poly1305, Aes256CbcHmac |
-| `EncryptionFileInfo.cs` | Peek DTO (suite version, alg, sizes) |
+| `EncryptionAlgorithm.cs` | Aes256Gcm, ChaCha20Poly1305, Aes256CbcHmac (no RSA alg) |
+| `EncryptionFileInfo.cs` | Peek DTO (suite version, alg, sizes, wrap count, thumbprints) |
 | `EncryptionValidationResult.cs` | Validate DTO |
-| `Envelope.cs` | `VESTIGIUM HDR` read/write |
-| `Trailer.cs` | `VESTIGIUM TRL` write / parse / mac / peek |
+| `EncryptionRsaKey.cs` | Generate / SPKI / PKCS8 / Wrap / Unwrap / thumbprint |
+| `EncryptionKeyRing.cs` | Pairs vs contacts, Issue, JSON `VESTIGIUM-KEYRING` |
+| `Envelope.cs` | `VESTIGIUM HDR` read/write; `SuiteMinorFor(alg, hasRsaWrap)` |
+| `Trailer.cs` | `VESTIGIUM TRL` write / parse / mac / peek / wrap list |
 | `FrameCipher.cs` | One AEAD frame, or one CBC+HMAC frame |
 | `OriginalNames.cs` | Bare file name rules; hidden `nathan.txt` |
 | `Argon2idKdf.cs` | Passphrase → 32-byte key |
 
-Do not add a Hashing implementation here. Do not add RSA types until that SRS revision.
+Do not add a Hashing implementation here. Do not add a separate KeyRing project.
 
 ## Logging
 
 Category `Helpers`, subcategory `Encryption`, APPID = host.
 
-Safe to log: algorithm name, KDF id, plaintext **length**, frame count, destination **path**.
+Safe to log: algorithm name, KDF id, wrap count, plaintext **length**, frame count, destination **path**.
 
-Never log: passphrase, key, salt-as-reusable-secret, plaintext, Base64 blob, hidden original name. Visible path (`nathan.aes`) is fine.
+Never log: passphrase, key, PKCS8, salt-as-reusable-secret, plaintext, Base64 blob, hidden original name, company / subject / issuedTo. Visible path (`nathan.aes`) is fine. Thumbprint hex on Peek is already on disk.
 
 Library never calls `VestigiumLogger.Initialize`. If the host has not started logging, Seal/Open still work; log calls are no-ops.
 
@@ -178,7 +239,7 @@ dotnet run --project src/Vestigium.Helpers.Encryption.Demo
 
 JSONL: `%ProgramData%\Vestigium\Logs\Encryption\`
 
-The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, and Argon2id tabs each round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default.
+The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, Argon2id, and RSA / key ring tabs. Cipher tabs round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default. RSA tab Issues CompanyX AppX / AppY, Seals to a contact, optionally also wraps to Ops, and Opens as Ops / AppX / AppY so isolation is visible. Gallery RSA keys are 2048-bit; the library default remains 3072.
 
 ## Roadmap (design)
 
@@ -186,12 +247,12 @@ The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, and
 |---|---|---|
 | v1.0 | GCM + ChaCha + Argon2id + VESTIGIUM HDR/TRL | 64 KiB frames; hidden original name; `.aes` / `.argon`; Peek/Validate; optional 3/7-pass shred |
 | v1.1 | AES-256-CBC + HMAC-SHA256, framed, not default — **shipped** | Per-frame IV + per-frame HMAC; PKCS#7 per frame; hidden name stays GCM |
-| v1.2 | RSA-OAEP wraps content key; payload still GCM/ChaCha frames | Hybrid: RSA cost is one wrap; file still streams |
+| v1.2 | RSA-OAEP wraps content key; wrap list; key ring — **shipped** | Hybrid: RSA cost is N wraps (N ≤ 8); file still streams |
 | v1.3 | Public-key trailer sig / frameSize override | Flag bit 2; keep EOF magic so Peek still works |
 
 CBC without HMAC does not ship. RSA on the file body does not ship.
 
-When v1.1 / v1.2 land, they extend `EncryptionAlgorithm` and the header `alg` byte. They do not invent a second magic. They do not get a `SealHugeFile` sibling — `SealFile` stays the file API.
+v1.1 extended `EncryptionAlgorithm` (alg 3). v1.2 does **not** add alg 4 — it grows the trailer. They do not invent a second magic. They do not get a `SealHugeFile` sibling — `SealFile` stays the file API.
 
 ## Sibling
 
