@@ -25,7 +25,7 @@ Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Ha
 - File APIs stream. Never `ReadAllBytes`.
 - Library never calls `Initialize`. APPID `Hashing`.
 - Never log input, HMAC keys, passwords, salts, PHC. File digest hex is the audit record.
-- Do not fill Encryption trailer slots from this project.
+- Do not fill Encryption trailer slots from this project. Encryption v1.3 writes them when the host passes `EncryptionSealOptions`. Hashing still has no Encryption reference.
 - Checksums: CRC-32 IEEE, CRC-64/ECMA-182, xxHash seed 0. `ChecksumCrc32` / `ChecksumCrc64` / `ChecksumXxHash`. Not authentication.
 
 **Status.** Implemented v1.3. Public surface is Identity, Probe, Hash/Verify string-bytes-file, HMAC-SHA256/384/512/SHA3, KMAC, SHAKE, HashPassword/VerifyPassword, Checksum*, HashingConvert, HmacKey.
@@ -62,6 +62,8 @@ Shake128("abc");                             // FIPS 202 XOF, 32 bytes
 ```
 
 HMAC is not AES. Lengths 16/32/64/128 are not “HMAC-128 vs HMAC-256.” 64 is the SHA-256 block; 128 is hashed down inside HMAC. HMAC-SHA384 / HMAC-SHA512 / HMAC-SHA3 use the same key object. KMAC uses that same key object too.
+
+A host that wants the Encryption trailer `hmacSha256` slot filled generates or loads an `HmacKey` here, hands the raw bytes to `EncryptionSealOptions.CallerMacKey`, and keeps that key in the same vault it would use for any other HMAC. Encryption never stores it in the envelope. The key is portable; it is not tied to a PC.
 
 ## Password vs Encryption KDF
 
@@ -100,6 +102,6 @@ Tabs: Overview, SHA-256, SHA-384/512, SHA-3, Checksum, HMAC (SHA-256 / 384 / 512
 | v1.1 | CRC-32 / CRC-64 / xxHash as `Checksum*` |
 | v1.2 | HMAC-SHA384 / HMAC-SHA512 |
 | v1.3 (this) | HMAC-SHA3 / KMAC / SHAKE |
-| Encryption v1.3 | Fill reserved trailer slots; coverage A/B/C |
+| Encryption v1.3 | Fill reserved trailer slots; coverage A/B/C — shipped |
 
 Never: AES, SHA-256-as-password, inventing a hash, `ReadAllBytes` on a capture, a separate Hmac csproj.
