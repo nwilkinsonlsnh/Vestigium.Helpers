@@ -212,7 +212,7 @@ public sealed class HashingSessionTests
         Assert.False(HashingHelper.VerifyShakeString("abd", HashingHelper.Shake128("abc")));
         Assert.Equal(64, HashingHelper.ShakeString("abc", ShakeAlgorithm.Shake128, 32).Length);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            HashingHelper.ShakeString("abc", ShakeAlgorithm.Shake128, 0));
+            HashingHelper.ShakeString("abc", ShakeAlgorithm.Shake128, 1025));
     }
 
     [Fact]
