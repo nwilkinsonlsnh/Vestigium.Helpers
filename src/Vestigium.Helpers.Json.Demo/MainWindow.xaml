@@ -1,0 +1,37 @@
+<Window x:Class="Vestigium.Helpers.Json.Demo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vestigium.Helpers.Json gallery"
+        Height="820" Width="1180"
+        MinHeight="600" MinWidth="880"
+        Background="#0B1A30" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20,16,20,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <DockPanel LastChildFill="False" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Json gallery"/>
+        <TextBlock Opacity="0.7" Text="RFC 8259 payload JSON / JSONL · Pointer + dotted path · Snapshot / Diff / Commit / Save"/>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="APPID Json · not the audit logger" HorizontalAlignment="Right"/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Grid.Row="1">
+      <TabItem Header="Overview"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource OverviewTab}"/></TabItem>
+      <TabItem Header="Settings"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource SettingsTab}"/></TabItem>
+      <TabItem Header="Jsonl"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource PayloadJsonlTab}"/></TabItem>
+      <TabItem Header="Export"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ExportTab}"/></TabItem>
+      <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>
+    </TabControl>
+    <DockPanel Grid.Row="2" Margin="0,10,0,0">
+      <TextBlock Opacity="0.55" Text="{Binding StatusText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+    </DockPanel>
+  </Grid>
+</Window>

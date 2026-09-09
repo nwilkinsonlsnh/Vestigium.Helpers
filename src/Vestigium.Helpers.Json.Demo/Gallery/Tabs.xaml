@@ -1,0 +1,145 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-JSON  ·  SRS v1.0"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
+                   Text="Payload JSON and JSONL: settings files, host exports, external logs you need to query. System.Text.Json only. Pretty + camelCase. Pointer and dotted path. An edit session so you can see the RFC 6902 patch before disk changes. Not the Vestigium audit logger. Not FileIo."/>
+        <WrapPanel>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="DIALECT"/>
+              <TextBlock FontWeight="SemiBold" Text="RFC 8259"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="UTF-8, no BOM, no comments, no trailing commas. JSONC is rejected."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="SESSION"/>
+              <TextBlock FontWeight="SemiBold" Text="Snapshot → Diff → Commit"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Set mutates working memory. Save writes committed. Cancel leaves disk alone."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="JSONL"/>
+              <TextBlock FontWeight="SemiBold" Text="One value per line"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Append at end. Save rewrites the whole file. Not %ProgramData%\Vestigium\Logs\."/>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Card}" Width="260">
+            <StackPanel>
+              <TextBlock Style="{StaticResource Caption}" Text="EXPORT"/>
+              <TextBlock FontWeight="SemiBold" Text="Desktop · Vestigium · Exports · Json"/>
+              <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding ExportFolder}"/>
+            </StackPanel>
+          </Border>
+        </WrapPanel>
+        <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="CALL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding StartupSnippet}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Seed demo files" Command="{Binding SeedDemoCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}"/>
+              <Button Content="Run probe" Command="{Binding RunProbeCommand}"/>
+            </WrapPanel>
+            <TextBlock Opacity="0.7" Text="{Binding SettingsPath}" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="SettingsTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="340"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Style="{StaticResource Caption}" Text="SETTINGS FILE"/>
+        <TextBlock Text="{Binding SettingsPath}" TextWrapping="Wrap" Opacity="0.75"/>
+        <TextBlock Style="{StaticResource Caption}" Text="network.timeoutSeconds"/>
+        <TextBox Text="{Binding TimeoutText, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Style="{StaticResource Caption}" Text="/logging/level"/>
+        <TextBox Text="{Binding LevelText, UpdateSourceTrigger=PropertyChanged}"/>
+        <WrapPanel>
+          <Button Content="Load" Command="{Binding LoadSettingsCommand}"/>
+          <Button Content="Set + Diff" Command="{Binding ApplySettingsCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Commit" Command="{Binding CommitSettingsCommand}"/>
+          <Button Content="Save" Command="{Binding SaveSettingsCommand}"/>
+          <Button Content="Cancel" Command="{Binding CancelSettingsCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding SettingsCaption}"/>
+      </StackPanel>
+      <Border Grid.Column="1" Style="{StaticResource Panel}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="RFC 6902 DIFF (ops, never values in HelperLog)"/>
+          <TextBox IsReadOnly="True" Text="{Binding DiffText}" FontFamily="Cascadia Mono, Consolas"
+                   FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"/>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="PayloadJsonlTab">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="340"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Style="{StaticResource Caption}" Text="PAYLOAD JSONL"/>
+        <TextBlock Text="{Binding JsonlPath}" TextWrapping="Wrap" Opacity="0.75"/>
+        <TextBlock Style="{StaticResource Caption}" Text="NEW RECORD CODE"/>
+        <TextBox Text="{Binding NewCode, UpdateSourceTrigger=PropertyChanged}"/>
+        <WrapPanel>
+          <Button Content="Reload" Command="{Binding LoadJsonlCommand}"/>
+          <Button Content="Append" Command="{Binding AppendJsonlCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Commit + Save" Command="{Binding SaveJsonlCommand}"/>
+        </WrapPanel>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding JsonlCaption}"/>
+      </StackPanel>
+      <Border Grid.Column="1" Style="{StaticResource Panel}">
+        <ListView ItemsSource="{Binding JsonlRows}">
+          <ListView.View>
+            <GridView>
+              <GridViewColumn Header="#" DisplayMemberBinding="{Binding Index}" Width="48"/>
+              <GridViewColumn Header="code" DisplayMemberBinding="{Binding Code}" Width="160"/>
+              <GridViewColumn Header="kind" DisplayMemberBinding="{Binding Kind}" Width="120"/>
+            </GridView>
+          </ListView.View>
+        </ListView>
+      </Border>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ExportTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="Desktop\Vestigium\Exports\Json"/>
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="Export folder"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Text="Default dest when the host omits a directory. Tests inject JsonTestHooks.ExportRoot and never touch the real Desktop. Probe stays in memory. Collision default Fail — there is no UniqueName here."/>
+        <Border Style="{StaticResource Panel}">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Caption}" Text="FOLDER"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Text="{Binding ExportFolder}"/>
+            <TextBlock Style="{StaticResource Caption}" Text="SETTINGS"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Text="{Binding SettingsPath}"/>
+            <TextBlock Style="{StaticResource Caption}" Text="JSONL"/>
+            <TextBlock FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Text="{Binding JsonlPath}"/>
+            <WrapPanel Margin="0,12,0,0">
+              <Button Content="Open export folder" Command="{Binding OpenExportFolderCommand}" Style="{StaticResource PrimaryButton}"/>
+              <Button Content="Seed demo files" Command="{Binding SeedDemoCommand}"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+</ResourceDictionary>

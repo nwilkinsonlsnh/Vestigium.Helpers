@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Vestigium.Helpers;
@@ -8,45 +9,51 @@ internal static class JsonIO
 {
     internal const int StreamBufferSize = 64 * 1024;
 
+    internal static JsonDocumentKind KindFromPath(string? path)
+        => !string.IsNullOrWhiteSpace(path) && path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase)
+            ? JsonDocumentKind.Jsonl
+            : JsonDocumentKind.Json;
+
     internal static JsonNode Read(string path)
     {
-        using var stream = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            StreamBufferSize,
-            FileOptions.SequentialScan);
+        using var stream = OpenRead(path);
         return JsonHelper.Parse(stream);
     }
 
-    internal static int Write(string path, JsonNode node, bool indented, bool atomic)
+    internal static JsonArray ReadJsonl(string path)
     {
-        var parent = Path.GetDirectoryName(path);
-        if (!string.IsNullOrWhiteSpace(parent))
-            Directory.CreateDirectory(parent);
-
-        if (!atomic)
-            return WriteTo(path, node, indented, FileMode.Create);
-
-        var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
+        using var stream = OpenRead(path);
+        RejectBom(stream);
+        using var reader = new StreamReader(stream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false, StreamBufferSize);
+        var records = new JsonArray();
+        var index = 0;
+        while (reader.ReadLine() is { } line)
         {
-            var bytes = WriteTo(temp, node, indented, FileMode.CreateNew);
-            File.Move(temp, path, overwrite: true);
-            return bytes;
-        }
-        catch
-        {
-            if (File.Exists(temp))
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+            JsonNode? node;
+            try
             {
-                try { File.Delete(temp); }
-                catch (IOException) { }
+                node = JsonNode.Parse(line, JsonCodec.NodeOptions, JsonCodec.DocumentOptions);
+            }
+            catch (JsonException)
+            {
+                HelperLog.Reject($"jsonl line is not RFC 8259 index={index}");
+                throw;
             }
 
-            throw;
+            records.Add(node);
+            index++;
         }
+
+        return records;
     }
+
+    internal static int Write(string path, JsonNode node, bool indented, bool atomic)
+        => WriteAtomic(path, atomic, dest => WriteJson(dest, node, indented));
+
+    internal static int WriteJsonl(string path, JsonArray records, bool atomic)
+        => WriteAtomic(path, atomic, dest => WriteJsonlTo(dest, records));
 
     internal static void RejectCollision(string path, JsonCollision collision, bool replaceInPlace)
     {
@@ -97,15 +104,40 @@ internal static class JsonIO
         return dest;
     }
 
-    private static int WriteTo(string path, JsonNode node, bool indented, FileMode mode)
+    private static FileStream OpenRead(string path)
+        => new(path, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan);
+
+    private static int WriteAtomic(string path, bool atomic, Func<string, int> write)
     {
-        using var stream = new FileStream(
-            path,
-            mode,
-            FileAccess.Write,
-            FileShare.None,
-            StreamBufferSize,
-            FileOptions.SequentialScan);
+        var parent = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(parent))
+            Directory.CreateDirectory(parent);
+
+        if (!atomic)
+            return write(path);
+
+        var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            var bytes = write(temp);
+            File.Move(temp, path, overwrite: true);
+            return bytes;
+        }
+        catch
+        {
+            if (File.Exists(temp))
+            {
+                try { File.Delete(temp); }
+                catch (IOException) { }
+            }
+
+            throw;
+        }
+    }
+
+    private static int WriteJson(string path, JsonNode node, bool indented)
+    {
+        using var stream = OpenWrite(path);
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = indented }))
         {
             node.WriteTo(writer);
@@ -114,5 +146,44 @@ internal static class JsonIO
 
         stream.Flush(flushToDisk: true);
         return checked((int)stream.Length);
+    }
+
+    private static int WriteJsonlTo(string path, JsonArray records)
+    {
+        using var stream = OpenWrite(path);
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false }))
+        {
+            foreach (var record in records)
+            {
+                if (record is null)
+                    writer.WriteNullValue();
+                else
+                    record.WriteTo(writer);
+                writer.Flush();
+                stream.WriteByte((byte)'\n');
+                writer.Reset();
+            }
+        }
+
+        stream.Flush(flushToDisk: true);
+        return checked((int)stream.Length);
+    }
+
+    private static FileStream OpenWrite(string path)
+        => new(path, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan);
+
+    private static void RejectBom(Stream stream)
+    {
+        if (!stream.CanSeek)
+            return;
+        var mark = stream.Position;
+        Span<byte> header = stackalloc byte[3];
+        var read = stream.Read(header);
+        stream.Position = mark;
+        if (read >= 3 && header[0] == 0xEF && header[1] == 0xBB && header[2] == 0xBF)
+        {
+            HelperLog.Reject("json has a BOM");
+            throw new JsonException("RFC 8259 JSON must be UTF-8 without a BOM.");
+        }
     }
 }

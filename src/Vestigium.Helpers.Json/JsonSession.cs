@@ -7,7 +7,7 @@ namespace Vestigium.Helpers.Json;
 
 /// <summary>
 /// Owns one working tree and one committed tree. Not thread-safe — one session, one owner.
-/// Phase 3 adds Open/Save/SaveAs with atomic replace. JSONL starts at Phase 4.
+/// Phase 4 adds JSONL (one RFC 8259 value per line) with full-file rewrite on Save.
 /// </summary>
 public sealed class JsonSession : IDisposable
 {
@@ -116,6 +116,47 @@ public sealed class JsonSession : IDisposable
         }
     }
 
+    public void AppendRecord(JsonNode record)
+    {
+        ThrowIfDisposed();
+        RequireJsonl("AppendRecord");
+        var node = HelperGuard.NotNull(record, nameof(record));
+        using var scope = HelperLog.Begin(App, HelperLog.Subcategories.Jsonl, "AppendRecord", $"session={SessionId}", SessionId);
+        var array = WorkingArray();
+        array.Add(node.DeepClone());
+        HelperLog.Information(
+            App,
+            VestigiumStatus.Success,
+            HelperLog.Subcategories.Jsonl,
+            $"AppendRecord index={array.Count - 1} session={SessionId}");
+    }
+
+    public JsonNode? Record(int index)
+    {
+        ThrowIfDisposed();
+        RequireJsonl("Record");
+        if (index < 0)
+        {
+            HelperLog.Reject($"index={index} is below 0");
+            throw new ArgumentOutOfRangeException(nameof(index), "Record index must be at least 0.");
+        }
+
+        var array = WorkingArray();
+        if (index >= array.Count)
+            return null;
+        return array[index]?.DeepClone();
+    }
+
+    public int RecordCount
+    {
+        get
+        {
+            ThrowIfDisposed();
+            RequireJsonl("RecordCount");
+            return WorkingArray().Count;
+        }
+    }
+
     public JsonPatch Diff()
     {
         ThrowIfDisposed();
@@ -158,14 +199,14 @@ public sealed class JsonSession : IDisposable
     {
         ThrowIfDisposed();
         if (string.IsNullOrWhiteSpace(Path))
-            return SaveAs(JsonHelper.NewExportPath(), Options.Collision);
+            return SaveAs(JsonHelper.NewExportPath(kind: Kind), Options.Collision);
         return WriteTree(_committed, Path, replaceInPlace: true, Options.Collision, working: false, "Save");
     }
 
     public string SaveWorking()
     {
         ThrowIfDisposed();
-        var target = string.IsNullOrWhiteSpace(Path) ? JsonHelper.NewExportPath() : Path;
+        var target = string.IsNullOrWhiteSpace(Path) ? JsonHelper.NewExportPath(kind: Kind) : Path;
         var replace = JsonIO.SamePath(Path, target);
         return WriteTree(_working, target, replace, Options.Collision, working: true, "SaveWorking");
     }
@@ -196,9 +237,19 @@ public sealed class JsonSession : IDisposable
         try
         {
             JsonIO.RejectCollision(path, collision, replaceInPlace);
-            var bytes = JsonIO.Write(path, tree, indented: true, Options.AtomicWrite);
+            var bytes = Kind == JsonDocumentKind.Jsonl
+                ? JsonIO.WriteJsonl(path, AsArray(tree), Options.AtomicWrite)
+                : JsonIO.Write(path, tree, indented: true, Options.AtomicWrite);
             Path = path;
             _saved = tree.DeepClone();
+            if (Kind == JsonDocumentKind.Jsonl)
+            {
+                HelperLog.Information(
+                    App,
+                    VestigiumStatus.Success,
+                    HelperLog.Subcategories.Jsonl,
+                    $"rewrite path={path} records={AsArray(tree).Count} bytes={bytes} session={SessionId}");
+            }
             if (working)
             {
                 HelperLog.Warning(
@@ -234,6 +285,24 @@ public sealed class JsonSession : IDisposable
     }
 
     private void ThrowIfDisposed() => HelperGuard.NotDisposed(_disposed, this);
+
+    private void RequireJsonl(string method)
+    {
+        if (Kind == JsonDocumentKind.Jsonl)
+            return;
+        HelperLog.Reject($"{method} is JSONL only");
+        throw new InvalidOperationException($"{method} is only valid on a JSONL session.");
+    }
+
+    private JsonArray WorkingArray() => AsArray(_working);
+
+    private static JsonArray AsArray(JsonNode tree)
+    {
+        if (tree is JsonArray array)
+            return array;
+        HelperLog.Reject("jsonl root is not an array");
+        throw new InvalidOperationException("A JSONL session root must be an array of records.");
+    }
 
     private static bool TryConvert<T>(JsonNode? node, out T? value)
     {

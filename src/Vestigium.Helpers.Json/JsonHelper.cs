@@ -7,7 +7,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Json;
 
 /// <summary>
-/// System.Text.Json helpers for payload documents. Phase 3: files, atomic replace, export folder.
+/// System.Text.Json helpers for payload documents. Phase 4: JSONL sessions and shipped gallery.
 /// The class library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class JsonHelper
@@ -235,10 +235,12 @@ public static class JsonHelper
         {
             HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Creating a blank JSON session={sessionId}");
             var stored = string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
+            var kind = JsonIO.KindFromPath(stored);
+            JsonNode root = kind == JsonDocumentKind.Jsonl ? new JsonArray() : new JsonObject();
             return new JsonSession(
-                new JsonObject(),
+                root,
                 stored,
-                JsonDocumentKind.Json,
+                kind,
                 options ?? new JsonSessionOptions(),
                 sessionId);
         }
@@ -282,16 +284,44 @@ public static class JsonHelper
         }
     }
 
+    public static JsonSession OpenJsonl(string path, JsonSessionOptions? options = null)
+    {
+        var app = HelperLog.AppIds.Json;
+        var sessionId = HelperLog.NewId();
+        var target = Path.GetFullPath(HelperGuard.FileExists(path, nameof(path)));
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Jsonl, "OpenJsonl", $"path={target} session={sessionId}", sessionId);
+        try
+        {
+            HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Jsonl, $"Opening JSONL path={target} session={sessionId}");
+            var records = JsonIO.ReadJsonl(target);
+            var bytes = new FileInfo(target).Length;
+            HelperLog.Information(
+                app,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Jsonl,
+                $"OpenJsonl path={target} records={records.Count} bytes={bytes} session={sessionId}");
+            return new JsonSession(records, target, JsonDocumentKind.Jsonl, options ?? new JsonSessionOptions(), sessionId);
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (JsonException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
     public static JsonSession OpenExport(string stem, JsonDocumentKind kind = JsonDocumentKind.Json, JsonSessionOptions? options = null)
     {
         var name = HelperGuard.NotBlank(stem, nameof(stem));
-        if (kind == JsonDocumentKind.Jsonl)
-        {
-            HelperLog.Reject("jsonl open is not available");
-            throw new InvalidOperationException("OpenJsonl ships in Phase 4.");
-        }
-
-        return Open(JsonIO.ResolveExportFile(DefaultExportDirectory(), name, kind), options);
+        var target = JsonIO.ResolveExportFile(DefaultExportDirectory(), name, kind);
+        return kind == JsonDocumentKind.Jsonl ? OpenJsonl(target, options) : Open(target, options);
     }
 
     public static void WriteFile<T>(string path, T value, JsonWriteOptions? options = null)

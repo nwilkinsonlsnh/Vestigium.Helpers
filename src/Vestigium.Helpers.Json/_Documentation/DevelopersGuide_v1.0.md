@@ -80,7 +80,7 @@ Default dest folder: `%DESKTOP%\\Vestigium\\Exports\\Json\\`. Tests replace that
 - Collision default Fail. AtomicWrite default true.
 - JSONL: append + full rewrite. No mid-file splice in v1.
 - HelperLog: paths and counts, never bodies.
-- Phase 3 ships Open/Save/SaveAs, 64 KiB streams, atomic replace, collision Fail/Overwrite, and `JsonTestHooks.ExportRoot`. JSONL starts at Phase 4.
+- Phase 4 ships OpenJsonl, Record, AppendRecord, full-rewrite Save, and the gallery (Overview / Settings / Jsonl / Export / Audit).
 
 ## Sibling fences
 
