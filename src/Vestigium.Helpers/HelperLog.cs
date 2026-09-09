@@ -59,6 +59,13 @@ public static class HelperLog
         public const string Prune = "Prune";
         public const string SecureDelete = "SecureDelete";
         public const string Stats = "Stats";
+        public const string Document = "Document";
+        public const string Query = "Query";
+        public const string Snapshot = "Snapshot";
+        public const string Diff = "Diff";
+        public const string Commit = "Commit";
+        public const string Save = "Save";
+        public const string Jsonl = "Jsonl";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -281,7 +288,14 @@ public static class HelperLog
             Subcategories.Compare,
             Subcategories.Prune,
             Subcategories.SecureDelete,
-            Subcategories.Stats);
+            Subcategories.Stats,
+            Subcategories.Document,
+            Subcategories.Query,
+            Subcategories.Snapshot,
+            Subcategories.Diff,
+            Subcategories.Commit,
+            Subcategories.Save,
+            Subcategories.Jsonl);
         return t;
     }
 
