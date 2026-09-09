@@ -111,6 +111,34 @@ public sealed class JsonSessionTests
     }
 
     [Fact]
+    public void Get_is_quiet_and_failed_get_is_logged()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumJsonTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        HelperLog.InitializeHost(HelperLog.AppIds.Json, cfg => cfg.LogDirectory = dir);
+        try
+        {
+            using var doc = JsonHelper.Create();
+            doc.Set("network.timeoutSeconds", 15);
+            var before = HelperLog.RecentJsonLines.Count;
+            Assert.Equal(15, doc.Get<int>("network.timeoutSeconds"));
+            Assert.True(doc.TryGet<int>("network.timeoutSeconds", out _));
+            Assert.Equal(before, HelperLog.RecentJsonLines.Count);
+
+            Assert.Throws<KeyNotFoundException>(() => doc.Get<int>("missing"));
+            var lines = HelperLog.RecentJsonLines;
+            Assert.Contains(lines, l => l.Contains("\"STATUS\":\"Failed\"") && l.Contains("path not found") && l.Contains("missing"));
+            Assert.Contains(lines, l => l.Contains("\"SUBCATEGORY\":\"Query\""));
+            Assert.DoesNotContain(lines, l => l.Contains("enter Get"));
+        }
+        finally
+        {
+            HelperLog.Shutdown();
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Array_member_set_requires_an_existing_object_record()
     {
         using var doc = JsonHelper.Create();
@@ -153,6 +181,7 @@ public sealed class JsonSessionTests
             Assert.Contains(lines, l => l.Contains("\"SUBCATEGORY\":\"Commit\""));
             Assert.StartsWith(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar), dir);
             Assert.DoesNotContain(dir, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)));
+            Assert.All(lines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
         }
         finally
         {

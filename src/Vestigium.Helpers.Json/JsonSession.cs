@@ -7,7 +7,7 @@ namespace Vestigium.Helpers.Json;
 
 /// <summary>
 /// Owns one working tree and one committed tree. Not thread-safe — one session, one owner.
-/// Phase 4 adds JSONL (one RFC 8259 value per line) with full-file rewrite on Save.
+/// Phase 5: Get/TryGet/Record are quiet; mutations, snapshot, diff, commit, and save are audited.
 /// </summary>
 public sealed class JsonSession : IDisposable
 {
@@ -69,17 +69,16 @@ public sealed class JsonSession : IDisposable
     public T Get<T>(string path)
     {
         ThrowIfDisposed();
-        using var scope = HelperLog.Begin(App, HelperLog.Subcategories.Query, "Get", "path=" + path, SessionId);
         var parsed = JsonPath.Parse(path);
         if (!parsed.TryEvaluate(_working, out var node))
         {
-            HelperLog.Reject($"path not found path={parsed.Original}");
+            HelperLog.Reject(App, HelperLog.Subcategories.Query, "Get", $"path not found path={parsed.Original}", SessionId);
             throw new KeyNotFoundException($"JSON path was not found: {parsed.Original}.");
         }
 
         if (!TryConvert<T>(node, out var value))
         {
-            HelperLog.Reject($"path type mismatch path={parsed.Original} type={typeof(T).Name}");
+            HelperLog.Reject(App, HelperLog.Subcategories.Query, "Get", $"path type mismatch path={parsed.Original} type={typeof(T).Name}", SessionId);
             throw new InvalidOperationException($"JSON path could not be read as {typeof(T).Name}.");
         }
 
@@ -137,7 +136,7 @@ public sealed class JsonSession : IDisposable
         RequireJsonl("Record");
         if (index < 0)
         {
-            HelperLog.Reject($"index={index} is below 0");
+            HelperLog.Reject(App, HelperLog.Subcategories.Jsonl, "Record", $"index={index} is below 0", SessionId);
             throw new ArgumentOutOfRangeException(nameof(index), "Record index must be at least 0.");
         }
 
@@ -290,7 +289,7 @@ public sealed class JsonSession : IDisposable
     {
         if (Kind == JsonDocumentKind.Jsonl)
             return;
-        HelperLog.Reject($"{method} is JSONL only");
+        HelperLog.Reject(App, HelperLog.Subcategories.Jsonl, method, $"{method} is JSONL only", SessionId);
         throw new InvalidOperationException($"{method} is only valid on a JSONL session.");
     }
 

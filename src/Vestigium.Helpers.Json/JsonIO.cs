@@ -17,7 +17,25 @@ internal static class JsonIO
     internal static JsonNode Read(string path)
     {
         using var stream = OpenRead(path);
-        return JsonHelper.Parse(stream);
+        RejectBom(stream);
+        JsonNode? node;
+        try
+        {
+            node = JsonNode.Parse(stream, JsonCodec.NodeOptions, JsonCodec.DocumentOptions);
+        }
+        catch (JsonException)
+        {
+            HelperLog.Reject("json is not RFC 8259");
+            throw;
+        }
+
+        if (node is null)
+        {
+            HelperLog.Reject("json is JSON null");
+            throw new JsonException("RFC 8259 JSON null is not a document root for Parse.");
+        }
+
+        return node;
     }
 
     internal static JsonArray ReadJsonl(string path)

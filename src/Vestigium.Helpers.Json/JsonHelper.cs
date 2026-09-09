@@ -7,7 +7,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Json;
 
 /// <summary>
-/// System.Text.Json helpers for payload documents. Phase 4: JSONL sessions and shipped gallery.
+/// System.Text.Json helpers for payload documents. Phase 5: sparse HelperLog, Probe %TEMP% only.
 /// The class library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class JsonHelper
@@ -233,7 +233,6 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Create", $"session={sessionId}", sessionId);
         try
         {
-            HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Creating a blank JSON session={sessionId}");
             var stored = string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
             var kind = JsonIO.KindFromPath(stored);
             JsonNode root = kind == JsonDocumentKind.Jsonl ? new JsonArray() : new JsonObject();
@@ -259,7 +258,6 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
         try
         {
-            HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Opening JSON path={target} session={sessionId}");
             var node = JsonIO.Read(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(
@@ -292,7 +290,6 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Jsonl, "OpenJsonl", $"path={target} session={sessionId}", sessionId);
         try
         {
-            HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Jsonl, $"Opening JSONL path={target} session={sessionId}");
             var records = JsonIO.ReadJsonl(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(

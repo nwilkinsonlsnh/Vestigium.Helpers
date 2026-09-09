@@ -81,6 +81,14 @@ public sealed class JsonlTests : IDisposable
     }
 
     [Fact]
+    public void Bom_jsonl_is_rejected()
+    {
+        var path = Path.Combine(_root, "bom.jsonl");
+        File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes("""{"code":"ok"}""" + "\n")).ToArray());
+        Assert.ThrowsAny<JsonException>(() => JsonHelper.OpenJsonl(path));
+    }
+
+    [Fact]
     public void Create_jsonl_is_an_empty_list_append_on_json_throws()
     {
         var path = Path.Combine(_root, "new.jsonl");
@@ -113,6 +121,8 @@ public sealed class JsonlTests : IDisposable
         Assert.DoesNotContain(lines, l => l.Contains(secret));
         Assert.Contains(lines, l => l.Contains("\"SUBCATEGORY\":\"Jsonl\"") && l.Contains("records="));
         Assert.Contains(lines, l => l.Contains("AppendRecord") && l.Contains("index=1"));
-        Assert.Equal(2, JsonHelper.OpenJsonl(path).RecordCount);
+        Assert.All(lines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
+        using var reopened = JsonHelper.OpenJsonl(path);
+        Assert.Equal(2, reopened.RecordCount);
     }
 }

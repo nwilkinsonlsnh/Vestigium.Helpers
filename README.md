@@ -64,7 +64,7 @@ CI checks both repositories out as siblings so the same slnx path restores.
 | `Vestigium.Helpers.Network` | `net10.0` | HTTP / socket helpers |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial; ChartView tests run on Windows) |
 
-Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, and FileIo are shipped; the rest are Probe + JSONL skeletons until their SRS is accepted.
+Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, FileIo, and Json are shipped; the rest are Probe + JSONL skeletons until their SRS is accepted.
 
 ## Open in Visual Studio
 

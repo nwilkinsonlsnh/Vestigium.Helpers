@@ -21,7 +21,10 @@ public sealed class JsonPureTests
     public void Probe_is_temp_only_and_logs_pending_then_success()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumJsonTests", Guid.NewGuid().ToString("N"));
+        var export = Path.Combine(dir, "export");
         Directory.CreateDirectory(dir);
+        Directory.CreateDirectory(export);
+        JsonTestHooks.ExportRoot = export;
         HelperLog.InitializeHost(HelperLog.AppIds.Json, cfg => cfg.LogDirectory = dir);
         try
         {
@@ -31,9 +34,22 @@ public sealed class JsonPureTests
             Assert.Contains(lines, l => l.Contains("\"STATUS\":\"Success\""));
             Assert.Contains(lines, l => l.Contains("\"APPID\":\"Json\""));
             Assert.StartsWith(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar), dir);
+            Assert.Empty(Directory.GetFiles(export, "*", SearchOption.AllDirectories));
+            var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            if (!string.IsNullOrWhiteSpace(programData))
+                Assert.False(dir.StartsWith(Path.GetFullPath(programData), StringComparison.OrdinalIgnoreCase));
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (!string.IsNullOrWhiteSpace(desktop))
+            {
+                var desktopRoot = Path.GetFullPath(desktop);
+                Assert.DoesNotContain(lines, l => l.Contains(desktopRoot));
+            }
+
+            Assert.All(lines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
         }
         finally
         {
+            JsonTestHooks.ExportRoot = null;
             HelperLog.Shutdown();
             Directory.Delete(dir, recursive: true);
         }
@@ -162,6 +178,7 @@ public sealed class JsonPureTests
             Assert.DoesNotContain(HelperLog.RecentJsonLines, l => l.Contains(secret));
             Assert.Contains(HelperLog.RecentJsonLines, l => l.Contains("ToJson") && l.Contains("bytes="));
             Assert.StartsWith(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar), dir);
+            Assert.All(HelperLog.RecentJsonLines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
         }
         finally
         {

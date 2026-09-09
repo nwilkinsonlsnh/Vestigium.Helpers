@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Vestigium.Helpers;
-using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Json;
 
@@ -28,25 +27,15 @@ internal sealed class JsonPath
         var text = HelperGuard.NotNull(path, nameof(path));
         if (string.IsNullOrWhiteSpace(text))
         {
-            HelperLog.Reject("path is blank");
+            HelperLog.Reject(
+                HelperLog.AppIds.Json,
+                HelperLog.Subcategories.Query,
+                "Parse",
+                "path is blank");
             throw new ArgumentException("Value is required.", nameof(path));
         }
 
-        var app = HelperLog.AppIds.Json;
-        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Query, "Parse", "path=" + text);
-        try
-        {
-            return text[0] == '/' ? ParsePointer(text) : ParseDotted(text);
-        }
-        catch (ArgumentException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            HelperLog.Trap(ex);
-            throw;
-        }
+        return text[0] == '/' ? ParsePointer(text) : ParseDotted(text);
     }
 
     public bool TryEvaluate(JsonNode? root, out JsonNode? node)
@@ -341,7 +330,11 @@ internal sealed class JsonPath
 
     private static void Fail(string path, string reason)
     {
-        HelperLog.Reject($"path is invalid reason={reason}");
+        HelperLog.Reject(
+            HelperLog.AppIds.Json,
+            HelperLog.Subcategories.Query,
+            "Parse",
+            $"path is invalid reason={reason}");
         throw new ArgumentException($"JSON path is invalid: {reason}.", nameof(path));
     }
 }
