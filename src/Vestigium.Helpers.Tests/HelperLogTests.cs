@@ -74,6 +74,30 @@ public sealed class HelperLogTests
             Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, id), id);
     }
 
+    [Fact]
+    public void FileIo_subcategories_are_registered()
+    {
+        string[] required =
+        [
+            HelperLog.Subcategories.Probe,
+            HelperLog.Subcategories.Identity,
+            HelperLog.Subcategories.Guard,
+            HelperLog.Subcategories.Job,
+            HelperLog.Subcategories.Recon,
+            HelperLog.Subcategories.Copy,
+            HelperLog.Subcategories.Move,
+            HelperLog.Subcategories.Delete,
+            HelperLog.Subcategories.Mirror,
+            HelperLog.Subcategories.Index,
+            HelperLog.Subcategories.Progress,
+            HelperLog.Subcategories.Compare,
+            HelperLog.Subcategories.Prune,
+            HelperLog.Subcategories.SecureDelete
+        ];
+        foreach (var sub in required)
+            Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, sub), sub);
+    }
+
     private static string Probe(string appId) => appId switch
     {
         HelperLog.AppIds.Core => HelperGuard.Probe(),

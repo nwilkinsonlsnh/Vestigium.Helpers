@@ -5,7 +5,7 @@
 **Status:** Accepted with SRS v1.0.  
 **Date:** 9 September 2026
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.FileIo/`.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract. [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md) is the phase map build mode follows. Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.FileIo/`.
 
 ## Read first
 
@@ -41,6 +41,19 @@ Numeric `.##` → `report.01.txt`. Alpha `A##` → `report.A01.txt` then `A02` �
 ## Engine
 
 Recon workers cap 8. Buckets: Tiny 0–256 KiB (8), Small 256 KiB–4 MiB (4), Medium 4–32 MiB (2), Large 32–256 MiB (1), Huge >256 MiB (1, Tiny+Small queued < 32).
+
+## Phase map
+
+Build mode follows [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md). One phase, then the Close gate.
+
+| Phase | Ships |
+|---|---|
+| 0 | Accepted SRS + FileIo taxonomy on HelperLog |
+| 1 | Types, UniqueName, Compare, SecureDelete, Prune |
+| 2 | Recon, five buckets, Copy, live progress, sparse JSONL |
+| 3 | Pause, Cancel, Audit Mode, unique-content index |
+| 4 | Move, Delete, Mirror, seeded demo |
+| 5 | Retries, guide rewrite, SRS §10 complete |
 
 ## Sibling
 

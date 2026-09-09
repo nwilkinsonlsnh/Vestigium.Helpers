@@ -2,11 +2,12 @@
 
 **Document ID:** VEST-HLP-FILEIO-SRS-000  
 **Version:** 1.0  
-**Status:** Proposed. Replaces the 7 September 2026 skeleton.  
+**Status:** Accepted.  
 **Date:** 9 September 2026  
 **Package:** `Vestigium.Helpers.FileIo`  
 **TFM:** `net10.0` (not Windows-only)  
-**Companion:** [`DevelopersGuide_v1.0.md`](DevelopersGuide_v1.0.md)
+**Companion:** [`DevelopersGuide_v1.0.md`](DevelopersGuide_v1.0.md)  
+**Build plan:** [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)
 
 If implementation and this file disagree, this file wins.
 
@@ -407,4 +408,6 @@ Job, Recon, Lead time (0–180 s), Bucket, Certainty (100 means recon finished),
 
 ## 15. Acceptance
 
-This SRS is accepted when this file is on `main` under `src/Vestigium.Helpers.FileIo/_Documentation/`, and implementation of §7 + §9 + §10 follows without spawning robocopy and without inventing hashing or encryption APIs.
+Paper (Phase 0) is accepted on this revision: this file lives under `src/Vestigium.Helpers.FileIo/_Documentation/`, HelperLog FileIo subcategories in §8 are registered, and [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md) is the build-mode map.
+
+Implementation of §7 + §9 + §10 follows that plan without spawning robocopy and without inventing hashing or encryption APIs.

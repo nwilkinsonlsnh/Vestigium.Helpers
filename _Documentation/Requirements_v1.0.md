@@ -26,7 +26,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-REG | Vestigium.Helpers.WinReg | net10.0-windows | Windows Registry only |
 | HLP-JSON | Vestigium.Helpers.Json | net10.0 | System.Text.Json |
 | HLP-XML | Vestigium.Helpers.Xml | net10.0 | |
-| HLP-FIO | Vestigium.Helpers.FileIo | net10.0 | |
+| HLP-FIO | Vestigium.Helpers.FileIo | net10.0 | SRS v1.0 accepted. Recon job engine, UniqueName, Audit Mode, Pause/Cancel. |
 | HLP-PRC | Vestigium.Helpers.Processes | net10.0 | |
 | HLP-SVC | Vestigium.Helpers.Services | net10.0 | SCM / hosted services |
 | HLP-ANL | Vestigium.Helpers.Analytics | net10.0 | In-process only in v1 |
@@ -35,7 +35,7 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-CSV | Vestigium.Helpers.Csv | net10.0 | RFC 4180 read/write, settable delimiter; not ClosedXml |
 | HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
 
-Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, Charts, Csv, Encryption, and Hashing are shipped galleries with accepted SRS + design companion. The rest use the shared skeleton in `Vestigium.Helpers.Gallery` until their own lossless SRS is accepted.
+Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, and FileIo are shipped galleries with accepted SRS + design companion. The rest use the shared skeleton in `Vestigium.Helpers.Gallery` until their own lossless SRS is accepted.
 
 ## 4. Logging
 
@@ -60,4 +60,4 @@ Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics,
 - **Hashing lossless SRS** — accepted and shipped v1.0–v1.3 (SHA-2, SHA-3, HMAC-SHA256/384/512/SHA3, KMAC, SHAKE, Argon2id PHC, CRC/xxHash). Trailer fill remains an Encryption minor revision.
 - Whether Services targets Service Control Manager only, or also `IHostedService`.
 
-Accepted with a future roadmap: ClosedXml (SRS v1.1), Analytics (SRS v1.5), Charts (SRS v1.1), Csv (SRS v1.0), Encryption (SRS v1.0, v1.1 CBC + v1.2 RSA wrap shipped), Hashing (SRS v1.0 + v1.1 checksums + v1.2 HMAC-SHA2 + v1.3 HMAC-SHA3/KMAC/SHAKE).
+Accepted with a future roadmap: ClosedXml (SRS v1.1), Analytics (SRS v1.5), Charts (SRS v1.1), Csv (SRS v1.0), Encryption (SRS v1.0, v1.1 CBC + v1.2 RSA wrap shipped), Hashing (SRS v1.0 + v1.1 checksums + v1.2 HMAC-SHA2 + v1.3 HMAC-SHA3/KMAC/SHAKE), FileIo (SRS v1.0).
