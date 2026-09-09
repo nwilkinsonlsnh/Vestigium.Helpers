@@ -23,3 +23,9 @@ public sealed class JsonReadOptions
 {
     public int MaxDepth { get; init; } = 64;
 }
+
+public sealed class JsonSessionOptions
+{
+    public JsonCollision Collision { get; init; } = JsonCollision.Fail;
+    public bool AtomicWrite { get; init; } = true;
+}

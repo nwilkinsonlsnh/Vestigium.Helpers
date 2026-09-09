@@ -5,7 +5,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Json;
 
-internal readonly record struct JsonPathSegment(string Token, int? ArrayIndex);
+internal readonly record struct JsonPathSegment(string Token, int? ArrayIndex, bool ExplicitArray = false);
 
 internal sealed class JsonPath
 {
@@ -77,6 +77,111 @@ internal sealed class JsonPath
         }
 
         return true;
+    }
+
+    public void Assign(ref JsonNode root, JsonNode? value)
+    {
+        if (Segments.Count == 0)
+        {
+            if (value is null)
+            {
+                HelperLog.Reject("root cannot be JSON null");
+                throw new InvalidOperationException("RFC 8259 JSON null is not a document root.");
+            }
+
+            root = value;
+            return;
+        }
+
+        var parent = root;
+        for (var i = 0; i < Segments.Count - 1; i++)
+            parent = EnsureChild(parent, Segments[i], Segments[i + 1]);
+
+        SetChild(parent, Segments[^1], value);
+    }
+
+    private static JsonNode EnsureChild(JsonNode parent, JsonPathSegment segment, JsonPathSegment next)
+    {
+        if (parent is JsonArray array)
+        {
+            if (segment.ArrayIndex is not int index || index < 0 || index >= array.Count)
+            {
+                HelperLog.Reject("cannot create array parents");
+                throw new InvalidOperationException("JSON path cannot create array parents.");
+            }
+
+            var existing = array[index];
+            if (existing is null || existing is JsonValue)
+            {
+                HelperLog.Reject("cannot create through a primitive");
+                throw new InvalidOperationException("JSON path cannot create through a primitive.");
+            }
+
+            return existing;
+        }
+
+        if (parent is JsonObject obj)
+        {
+            if (segment.ExplicitArray)
+            {
+                HelperLog.Reject("cannot index an object");
+                throw new InvalidOperationException("JSON path cannot index an object with [n].");
+            }
+
+            if (obj.TryGetPropertyValue(segment.Token, out var existing) && existing is not null)
+            {
+                if (existing is JsonValue)
+                {
+                    HelperLog.Reject("cannot create through a primitive");
+                    throw new InvalidOperationException("JSON path cannot create through a primitive.");
+                }
+
+                return existing;
+            }
+
+            if (next.ExplicitArray)
+            {
+                HelperLog.Reject("cannot create array parents");
+                throw new InvalidOperationException("JSON path cannot create array parents.");
+            }
+
+            var created = new JsonObject();
+            obj[segment.Token] = created;
+            return created;
+        }
+
+        HelperLog.Reject("cannot create through a primitive");
+        throw new InvalidOperationException("JSON path cannot create through a primitive.");
+    }
+
+    private static void SetChild(JsonNode parent, JsonPathSegment segment, JsonNode? value)
+    {
+        if (parent is JsonArray array)
+        {
+            if (segment.ArrayIndex is not int index || index < 0 || index >= array.Count)
+            {
+                HelperLog.Reject("array index is missing");
+                throw new InvalidOperationException("JSON path array index is missing.");
+            }
+
+            array[index] = value?.DeepClone();
+            return;
+        }
+
+        if (parent is JsonObject obj)
+        {
+            if (segment.ExplicitArray)
+            {
+                HelperLog.Reject("cannot index an object");
+                throw new InvalidOperationException("JSON path cannot index an object with [n].");
+            }
+
+            obj[segment.Token] = value?.DeepClone();
+            return;
+        }
+
+        HelperLog.Reject("cannot set a member on a primitive");
+        throw new InvalidOperationException("JSON path cannot set a member on a primitive.");
     }
 
     private static JsonPath ParsePointer(string path)
@@ -166,7 +271,7 @@ internal sealed class JsonPath
         i++;
         if (!int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var index))
             Fail(path, "array index is out of range");
-        return new JsonPathSegment(digits, index);
+        return new JsonPathSegment(digits, index, ExplicitArray: true);
     }
 
     private static JsonPathSegment SegmentFromToken(string token)

@@ -41,6 +41,21 @@ internal static class JsonCodec
         return Create(writeIndented: false, depth);
     }
 
+    internal static JsonNode? ToNode(object? value)
+    {
+        switch (value)
+        {
+            case null:
+                return null;
+            case JsonNode node:
+                return node.DeepClone();
+            case JsonElement element:
+                return JsonNode.Parse(element.GetRawText(), NodeOptions, DocumentOptions);
+            default:
+                return JsonSerializer.SerializeToNode(value, Compact);
+        }
+    }
+
     private static JsonSerializerOptions Create(bool writeIndented, int maxDepth) => new()
     {
         WriteIndented = writeIndented,

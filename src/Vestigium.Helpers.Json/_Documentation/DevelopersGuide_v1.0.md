@@ -80,7 +80,7 @@ Default dest folder: `%DESKTOP%\\Vestigium\\Exports\\Json\\`. Tests replace that
 - Collision default Fail. AtomicWrite default true.
 - JSONL: append + full rewrite. No mid-file splice in v1.
 - HelperLog: paths and counts, never bodies.
-- Phase 1 ships Identity, Probe, ToJson/FromJson, Parse, and the path parser. Session and files start at Phase 2.
+- Phase 2 ships in-memory `JsonSession` (Snapshot, Set, Diff, Commit, Revert, Cancel). Files start at Phase 3.
 
 ## Sibling fences
 
