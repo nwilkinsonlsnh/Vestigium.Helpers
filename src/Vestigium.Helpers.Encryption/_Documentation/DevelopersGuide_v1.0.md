@@ -255,7 +255,7 @@ dotnet run --project src/Vestigium.Helpers.Encryption.Demo
 
 JSONL: `%ProgramData%\Vestigium\Logs\Encryption\`
 
-The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, Argon2id, and RSA / key ring tabs. Cipher tabs round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default. RSA tab Issues CompanyX AppX / AppY, Seals to a contact, optionally also wraps to Ops, and Opens as Ops / AppX / AppY so isolation is visible. The same tab Enable / Disable / Expire tokens and can request an override. Gallery RSA keys are 2048-bit; the library default remains 3072.
+The demo is a WPF gallery: AES-256-GCM, ChaCha20-Poly1305, AES-256-CBC+HMAC, Argon2id, **Key ring**, and **Round trip** tabs. Cipher tabs round-trip a string and a file. File Seal can keep the original or shred it (3- or 7-pass random + zero). Argon2id uses a visible throwaway passphrase and writes `.argon`. CBC is not the default. The Key ring tab Issues CompanyX AppX / AppY, Enable / Disable / Expire / Retire / Compromise, and shows ring JSON with PKCS8 redacted. The Round trip tab Seals to a contact, optionally also wraps to Ops, and Opens as Ops / AppX / AppY / stranger so isolation is visible. Disabled or expired Seal/Open via the ring needs an override. Gallery RSA keys are 2048-bit; the library default remains 3072.
 
 ## Roadmap (design)
 

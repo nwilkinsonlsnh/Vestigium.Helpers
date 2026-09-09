@@ -141,28 +141,45 @@
     </ScrollViewer>
   </DataTemplate>
 
-  <DataTemplate x:Key="RsaTab">
+  <DataTemplate x:Key="KeyRingTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <TextBlock Style="{StaticResource Id}" Text="RSA-OAEP WRAP  ·  SUITE 1.2"/>
+        <TextBlock Style="{StaticResource Id}" Text="VESTIGIUM-KEYRING  1.1  ·  PAIRS RECEIVE  ·  CONTACTS SEND"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="RSA wraps the 32-byte content key, never the file. Isolation is per public key: CompanyX / ApplicationX cannot open a file sealed to ApplicationY. Disable or expire a ring token and an override is required. Gallery keys are 2048-bit; the library default is 3072. Trailer stores thumbprints only."/>
+                   Text="Isolation is per public key, not a friendly name. Issue-and-forget keeps the public contact and hands the company a one-time slip. Escrow is explicit. Gallery keys are 2048-bit; the library default is 3072. Trailer stores thumbprints only."/>
         <WrapPanel>
-          <Button Content="Generate Ops pair" Command="{Binding GenerateOpsCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Stage the desk" Command="{Binding StageDeskCommand}" Style="{StaticResource PrimaryButton}"/>
+          <Button Content="Generate Ops pair" Command="{Binding GenerateOpsCommand}"/>
           <Button Content="Issue CompanyX / AppX" Command="{Binding IssueAppXCommand}"/>
           <Button Content="Issue CompanyX / AppY" Command="{Binding IssueAppYCommand}"/>
         </WrapPanel>
         <TextBlock Opacity="0.85" FontFamily="Cascadia Mono, Consolas" Text="{Binding KeySummary}" TextWrapping="Wrap"/>
         <TextBlock Style="{StaticResource Caption}" Text="TOKEN EDITION"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
-                   Text="Disable or expire a ring token. Seal / Open via the ring then needs an override; a warning is always logged. Compromised and retired cannot be overridden. The company slip still opens. Logs never carry PEM, PKCS8, issuedTo, or key bytes — even at Debug."/>
+                   Text="Disable or expire a ring token. Seal / Open via the ring then needs an override; a warning is always logged. Compromised and retired cannot be overridden. The company slip still opens."/>
         <ComboBox ItemsSource="{Binding TokenTargets}" SelectedItem="{Binding TokenTarget}"/>
         <TextBlock Opacity="0.85" FontFamily="Cascadia Mono, Consolas" Text="{Binding TokenStatusLine}" TextWrapping="Wrap"/>
         <WrapPanel>
           <Button Content="Enable" Command="{Binding EnableTokenCommand}"/>
           <Button Content="Disable" Command="{Binding DisableTokenCommand}"/>
           <Button Content="Expire" Command="{Binding ExpireTokenCommand}"/>
+          <Button Content="Retire" Command="{Binding RetireTokenCommand}"/>
+          <Button Content="Compromise" Command="{Binding CompromiseTokenCommand}"/>
         </WrapPanel>
+        <TextBlock Style="{StaticResource Caption}" Text="RING JSON (no PKCS8)"/>
+        <TextBox IsReadOnly="True" Text="{Binding RingJson}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 TextWrapping="Wrap" Height="160" VerticalScrollBarVisibility="Auto"/>
+        <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="RoundTripTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Style="{StaticResource Id}" Text="HANDOFF DESK  ·  RSA WRAPS THE CONTENT KEY"/>
+        <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="RSA never sees the file body. Seal wraps the 32-byte content key to the selected contact. Peek lists thumbprints only. Open as Ops uses the ring (status applies). Open as AppX/AppY uses the company slip. A wrong modulus fails closed."/>
         <CheckBox Content="Request override" IsChecked="{Binding UseOverride}"/>
         <TextBox Text="{Binding OverrideBy, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBox Text="{Binding OverrideReason, UpdateSourceTrigger=PropertyChanged}"/>
@@ -176,6 +193,7 @@
           <Button Content="SealString" Command="{Binding SealStringCommand}" Style="{StaticResource PrimaryButton}"/>
           <ComboBox ItemsSource="{Binding OpenAsChoices}" SelectedItem="{Binding OpenAs}" Width="160"/>
           <Button Content="OpenString" Command="{Binding OpenStringCommand}"/>
+          <Button Content="Try every opener" Command="{Binding TryEveryOpenerCommand}"/>
         </WrapPanel>
         <TextBox IsReadOnly="True" Text="{Binding SealedBase64}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                  TextWrapping="Wrap" Height="56" VerticalScrollBarVisibility="Auto"/>
@@ -187,6 +205,8 @@
         </WrapPanel>
         <TextBlock Opacity="0.85" Text="{Binding PeekLine}" TextWrapping="Wrap"/>
         <TextBlock FontWeight="SemiBold" Text="{Binding RestoredCaption}" TextWrapping="Wrap"/>
+        <TextBlock Style="{StaticResource Caption}" Text="RECEPTION"/>
+        <TextBlock Opacity="0.85" FontFamily="Cascadia Mono, Consolas" Text="{Binding IsolationLine}" TextWrapping="Wrap"/>
         <TextBlock Foreground="#FCA5A5" Text="{Binding ErrorText}" TextWrapping="Wrap"/>
       </StackPanel>
     </ScrollViewer>

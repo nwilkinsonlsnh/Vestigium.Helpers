@@ -522,6 +522,8 @@ public sealed partial class RsaSession : ObservableObject
         OverrideReason = "restore for incident";
         KeySummary = "Generate an Ops pair, then Issue AppX and AppY (2048-bit gallery keys).";
         TokenStatusLine = "Issue a token, then Enable / Disable / Expire.";
+        IsolationLine = "Seal, then try every opener.";
+        RingJson = "";
     }
 
     public IReadOnlyList<string> Recipients { get; } = ["CompanyX / AppX", "CompanyX / AppY"];
@@ -544,6 +546,8 @@ public sealed partial class RsaSession : ObservableObject
     [ObservableProperty] private string envelopePath = "";
     [ObservableProperty] private string restoredPath = "";
     [ObservableProperty] private string errorText = "";
+    [ObservableProperty] private string isolationLine = "";
+    [ObservableProperty] private string ringJson = "";
 
     public string OpenedCaption => string.IsNullOrEmpty(OpenedText) ? "" : $"Opened: {OpenedText}";
     public string RestoredCaption => string.IsNullOrWhiteSpace(RestoredPath) ? "" : $"Restored {Path.GetFileName(RestoredPath)}";
@@ -557,6 +561,10 @@ public sealed partial class RsaSession : ObservableObject
         KeySummary =
             $"Ops {Short(_ops)}  ·  AppX {Short(_appX)}  ·  AppY {Short(_appY)}";
         TokenStatusLine = StatusLine(SelectedToken());
+        RingJson = System.Text.RegularExpressions.Regex.Replace(
+            _ring.ToJson(),
+            "\"PrivatePkcs8\"\\s*:\\s*\"[^\"]*\"",
+            "\"PrivatePkcs8\":\"[held]\"");
     }
 
     private static string Short(EncryptionKeyRecord? row)
@@ -574,6 +582,23 @@ public sealed partial class RsaSession : ObservableObject
 
     private EncryptionKeyOverride? MaybeOverride()
         => UseOverride ? EncryptionKeyOverride.Request(OverrideBy, OverrideReason) : null;
+
+    [RelayCommand]
+    private async Task StageDeskAsync()
+    {
+        ErrorText = "";
+        try
+        {
+            await GenerateOpsAsync();
+            await IssueAppXAsync();
+            await IssueAppYAsync();
+            _status("Desk staged · Ops pair + AppX slip + AppY slip.");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
+    }
 
     [RelayCommand]
     private async Task GenerateOpsAsync()
@@ -777,6 +802,12 @@ public sealed partial class RsaSession : ObservableObject
     [RelayCommand]
     private void ExpireToken() => ChangeToken(row => _ring.Expire(row), "Expired");
 
+    [RelayCommand]
+    private void RetireToken() => ChangeToken(row => _ring.Retire(row), "Retired");
+
+    [RelayCommand]
+    private void CompromiseToken() => ChangeToken(row => _ring.Compromise(row), "Compromised");
+
     private void ChangeToken(Action<EncryptionKeyRecord> change, string verb)
     {
         ErrorText = "";
@@ -831,5 +862,53 @@ public sealed partial class RsaSession : ObservableObject
         if (slip is null)
             throw new InvalidOperationException("Issue the Open-as key first.");
         return EncryptionHelper.OpenFile(source, dest, slip);
+    }
+
+    [RelayCommand]
+    private async Task TryEveryOpenerAsync()
+    {
+        ErrorText = "";
+        if (string.IsNullOrWhiteSpace(SealedBase64))
+        {
+            ErrorText = "Seal the string first.";
+            return;
+        }
+
+        try
+        {
+            var sealedText = SealedBase64;
+            var ov = MaybeOverride();
+            var lines = new List<string>();
+            await Task.Run(() =>
+            {
+                void Try(string who, Func<string> open)
+                {
+                    try
+                    {
+                        var text = open();
+                        lines.Add($"{who}: opened · {text.Length} chars");
+                    }
+                    catch (Exception ex)
+                    {
+                        lines.Add($"{who}: {ex.Message}");
+                    }
+                }
+
+                if (_ops is not null)
+                    Try("Ops (ring)", () => EncryptionHelper.OpenString(sealedText, _ring, ov));
+                if (_appXSlip is not null)
+                    Try("AppX slip", () => EncryptionHelper.OpenString(sealedText, _appXSlip));
+                if (_appYSlip is not null)
+                    Try("AppY slip", () => EncryptionHelper.OpenString(sealedText, _appYSlip));
+                using var stranger = EncryptionRsaKey.Generate(2048);
+                Try("Stranger", () => EncryptionHelper.OpenString(sealedText, stranger));
+            });
+            IsolationLine = string.Join("  ·  ", lines);
+            _status("Reception desk ran every opener.");
+        }
+        catch (Exception ex)
+        {
+            ErrorText = ex.Message;
+        }
     }
 }

@@ -16,7 +16,7 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Encryption gallery"/>
-        <TextBlock Opacity="0.7" Text="AES-256-GCM · ChaCha20-Poly1305 · AES-256-CBC+HMAC · RSA wrap · Argon2id · 3/7-pass shred"/>
+        <TextBlock Opacity="0.7" Text="AES-256-GCM · ChaCha20-Poly1305 · AES-256-CBC+HMAC · RSA key ring · Argon2id · 3/7-pass shred"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
@@ -29,7 +29,8 @@
       <TabItem Header="ChaCha20-Poly1305"><ContentControl Content="{Binding ChaCha}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
       <TabItem Header="AES-256-CBC + HMAC"><ContentControl Content="{Binding Cbc}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
       <TabItem Header="Argon2id"><ContentControl Content="{Binding Argon}" ContentTemplate="{StaticResource CipherTab}"/></TabItem>
-      <TabItem Header="RSA wrap"><ContentControl Content="{Binding Rsa}" ContentTemplate="{StaticResource RsaTab}"/></TabItem>
+      <TabItem Header="Key ring"><ContentControl Content="{Binding Rsa}" ContentTemplate="{StaticResource KeyRingTab}"/></TabItem>
+      <TabItem Header="Round trip"><ContentControl Content="{Binding Rsa}" ContentTemplate="{StaticResource RoundTripTab}"/></TabItem>
       <TabItem Header="Validate"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ValidateTab}"/></TabItem>
       <TabItem Header="JSONL"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource JsonlTab}"/></TabItem>
     </TabControl>
