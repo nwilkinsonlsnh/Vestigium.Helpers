@@ -1,6 +1,5 @@
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>How much of a process row to populate.</summary>
 public enum ProcessDetailLevel
 {
     Identity = 0,
@@ -8,7 +7,6 @@ public enum ProcessDetailLevel
     Full = 2
 }
 
-/// <summary>Search comparison. Ordinal, case-insensitive.</summary>
 public enum ProcessSearchMode
 {
     StartsWith = 0,
@@ -16,7 +14,6 @@ public enum ProcessSearchMode
     Contains = 2
 }
 
-/// <summary>Whether a field could be read.</summary>
 public enum Availability
 {
     Available = 0,
@@ -25,7 +22,6 @@ public enum Availability
     Gone = 3
 }
 
-/// <summary>Named process fields used by <see cref="FieldAvailability"/>.</summary>
 public enum ProcessField
 {
     Pid = 0,
@@ -43,10 +39,16 @@ public enum ProcessField
     IoWriteBytes = 12,
     GpuUsagePercent = 13,
     GpuDedicatedBytes = 14,
-    GpuSystemBytes = 15
+    GpuSystemBytes = 15,
+    CommandLine = 16,
+    WindowTitle = 17,
+    IntegrityLevel = 18,
+    DepStatus = 19,
+    AslrEnabled = 20,
+    DpiAwareness = 21,
+    VerifiedSigner = 22
 }
 
-/// <summary>Which strings <see cref="ProcessHelper.Search"/> inspects.</summary>
 [Flags]
 public enum ProcessSearchFields
 {
@@ -57,7 +59,6 @@ public enum ProcessSearchFields
     Default = Name | ImagePath | CommandLine | WindowTitle
 }
 
-/// <summary>PE machine type of the main image.</summary>
 public enum ProcessImageType
 {
     Unknown = 0,
