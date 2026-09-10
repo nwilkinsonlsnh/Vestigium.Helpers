@@ -9,20 +9,14 @@ internal static class ProcessSnapshotter
     internal static IReadOnlyList<ProcessInfo> Capture(ProcessDetailLevel level)
     {
         Process[] raw;
-        try
-        {
-            raw = Process.GetProcesses();
-        }
-        catch
-        {
-            return [];
-        }
+        try { raw = Process.GetProcesses(); }
+        catch { return []; }
 
         var pids = new HashSet<int>();
         foreach (var process in raw)
         {
             try { pids.Add(process.Id); }
-            catch { /* gone while enumerating */ }
+            catch { }
         }
 
         var rows = new List<ProcessInfo>(raw.Length);
@@ -34,14 +28,8 @@ internal static class ProcessSnapshotter
                 if (row is not null)
                     rows.Add(row);
             }
-            catch
-            {
-                // Partial table: one unreadable process does not fail List.
-            }
-            finally
-            {
-                process.Dispose();
-            }
+            catch { }
+            finally { process.Dispose(); }
         }
 
         rows.Sort((a, b) => a.Pid.CompareTo(b.Pid));
@@ -50,36 +38,15 @@ internal static class ProcessSnapshotter
 
     internal static ProcessInfo? CapturePid(int pid, ProcessDetailLevel level)
     {
-        Process? process;
-        try
-        {
-            process = Process.GetProcessById(pid);
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-        catch (InvalidOperationException)
-        {
-            return null;
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return null;
-        }
+        Process process;
+        try { process = Process.GetProcessById(pid); }
+        catch (ArgumentException) { return null; }
+        catch (InvalidOperationException) { return null; }
+        catch (System.ComponentModel.Win32Exception) { return null; }
 
-        try
-        {
-            return Read(process, level, LivePids());
-        }
-        catch (InvalidOperationException)
-        {
-            return null;
-        }
-        finally
-        {
-            process.Dispose();
-        }
+        try { return Read(process, level, LivePids()); }
+        catch (InvalidOperationException) { return null; }
+        finally { process.Dispose(); }
     }
 
     private static HashSet<int> LivePids()
@@ -88,14 +55,12 @@ internal static class ProcessSnapshotter
         Process[] raw;
         try { raw = Process.GetProcesses(); }
         catch { return set; }
-
         foreach (var process in raw)
         {
             try { set.Add(process.Id); }
             catch { }
             finally { process.Dispose(); }
         }
-
         return set;
     }
 
@@ -104,7 +69,6 @@ internal static class ProcessSnapshotter
         int pid;
         try { pid = process.Id; }
         catch { return null; }
-
         if (pid <= 0)
             return null;
 
@@ -153,15 +117,11 @@ internal static class ProcessSnapshotter
             {
                 try { cpuTime = process.TotalProcessorTime; }
                 catch { missing.Add(new FieldAvailability(ProcessField.CpuTime, Availability.Denied, "TotalProcessorTime")); }
-
                 missing.Add(new FieldAvailability(ProcessField.CpuPercent, Availability.Unsupported, "requires watcher"));
-
                 try { privateBytes = process.PrivateMemorySize64; }
                 catch { missing.Add(new FieldAvailability(ProcessField.PrivateBytes, Availability.Denied, "PrivateMemorySize64")); }
-
                 try { workingSet = process.WorkingSet64; }
                 catch { missing.Add(new FieldAvailability(ProcessField.WorkingSet, Availability.Denied, "WorkingSet64")); }
-
                 if (handle != 0 && handle != nint.Zero && NativeMethods.GetProcessIoCounters(handle, out var io))
                 {
                     ioReads = checked((long)io.ReadOperationCount);
@@ -185,7 +145,7 @@ internal static class ProcessSnapshotter
             if (string.IsNullOrWhiteSpace(name))
                 name = imagePath is null ? $"pid-{pid}" : Path.GetFileName(imagePath);
 
-            return new ProcessInfo
+            var row = new ProcessInfo
             {
                 Pid = pid,
                 ParentPid = parentPid,
@@ -204,6 +164,14 @@ internal static class ProcessSnapshotter
                 IoWriteBytes = ioWriteBytes,
                 Availability = missing
             };
+
+            if (level == ProcessDetailLevel.Full && handle != 0 && handle != nint.Zero)
+            {
+                ProcessFullReader.Fill(process, handle, row, missing);
+                row.Availability = missing;
+            }
+
+            return row;
         }
         finally
         {
@@ -235,9 +203,9 @@ internal static class ProcessSnapshotter
     {
         var status = NativeMethods.NtQueryInformationProcess(
             handle,
-            NativeMethods.ProcessBasicInformation,
+            NativeMethods.ProcessBasicInformationClass,
             out var info,
-            Marshal.SizeOf<NativeMethods.ProcessBasicInformation>(),
+            Marshal.SizeOf<NativeMethods.ProcessBasicInfo>(),
             out _);
         if (status != 0)
             return null;
