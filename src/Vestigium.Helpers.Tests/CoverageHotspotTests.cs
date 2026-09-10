@@ -253,15 +253,9 @@ public sealed class CoverageHotspotTests
     public void Original_names_slash_dot_and_campaign_jsonl_array()
     {
         Assert.Equal("file", OriginalNames.Stem("."));
-        if (OperatingSystem.IsWindows())
-        {
-            var slash = OriginalNames.Validate("/");
-            Assert.False(string.IsNullOrWhiteSpace(slash));
-        }
-        else
-        {
-            Assert.Throws<ArgumentException>(() => OriginalNames.Validate("/"));
-        }
+        Assert.Equal("b.txt", OriginalNames.Validate("a/b.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("/"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("\\"));
 
         var dir = Path.Combine(Path.GetTempPath(), "vest-hot-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
