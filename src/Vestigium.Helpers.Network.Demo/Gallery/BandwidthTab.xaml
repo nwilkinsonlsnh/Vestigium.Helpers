@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <DataTemplate x:Key="BandwidthTab">
     <StackPanel Margin="8">
-      <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Units are an enum. MB ≠ Mb. Windows: 1 day (86,400 s), 30-day month (2,592,000 s), 365-day year. Bots default to 0; the catalog is a chooser."/>
+      <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Units are an enum. MB ≠ Mb. Windows: 1 day (86,400 s), 30-day month (2,592,000 s), 365-day year. Bots default to 0. P95 uses Analytics on samples you already have."/>
       <Grid Margin="0,12,0,0">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto"/>
@@ -29,6 +29,10 @@
         <Button Content="Website" Command="{Binding WebsiteBandwidthDemoCommand}" Margin="8,0,0,0"/>
       </StackPanel>
       <TextBlock Margin="0,12,0,0" Text="{Binding BwSummary}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas"/>
+      <TextBlock Margin="0,16,0,4" Opacity="0.7" Text="P95 samples (Mb/s, comma-separated). Analytics computes the cut; Network converts Day / 30-day / Year."/>
+      <TextBox Text="{Binding P95Samples, UpdateSourceTrigger=PropertyChanged}"/>
+      <Button Content="Bill P95" Command="{Binding BillP95DemoCommand}" Margin="0,8,0,0" HorizontalAlignment="Left"/>
+      <TextBlock Margin="0,8,0,0" Text="{Binding P95Summary}" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas"/>
     </StackPanel>
   </DataTemplate>
 </ResourceDictionary>
