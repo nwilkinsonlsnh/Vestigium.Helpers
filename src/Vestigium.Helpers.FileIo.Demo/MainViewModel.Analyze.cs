@@ -17,6 +17,7 @@ public sealed partial class MainViewModel
     string _analyzeSummary = "Paste a reachable path. UNC example: \\\\truenas\\sandbox. Analyze = sizes only. Probe writes 64 MiB to that path (then deletes) and scales the caller size.";
     string _analyzeNormalized = "";
     string _analyzeEstimate = "";
+    bool _analyzeBusy;
 
     public string AnalyzePath
     {
@@ -54,6 +55,19 @@ public sealed partial class MainViewModel
         set => SetProperty(ref _analyzeEstimate, value);
     }
 
+    public bool AnalyzeBusy
+    {
+        get => _analyzeBusy;
+        set
+        {
+            if (SetProperty(ref _analyzeBusy, value))
+            {
+                AnalyzeDemoFolderCommand.NotifyCanExecuteChanged();
+                WriteProbeDemoCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
     public IReadOnlyList<string> SizeUnits { get; } =
         ["Byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"];
 
@@ -80,13 +94,18 @@ public sealed partial class MainViewModel
         StatusText = "Analyze path set to demo Export folder.";
     }
 
-    [RelayCommand]
-    private void AnalyzeDemoFolder()
+    bool CanAnalyzeShare() => !AnalyzeBusy;
+
+    [RelayCommand(CanExecute = nameof(CanAnalyzeShare))]
+    private async Task AnalyzeDemoFolderAsync()
     {
+        AnalyzeBusy = true;
         try
         {
             var path = ResolveAnalyzePath();
-            var analysis = FileIoHelper.AnalyzeDirectory(path);
+            AnalyzeSummary = "Analyzing " + path + " … UI stays live while sizes are walked.";
+            StatusText = AnalyzeSummary;
+            var analysis = await Task.Run(() => FileIoHelper.AnalyzeDirectory(path)).ConfigureAwait(true);
             AnalyzeRows.Clear();
             AnalyzeBuckets.Clear();
             AnalyzeRows.Add(new StatsRow { Metric = "Path", Value = analysis.Path });
@@ -111,17 +130,24 @@ public sealed partial class MainViewModel
             AnalyzeSummary = ex.Message;
             StatusText = ex.Message;
         }
+        finally
+        {
+            AnalyzeBusy = false;
+        }
     }
 
-    [RelayCommand]
-    private void WriteProbeDemo()
+    [RelayCommand(CanExecute = nameof(CanAnalyzeShare))]
+    private async Task WriteProbeDemoAsync()
     {
+        AnalyzeBusy = true;
         try
         {
             var path = ResolveAnalyzePath();
             var probeDir = Path.Combine(path, ".vestigium-probe");
-            var probe = FileIoHelper.WriteProbe(probeDir, FileIoSize.From(64, FileIoSizeUnit.MiB));
             var planned = ParseCallerSize();
+            AnalyzeSummary = "Writing 64 MiB probe to " + probeDir + " …";
+            StatusText = AnalyzeSummary;
+            var probe = await Task.Run(() => FileIoHelper.WriteProbe(probeDir, FileIoSize.From(64, FileIoSizeUnit.MiB))).ConfigureAwait(true);
             var seconds = probe.BytesPerSecond > 0 ? planned.Bytes / probe.BytesPerSecond : 0;
             var span = TimeSpan.FromSeconds(seconds);
             AnalyzeEstimate =
@@ -136,6 +162,10 @@ public sealed partial class MainViewModel
             AnalyzeEstimate = ex.Message;
             AnalyzeSummary = ex.Message;
             StatusText = ex.Message;
+        }
+        finally
+        {
+            AnalyzeBusy = false;
         }
     }
 
