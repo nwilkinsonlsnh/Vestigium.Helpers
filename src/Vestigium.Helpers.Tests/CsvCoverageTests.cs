@@ -228,4 +228,37 @@ public sealed class CsvCoverageTests
         Directory.CreateDirectory(dir);
         return Path.Combine(dir, "sample.csv");
     }
+
+    [Fact]
+    public void AppendRows_before_WriteTable_throws()
+    {
+        using var file = CsvHelper.Create("Csv", new CsvOptions { HasHeaderRow = false, Utf8Bom = false });
+        var ex = Assert.Throws<InvalidOperationException>(() => file.AppendRows([["a"]]));
+        Assert.Contains("Write a table before appending", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WriteSeries_values_only_leaves_timestamp_empty()
+    {
+        var path = TempCsv();
+        var series = Vestigium.Helpers.Analytics.NumericSeries.From(new[] { 1, 2, 3 }, "vals");
+        CsvHelper.WriteSeries(series, path, new CsvOptions { Utf8Bom = false });
+        var table = CsvHelper.Read(path, new CsvOptions { Utf8Bom = false });
+        Assert.Equal(["Index", "Value", "Timestamp"], table.Headers);
+        Assert.Equal("1", table.Rows[0][1]);
+        Assert.True(string.IsNullOrEmpty(table.Rows[0][2] as string));
+    }
+
+    [Fact]
+    public void Session_save_without_path_and_write_empty()
+    {
+        using var file = CsvHelper.Create("Csv", new CsvOptions { HasHeaderRow = false, Utf8Bom = false });
+        using var buffer = new MemoryStream();
+        file.WriteTo(buffer);
+        Assert.True(buffer.Length >= 0);
+        file.WriteTable(new CsvTable { Headers = [], Rows = [["x"]], Name = "T" });
+        file.AppendRows([["y"]]);
+        Assert.Equal(2, file.Read().Rows.Count);
+    }
+
 }

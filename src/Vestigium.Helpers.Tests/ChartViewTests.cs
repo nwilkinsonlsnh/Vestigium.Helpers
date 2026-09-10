@@ -144,4 +144,198 @@ public sealed class ChartViewTests
         var names = typeof(ChartView).Assembly.GetExportedTypes().Select(t => t.FullName ?? t.Name);
         Assert.DoesNotContain(names, n => n.Contains("ScottPlot", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void SavePng_rejects_unknown_kind_blank_path_and_missing_source()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5 });
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "x.png");
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ChartView.SavePng(new ChartSpec { Kind = (ChartKind)99, Source = series }, path));
+        Assert.Throws<ArgumentException>(() =>
+            ChartView.SavePng(new ChartSpec { Kind = ChartKind.Histogram, Source = series }, "  "));
+        Assert.Throws<ArgumentException>(() =>
+            ChartView.SavePng(new ChartSpec { Kind = ChartKind.Histogram }, path));
+        Assert.Throws<ArgumentNullException>(() =>
+            ChartView.SavePng(new ChartSpec { Kind = ChartKind.Control, Source = series }, path));
+        Assert.Throws<ArgumentException>(() =>
+            ChartView.SavePng(new ChartSpec
+            {
+                Kind = ChartKind.Pie,
+                Slices = [new ChartSlice { Label = "z", Value = 0 }]
+            }, path));
+        Assert.Throws<ArgumentException>(() =>
+            ChartView.SavePng(new ChartSpec
+            {
+                Kind = ChartKind.Pareto,
+                Slices = [new ChartSlice { Label = "z", Value = 0 }]
+            }, path));
+        Assert.Throws<ArgumentException>(() => ChartView.Scatter(new[] { 1d }, new[] { 1d, 2d }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChartSamples.Symmetric(n: 1));
+        Assert.Null(TrendFit.Linear([1d], [2d]));
+        Assert.Null(TrendFit.Linear([1d, 2d], [3d]));
+        Assert.Null(TrendFit.Linear([1d, 1d], [3d, 4d]));
+        var flat = TrendFit.Linear([1d, 2d], [5d, 5d]);
+        Assert.NotNull(flat);
+        Assert.Equal(1d, flat!.RSquared, 6);
+    }
+
+    [Fact]
+    public void SavePng_options_bell_skip_control_outliers_and_timestamps()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 40 }, "spike");
+        var flat = NumericSeries.From(new[] { 5, 5, 5, 5, 5 }, "flat");
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+
+        ChartView.SavePng(
+            new ChartSpec
+            {
+                Kind = ChartKind.Histogram,
+                Source = series,
+                Title = "hist",
+                Options = new ChartOptions
+                {
+                    ShowGrid = false,
+                    ShowLegend = false,
+                    ShowBellCurve = true,
+                    Color = "#226688",
+                    XLabel = "x",
+                    YLabel = "y"
+                }
+            },
+            Path.Combine(dir, "opts.png"),
+            320,
+            180);
+
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Histogram, Source = flat, Options = new ChartOptions { ShowBellCurve = true } },
+            Path.Combine(dir, "flat-bell.png"),
+            320,
+            180);
+
+        var limits = series.ControlLimits();
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Control, Source = series, Limits = limits },
+            Path.Combine(dir, "control.png"),
+            320,
+            180);
+
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Box, Source = series, Options = new ChartOptions { BoxWhisker = BoxWhiskerKind.Tukey } },
+            Path.Combine(dir, "tukey.png"),
+            320,
+            180);
+
+        ChartView.SavePng(
+            new ChartSpec
+            {
+                Kind = ChartKind.Pareto,
+                Slices =
+                [
+                    new ChartSlice { Label = "A", Value = 5 },
+                    new ChartSlice { Label = "B", Value = 3 },
+                    new ChartSlice { Label = "C", Value = 1 }
+                ],
+                Options = new ChartOptions { ShowParetoLine = false }
+            },
+            Path.Combine(dir, "pareto.png"),
+            320,
+            180);
+
+        ChartView.SavePng(
+            new ChartSpec
+            {
+                Kind = ChartKind.Scatter,
+                Series = [new ChartSeries { X = [0, 1, 2], Y = [1, 2, 3] }],
+                Options = new ChartOptions { Trend = TrendKind.Linear }
+            },
+            Path.Combine(dir, "xy.png"),
+            320,
+            180);
+
+        var t0 = new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero);
+        var timed = NumericSeries.FromObservations(
+        [
+            new Observation(1m, t0),
+            new Observation(2m, t0.AddSeconds(1)),
+            new Observation(3m, t0.AddSeconds(2))
+        ], "timed");
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Line, Source = timed },
+            Path.Combine(dir, "timed.png"),
+            320,
+            180);
+
+        Assert.True(new FileInfo(Path.Combine(dir, "opts.png")).Length > 8);
+    }
+
+    [Fact]
+    public void SavePng_pareto_from_series_control_limits_on_line_and_box_five()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 40 }, "spike");
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Pareto, Source = series },
+            Path.Combine(dir, "pareto-series.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec
+            {
+                Kind = ChartKind.Line,
+                Source = series,
+                Limits = series.ControlLimits(),
+                Options = new ChartOptions { ShowLegend = true }
+            },
+            Path.Combine(dir, "line-limits.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec
+            {
+                Kind = ChartKind.Box,
+                Source = series,
+                Options = new ChartOptions { BoxWhisker = BoxWhiskerKind.FiveNumber }
+            },
+            Path.Combine(dir, "five.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec
+            {
+                Kind = ChartKind.Control,
+                Source = NumericSeries.From(new[] { 4, 5, 6 }, "in"),
+                Limits = series.ControlLimits()
+            },
+            Path.Combine(dir, "in-control.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Ecdf, Source = series, Options = new ChartOptions { Color = " " } },
+            Path.Combine(dir, "ecdf.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Bands, Source = series },
+            Path.Combine(dir, "bands.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.MeanInterval, Source = series },
+            Path.Combine(dir, "mean.png"),
+            320,
+            180);
+        ChartView.SavePng(
+            new ChartSpec { Kind = ChartKind.Pie, Source = series },
+            Path.Combine(dir, "pie-series.png"),
+            320,
+            180);
+        Assert.True(new FileInfo(Path.Combine(dir, "pareto-series.png")).Length > 8);
+    }
+
 }

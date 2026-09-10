@@ -398,4 +398,100 @@ public sealed class JsonCoverageTests
         public int TimeoutSeconds { get; set; }
         public string Level { get; set; } = "";
     }
+
+    [Fact]
+    public void Get_json_node_null_and_save_without_path()
+    {
+        using var doc = JsonHelper.Create();
+        doc.Set("level", null);
+        Assert.Null(doc.Get<string>("level"));
+        Assert.True(doc.TryGet<string>("level", out var asString) && asString is null);
+        Assert.Throws<InvalidOperationException>(() => doc.Get<int>("level"));
+        Assert.Null(doc.Get<int?>("level"));
+
+        doc.Set("network", JsonHelper.Parse("""{"timeoutSeconds":15}"""));
+        var node = doc.Get<JsonNode>("network");
+        Assert.IsType<JsonObject>(node);
+        Assert.Equal(15, doc.Get<JsonObject>("network")!["timeoutSeconds"]!.GetValue<int>());
+        Assert.Throws<InvalidOperationException>(() => doc.Get<JsonArray>("network"));
+
+        doc.Set("items", JsonHelper.Parse("[1,2]"));
+        doc.Set("items[0]", null);
+
+        var root = Path.Combine(Path.GetTempPath(), "VestigiumJsonExports", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        JsonTestHooks.ExportRoot = root;
+        try
+        {
+            doc.Commit();
+            var saved = doc.Save();
+            Assert.True(File.Exists(saved));
+            Assert.Equal(saved, doc.Path);
+
+        using var working = JsonHelper.Create(options: new JsonSessionOptions
+            {
+                Collision = JsonCollision.Overwrite,
+                AtomicWrite = false
+            });
+            working.Set("n", 1);
+            var workingRoot = Path.Combine(root, "working");
+            Directory.CreateDirectory(workingRoot);
+            JsonTestHooks.ExportRoot = workingRoot;
+            var w = working.SaveWorking();
+            Assert.True(File.Exists(w));
+        }
+        finally
+        {
+            JsonTestHooks.ExportRoot = null;
+        }
+    }
+
+    [Fact]
+    public void Jsonl_root_replaced_with_object_rejects_records()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumJsonTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "rows.jsonl");
+        using var jsonl = JsonHelper.Create(path);
+        Assert.Equal(JsonDocumentKind.Jsonl, jsonl.Kind);
+        jsonl.AppendRecord(JsonNode.Parse("""{"a":1}""")!);
+        Assert.Equal(1, jsonl.RecordCount);
+        jsonl.Set("", JsonHelper.Parse("""{"not":"array"}"""));
+        Assert.Throws<InvalidOperationException>(() => jsonl.RecordCount);
+        Assert.Throws<InvalidOperationException>(() => jsonl.Record(0));
+        Assert.Throws<InvalidOperationException>(() => jsonl.AppendRecord(JsonNode.Parse("{}")!));
+        jsonl.Commit();
+        Assert.Throws<InvalidOperationException>(() => jsonl.Save());
+    }
+
+    [Fact]
+    public void KindFromPath_SamePath_and_dot_stems()
+    {
+        Assert.Equal(JsonDocumentKind.Json, JsonIO.KindFromPath(null));
+        Assert.Equal(JsonDocumentKind.Json, JsonIO.KindFromPath(""));
+        Assert.Equal(JsonDocumentKind.Json, JsonIO.KindFromPath("a.json"));
+        Assert.Equal(JsonDocumentKind.Json, JsonIO.KindFromPath("a.jsonl.bak"));
+        Assert.Equal(JsonDocumentKind.Jsonl, JsonIO.KindFromPath("a.JSONL"));
+        Assert.False(JsonIO.SamePath(null, "a.json"));
+        Assert.False(JsonIO.SamePath("  ", "a.json"));
+        var full = Path.GetFullPath("x.json");
+        Assert.True(JsonIO.SamePath(full, full));
+        var root = Path.Combine(Path.GetTempPath(), "VestigiumJsonExports", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        Assert.Throws<ArgumentException>(() => JsonIO.ResolveExportFile(root, "  ", JsonDocumentKind.Json));
+        Assert.Throws<ArgumentException>(() => JsonIO.ResolveExportFile(root, ".", JsonDocumentKind.Json));
+        Assert.Throws<ArgumentException>(() => JsonIO.ResolveExportFile(root, "..", JsonDocumentKind.Jsonl));
+        var named = JsonIO.ResolveExportFile(root, "payload", JsonDocumentKind.Json);
+        Assert.EndsWith(".json", named);
+    }
+
+    [Fact]
+    public void Dispose_twice_is_idempotent()
+    {
+        var doc = JsonHelper.Create();
+        doc.Dispose();
+        doc.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => doc.Set("a", 1));
+    }
+
 }

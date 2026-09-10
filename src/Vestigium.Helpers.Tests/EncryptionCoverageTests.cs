@@ -172,4 +172,68 @@ public sealed class EncryptionCoverageTests
         key[31] = 9;
         return key;
     }
+
+    [Fact]
+    public void NewExportPath_stamps_aes_or_argon_and_keeps_original_stem()
+    {
+        var stamped = EncryptionHelper.NewExportPath("Encryption");
+        Assert.Contains("vestigium-Encryption-", Path.GetFileName(stamped));
+        Assert.EndsWith(".aes", stamped);
+        using var pass = EncryptionSecret.FromPassphrase("gallery-demo-only");
+        Assert.EndsWith(".argon", EncryptionHelper.NewExportPath("Encryption", secret: pass));
+        Assert.Equal(".argon", EncryptionHelper.FileExtension(pass));
+        using var key = EncryptionSecret.FromKey(Key());
+        Assert.Equal(".aes", EncryptionHelper.FileExtension(key));
+        var named = EncryptionHelper.NewExportPath("Encryption", "nathan.txt", key);
+        Assert.Equal("nathan.aes", Path.GetFileName(named));
+        Assert.Throws<ArgumentException>(() => EncryptionHelper.NewExportPath(" "));
+        Assert.Equal("file", OriginalNames.Stem(".txt"));
+        Assert.Equal("nathan", OriginalNames.Stem("nathan.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("a\\b.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("foo..bar.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("x\0y.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate(new string('n', 256)));
+        Assert.Equal("b.txt", OriginalNames.Validate("a/b.txt"));
+    }
+
+    [Fact]
+    public void IsVestigium_covers_missing_short_nonseekable_and_header()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumEncTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        Assert.False(EncryptionHelper.TryPeekFile(Path.Combine(dir, "nope.aes"), out _));
+        using var zeros = new MemoryStream(new byte[20]);
+        Assert.False(EncryptionHelper.IsVestigium(zeros));
+        Assert.Equal(0, zeros.Position);
+        using var nonSeek = new NonSeekableStream(new byte[32]);
+        Assert.False(EncryptionHelper.IsVestigium(nonSeek));
+
+        using var secret = EncryptionSecret.FromKey(Key());
+        var sealedPath = Path.Combine(dir, "nathan.aes");
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello");
+        EncryptionHelper.SealFile(src, sealedPath, secret);
+        Assert.True(EncryptionHelper.IsVestigiumFile(sealedPath));
+        Assert.True(EncryptionHelper.TryPeekFile(sealedPath, out var info));
+        Assert.NotNull(info);
+        using var blob = File.OpenRead(sealedPath);
+        Assert.True(EncryptionHelper.IsVestigium(blob));
+    }
+
+    private sealed class NonSeekableStream : Stream
+    {
+        private readonly MemoryStream _inner;
+        public NonSeekableStream(byte[] data) => _inner = new MemoryStream(data);
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
 }

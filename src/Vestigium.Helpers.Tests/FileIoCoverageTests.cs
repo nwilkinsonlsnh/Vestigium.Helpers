@@ -235,6 +235,228 @@ public sealed class FileIoCoverageTests
         Assert.Equal(FileIoBucket.Huge, FileIoJob.BucketFor(256 * 1024 * 1024 + 1));
     }
 
+    [Fact]
+    public void UniqueName_no_extension_dot_width_and_alpha_cap()
+    {
+        Assert.Equal(new UniqueName.Spec(false, 1), UniqueName.Parse(".#"));
+        Assert.Equal(new UniqueName.Spec(false, 5), UniqueName.Parse(".#####"));
+        Assert.Equal(new UniqueName.Spec(true, 1), UniqueName.Parse("A#"));
+        Assert.Equal("readme.01", UniqueName.Next([], "readme", ".##"));
+        Assert.Equal("readme.01", UniqueName.Next(["other.txt"], "readme", ".##"));
+        Assert.Equal("file.A1", UniqueName.Next(["skip.log"], "file", "A#"));
+        Assert.Null(UniqueName.Next(["file.Z9"], "file", "A#"));
+        Assert.Throws<ArgumentException>(() => UniqueName.Parse("A######"));
+        Assert.Throws<ArgumentException>(() => UniqueName.Parse(" "));
+    }
+
+    [Fact]
+    public void Job_options_reject_secret_reason_and_lead_time()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "a.txt"), "x");
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions { ReconLeadTime = TimeSpan.FromSeconds(-1) }));
+        _ = FileIoHelper.Copy(src, dst, new FileIoJobOptions { ReconLeadTime = FileIoJob.MaxLead });
+        Assert.Throws<ArgumentException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                RequestedBy = "-----BEGIN PRIVATE KEY-----"
+            }));
+        Assert.Throws<ArgumentException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                Reason = new string('a', 32)
+            }));
+        Assert.Throws<ArgumentException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                Reason = Convert.ToBase64String(new byte[48])
+            }));
+        Assert.Throws<ArgumentException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                Reason = new string('r', 81)
+            }));
+        Assert.Throws<ArgumentException>(() =>
+            FileIoHelper.Copy(src, dst, new FileIoJobOptions
+            {
+                ReconLeadTime = TimeSpan.Zero,
+                RequestedBy = new string('b', 51)
+            }));
+        _ = FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            RequestedBy = "gallery",
+            Reason = "nightly archive"
+        });
+    }
+
+    [Fact]
+    public async Task Copy_exclude_masks_and_skips_timestamps()
+    {
+        var (src, dst) = Tree();
+        var keep = Path.Combine(src, "keep.txt");
+        var skip = Path.Combine(src, "skip.bin");
+        File.WriteAllText(keep, "keep");
+        File.WriteAllBytes(skip, [1, 2, 3]);
+        File.SetLastWriteTimeUtc(keep, DateTime.UtcNow.AddDays(-3));
+        await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            ExcludeFileMasks = ["*.bin"],
+            CopyTimestampsAndAttributes = false
+        }).RunAsync();
+        Assert.True(File.Exists(Path.Combine(dst, "keep.txt")));
+        Assert.False(File.Exists(Path.Combine(dst, "skip.bin")));
+        var destTime = File.GetLastWriteTimeUtc(Path.Combine(dst, "keep.txt"));
+        Assert.True(destTime > DateTime.UtcNow.AddMinutes(-5));
+    }
+
+    [Fact]
+    public async Task Delete_with_shred_removes_the_file()
+    {
+        var dir = TempDir();
+        var path = Path.Combine(dir, "gone.bin");
+        File.WriteAllBytes(path, [9, 8, 7, 6]);
+        var result = await FileIoHelper.Delete(path, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            Shred = FileIoShredRecipe.ZeroRandomZero
+        }).RunAsync();
+        Assert.Equal("Success", result.Status);
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public async Task Delete_without_shred_and_audit_mode()
+    {
+        var dir = TempDir();
+        var path = Path.Combine(dir, "plain.txt");
+        File.WriteAllText(path, "x");
+        var deleted = await FileIoHelper.Delete(path, new FileIoJobOptions { ReconLeadTime = TimeSpan.Zero }).RunAsync();
+        Assert.Equal("Success", deleted.Status);
+        Assert.False(File.Exists(path));
+
+        File.WriteAllText(path, "x");
+        var audit = await FileIoHelper.Delete(path, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            AuditMode = true
+        }).RunAsync();
+        Assert.Equal("Success", audit.Status);
+        Assert.True(File.Exists(path));
+    }
+
+    [Fact]
+    public async Task Copy_stop_on_error_cancels_after_a_failed_item()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "a.txt"), "a");
+        var destFile = Path.Combine(dst, "a.txt");
+        Directory.CreateDirectory(destFile);
+        var result = await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            Collision = FileIoCollision.Overwrite,
+            StopOnError = true,
+            RetryCount = 0
+        }).RunAsync();
+        Assert.NotEqual("Running", result.Status);
+    }
+
+    [Fact]
+    public async Task Copy_unique_name_caps_when_the_pattern_is_exhausted()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "report.txt"), "new");
+        File.WriteAllText(Path.Combine(dst, "report.txt"), "old");
+        File.WriteAllText(Path.Combine(dst, "report.1.txt"), "1");
+        File.WriteAllText(Path.Combine(dst, "report.2.txt"), "2");
+        File.WriteAllText(Path.Combine(dst, "report.3.txt"), "3");
+        File.WriteAllText(Path.Combine(dst, "report.4.txt"), "4");
+        File.WriteAllText(Path.Combine(dst, "report.5.txt"), "5");
+        File.WriteAllText(Path.Combine(dst, "report.6.txt"), "6");
+        File.WriteAllText(Path.Combine(dst, "report.7.txt"), "7");
+        File.WriteAllText(Path.Combine(dst, "report.8.txt"), "8");
+        File.WriteAllText(Path.Combine(dst, "report.9.txt"), "9");
+        var result = await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            Collision = FileIoCollision.UniqueName,
+            UniqueNamePattern = ".#"
+        }).RunAsync();
+        Assert.True(result.Failed >= 1, result.Status);
+    }
+
+    [Fact]
+    public async Task Mirror_copies_empty_directories()
+    {
+        var (src, dst) = Tree();
+        Directory.CreateDirectory(Path.Combine(src, "empty"));
+        File.WriteAllText(Path.Combine(src, "a.txt"), "x");
+        var result = await FileIoHelper.Mirror(src, dst, new FileIoJobOptions { ReconLeadTime = TimeSpan.Zero }).RunAsync();
+        Assert.Equal("Success", result.Status);
+        Assert.True(Directory.Exists(Path.Combine(dst, "empty")));
+    }
+
+    [Fact]
+    public async Task Copy_unique_content_skip_collision_depth_size_and_purge()
+    {
+        var (src, dst) = Tree();
+        File.WriteAllText(Path.Combine(src, "a.txt"), "same");
+        File.WriteAllText(Path.Combine(src, "b.txt"), "same");
+        File.WriteAllText(Path.Combine(src, "tiny.bin"), "x");
+        File.WriteAllText(Path.Combine(src, "keep.txt"), "keep-me");
+        Directory.CreateDirectory(Path.Combine(src, "skipme"));
+        File.WriteAllText(Path.Combine(src, "skipme", "hidden.txt"), "nope");
+        Directory.CreateDirectory(Path.Combine(src, "nested", "deep"));
+        File.WriteAllText(Path.Combine(src, "nested", "deep", "far.txt"), "far");
+        File.WriteAllText(Path.Combine(dst, "keep.txt"), "keep-me");
+        File.WriteAllText(Path.Combine(dst, "extra.txt"), "purge-me");
+
+        var unique = await FileIoHelper.Copy(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            CopyOnlyUniqueContent = true,
+            Collision = FileIoCollision.Skip,
+            RetryCount = 0,
+            RetryWait = TimeSpan.Zero
+        }).RunAsync();
+        Assert.NotEqual("Running", unique.Status);
+
+        var filteredDir = Path.Combine(Path.GetDirectoryName(dst)!, "filtered");
+        var filtered = await FileIoHelper.Copy(src, filteredDir, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            MaxDepth = 1,
+            MinSizeBytes = 2,
+            MaxSizeBytes = 1000,
+            ExcludeDirectoryMasks = ["skipme"],
+            MaxAge = new FileIoAge { Days = 365 },
+            MinAge = new FileIoAge { Days = 0 },
+            RetryCount = 0,
+            RetryWait = TimeSpan.Zero
+        }).RunAsync();
+        Assert.Equal("Success", filtered.Status);
+        Assert.False(File.Exists(Path.Combine(filteredDir, "skipme", "hidden.txt")));
+        Assert.False(File.Exists(Path.Combine(filteredDir, "nested", "deep", "far.txt")));
+
+        var purged = await FileIoHelper.Mirror(src, dst, new FileIoJobOptions
+        {
+            ReconLeadTime = TimeSpan.Zero,
+            Purge = true,
+            Collision = FileIoCollision.Overwrite,
+            RetryCount = 0,
+            RetryWait = TimeSpan.Zero
+        }).RunAsync();
+        Assert.Equal("Success", purged.Status);
+        Assert.False(File.Exists(Path.Combine(dst, "extra.txt")));
+    }
+
     static (string Src, string Dst) Tree()
     {
         var root = TempDir();

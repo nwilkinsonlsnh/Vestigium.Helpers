@@ -186,4 +186,55 @@ public sealed class AnalyticsCoverageTests
         Assert.False(ci.Mean.IsDefined);
         Assert.False(ci.Median.IsDefined);
     }
+
+    [Fact]
+    public void FromDecimal_windowed_observations_and_point_helpers()
+    {
+        var fromDecimal = NumericSeries.FromDecimal([1.25m, 2.75m], "d");
+        Assert.Equal(2, fromDecimal.Count);
+        Assert.Equal(2.0, fromDecimal.Full.Mean);
+
+        var t0 = new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero);
+        var obs = new Observation[]
+        {
+            new Observation(1m, t0.AddMinutes(-1)),
+            new Observation(10m, t0),
+            new Observation(20m, t0.AddSeconds(1)),
+            new Observation(99m, t0.AddHours(1)),
+            new Observation(5m, null)
+        };
+        var windowed = NumericSeries.FromObservations(obs, t0, t0.AddMinutes(1), "win");
+        Assert.Equal(2, windowed.Count);
+        Assert.Equal(SeriesWindowKind.CallerSupplied, windowed.Window.Kind);
+        Assert.Throws<ArgumentException>(() =>
+            NumericSeries.FromObservations(obs, t0.AddMinutes(1), t0, "bad"));
+        Assert.Throws<ArgumentException>(() =>
+            NumericSeries.FromObservations(Array.Empty<Observation>(), "empty"));
+
+        var series = NumericSeries.From(new[] { 3, 1, 2 }, "pts");
+        Assert.Equal(new[] { 3d, 1d, 2d }, series.SampleOrderPoints().Select(p => p.Y).ToArray());
+        Assert.Equal(new[] { 1d, 2d, 3d }, series.SortedPoints().Select(p => p.Y).ToArray());
+        Assert.NotEmpty(series.HistogramRelativePoints());
+        Assert.All(series.HistogramRelativePoints(), p => Assert.InRange(p.Y, 0, 1));
+
+        var limits = series.ControlLimits(floor: -100);
+        Assert.Equal(-100, limits.Floor);
+        Assert.True(limits.Lower > -100);
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.ControlLimits(k: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.ControlLimits(k: -1));
+        Assert.Throws<ArgumentException>(() => series.ControlLimits(ControlLimitMethod.CallerSupplied));
+        var floorClamp = NumericSeries.From(new[] { 1, 2, 3 }).ControlLimits(k: 3, floor: 0);
+        Assert.Equal(0, floorClamp.Lower);
+
+        var flat = NumericSeries.From(new[] { 7, 7, 7, 7 }, "flat");
+        Assert.NotEmpty(flat.Full.Frequency.Histogram);
+        Assert.Equal(7m, flat.Full.Frequency.Mode);
+        var distinct = NumericSeries.From(new[] { 1, 2, 3, 4 }, "distinct");
+        Assert.Null(distinct.Full.Frequency.Mode);
+        var unique = NumericSeries.From(new[] { 1, 1, 2, 3 }, "mode");
+        Assert.Equal(1m, unique.Full.Frequency.Mode);
+        Assert.True(unique.Full.Frequency.HasUniqueMode);
+        Assert.Equal(0, FrequencyTable.Empty.DistinctCount);
+    }
+
 }
