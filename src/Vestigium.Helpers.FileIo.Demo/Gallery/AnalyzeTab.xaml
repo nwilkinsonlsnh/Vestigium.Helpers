@@ -3,20 +3,23 @@
   <DataTemplate x:Key="AnalyzeTab">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="8">
-        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="AnalyzeDirectory walks sizes only. Caller size is value + unit. 2048 MiB → 2 GiB. 2048 MB → 2.048 GB. Probe writes random bytes to a throwaway file and deletes it."/>
-        <TextBlock Margin="0,12,0,4" Text="Directory"/>
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Analyze" Command="{Binding AnalyzeDemoFolderCommand}" Margin="8,0,0,0"/>
+        <TextBlock Opacity="0.7" TextWrapping="Wrap"
+                   Text="Share or folder must already be reachable from this process. The library will not net use or mount. Example: \\\\truenas\\sandbox"/>
+        <TextBlock Margin="0,12,0,4" Text="Share or directory"/>
+        <DockPanel LastChildFill="True">
+          <Button DockPanel.Dock="Right" Content="Demo folder" Command="{Binding UseDemoFolderCommand}" Margin="8,0,0,0"/>
+          <Button DockPanel.Dock="Right" Content="Analyze sizes" Command="{Binding AnalyzeDemoFolderCommand}" Margin="8,0,0,0"/>
           <TextBox Text="{Binding AnalyzePath, UpdateSourceTrigger=PropertyChanged}"/>
         </DockPanel>
-        <TextBlock Margin="0,12,0,4" Text="Caller size (planned payload)"/>
+        <TextBlock Margin="0,12,0,4" Text="Planned write size (caller value + unit)"/>
         <StackPanel Orientation="Horizontal">
           <TextBox Width="100" Text="{Binding AnalyzeSizeValue, UpdateSourceTrigger=PropertyChanged}"/>
           <ComboBox Width="80" Margin="8,0,0,0" ItemsSource="{Binding SizeUnits}" SelectedItem="{Binding AnalyzeSizeUnit}"/>
           <Button Content="Normalize" Command="{Binding NormalizeSizeDemoCommand}" Margin="8,0,0,0"/>
-          <Button Content="Write 1 MiB probe" Command="{Binding WriteProbeDemoCommand}" Margin="8,0,0,0"/>
+          <Button Content="Probe write + estimate" Command="{Binding WriteProbeDemoCommand}" Margin="8,0,0,0"/>
         </StackPanel>
         <TextBlock Margin="0,8,0,0" FontFamily="Cascadia Mono, Consolas" Text="{Binding AnalyzeNormalized}"/>
+        <TextBlock Margin="0,8,0,0" FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap" Foreground="#7DD3FC" Text="{Binding AnalyzeEstimate}"/>
         <TextBlock Margin="0,8,0,8" Opacity="0.85" Text="{Binding AnalyzeSummary}" TextWrapping="Wrap"/>
         <Grid>
           <Grid.ColumnDefinitions>

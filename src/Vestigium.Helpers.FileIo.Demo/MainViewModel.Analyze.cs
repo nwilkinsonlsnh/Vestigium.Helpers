@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using CommunityToolkit.Mvvm.Input;
 using Vestigium.Helpers.FileIo;
@@ -10,11 +11,12 @@ public sealed partial class MainViewModel
     public ObservableCollection<StatsRow> AnalyzeRows { get; } = [];
     public ObservableCollection<StatsRow> AnalyzeBuckets { get; } = [];
 
-    string _analyzePath = "";
-    string _analyzeSizeValue = "2048";
-    string _analyzeSizeUnit = "MiB";
-    string _analyzeSummary = "Analyze walks sizes only. 2048 MiB displays as 2 GiB. Probe writes random bytes and deletes them.";
+    string _analyzePath = @"\\truenas\sandbox";
+    string _analyzeSizeValue = "1";
+    string _analyzeSizeUnit = "TB";
+    string _analyzeSummary = "Paste a reachable path. UNC example: \\\\truenas\\sandbox. Analyze = sizes only. Probe writes 64 MiB to that path (then deletes) and scales the caller size.";
     string _analyzeNormalized = "";
+    string _analyzeEstimate = "";
 
     public string AnalyzePath
     {
@@ -46,6 +48,12 @@ public sealed partial class MainViewModel
         set => SetProperty(ref _analyzeNormalized, value);
     }
 
+    public string AnalyzeEstimate
+    {
+        get => _analyzeEstimate;
+        set => SetProperty(ref _analyzeEstimate, value);
+    }
+
     public IReadOnlyList<string> SizeUnits { get; } =
         ["Byte", "KB", "KiB", "MB", "MiB", "GB", "GiB", "TB", "TiB"];
 
@@ -66,18 +74,24 @@ public sealed partial class MainViewModel
     }
 
     [RelayCommand]
+    private void UseDemoFolder()
+    {
+        AnalyzePath = Volumes.ExportRoot;
+        StatusText = "Analyze path set to demo Export folder.";
+    }
+
+    [RelayCommand]
     private void AnalyzeDemoFolder()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(AnalyzePath))
-                AnalyzePath = Volumes.ExportRoot;
-            var analysis = FileIoHelper.AnalyzeDirectory(AnalyzePath);
+            var path = ResolveAnalyzePath();
+            var analysis = FileIoHelper.AnalyzeDirectory(path);
             AnalyzeRows.Clear();
             AnalyzeBuckets.Clear();
             AnalyzeRows.Add(new StatsRow { Metric = "Path", Value = analysis.Path });
-            AnalyzeRows.Add(new StatsRow { Metric = "Files", Value = analysis.FileCount.ToString() });
-            AnalyzeRows.Add(new StatsRow { Metric = "Directories", Value = analysis.DirectoryCount.ToString() });
+            AnalyzeRows.Add(new StatsRow { Metric = "Files", Value = analysis.FileCount.ToString(CultureInfo.InvariantCulture) });
+            AnalyzeRows.Add(new StatsRow { Metric = "Directories", Value = analysis.DirectoryCount.ToString(CultureInfo.InvariantCulture) });
             AnalyzeRows.Add(new StatsRow { Metric = "Total", Value = analysis.TotalSize.Display });
             AnalyzeRows.Add(new StatsRow { Metric = "P50 size", Value = analysis.FileSizes.Median?.ToString("N0") ?? "—" });
             AnalyzeRows.Add(new StatsRow { Metric = "P95 size", Value = analysis.FileSizes.P95?.ToString("N0") ?? "—" });
@@ -104,26 +118,50 @@ public sealed partial class MainViewModel
     {
         try
         {
-            var dest = Path.Combine(Volumes.Root, "probe");
-            var size = FileIoSize.From(1, FileIoSizeUnit.MiB);
-            var result = FileIoHelper.WriteProbe(dest, size);
-            AnalyzeSummary = $"probe {result.Size.Display} in {result.Duration.TotalMilliseconds:0} ms · {result.BytesPerSecond:N0} B/s · deleted={result.Deleted}";
-            StatusText = AnalyzeSummary;
+            var path = ResolveAnalyzePath();
+            var probeDir = Path.Combine(path, ".vestigium-probe");
+            var probe = FileIoHelper.WriteProbe(probeDir, FileIoSize.From(64, FileIoSizeUnit.MiB));
+            var planned = ParseCallerSize();
+            var seconds = probe.BytesPerSecond > 0 ? planned.Bytes / probe.BytesPerSecond : 0;
+            var span = TimeSpan.FromSeconds(seconds);
+            AnalyzeEstimate =
+                $"Measured {probe.BytesPerSecond / (1024.0 * 1024.0):0.00} MiB/s on {path}. " +
+                $"{planned.Display} write ≈ {FormatDuration(span)}. Linear scale from 64 MiB sequential; many small files will be slower.";
+            AnalyzeSummary =
+                $"probe {probe.Size.Display} in {probe.Duration.TotalMilliseconds:0} ms · deleted={probe.Deleted}";
+            StatusText = AnalyzeEstimate;
         }
         catch (Exception ex)
         {
+            AnalyzeEstimate = ex.Message;
             AnalyzeSummary = ex.Message;
             StatusText = ex.Message;
         }
     }
 
+    string ResolveAnalyzePath()
+    {
+        var path = string.IsNullOrWhiteSpace(AnalyzePath) ? Volumes.ExportRoot : AnalyzePath.Trim();
+        AnalyzePath = path;
+        return path;
+    }
+
     FileIoSize ParseCallerSize()
     {
-        if (!decimal.TryParse(AnalyzeSizeValue, out var value))
+        if (!decimal.TryParse(AnalyzeSizeValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
             value = 1;
         var unit = Enum.TryParse<FileIoSizeUnit>(AnalyzeSizeUnit, true, out var parsed)
             ? parsed
-            : FileIoSizeUnit.MiB;
+            : FileIoSizeUnit.TB;
         return FileIoSize.From(value, unit);
+    }
+
+    static string FormatDuration(TimeSpan span)
+    {
+        if (span.TotalHours >= 1)
+            return span.TotalHours.ToString("0.00", CultureInfo.InvariantCulture) + " h";
+        if (span.TotalMinutes >= 1)
+            return span.TotalMinutes.ToString("0.0", CultureInfo.InvariantCulture) + " min";
+        return span.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
     }
 }
