@@ -14,7 +14,12 @@ internal static class IcmpEchoEngine
         var o = options ?? new IcmpEchoOptions();
         Guard(o);
         var jobId = "icmp-" + HelperLog.NewId();
-        return new NetworkJob<IcmpEchoResult>(jobId, "icmpEcho", (token, progress) => RunAsync(jobId, host, o, token, progress));
+        return new NetworkJob<IcmpEchoResult>(jobId, "icmpEcho", async (token, progress) =>
+        {
+            var result = await RunAsync(jobId, host, o, token, progress).ConfigureAwait(false);
+            IcmpEchoStats.WriteIfRequested(o.StatsPath, result);
+            return result;
+        });
     }
 
     static void Guard(IcmpEchoOptions o)
@@ -47,7 +52,7 @@ internal static class IcmpEchoEngine
         if (o.Ttl is < 1 or > 255)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"Ttl={o.Ttl}");
-            throw new ArgumentOutOfRangeException(nameof(o.Ttl), "Ttl must be between 1 and 255.");
+            throw new ArgumentOutOfRangeException(nameof(o.Ttl), "Ttl={o.Ttl}");
         }
     }
 
@@ -112,14 +117,8 @@ internal static class IcmpEchoEngine
                     break;
                 if (options.Interval > TimeSpan.Zero)
                 {
-                    try
-                    {
-                        await Task.Delay(options.Interval, token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
+                    try { await Task.Delay(options.Interval, token).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { break; }
                 }
             }
         }
@@ -141,19 +140,11 @@ internal static class IcmpEchoEngine
 
         var loss = sent == 0 ? 0 : 100.0 * lost / sent;
         var result = new IcmpEchoResult(
-            jobId,
-            target,
-            resolved,
-            status,
-            sent,
-            received,
-            lost,
-            loss,
+            jobId, target, resolved, status, sent, received, lost, loss,
             successTimes.Length == 0 ? null : successTimes.Min(),
             successTimes.Length == 0 ? null : successTimes.Max(),
             successTimes.Length == 0 ? null : successTimes.Average(),
-            payloadRestricted,
-            replies);
+            payloadRestricted, replies);
 
         var line = $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted}";
         if (status == NetworkJobStatus.Success)
@@ -167,45 +158,31 @@ internal static class IcmpEchoEngine
     }
 
     static async Task<IcmpEchoReply> SendOnceAsync(
-        Ping ping,
-        string target,
-        byte[] buffer,
-        int timeoutMs,
-        PingOptions pingOptions,
-        int sequence,
-        CancellationToken token)
+        Ping ping, string target, byte[] buffer, int timeoutMs, PingOptions pingOptions, int sequence, CancellationToken token)
     {
         try
         {
             PingReply reply;
             try
             {
-                reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), buffer, pingOptions, token)
-                    .ConfigureAwait(false);
+                reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), buffer, pingOptions, token).ConfigureAwait(false);
             }
             catch (PlatformNotSupportedException) when (buffer.Length > 0)
             {
-                reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), [], pingOptions, token)
-                    .ConfigureAwait(false);
+                reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), [], pingOptions, token).ConfigureAwait(false);
                 return Map(reply, sequence, payloadRestricted: true);
             }
 
             return Map(reply, sequence, payloadRestricted: false);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
+        catch (OperationCanceledException) { throw; }
         catch (PingException ex)
         {
             var forbidden = IsForbidden(ex);
             return new IcmpEchoReply(
                 Sequence: sequence,
                 Status: forbidden ? IcmpEchoStatus.ProtocolForbidden : IcmpEchoStatus.Failed,
-                Address: null,
-                RoundtripTimeMs: 0,
-                Ttl: 0,
-                PayloadRestricted: false,
+                Address: null, RoundtripTimeMs: 0, Ttl: 0, PayloadRestricted: false,
                 Detail: ex.InnerException?.Message ?? ex.Message);
         }
         catch (SocketException ex)
@@ -225,34 +202,16 @@ internal static class IcmpEchoEngine
             IPStatus.Success => IcmpEchoStatus.Success,
             IPStatus.TimedOut => IcmpEchoStatus.TimedOut,
             IPStatus.TimeExceeded or IPStatus.TtlExpired or IPStatus.TtlReassemblyTimeExceeded => IcmpEchoStatus.TtlExpired,
-            IPStatus.DestinationNetworkUnreachable
-                or IPStatus.DestinationHostUnreachable
-                or IPStatus.DestinationProtocolUnreachable
-                or IPStatus.DestinationPortUnreachable
+            IPStatus.DestinationNetworkUnreachable or IPStatus.DestinationHostUnreachable
+                or IPStatus.DestinationProtocolUnreachable or IPStatus.DestinationPortUnreachable
                 or IPStatus.DestinationUnreachable => IcmpEchoStatus.DestinationUnreachable,
             _ => IcmpEchoStatus.Failed
         };
-
         var address = reply.Address is null || reply.Address.Equals(IPAddress.Any) || reply.Address.Equals(IPAddress.IPv6Any)
-            ? null
-            : reply.Address.ToString();
-
+            ? null : reply.Address.ToString();
         var ttl = 0;
-        try
-        {
-            ttl = reply.Options?.Ttl ?? 0;
-        }
-        catch (NotSupportedException)
-        {
-        }
-
-        return new IcmpEchoReply(
-            sequence,
-            status,
-            address,
-            reply.RoundtripTime,
-            ttl,
-            payloadRestricted,
+        try { ttl = reply.Options?.Ttl ?? 0; } catch (NotSupportedException) { }
+        return new IcmpEchoReply(sequence, status, address, reply.RoundtripTime, ttl, payloadRestricted,
             reply.Status == IPStatus.Success ? null : reply.Status.ToString());
     }
 
@@ -260,17 +219,13 @@ internal static class IcmpEchoEngine
     {
         for (var cur = ex; cur is not null; cur = cur.InnerException)
         {
-            if (cur is PlatformNotSupportedException)
-                return true;
+            if (cur is PlatformNotSupportedException) return true;
             var message = cur.Message;
             if (message.Contains("not permitted", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("Access denied", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("Operation not permitted", StringComparison.OrdinalIgnoreCase))
-            {
                 return true;
-            }
         }
-
         return false;
     }
 }
