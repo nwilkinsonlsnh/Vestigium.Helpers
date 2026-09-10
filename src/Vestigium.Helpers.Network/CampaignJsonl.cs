@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Vestigium.Helpers.Json;
 
 namespace Vestigium.Helpers.Network;
@@ -26,10 +27,10 @@ internal static class CampaignJsonl
         for (var i = 0; i < session.RecordCount; i++)
         {
             var node = session.Record(i);
-            if (node is null)
+            if (node is not JsonObject obj)
                 continue;
             var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var prop in node.AsObject())
+            foreach (var prop in obj)
                 row[prop.Key] = prop.Value is null ? null : prop.Value.ToJsonString();
             rows.Add(row);
         }
