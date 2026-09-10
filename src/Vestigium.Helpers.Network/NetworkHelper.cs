@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Network;
 /// <summary>
 /// Workstation inventory and protocol jobs for diagnostic hosts.
 /// Logging is <see cref="HelperLog"/> → Vestigium.Logging JSONL (APPID Network).
-/// Reachability is ICMP Echo Request/Reply. <see cref="Ping"/> is an alias of <see cref="IcmpEcho"/>.
+/// Reachability is ICMP Echo. Path is ICMP TTL-walk. Names are RFC 1035.
 /// </summary>
 public static class NetworkHelper
 {
@@ -52,4 +52,22 @@ public static class NetworkHelper
 
     public static NetworkJob<IcmpEchoResult> Ping(string target, IcmpEchoOptions? options = null)
         => IcmpEcho(target, options);
+
+    public static NetworkJob<IcmpTraceResult> IcmpTrace(string target, IcmpTraceOptions? options = null)
+        => IcmpTraceEngine.Create(target, options);
+
+    public static NetworkJob<IcmpTraceResult> Trace(string target, IcmpTraceOptions? options = null)
+        => IcmpTrace(target, options);
+
+    public static Task<DnsLookupResult> LookupAsync(
+        string name,
+        DnsLookupOptions? options = null,
+        CancellationToken cancellation = default)
+        => DnsClient.LookupAsync(name, options, cancellation);
+
+    public static Task<IReadOnlyList<DnsLookupResult>> LookupManyAsync(
+        IEnumerable<string> names,
+        DnsLookupOptions? options = null,
+        CancellationToken cancellation = default)
+        => DnsClient.LookupManyAsync(names, options, cancellation);
 }
