@@ -10,6 +10,7 @@ namespace Vestigium.Helpers.Network;
 public static class NetworkHelper
 {
     public static string Identity => "Vestigium.Helpers.Network";
+    public static IReadOnlyList<CommonBot> CommonBots => BandwidthEngine.Catalog;
 
     public static string Probe()
     {
@@ -147,4 +148,16 @@ public static class NetworkHelper
     public static string? ToLinkLocal(MacAddress mac) => mac.LinkLocal;
     public static Task<OuiLookupResult> LookupOuiAsync(string macOrOui, OuiLookupOptions? options = null, CancellationToken cancellation = default)
         => MacEngine.LookupOuiAsync(macOrOui, options, cancellation);
+
+    public static BandwidthAmount Bandwidth(decimal value, DataUnit unit) => BandwidthEngine.From(value, unit);
+    public static BandwidthAmount ConvertBandwidth(BandwidthAmount amount, DataUnit unit) => BandwidthEngine.Convert(amount, unit);
+    public static TransferResult TransferTime(BandwidthAmount size, BandwidthAmount rate) => BandwidthEngine.TransferTime(size, rate);
+    public static BandwidthAmount RequiredRate(BandwidthAmount size, TimeSpan duration) => BandwidthEngine.RequiredRate(size, duration);
+    public static BandwidthAmount Transferred(BandwidthAmount rate, TimeSpan duration) => BandwidthEngine.Transferred(rate, duration);
+    public static PeriodVolume VolumeFromRate(BandwidthAmount rate, BandwidthBasis basis = BandwidthBasis.Days30)
+        => BandwidthEngine.VolumeFromRate(rate, basis);
+    public static PeriodVolume RateFromVolume(BandwidthAmount volume, BandwidthBasis basis = BandwidthBasis.Days30)
+        => BandwidthEngine.RateFromVolume(volume, basis);
+    public static WebsiteTrafficResult EstimateWebsite(WebsiteTrafficQuery query) => BandwidthEngine.EstimateWebsite(query);
+    public static int BandwidthSeconds(BandwidthBasis basis) => BandwidthEngine.Seconds(basis);
 }
