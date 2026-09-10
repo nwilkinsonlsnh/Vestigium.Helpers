@@ -16,7 +16,7 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Network gallery"/>
-        <TextBlock Opacity="0.7" Text="Inventory · ICMP · DNS · tables · subnet · MAC/EUI · no cousin CLIs"/>
+        <TextBlock Opacity="0.7" Text="Inventory · ICMP · DNS · tables · subnet · MAC · bandwidth · no cousin CLIs"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
@@ -36,6 +36,7 @@
       <TabItem Header="Snapshot"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource SnapshotTab}"/></TabItem>
       <TabItem Header="Subnet"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource SubnetTab}"/></TabItem>
       <TabItem Header="MAC"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MacTab}"/></TabItem>
+      <TabItem Header="Bandwidth"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource BandwidthTab}"/></TabItem>
     </TabControl>
     <DockPanel Grid.Row="2" Margin="0,10,0,0">
       <TextBlock Opacity="0.55" Text="{Binding StatusText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
