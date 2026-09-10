@@ -66,6 +66,15 @@ public static class HelperLog
         public const string Commit = "Commit";
         public const string Save = "Save";
         public const string Jsonl = "Jsonl";
+        public const string Inventory = "Inventory";
+        public const string Adapter = "Adapter";
+        public const string Icmp = "Icmp";
+        public const string Dns = "Dns";
+        public const string Connection = "Connection";
+        public const string Neighbor = "Neighbor";
+        public const string Netbios = "Netbios";
+        public const string Route = "Route";
+        public const string Campaign = "Campaign";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -295,7 +304,16 @@ public static class HelperLog
             Subcategories.Diff,
             Subcategories.Commit,
             Subcategories.Save,
-            Subcategories.Jsonl);
+            Subcategories.Jsonl,
+            Subcategories.Inventory,
+            Subcategories.Adapter,
+            Subcategories.Icmp,
+            Subcategories.Dns,
+            Subcategories.Connection,
+            Subcategories.Neighbor,
+            Subcategories.Netbios,
+            Subcategories.Route,
+            Subcategories.Campaign);
         return t;
     }
 
