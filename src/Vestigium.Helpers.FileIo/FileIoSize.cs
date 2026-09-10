@@ -64,6 +64,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
     public static string Normalize(long bytes)
     {
         if (bytes < 0) bytes = 0;
+
         var iec = new (long Size, FileIoSizeUnit Unit)[]
         {
             (Factor(FileIoSizeUnit.TiB), FileIoSizeUnit.TiB),
@@ -73,7 +74,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         };
         foreach (var (size, unit) in iec)
         {
-            if (bytes >= size && bytes % size == 0)
+            if (bytes >= size && bytes % size == 0 && bytes / size < 1024)
                 return Format(bytes / size, unit);
         }
 
