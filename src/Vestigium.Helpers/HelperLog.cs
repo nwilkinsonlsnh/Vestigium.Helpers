@@ -75,6 +75,12 @@ public static class HelperLog
         public const string Netbios = "Netbios";
         public const string Route = "Route";
         public const string Campaign = "Campaign";
+        public const string Process = "Process";
+        public const string Thread = "Thread";
+        public const string Watch = "Watch";
+        public const string Start = "Start";
+        public const string Kill = "Kill";
+        public const string System = "System";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -313,7 +319,13 @@ public static class HelperLog
             Subcategories.Neighbor,
             Subcategories.Netbios,
             Subcategories.Route,
-            Subcategories.Campaign);
+            Subcategories.Campaign,
+            Subcategories.Process,
+            Subcategories.Thread,
+            Subcategories.Watch,
+            Subcategories.Start,
+            Subcategories.Kill,
+            Subcategories.System);
         return t;
     }
 
