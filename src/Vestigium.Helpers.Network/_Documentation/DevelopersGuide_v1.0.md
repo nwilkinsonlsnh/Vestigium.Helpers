@@ -2,19 +2,25 @@
 
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
 **Version:** 1.2  
-**Status:** Draft with SRS v1.2.  
+**Status:** Draft with SRS v1.2. Phase map is [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md).  
 **Date:** 9 September 2026
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract (document version **1.2**).
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract (document version **1.2**). Build mode follows the implementation plan, one phase at a time.
+
+Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
+
+## What this library is
+
+A .NET 10 LTS resource library. PingIQ, DnsIQ, TraceIQ, HttpIQ, and ProbeHost subscribe on **Windows or Linux**. Not a CLI. Not `ping.exe`.
 
 ## Platforms
 
-One `net10.0` DLL. Windows and Linux are first-class. The WPF Demo project stays `net10.0-windows`; ProbeHost-on-Linux consumes the library directly.
+One `net10.0` DLL. WPF Demo stays `net10.0-windows`. ProbeHost-on-Linux consumes the library directly.
 
-Do not spawn `ping` / `ip` / `ss` / `traceroute`. Read BCL, then `/proc` or netlink.
+Do not spawn `ping` / `ip` / `ss` / `traceroute`. Linux ICMP: DGRAM first; payload reject → empty retry + `PayloadRestricted`. Route mutations need admin / `CAP_NET_ADMIN`. NetBIOS is Windows-only.
 
-Linux ICMP: ICMP DGRAM first so an unprivileged service can echo when `ping_group_range` allows it. If a custom payload is rejected, retry empty and flag `PayloadRestricted`. Route mutations need `CAP_NET_ADMIN`; lack of it is a typed failure.
+Campaign default roots: `%ProgramData%\Vestigium\Network\Campaigns\` and `/var/lib/vestigium/network/campaigns/`. Tests inject a temp root.
 
-NetBIOS stays Windows-only.
+## Phase order
 
-Campaign files default to `/var/lib/vestigium/network/campaigns/` on Linux. Tests inject a temp root.
+0 Paper → 1 Inventory → 2 ICMP Echo → 3 Trace + DNS → 4 Tables → 5 Campaigns + JSONL → 6 Snapshot / route / NetBIOS → 7 Demo → 8 Harden.
