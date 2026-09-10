@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using CommunityToolkit.Mvvm.Input;
 using Vestigium.Helpers.FileIo;
 
