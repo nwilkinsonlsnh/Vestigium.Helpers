@@ -1,35 +1,20 @@
 # Vestigium.Helpers.Network — Developers Guide
 
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
-**Version:** 1.1  
-**Status:** Draft with SRS v1.1.  
+**Version:** 1.2  
+**Status:** Draft with SRS v1.2.  
 **Date:** 9 September 2026
 
-[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract (document version **1.1**). Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
+[`Requirements_v1.0.md`](Requirements_v1.0.md) is the contract (document version **1.2**).
 
-## What this library is
+## Platforms
 
-A .NET 10 LTS **resource library**. PingIQ, DnsIQ, TraceIQ, HttpIQ, and ProbeHost subscribe to it. It is not a CLI and not `ping.exe`.
+One `net10.0` DLL. Windows and Linux are first-class. The WPF Demo project stays `net10.0-windows`; ProbeHost-on-Linux consumes the library directly.
 
-Reachability is **ICMP Echo Request/Reply**. Trace is **ICMP Time Exceeded**. Stats and campaign recipes go through `Vestigium.Helpers.Json` (`.json` recipe, `.jsonl` append-only warehouse). HelperLog stays the sparse audit trail.
+Do not spawn `ping` / `ip` / `ss` / `traceroute`. Read BCL, then `/proc` or netlink.
 
-## Design
+Linux ICMP: ICMP DGRAM first so an unprivileged service can echo when `ping_group_range` allows it. If a custom payload is rejected, retry empty and flag `PayloadRestricted`. Route mutations need `CAP_NET_ADMIN`; lack of it is a typed failure.
 
-- Façade: `NetworkHelper`.
-- `Ping` / `Trace` are aliases for `IcmpEcho` / `IcmpTrace`.
-- Campaign runner is in-process. ProbeHost (or another hosted service) must stay alive across windows. We do not call `schtasks`.
-- Grace 15 minutes; missed windows write `windowMissed` and do not backfill hours later.
-- Hot-path JSONL append: `JsonHelper.ToJson(..., WriteIndented = false)` then append a line. Do not `OpenJsonl` + `Save` the whole file per echo.
-- `GetRoutes` is print. `AddRoute` / `ChangeRoute` / `DeleteRoute` are explicit and log Warning.
+NetBIOS stays Windows-only.
 
-## Siblings
-
-| Project | Role |
-|---|---|
-| `Vestigium.Helpers.Json` | Recipe `.json`, stats `.jsonl` serialize/open |
-| `Vestigium.Helpers.Analytics` | Optional RTT NumericSeries at finalize |
-| `Vestigium.Logging` | Audit JSONL under `Logs\\Network\\` only |
-
-## Roadmap
-
-Json `AppendJsonl` (preferred write path) is the first follow-up on the Json side. HTTP reachability stays off this façade until v1.3.
+Campaign files default to `/var/lib/vestigium/network/campaigns/` on Linux. Tests inject a temp root.
