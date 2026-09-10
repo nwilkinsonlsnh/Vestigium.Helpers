@@ -4,7 +4,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>Process table helpers. Phase 5: start and kill.</summary>
+/// <summary>Process table helpers. Phase 6: system counters.</summary>
 public static class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
@@ -126,7 +126,7 @@ public static class ProcessHelper
         => new SystemWatcher(RequireInterval(interval));
 
     public static SystemCounters GetSystemCounters()
-        => SystemCounterReader.Capture(previous: null, interval: null);
+        => SystemCounterReader.Capture(previous: null, interval: null, out _);
 
     public static ProcessStartResult Start(ProcessStartRequest request)
     {
