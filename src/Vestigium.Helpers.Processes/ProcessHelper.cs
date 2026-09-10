@@ -4,7 +4,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>Process table helpers. Phase 4: watchers.</summary>
+/// <summary>Process table helpers. Phase 5: start and kill.</summary>
 public static class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
@@ -127,6 +127,28 @@ public static class ProcessHelper
 
     public static SystemCounters GetSystemCounters()
         => SystemCounterReader.Capture(previous: null, interval: null);
+
+    public static ProcessStartResult Start(ProcessStartRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ProcessStarter.Start(request);
+    }
+
+    public static ProcessStartResult StartAs(ProcessStartRequest request, ProcessStartAs credentials)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(credentials);
+        return ProcessStarter.StartAs(request, credentials);
+    }
+
+    public static ProcessKillResult Kill(int pid, bool force = true)
+        => ProcessKiller.Kill(pid, force);
+
+    public static IReadOnlyList<ProcessKillResult> KillTree(int pid, bool force = true)
+        => ProcessKiller.KillTree(pid, force);
+
+    public static IReadOnlyList<ProcessKillResult> KillSearch(ProcessSearchRequest search, KillConfirm confirm)
+        => ProcessKiller.KillSearch(search, confirm);
 
     public static void SetComment(int pid, string? comment, bool persist = false)
     {
