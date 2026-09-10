@@ -4,11 +4,14 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>Process table helpers. Phase 3: tree and threads.</summary>
+/// <summary>Process table helpers. Phase 4: watchers.</summary>
 public static class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
     public const int MaxSearchResultsCap = 4096;
+    public static readonly TimeSpan MinWatchInterval = TimeSpan.FromMilliseconds(250);
+    public static readonly TimeSpan MaxWatchInterval = TimeSpan.FromSeconds(60);
+    public static readonly TimeSpan DefaultWatchInterval = TimeSpan.FromSeconds(1);
 
     public static string Identity => "Vestigium.Helpers.Processes";
 
@@ -113,12 +116,35 @@ public static class ProcessHelper
         return rows;
     }
 
+    public static IProcessWatcher Watch(int pid, TimeSpan interval, ProcessWatchFields fields)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        return new ProcessWatcher(pid, RequireInterval(interval), fields);
+    }
+
+    public static ISystemWatcher WatchSystem(TimeSpan interval)
+        => new SystemWatcher(RequireInterval(interval));
+
+    public static SystemCounters GetSystemCounters()
+        => SystemCounterReader.Capture(previous: null, interval: null);
+
     public static void SetComment(int pid, string? comment, bool persist = false)
     {
         HelperGuard.InRange(pid, 1, nameof(pid));
         var row = Get(pid, ProcessDetailLevel.Slim)
             ?? throw new InvalidOperationException($"Process {pid} is gone.");
         ProcessCommentStore.Set(ProcessCommentStore.Key(row.ImagePath, row.Name), comment, persist);
+    }
+
+    internal static TimeSpan RequireInterval(TimeSpan interval)
+    {
+        if (interval < MinWatchInterval || interval > MaxWatchInterval)
+        {
+            HelperLog.Reject($"interval={interval}");
+            throw new ArgumentOutOfRangeException(nameof(interval), "Watcher interval must be 250 ms through 60 s.");
+        }
+
+        return interval;
     }
 
     private static bool Matches(ProcessInfo row, string term, ProcessSearchMode mode, ProcessSearchFields fields)
