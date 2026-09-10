@@ -48,8 +48,8 @@ internal static class NetworkWindowsTables
                 var index = Marshal.ReadInt32(offset);
                 var physLen = Marshal.ReadInt32(offset + 4);
                 var mac = ReadMac(offset + 8, physLen);
-                var addr = ReadIpv4(offset + 24);
-                var type = Marshal.ReadInt32(offset + 28);
+                var addr = ReadIpv4(offset + 16);
+                var type = Marshal.ReadInt32(offset + 20);
                 rows.Add(new NetworkNeighbor(
                     AddressFamily.InterNetwork,
                     addr,
@@ -62,7 +62,7 @@ internal static class NetworkWindowsTables
                         2 => "Invalid",
                         _ => "Other"
                     }));
-                offset += 32;
+                offset += 24;
             }
         }
         finally
