@@ -5,7 +5,6 @@ namespace Vestigium.Helpers.Network;
 /// <summary>
 /// Workstation inventory and protocol jobs for diagnostic hosts.
 /// Logging is <see cref="HelperLog"/> → Vestigium.Logging JSONL (APPID Network).
-/// Reachability is ICMP Echo. Path is ICMP TTL-walk. Names are RFC 1035.
 /// </summary>
 public static class NetworkHelper
 {
@@ -70,4 +69,36 @@ public static class NetworkHelper
         DnsLookupOptions? options = null,
         CancellationToken cancellation = default)
         => DnsClient.LookupManyAsync(names, options, cancellation);
+
+    public static IReadOnlyList<NetworkConnection> GetConnections(NetworkConnectionQuery? query = null)
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Connection, nameof(GetConnections));
+        var rows = NetworkStackEngine.GetConnections(query);
+        NetworkLog.Success(HelperLog.Subcategories.Connection, $"connections={rows.Count}");
+        return rows;
+    }
+
+    public static NetworkStackStatistics GetStatistics()
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Connection, nameof(GetStatistics));
+        var stats = NetworkStackEngine.GetStatistics();
+        NetworkLog.Success(HelperLog.Subcategories.Connection, "statistics captured");
+        return stats;
+    }
+
+    public static IReadOnlyList<NetworkRoute> GetRoutes(RouteFamily family = RouteFamily.All)
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Route, nameof(GetRoutes));
+        var rows = NetworkStackEngine.GetRoutes(family);
+        NetworkLog.Success(HelperLog.Subcategories.Route, $"routes={rows.Count} family={family}");
+        return rows;
+    }
+
+    public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Neighbor, nameof(GetNeighbors));
+        var rows = NetworkStackEngine.GetNeighbors();
+        NetworkLog.Success(HelperLog.Subcategories.Neighbor, $"neighbors={rows.Count}");
+        return rows;
+    }
 }
