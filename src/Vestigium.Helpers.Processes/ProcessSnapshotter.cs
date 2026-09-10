@@ -201,10 +201,10 @@ internal static class ProcessSnapshotter
 
     private static int? ReadParentPid(nint handle)
     {
-        var status = NativeMethods.NtQueryInformationProcess(
+        var status = NativeMethods.NtQueryProcessBasicInfo(
             handle,
             NativeMethods.ProcessBasicInformationClass,
-            out var info,
+            out NativeMethods.ProcessBasicInfo info,
             Marshal.SizeOf<NativeMethods.ProcessBasicInfo>(),
             out _);
         if (status != 0)
