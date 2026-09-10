@@ -46,6 +46,7 @@ public sealed class OuiLookupOptions
 
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(3);
     public string RegistryUrl { get; set; } = DefaultRegistryUrl;
+    public string? RegistryFilePath { get; set; }
     public HttpMessageHandler? Handler { get; set; }
 }
 
