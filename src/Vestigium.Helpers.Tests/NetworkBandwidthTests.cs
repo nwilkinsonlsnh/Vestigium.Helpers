@@ -11,8 +11,9 @@ public sealed class NetworkBandwidthTests
         var bits = NetworkHelper.Bandwidth(10, DataUnit.Mb);
         Assert.Equal(80_000_000m, bytes.Bits);
         Assert.Equal(10_000_000m, bits.Bits);
-        Assert.NotEqual(bytes.Bits, bits.Bits);
-        Assert.Equal(10_000_000m, NetworkHelper.ConvertBandwidth(bytes, DataUnit.Mb).Bits / 8m * 8m);
+        var asMegabits = NetworkHelper.ConvertBandwidth(bytes, DataUnit.Mb);
+        Assert.Equal(80_000_000m, asMegabits.Bits);
+        Assert.Contains("80", asMegabits.Display, StringComparison.Ordinal);
     }
 
     [Fact]
