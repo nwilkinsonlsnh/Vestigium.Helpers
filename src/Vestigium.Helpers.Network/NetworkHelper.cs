@@ -5,6 +5,7 @@ namespace Vestigium.Helpers.Network;
 /// <summary>
 /// Workstation inventory and protocol jobs for diagnostic hosts.
 /// Logging is <see cref="HelperLog"/> → Vestigium.Logging JSONL (APPID Network).
+/// Campaign statistics are JSONL via Vestigium.Helpers.Json.
 /// </summary>
 public static class NetworkHelper
 {
@@ -101,4 +102,10 @@ public static class NetworkHelper
         NetworkLog.Success(HelperLog.Subcategories.Neighbor, $"neighbors={rows.Count}");
         return rows;
     }
+
+    public static IcmpEchoCampaign CreateEchoCampaign(IcmpEchoCampaignOptions options)
+        => IcmpEchoCampaign.Create(options);
+
+    public static IcmpEchoCampaign OpenEchoCampaign(string recipePath)
+        => IcmpEchoCampaign.Open(recipePath);
 }
