@@ -6,6 +6,7 @@ public sealed class ProcessInfo
     public int Pid { get; init; }
     public int? ParentPid { get; init; }
     public bool? ParentAlive { get; init; }
+    public bool AmbiguousParent { get; set; }
     public required string Name { get; init; }
     public int? SessionId { get; init; }
     public string? ImagePath { get; init; }
