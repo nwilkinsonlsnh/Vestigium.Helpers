@@ -112,6 +112,9 @@ internal static class ProcessSnapshotter
             long? ioReadBytes = null;
             long? ioWrites = null;
             long? ioWriteBytes = null;
+            double? gpuUse = null;
+            long? gpuDed = null;
+            long? gpuSys = null;
 
             if (level != ProcessDetailLevel.Identity)
             {
@@ -137,9 +140,16 @@ internal static class ProcessSnapshotter
                     missing.Add(new FieldAvailability(ProcessField.IoWriteBytes, Availability.Denied, "GetProcessIoCounters"));
                 }
 
-                missing.Add(new FieldAvailability(ProcessField.GpuUsagePercent, Availability.Unsupported, "phase 6"));
-                missing.Add(new FieldAvailability(ProcessField.GpuDedicatedBytes, Availability.Unsupported, "phase 6"));
-                missing.Add(new FieldAvailability(ProcessField.GpuSystemBytes, Availability.Unsupported, "phase 6"));
+                var gpu = ProcessGpuCatalog.ForPid(pid);
+                gpuUse = gpu.UsagePercent;
+                gpuDed = gpu.DedicatedBytes;
+                gpuSys = gpu.SystemBytes;
+                if (!ProcessGpuCatalog.Supported)
+                {
+                    missing.Add(new FieldAvailability(ProcessField.GpuUsagePercent, Availability.Unsupported, "GPU counters"));
+                    missing.Add(new FieldAvailability(ProcessField.GpuDedicatedBytes, Availability.Unsupported, "GPU counters"));
+                    missing.Add(new FieldAvailability(ProcessField.GpuSystemBytes, Availability.Unsupported, "GPU counters"));
+                }
             }
 
             if (string.IsNullOrWhiteSpace(name))
@@ -162,6 +172,9 @@ internal static class ProcessSnapshotter
                 IoReadBytes = ioReadBytes,
                 IoWrites = ioWrites,
                 IoWriteBytes = ioWriteBytes,
+                GpuUsagePercent = gpuUse,
+                GpuDedicatedBytes = gpuDed,
+                GpuSystemBytes = gpuSys,
                 Availability = missing
             };
 
