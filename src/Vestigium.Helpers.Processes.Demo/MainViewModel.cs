@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,7 +18,7 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     {
         SearchTerm = "testhost";
         SearchMode = ProcessSearchMode.Contains;
-        StartFile = Path.Combine(Environment.SystemDirectory, "ping.exe");
+        StartFile = System.IO.Path.Combine(Environment.SystemDirectory, "ping.exe");
         StartArguments = "-n 30 127.0.0.1";
         CampaignTerm = "testhost";
         CampaignName = "live-demo";
