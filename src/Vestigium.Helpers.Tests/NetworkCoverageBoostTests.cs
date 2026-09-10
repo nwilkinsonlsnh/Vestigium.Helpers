@@ -14,6 +14,7 @@ public sealed class NetworkCoverageBoostTests : IDisposable
             Path.Combine(_proc, "proc", "net", "route"),
             "Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\tMTU\tWindow\tIRTT\n" +
             "eth0\t00000000\t0100A8C0\t0003\t0\t0\t100\t00000000\t0\t0\t0\n" +
+            "eth1 0101A8C0 00000000 0001 0 0 20 00FFFFFF extra\n" +
             "short\n" +
             "eth0 not-hex 00000000 0001 0 0 x 00FFFFFF extra\n");
         File.WriteAllText(
@@ -29,6 +30,7 @@ public sealed class NetworkCoverageBoostTests : IDisposable
         File.WriteAllText(
             Path.Combine(_proc, "proc", "net", "ipv6_route"),
             "00000000000000000000000000000001 80 00000000000000000000000000000000 00 00000000000000000000000000000000 00000064 00000000 00000000 00000001 lo\n" +
+            "shorthex 80 00 00 gw gg 00 00 00 01 eth9\n" +
             "short\n" +
             "not-a-valid-ipv6-hex-string-here 40 00000000000000000000000000000000 00 00000000000000000000000000000000 00000000 00000000 00000000 00000001 eth0\n" +
             "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz gg 00000000000000000000000000000000 00 zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz nothex 00000000 00000000 00000001 eth2\n");

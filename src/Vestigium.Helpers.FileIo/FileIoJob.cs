@@ -496,30 +496,28 @@ public sealed class FileIoJob
         var exists = File.Exists(destPath);
         if (exists)
         {
-            if (_options.Collision == FileIoCollision.Skip)
+            var parent = Path.GetDirectoryName(destPath) ?? Destination;
+            var names = _options.Collision == FileIoCollision.UniqueName && Directory.Exists(parent)
+                ? Directory.GetFiles(parent).Select(Path.GetFileName).OfType<string>().ToArray()
+                : [];
+            var plan = ResolveCollision(exists, _options.Collision, destPath, parent, Path.GetFileName(item.SourcePath), _options.UniqueNamePattern, names);
+            if (plan.Skip)
             {
                 FileIoLog.Success(VerbSub(), $"Skip path={destPath}");
                 Skip(item);
                 Observe(item, "Skip");
                 return;
             }
-            if (_options.Collision == FileIoCollision.UniqueName)
+            if (plan.Fail)
             {
-                var parent = Path.GetDirectoryName(destPath) ?? Destination;
-                var names = Directory.Exists(parent)
-                    ? Directory.GetFiles(parent).Select(Path.GetFileName).OfType<string>().ToArray()
-                    : [];
-                var next = UniqueName.Next(names, Path.GetFileName(item.SourcePath), _options.UniqueNamePattern);
-                if (next is null)
-                {
-                    FileIoLog.Failed(VerbSub(), $"NameCap path={destPath}");
-                    Fail(item, "NameCap");
-                    Observe(item, "Fail");
-                    return;
-                }
-                finalPath = Path.Combine(parent, next);
-                FileIoLog.Success(VerbSub(), $"UniqueName from={Path.GetFileName(item.SourcePath)} to={next}");
+                FileIoLog.Failed(VerbSub(), $"NameCap path={destPath}");
+                Fail(item, "NameCap");
+                Observe(item, "Fail");
+                return;
             }
+            finalPath = plan.FinalPath;
+            if (plan.Unique)
+                FileIoLog.Success(VerbSub(), $"UniqueName from={Path.GetFileName(item.SourcePath)} to={Path.GetFileName(finalPath)}");
             else
                 FileIoLog.Warning(VerbSub(), $"Overwrite path={destPath}");
         }
@@ -762,6 +760,32 @@ public sealed class FileIoJob
                 return row.Id;
         }
         return FileIoBucket.Huge;
+    }
+
+    internal readonly record struct CollisionPlan(string FinalPath, bool Skip, bool Fail, bool Unique, bool Overwrite);
+
+    internal static CollisionPlan ResolveCollision(
+        bool exists,
+        FileIoCollision collision,
+        string destPath,
+        string parent,
+        string sourceFileName,
+        string uniqueNamePattern,
+        IReadOnlyList<string> existingNames)
+    {
+        if (!exists)
+            return new CollisionPlan(destPath, false, false, false, false);
+        if (collision == FileIoCollision.Skip)
+            return new CollisionPlan(destPath, true, false, false, false);
+        if (collision == FileIoCollision.UniqueName)
+        {
+            var next = UniqueName.Next(existingNames, sourceFileName, uniqueNamePattern);
+            if (next is null)
+                return new CollisionPlan(destPath, false, true, false, false);
+            return new CollisionPlan(Path.Combine(parent, next), false, false, true, false);
+        }
+
+        return new CollisionPlan(destPath, false, false, false, true);
     }
 
     static bool Masked(string name, IReadOnlyList<string> masks)

@@ -540,16 +540,7 @@ public static class EncryptionHelper
             throw new NotSupportedException("alg");
         var hasWrap = rsaRecipients is { Count: > 0 };
 
-        var unknown = plaintextLength is null && !source.CanSeek;
-        long length;
-        if (plaintextLength is not null)
-            length = plaintextLength.Value;
-        else if (source.CanSeek)
-            length = Math.Max(0, source.Length - source.Position);
-        else
-            length = -1;
-        if (length < 0 && !unknown)
-            unknown = true;
+        var (length, unknown) = ResolvePlaintextLength(source, plaintextLength);
 
         var algByte = (byte)alg;
         byte kdf = secret.IsPassphrase ? (byte)1 : (byte)0;
@@ -586,18 +577,7 @@ public static class EncryptionHelper
                 n = ReadUpTo(source, plain.AsSpan(0, want));
                 if (n <= 0)
                     break;
-                if (FrameCipher.IsAead(alg))
-                {
-                    var nonce = FrameCipher.FrameNonce(fileNonce, index);
-                    var aad = FrameCipher.FrameAad(prefix, index);
-                    FrameCipher.Encrypt(alg, key, nonce, aad, plain.AsSpan(0, n), cipher.AsSpan(0, n), tag);
-                    destination.Write(cipher.AsSpan(0, n));
-                    destination.Write(tag);
-                }
-                else
-                {
-                    FrameCipher.WriteCbcFrame(destination, key, fileNonce, prefix, index, plain.AsSpan(0, n));
-                }
+                WritePayloadFrame(destination, alg, key, fileNonce, prefix, index, plain.AsSpan(0, n), cipher, tag);
                 writtenPlain += (uint)n;
                 frames++;
                 index++;
@@ -820,7 +800,47 @@ public static class EncryptionHelper
             WrapThumbprints = trailer.Wraps.Select(w => Convert.ToHexString(w.Thumbprint).ToLowerInvariant()).ToArray()
         };
 
-    private static bool HeadersAgree(EnvelopeHeader header, TrailerFields trailer, List<string> problems)
+    internal static (long Length, bool Unknown) ResolvePlaintextLength(Stream source, long? plaintextLength)
+    {
+        var unknown = plaintextLength is null && !source.CanSeek;
+        long length;
+        if (plaintextLength is not null)
+            length = plaintextLength.Value;
+        else if (source.CanSeek)
+            length = Math.Max(0, source.Length - source.Position);
+        else
+            length = -1;
+        if (length < 0 && !unknown)
+            unknown = true;
+        return (length, unknown);
+    }
+
+    internal static void WritePayloadFrame(
+        Stream destination,
+        EncryptionAlgorithm alg,
+        byte[] key,
+        byte[] fileNonce,
+        ReadOnlySpan<byte> prefix,
+        uint index,
+        ReadOnlySpan<byte> plain,
+        byte[] cipher,
+        byte[] tag)
+    {
+        if (FrameCipher.IsAead(alg))
+        {
+            var nonce = FrameCipher.FrameNonce(fileNonce, index);
+            var aad = FrameCipher.FrameAad(prefix, index);
+            FrameCipher.Encrypt(alg, key, nonce, aad, plain, cipher.AsSpan(0, plain.Length), tag);
+            destination.Write(cipher.AsSpan(0, plain.Length));
+            destination.Write(tag);
+        }
+        else
+        {
+            FrameCipher.WriteCbcFrame(destination, key, fileNonce, prefix, index, plain);
+        }
+    }
+
+    internal static bool HeadersAgree(EnvelopeHeader header, TrailerFields trailer, List<string> problems)
     {
         var ok = true;
         void Check(bool cond, string problem)
@@ -850,7 +870,7 @@ public static class EncryptionHelper
         return ok;
     }
 
-    private static long FrameCountFor(long length)
+    internal static long FrameCountFor(long length)
         => length <= 0 ? 0 : (length + Envelope.FrameSize - 1) / Envelope.FrameSize;
 
     private static void OverwritePass(FileStream stream, long length, byte[] buffer, bool random)

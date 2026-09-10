@@ -55,13 +55,7 @@ internal static class NetworkWindowsTables
                     addr,
                     mac,
                     InterfaceName(index),
-                    type switch
-                    {
-                        3 => "Dynamic",
-                        4 => "Static",
-                        2 => "Invalid",
-                        _ => "Other"
-                    }));
+                    NeighborType(type)));
                 offset += 24;
             }
         }
@@ -216,6 +210,14 @@ internal static class NetworkWindowsTables
             return null;
         }
     }
+
+    internal static string NeighborType(int type) => type switch
+    {
+        3 => "Dynamic",
+        4 => "Static",
+        2 => "Invalid",
+        _ => "Other"
+    };
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
     static extern uint GetExtendedTcpTable(nint table, ref int size, bool order, int family, int tableClass, uint reserved);

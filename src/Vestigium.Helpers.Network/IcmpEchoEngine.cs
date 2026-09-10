@@ -130,31 +130,44 @@ internal static class IcmpEchoEngine
         var received = replies.Count(r => r.Status == IcmpEchoStatus.Success);
         var lost = Math.Max(0, sent - received);
         var successTimes = replies.Where(r => r.Status == IcmpEchoStatus.Success).Select(r => r.RoundtripTimeMs).ToArray();
-        var status = token.IsCancellationRequested && (options.Count == 0 || sent < options.Count)
-            ? NetworkJobStatus.Cancelled
-            : received > 0
-                ? NetworkJobStatus.Success
-                : replies.Exists(r => r.Status == IcmpEchoStatus.ProtocolForbidden) && received == 0
-                    ? NetworkJobStatus.Failed
-                    : NetworkJobStatus.TimedOut;
+        var protocolForbidden = replies.Exists(r => r.Status == IcmpEchoStatus.ProtocolForbidden);
+        var status = DecideStatus(token.IsCancellationRequested, options.Count, sent, received, protocolForbidden);
+        var (min, max, avg) = SummarizeTimes(successTimes);
 
         var loss = sent == 0 ? 0 : 100.0 * lost / sent;
         var result = new IcmpEchoResult(
             jobId, target, resolved, status, sent, received, lost, loss,
-            successTimes.Length == 0 ? null : successTimes.Min(),
-            successTimes.Length == 0 ? null : successTimes.Max(),
-            successTimes.Length == 0 ? null : successTimes.Average(),
+            min, max, avg,
             payloadRestricted, replies);
 
-        var line = $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted}";
+        LogFinished(status, $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted}");
+        return result;
+    }
+
+    internal static NetworkJobStatus DecideStatus(bool cancelled, int count, int sent, int received, bool protocolForbidden)
+    {
+        if (cancelled && (count == 0 || sent < count))
+            return NetworkJobStatus.Cancelled;
+        if (received > 0)
+            return NetworkJobStatus.Success;
+        if (protocolForbidden)
+            return NetworkJobStatus.Failed;
+        return NetworkJobStatus.TimedOut;
+    }
+
+    internal static (long? Min, long? Max, double? Average) SummarizeTimes(IReadOnlyList<long> successTimes)
+        => successTimes.Count == 0
+            ? (null, null, null)
+            : (successTimes.Min(), successTimes.Max(), successTimes.Average());
+
+    internal static void LogFinished(NetworkJobStatus status, string line)
+    {
         if (status == NetworkJobStatus.Success)
             NetworkLog.Success(HelperLog.Subcategories.Icmp, line);
         else if (status == NetworkJobStatus.Cancelled)
             NetworkLog.Warning(HelperLog.Subcategories.Icmp, line);
         else
             NetworkLog.Failed(HelperLog.Subcategories.Icmp, line);
-
-        return result;
     }
 
     static async Task<IcmpEchoReply> SendOnceAsync(

@@ -123,7 +123,24 @@ internal static class CsvCodec
             case bool b:
                 return b ? "true" : "false";
             case byte or sbyte or short or ushort or int or uint or long or ulong:
-                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                return FormatInteger(value);
+            case decimal or float or double:
+                return FormatFloating(value);
+            case DateTime or DateTimeOffset or TimeSpan:
+                return FormatDateTime(value);
+            default:
+                var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                return neutralize ? Neutralize(text) : text;
+        }
+    }
+
+    internal static string FormatInteger(object value)
+        => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+
+    internal static string FormatFloating(object value)
+    {
+        switch (value)
+        {
             case decimal m:
                 return m.ToString(CultureInfo.InvariantCulture);
             case float f:
@@ -132,6 +149,15 @@ internal static class CsvCodec
             case double d:
                 HelperGuard.Finite(d, nameof(value));
                 return d.ToString("G17", CultureInfo.InvariantCulture);
+            default:
+                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+    }
+
+    internal static string FormatDateTime(object value)
+    {
+        switch (value)
+        {
             case DateTime dt:
                 return dt.Kind == DateTimeKind.Utc
                     ? dt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
@@ -141,8 +167,7 @@ internal static class CsvCodec
             case TimeSpan ts:
                 return ts.ToString("c", CultureInfo.InvariantCulture);
             default:
-                var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-                return neutralize ? Neutralize(text) : text;
+                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         }
     }
 

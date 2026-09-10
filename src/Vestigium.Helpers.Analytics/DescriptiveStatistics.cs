@@ -104,32 +104,8 @@ internal sealed class DescriptiveStatistics
         var absDevFromMedian = values.Select(v => Math.Abs(v - median)).OrderBy(v => v).ToArray();
         var medianAd = Quantiles.Inclusive(absDevFromMedian, 0.50);
 
-        double? skew = null;
-        double? g2 = null;
-        if (n >= 3 && sampleStd is > 0 and var std)
-        {
-            double m3 = 0;
-            foreach (var v in values)
-            {
-                var z = ((double)v - mean) / std;
-                m3 += z * z * z;
-            }
-            skew = n * m3 / ((n - 1d) * (n - 2d));
-        }
-
-        if (n >= 4 && sampleStd is > 0 and var stdK)
-        {
-            double m4 = 0;
-            foreach (var v in values)
-            {
-                var z = ((double)v - mean) / stdK;
-                var z2 = z * z;
-                m4 += z2 * z2;
-            }
-            var term1 = n * (n + 1d) * m4 / ((n - 1d) * (n - 2d) * (n - 3d));
-            var term2 = 3d * (n - 1d) * (n - 1d) / ((n - 2d) * (n - 3d));
-            g2 = term1 - term2;
-        }
+        var skew = ComputeSkewness(values, mean, sampleStd);
+        var g2 = ComputeExcessKurtosis(values, mean, sampleStd);
 
         return new DescriptiveStatistics
         {
@@ -175,4 +151,39 @@ internal sealed class DescriptiveStatistics
         Sorted.Count == 0
             ? throw new InvalidOperationException("Cannot compute a percentile of an empty slice.")
             : Quantiles.Inclusive(Sorted, p);
+
+    internal static double? ComputeSkewness(IReadOnlyList<decimal> values, double mean, double? sampleStd)
+    {
+        var n = values.Count;
+        if (n < 3 || sampleStd is not > 0)
+            return null;
+        var std = sampleStd.Value;
+        double m3 = 0;
+        foreach (var v in values)
+        {
+            var z = ((double)v - mean) / std;
+            m3 += z * z * z;
+        }
+
+        return n * m3 / ((n - 1d) * (n - 2d));
+    }
+
+    internal static double? ComputeExcessKurtosis(IReadOnlyList<decimal> values, double mean, double? sampleStd)
+    {
+        var n = values.Count;
+        if (n < 4 || sampleStd is not > 0)
+            return null;
+        var std = sampleStd.Value;
+        double m4 = 0;
+        foreach (var v in values)
+        {
+            var z = ((double)v - mean) / std;
+            var z2 = z * z;
+            m4 += z2 * z2;
+        }
+
+        var term1 = n * (n + 1d) * m4 / ((n - 1d) * (n - 2d) * (n - 3d));
+        var term2 = 3d * (n - 1d) * (n - 1d) / ((n - 2d) * (n - 3d));
+        return term1 - term2;
+    }
 }

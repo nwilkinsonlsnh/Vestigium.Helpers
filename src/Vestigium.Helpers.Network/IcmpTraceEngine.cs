@@ -103,19 +103,25 @@ internal static class IcmpTraceEngine
         {
         }
 
-        var status = token.IsCancellationRequested
-            ? NetworkJobStatus.Cancelled
-            : reached
-                ? NetworkJobStatus.Success
-                : hops.SelectMany(h => h.Probes).Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden) && hops.All(h => h.Address is null)
-                    ? NetworkJobStatus.Failed
-                    : NetworkJobStatus.TimedOut;
+        var status = DecideStatus(token.IsCancellationRequested, reached, hops);
 
         NetworkLog.Success(
             HelperLog.Subcategories.Icmp,
             $"{status} trace job={jobId} target={target} hops={hops.Count} reached={reached} protocol={protocol}");
 
         return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, hops.Count, hops);
+    }
+
+    internal static NetworkJobStatus DecideStatus(bool cancelled, bool reached, IReadOnlyList<IcmpTraceHop> hops)
+    {
+        if (cancelled)
+            return NetworkJobStatus.Cancelled;
+        if (reached)
+            return NetworkJobStatus.Success;
+        var probes = hops.SelectMany(h => h.Probes);
+        if (probes.Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden) && hops.All(h => h.Address is null))
+            return NetworkJobStatus.Failed;
+        return NetworkJobStatus.TimedOut;
     }
 
     internal static async Task<IcmpTraceProbe> IcmpProbeAsync(

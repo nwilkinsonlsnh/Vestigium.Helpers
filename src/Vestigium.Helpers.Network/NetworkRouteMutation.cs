@@ -94,7 +94,7 @@ internal static class NetworkRouteMutation
         };
     }
 
-    static int FirstIpv4Index()
+    internal static int FirstIpv4Index()
     {
         try
         {
@@ -121,7 +121,7 @@ internal static class NetworkRouteMutation
     static uint ToUint(IPAddress ip)
         => BitConverter.ToUInt32(ip.GetAddressBytes(), 0);
 
-    static NetworkRouteDenied Denied(string verb, uint code)
+    internal static NetworkRouteDenied Denied(string verb, uint code)
     {
         var message = code switch
         {
@@ -160,7 +160,7 @@ internal static class NetworkRouteMutation
         }
     }
 
-    static string PersistentName(NetworkRouteChange change)
+    internal static string PersistentName(NetworkRouteChange change)
         => $"{change.Destination},{Ipv4Prefix.MaskFromPrefix(change.PrefixLength)},{change.Gateway},{Math.Max(1, change.Metric)}";
 
     [StructLayout(LayoutKind.Sequential)]

@@ -226,6 +226,7 @@ public sealed class EncryptionCoverageTests
         Assert.Throws<ArgumentException>(() => OriginalNames.Validate("x\0y.txt"));
         Assert.Throws<ArgumentException>(() => OriginalNames.Validate(new string('n', 256)));
         Assert.Equal("b.txt", OriginalNames.Validate("a/b.txt"));
+        Assert.Equal("file", OriginalNames.Stem("."));
     }
 
     [Fact]

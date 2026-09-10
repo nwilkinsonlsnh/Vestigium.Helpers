@@ -296,7 +296,7 @@ public sealed class ChartViewTests
                     new ChartSlice { Label = "B", Value = 3 },
                     new ChartSlice { Label = "C", Value = 1 }
                 ],
-                Options = new ChartOptions { ShowParetoLine = false }
+                Options = new ChartOptions { ShowParetoLine = true }
             },
             Path.Combine(dir, "pareto.png"),
             320,
