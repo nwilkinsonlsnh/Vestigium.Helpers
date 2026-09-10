@@ -119,4 +119,35 @@ public static class NetworkHelper
         NetworkLog.Success(HelperLog.Subcategories.Netbios, $"host={info.HostName} adapters={info.Adapters.Count}");
         return info;
     }
+
+    public static AddressClass ClassifyAddress(string address) => SubnetEngine.Classify(address);
+
+    public static PrefixBlock DescribePrefix(string cidr) => SubnetEngine.Describe(cidr);
+
+    public static PrefixBlock DescribePrefix(string address, int prefixLength) => SubnetEngine.Describe(address, prefixLength);
+
+    public static PrefixBlock DescribePrefix(string address, string dottedMask) => SubnetEngine.DescribeMask(address, dottedMask);
+
+    public static PrefixPlan PlanByHosts(string parentCidr, int minimumHosts, SubnetQuery? query = null)
+        => SubnetEngine.PlanByHosts(parentCidr, minimumHosts, query);
+
+    public static PrefixPlan PlanByNetworks(string parentCidr, int minimumNetworks, SubnetQuery? query = null)
+        => SubnetEngine.PlanByNetworks(parentCidr, minimumNetworks, query);
+
+    public static PrefixPlan SplitPrefix(string parentCidr, int childPrefix, SubnetQuery? query = null)
+        => SubnetEngine.SplitPrefix(parentCidr, childPrefix, query);
+
+    public static PrefixPlan SplitPrefixByCount(string parentCidr, int count, SubnetQuery? query = null)
+        => SubnetEngine.SplitByCount(parentCidr, count, query);
+
+    public static PrefixPlan PackVlsm(string parentCidr, IReadOnlyList<int> hostNeeds, SubnetQuery? query = null)
+        => SubnetEngine.PackVlsm(parentCidr, hostNeeds, query);
+
+    public static bool Contains(string prefixCidr, string address) => SubnetEngine.Contains(prefixCidr, address);
+
+    public static bool Overlaps(string leftCidr, string rightCidr) => SubnetEngine.Overlaps(leftCidr, rightCidr);
+
+    public static PrefixBlock Summarize(IEnumerable<string> cidrs) => SubnetEngine.Summarize(cidrs);
+
+    public static PrefixBlock? NextBlock(string cidr) => SubnetEngine.NextBlock(cidr);
 }
