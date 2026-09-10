@@ -1,0 +1,47 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="AnalyzeTab">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="8">
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="AnalyzeDirectory walks sizes only. Caller size is value + unit. 2048 MiB → 2 GiB. 2048 MB → 2.048 GB. Probe writes random bytes to a throwaway file and deletes it."/>
+        <TextBlock Margin="0,12,0,4" Text="Directory"/>
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Analyze" Command="{Binding AnalyzeDemoFolderCommand}" Margin="8,0,0,0"/>
+          <TextBox Text="{Binding AnalyzePath, UpdateSourceTrigger=PropertyChanged}"/>
+        </DockPanel>
+        <TextBlock Margin="0,12,0,4" Text="Caller size (planned payload)"/>
+        <StackPanel Orientation="Horizontal">
+          <TextBox Width="100" Text="{Binding AnalyzeSizeValue, UpdateSourceTrigger=PropertyChanged}"/>
+          <ComboBox Width="80" Margin="8,0,0,0" ItemsSource="{Binding SizeUnits}" SelectedItem="{Binding AnalyzeSizeUnit}"/>
+          <Button Content="Normalize" Command="{Binding NormalizeSizeDemoCommand}" Margin="8,0,0,0"/>
+          <Button Content="Write 1 MiB probe" Command="{Binding WriteProbeDemoCommand}" Margin="8,0,0,0"/>
+        </StackPanel>
+        <TextBlock Margin="0,8,0,0" FontFamily="Cascadia Mono, Consolas" Text="{Binding AnalyzeNormalized}"/>
+        <TextBlock Margin="0,8,0,8" Opacity="0.85" Text="{Binding AnalyzeSummary}" TextWrapping="Wrap"/>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <ListView ItemsSource="{Binding AnalyzeRows}">
+            <ListView.View>
+              <GridView>
+                <GridViewColumn Header="Metric" DisplayMemberBinding="{Binding Metric}" Width="120"/>
+                <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" Width="280"/>
+              </GridView>
+            </ListView.View>
+          </ListView>
+          <ListView Grid.Column="2" ItemsSource="{Binding AnalyzeBuckets}">
+            <ListView.View>
+              <GridView>
+                <GridViewColumn Header="Bucket" DisplayMemberBinding="{Binding Metric}" Width="80"/>
+                <GridViewColumn Header="Census" DisplayMemberBinding="{Binding Value}" Width="320"/>
+              </GridView>
+            </ListView.View>
+          </ListView>
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+</ResourceDictionary>
