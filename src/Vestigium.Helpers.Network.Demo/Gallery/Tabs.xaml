@@ -1,0 +1,102 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="OverviewTab">
+    <ScrollViewer>
+      <StackPanel Margin="8">
+        <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding Identity}"/>
+        <TextBlock Margin="0,8,0,0" Opacity="0.8" Text="Startup runs Probe only. Off-box Echo / Trace / DNS are operator-initiated from the other tabs." TextWrapping="Wrap"/>
+        <TextBlock Margin="0,12,0,4" Opacity="0.6" Text="Host subscribe snippet"/>
+        <TextBox IsReadOnly="True" Text="{Binding StartupSnippet}" FontFamily="Cascadia Mono, Consolas" AcceptsReturn="True" Height="90" TextWrapping="Wrap"/>
+        <TextBlock Margin="0,12,0,0" Opacity="0.7" Text="{Binding NetBiosCaption}" TextWrapping="Wrap"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DataTemplate>
+
+  <DataTemplate x:Key="AdaptersTab">
+    <DockPanel Margin="8">
+      <Button DockPanel.Dock="Top" Content="Refresh adapters" Command="{Binding RefreshAdaptersCommand}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+      <DataGrid ItemsSource="{Binding Adapters}" AutoGenerateColumns="True" IsReadOnly="True"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="EchoTab">
+    <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+        <TextBlock VerticalAlignment="Center" Text="Target" Margin="0,0,8,0"/>
+        <TextBox Width="220" Text="{Binding EchoTarget, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock VerticalAlignment="Center" Text="Count" Margin="16,0,8,0"/>
+        <TextBox Width="60" Text="{Binding EchoCountText, UpdateSourceTrigger=PropertyChanged}"/>
+        <Button Content="Run ICMP Echo" Command="{Binding RunEchoCommand}" Margin="16,0,0,0"/>
+      </StackPanel>
+      <ListBox ItemsSource="{Binding EchoLines}" FontFamily="Cascadia Mono, Consolas"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="TraceTab">
+    <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+        <TextBlock VerticalAlignment="Center" Text="Target" Margin="0,0,8,0"/>
+        <TextBox Width="220" Text="{Binding TraceTarget, UpdateSourceTrigger=PropertyChanged}"/>
+        <Button Content="Run ICMP Trace" Command="{Binding RunTraceCommand}" Margin="16,0,0,0"/>
+      </StackPanel>
+      <ListBox ItemsSource="{Binding TraceLines}" FontFamily="Cascadia Mono, Consolas"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="DnsTab">
+    <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+        <TextBlock VerticalAlignment="Center" Text="Name" Margin="0,0,8,0"/>
+        <TextBox Width="180" Text="{Binding DnsName, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock VerticalAlignment="Center" Text="Server" Margin="16,0,8,0"/>
+        <TextBox Width="160" Text="{Binding DnsServer, UpdateSourceTrigger=PropertyChanged}"/>
+        <Button Content="Lookup" Command="{Binding RunDnsCommand}" Margin="16,0,0,0"/>
+      </StackPanel>
+      <ListBox ItemsSource="{Binding DnsLines}" FontFamily="Cascadia Mono, Consolas"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="ConnectionsTab">
+    <DockPanel Margin="8">
+      <Button DockPanel.Dock="Top" Content="Refresh connections" Command="{Binding RefreshConnectionsCommand}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+      <DataGrid ItemsSource="{Binding Connections}" AutoGenerateColumns="True" IsReadOnly="True"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="NeighborsTab">
+    <DockPanel Margin="8">
+      <Button DockPanel.Dock="Top" Content="Refresh neighbors" Command="{Binding RefreshNeighborsCommand}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+      <DataGrid ItemsSource="{Binding Neighbors}" AutoGenerateColumns="True" IsReadOnly="True"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="RoutesTab">
+    <DockPanel Margin="8">
+      <Button DockPanel.Dock="Top" Content="Refresh routes" Command="{Binding RefreshRoutesCommand}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+      <DataGrid ItemsSource="{Binding Routes}" AutoGenerateColumns="True" IsReadOnly="True"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="CampaignTab">
+    <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock VerticalAlignment="Center" Text="Target" Margin="0,0,8,0"/>
+          <TextBox Width="180" Text="{Binding CampaignTarget, UpdateSourceTrigger=PropertyChanged}"/>
+          <Button Content="Run due windows" Command="{Binding RunCampaignCommand}" Margin="16,0,0,0"/>
+        </StackPanel>
+        <TextBlock Margin="0,8,0,4" Opacity="0.7" Text="Windows as HH:mm=count (today, 15 min grace). Example: a time one minute ago runs once." TextWrapping="Wrap"/>
+        <TextBox Height="70" AcceptsReturn="True" Text="{Binding CampaignWindows, UpdateSourceTrigger=PropertyChanged}" FontFamily="Cascadia Mono, Consolas"/>
+        <TextBlock Margin="0,6,0,0" Opacity="0.6" Text="{Binding CampaignPath}"/>
+      </StackPanel>
+      <ListBox ItemsSource="{Binding CampaignLines}" FontFamily="Cascadia Mono, Consolas"/>
+    </DockPanel>
+  </DataTemplate>
+
+  <DataTemplate x:Key="SnapshotTab">
+    <DockPanel Margin="8">
+      <Button DockPanel.Dock="Top" Content="Capture snapshot" Command="{Binding RefreshSnapshotCommand}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+      <ListBox ItemsSource="{Binding SnapshotLines}" FontFamily="Cascadia Mono, Consolas"/>
+    </DockPanel>
+  </DataTemplate>
+</ResourceDictionary>
