@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="MacTab">
+    <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Parse is local. Modified EUI-64 inserts FF:FE and flips U/L. Lookup OUI is opt-in HTTPS and is not proof of current owner."/>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <TextBlock VerticalAlignment="Center" Text="MAC" Margin="0,0,8,0"/>
+          <TextBox Width="260" Text="{Binding MacInput, UpdateSourceTrigger=PropertyChanged}"/>
+          <Button Content="Parse" Command="{Binding ParseMacDemoCommand}" Margin="16,0,0,0"/>
+          <Button Content="Lookup OUI" Command="{Binding LookupOuiDemoCommand}" Margin="8,0,0,0"/>
+        </StackPanel>
+        <TextBlock Margin="0,8,0,0" Opacity="0.75" Text="{Binding MacSummary}" TextWrapping="Wrap"/>
+      </StackPanel>
+      <ListBox ItemsSource="{Binding MacLines}" FontFamily="Cascadia Mono, Consolas"/>
+    </DockPanel>
+  </DataTemplate>
+</ResourceDictionary>
