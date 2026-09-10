@@ -23,9 +23,7 @@ public static class NetworkHelper
     {
         using var scope = NetworkLog.Begin(HelperLog.Subcategories.Inventory, nameof(GetWorkstation));
         var snapshot = NetworkInventoryEngine.Capture();
-        NetworkLog.Success(
-            HelperLog.Subcategories.Inventory,
-            $"host={snapshot.HostName} adapters={snapshot.Adapters.Count}");
+        NetworkLog.Success(HelperLog.Subcategories.Inventory, $"host={snapshot.HostName} adapters={snapshot.Adapters.Count}");
         return snapshot;
     }
 
@@ -41,9 +39,7 @@ public static class NetworkHelper
     {
         using var scope = NetworkLog.Begin(HelperLog.Subcategories.Adapter, nameof(GetAdapter), nameOrId);
         var adapter = NetworkInventoryEngine.CaptureOne(nameOrId);
-        NetworkLog.Success(
-            HelperLog.Subcategories.Adapter,
-            $"name={adapter.Name} addresses={adapter.UnicastAddresses.Count}");
+        NetworkLog.Success(HelperLog.Subcategories.Adapter, $"name={adapter.Name} addresses={adapter.UnicastAddresses.Count}");
         return adapter;
     }
 
@@ -59,16 +55,10 @@ public static class NetworkHelper
     public static NetworkJob<IcmpTraceResult> Trace(string target, IcmpTraceOptions? options = null)
         => IcmpTrace(target, options);
 
-    public static Task<DnsLookupResult> LookupAsync(
-        string name,
-        DnsLookupOptions? options = null,
-        CancellationToken cancellation = default)
+    public static Task<DnsLookupResult> LookupAsync(string name, DnsLookupOptions? options = null, CancellationToken cancellation = default)
         => DnsClient.LookupAsync(name, options, cancellation);
 
-    public static Task<IReadOnlyList<DnsLookupResult>> LookupManyAsync(
-        IEnumerable<string> names,
-        DnsLookupOptions? options = null,
-        CancellationToken cancellation = default)
+    public static Task<IReadOnlyList<DnsLookupResult>> LookupManyAsync(IEnumerable<string> names, DnsLookupOptions? options = null, CancellationToken cancellation = default)
         => DnsClient.LookupManyAsync(names, options, cancellation);
 
     public static IReadOnlyList<NetworkConnection> GetConnections(NetworkConnectionQuery? query = null)
@@ -112,27 +102,15 @@ public static class NetworkHelper
     public static NetworkSnapshot GetSnapshot()
     {
         using var scope = NetworkLog.Begin(HelperLog.Subcategories.Inventory, nameof(GetSnapshot));
-        var snapshot = new NetworkSnapshot(
-            GetWorkstation(),
-            GetRoutes(),
-            GetConnections(),
-            GetNeighbors(),
-            GetStatistics(),
-            DateTimeOffset.UtcNow);
-        NetworkLog.Success(
-            HelperLog.Subcategories.Inventory,
-            $"snapshot adapters={snapshot.Workstation.Adapters.Count} routes={snapshot.Routes.Count} conns={snapshot.Connections.Count}");
+        var snapshot = new NetworkSnapshot(GetWorkstation(), GetRoutes(), GetConnections(), GetNeighbors(), GetStatistics(), DateTimeOffset.UtcNow);
+        NetworkLog.Success(HelperLog.Subcategories.Inventory, $"snapshot adapters={snapshot.Workstation.Adapters.Count} routes={snapshot.Routes.Count} conns={snapshot.Connections.Count}");
         return snapshot;
     }
 
-    public static void AddRoute(NetworkRouteChange change)
-        => NetworkRouteMutation.Add(change);
-
-    public static void ChangeRoute(NetworkRouteChange change)
-        => NetworkRouteMutation.Change(change);
-
-    public static void RemoveRoute(NetworkRouteChange change)
-        => NetworkRouteMutation.Remove(change);
+    public static void AddRoute(NetworkRouteChange change) => NetworkRouteMutation.Add(change);
+    public static void ChangeRoute(NetworkRouteChange change) => NetworkRouteMutation.Change(change);
+    public static void RemoveRoute(NetworkRouteChange change) => NetworkRouteMutation.Remove(change);
+    public static void DeleteRoute(NetworkRouteChange change) => RemoveRoute(change);
 
     public static NetBiosInfo GetNetBios()
     {
