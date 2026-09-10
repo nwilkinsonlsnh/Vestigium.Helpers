@@ -6,8 +6,8 @@
         <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding Identity}"/>
         <TextBlock Margin="0,8,0,0" Opacity="0.8" Text="Startup runs Probe only. Off-box Echo / Trace / DNS are operator-initiated from the other tabs." TextWrapping="Wrap"/>
         <TextBlock Margin="0,12,0,4" Opacity="0.6" Text="Host subscribe snippet"/>
-        <TextBox IsReadOnly="True" Text="{Binding StartupSnippet}" FontFamily="Cascadia Mono, Consolas" AcceptsReturn="True" Height="90" TextWrapping="Wrap"/>
-        <TextBlock Margin="0,12,0,0" Opacity="0.7" Text="{Binding NetBiosCaption}" TextWrapping="Wrap"/>
+        <TextBox IsReadOnly="True" Text="{Binding StartupSnippet, Mode=OneWay}" FontFamily="Cascadia Mono, Consolas" AcceptsReturn="True" Height="90" TextWrapping="Wrap"/>
+        <TextBlock Margin="0,12,0,0" Opacity="0.7" Text="{Binding NetBiosCaption, Mode=OneWay}" TextWrapping="Wrap"/>
       </StackPanel>
     </ScrollViewer>
   </DataTemplate>
