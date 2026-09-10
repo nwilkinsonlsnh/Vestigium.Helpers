@@ -4,8 +4,8 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>Process table helpers. Phase 6: system counters.</summary>
-public static class ProcessHelper
+/// <summary>Process table helpers. Phase 7: campaigns.</summary>
+public static partial class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
     public const int MaxSearchResultsCap = 4096;
