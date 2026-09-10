@@ -5,6 +5,7 @@ namespace Vestigium.Helpers.Network;
 /// <summary>
 /// Workstation inventory and protocol jobs for diagnostic hosts.
 /// Logging is <see cref="HelperLog"/> → Vestigium.Logging JSONL (APPID Network).
+/// Reachability is ICMP Echo Request/Reply. <see cref="Ping"/> is an alias of <see cref="IcmpEcho"/>.
 /// </summary>
 public static class NetworkHelper
 {
@@ -45,4 +46,10 @@ public static class NetworkHelper
             $"name={adapter.Name} addresses={adapter.UnicastAddresses.Count}");
         return adapter;
     }
+
+    public static NetworkJob<IcmpEchoResult> IcmpEcho(string target, IcmpEchoOptions? options = null)
+        => IcmpEchoEngine.Create(target, options);
+
+    public static NetworkJob<IcmpEchoResult> Ping(string target, IcmpEchoOptions? options = null)
+        => IcmpEcho(target, options);
 }
