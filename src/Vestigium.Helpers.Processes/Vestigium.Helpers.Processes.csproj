@@ -19,4 +19,7 @@
     <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.8" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
 </Project>
