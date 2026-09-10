@@ -1,4 +1,3 @@
-using System.Net;
 using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
@@ -46,8 +45,8 @@ public sealed class NetworkCoverageBoostTests : IDisposable
         var all = NetworkLinuxTables.GetRoutes(RouteFamily.All);
         Assert.True(all.Count >= v4.Count);
         var neighbors = NetworkLinuxTables.GetNeighbors();
-        Assert.Contains(neighbors, n => n.State == "Reachable" && n.LinkAddress == "aa:bb:cc:dd:ee:ff");
-        Assert.Contains(neighbors, n => n.State == "Permanent" && n.LinkAddress is null);
+        Assert.Contains(neighbors, n => n.State == "Reachable" && n.MacAddress == "aa:bb:cc:dd:ee:ff");
+        Assert.Contains(neighbors, n => n.State == "Permanent" && n.MacAddress is null);
         Assert.Contains(neighbors, n => n.State == "Failed");
         Assert.Contains(neighbors, n => n.State == "Incomplete");
     }
