@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
-    <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via HelperLog → Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json.</Description>
+    <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via HelperLog → Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics.</Description>
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
@@ -20,5 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
   </ItemGroup>
 </Project>
