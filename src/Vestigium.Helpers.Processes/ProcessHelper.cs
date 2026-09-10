@@ -4,7 +4,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>Process table helpers. Phase 2: full row on Get.</summary>
+/// <summary>Process table helpers. Phase 3: tree and threads.</summary>
 public static class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
@@ -78,6 +78,39 @@ public static class ProcessHelper
 
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Search mode={mode} hits={hits.Count} max={maxResults}");
         return hits;
+    }
+
+    public static ProcessTree GetTree(int pid, ProcessDetailLevel level = ProcessDetailLevel.Identity)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        var app = HelperLog.AppIds.Processes;
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "GetTree", "pid=" + pid);
+        var tree = ProcessTreeWalker.Build(pid, level)
+            ?? throw new InvalidOperationException($"Process {pid} is gone.");
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"GetTree pid={pid} nodes={tree.Flatten().Count}");
+        return tree;
+    }
+
+    public static IReadOnlyList<ProcessInfo> GetChildren(int pid)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        return ProcessTreeWalker.ChildrenOf(pid);
+    }
+
+    public static IReadOnlyList<ProcessInfo> GetDescendants(int pid)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        return ProcessTreeWalker.DescendantsOf(pid);
+    }
+
+    public static IReadOnlyList<ThreadInfo> GetThreads(int pid, bool includeStack = false)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        var app = HelperLog.AppIds.Processes;
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "GetThreads", "pid=" + pid);
+        var rows = ProcessThreadReader.Capture(pid, includeStack);
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"GetThreads pid={pid} n={rows.Count}");
+        return rows;
     }
 
     public static void SetComment(int pid, string? comment, bool persist = false)
