@@ -6,6 +6,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/Vestigium.Helpers.Gallery;component/GalleryStyles.xaml"/>
         <ResourceDictionary Source="Gallery/Tabs.xaml"/>
+        <ResourceDictionary Source="Gallery/MacTab.xaml"/>
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>
