@@ -53,7 +53,7 @@ internal static class ProcessFullReader
 
         try
         {
-            var status = NativeMethods.NtQueryInformationProcess(
+            var status = NativeMethods.NtQueryProcessBasicInfo(
                 vm,
                 NativeMethods.ProcessBasicInformationClass,
                 out NativeMethods.ProcessBasicInfo info,
@@ -248,7 +248,7 @@ internal static class ProcessFullReader
 
     private static void ReadProtection(nint handle, ProcessInfo row)
     {
-        var status = NativeMethods.NtQueryInformationProcess(
+        var status = NativeMethods.NtQueryProcessProtection(
             handle,
             NativeMethods.ProcessProtectionInformationClass,
             out NativeMethods.ProcessProtectionInfo info,
