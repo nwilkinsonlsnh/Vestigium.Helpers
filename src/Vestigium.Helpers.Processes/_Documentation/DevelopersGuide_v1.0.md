@@ -1,26 +1,33 @@
 # Vestigium.Helpers.Processes — Developers Guide
 
 **Document ID:** VEST-HLP-PROCESSES-DEV-000  
-**Version:** 1.2  
-**Status:** Companion to accepted SRS v1.2  
+**Version:** 1.3  
+**Status:** Companion to accepted SRS v1.2. Matches the engine on `main`.  
 **Date:** 10 September 2026  
 **SRS:** [`Requirements_v1.0.md`](Requirements_v1.0.md)  
-**Plan:** [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)
+**Plan:** [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)  
+**Campaigns:** [`Campaigns_v1.2.md`](Campaigns_v1.2.md)
 
-Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Processes/`. The SRS wins if this file and the SRS disagree.
+Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Processes/`.
 
 ## Current tree
 
 | Path | Role |
 |---|---|
-| `ProcessHelper.cs` | Skeleton façade (`Identity`, `Probe`) |
-| `_Documentation/Requirements_v1.0.md` | Accepted SRS v1.2 |
-| `_Documentation/ImplementationPlan_v1.0.md` | Phase scoreboard |
-| `../Vestigium.Helpers.Processes.Demo/` | Shared gallery chrome until the Processes tabs land |
+| `ProcessHelper.cs` | Façade: List / Get / Search / tree / threads / watch / start / kill / campaign |
+| `ProcessSnapshotter.cs` | Slim + full row capture |
+| `ProcessFullReader.cs` | Signer, PE image type, PEB command line, autostart |
+| `ProcessTreeWalker.cs` | Live PPID walk + cycle guard |
+| `ProcessThreadReader.cs` | Thread snapshot |
+| `ProcessWatcher.cs` / `SystemWatcher.cs` | Interval samples, first tick null deltas |
+| `SystemCounterReader.cs` | Commit, physical, kernel, paging, topology |
+| `ProcessGpuCatalog.cs` | GPU Engine / Adapter / Process Memory (750 ms cache) |
+| `ProcessCampaign.cs` | In-process windows + `samples.jsonl` |
+| `../Vestigium.Helpers.Processes.Demo/` | WPF gallery: Processes, Watch, Threads, System, Start/Kill, Campaign, JSONL |
 
-Do not grow `ProcessHelper` until Plan Phase 1. Phase 0 is paper + taxonomy only.
+TFM is `net10.0-windows`.
 
-## Intended call shapes
+## Call shapes
 
 ```csharp
 var rows = ProcessHelper.List();
@@ -38,13 +45,13 @@ var killed  = ProcessHelper.Kill(started.Pid);
 
 Start-As takes `ProcessStartAs`. Passwords never go through `HelperLog`.
 
-## Campaign call shape (Phase 7)
+## Campaign
 
 ```csharp
-var recipe = new ProcessCampaignRecipe
+var campaign = ProcessHelper.CreateCampaign(new ProcessCampaignRecipe
 {
     Name = "day-parts",
-    Match = new ProcessSearchRequest("vestigium", ProcessSearchMode.Contains),
+    Match = new ProcessSearchRequest { Term = "vestigium", Mode = ProcessSearchMode.Contains },
     SampleInterval = TimeSpan.FromSeconds(1),
     IncludeSystemCounters = true,
     Windows =
@@ -53,34 +60,26 @@ var recipe = new ProcessCampaignRecipe
         new("morning",  new TimeOnly(8, 0),  TimeSpan.FromMinutes(10), ProcessCampaignDays.All),
         new("noon",     new TimeOnly(12, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All),
     ]
-};
-
-var campaign = ProcessHelper.CreateCampaign(recipe);
+});
 campaign.Sampled += (_, tick) => { /* UI; file already appended */ };
 await campaign.RunAsync(cancellation);
 ```
 
-Default disk: `%ProgramData%\Vestigium\Processes\Campaigns\day-parts\recipe.json` and `samples.jsonl`. Tests set `ProcessTestHooks.CampaignRoot`. The host process must stay running; this library does not install a scheduled task.
+Default disk: `%ProgramData%\Vestigium\Processes\Campaigns\{name}\recipe.json` and `samples.jsonl`.
+Tests set `ProcessTestHooks.CampaignRoot` and optionally `ProcessTestHooks.Now`.
+The host must stay running. This library does not install a scheduled task.
 
-`12:00` is noon. Midnight is `00:00`. Recipes store `TimeOnly`, not AM/PM strings.
-
-## Native notes (implementation, not SRS)
-
-- Slim list: toolhelp / `NtQuerySystemInformation` plus `PROCESS_QUERY_LIMITED_INFORMATION` so protected rows still appear.
-- Command line: PEB read when allowed; otherwise `Availability = Denied`.
-- Signer: WinVerifyTrust / catalog. Do not call `sigcheck.exe`.
-- GPU: PDH GPU Engine counters or documented adapter APIs. Missing → `Unsupported`.
-- Start-As: create-with-logon. No credential UI.
-- Watchers: one timer, skip overrun ticks, raise `Exited` when `Get` returns null.
+`12:00` is noon. Midnight is `00:00`.
 
 ## Logging
 
-APPID `Processes`. Sparse. SRS §12. Tests inject `LogDirectory`.
+APPID `Processes`. Sparse. Watcher ticks do not write HelperLog sample lines.
+Registered subcategories: `Inventory`, `Process`, `Thread`, `Watch`, `Start`, `Kill`, `System`, `Campaign`, `Jsonl`.
 
-## TFM
+## Native notes
 
-O1 accepted: `net10.0-windows`. Flip the csproj in **Phase 1**, not Phase 0.
-
-## Roadmap
-
-Build mode is [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md). One phase per commit.
+- Slim list: `Process.GetProcesses` plus limited query so protected rows still appear.
+- Missing fields: `Availability` Denied / Unsupported, never fake 0 for GPU.
+- Signer: WinVerifyTrust. No `sigcheck.exe`.
+- Start-As: create-with-logon. No credential UI.
+- Campaign scheduler: in-process only. No `schtasks`.
