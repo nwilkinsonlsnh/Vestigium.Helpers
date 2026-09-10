@@ -4,9 +4,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>
-/// Process table helpers. Phase 1: list, get, search. No start, kill, or watchers.
-/// </summary>
+/// <summary>Process table helpers. Phase 2: full row on Get.</summary>
 public static class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
@@ -27,11 +25,7 @@ public static class ProcessHelper
         var app = HelperLog.AppIds.Processes;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "List", "level=" + level);
         var rows = ProcessSnapshotter.Capture(level);
-        HelperLog.Information(
-            app,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Inventory,
-            $"List n={rows.Count} level={level}");
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"List n={rows.Count} level={level}");
         return rows;
     }
 
@@ -41,11 +35,7 @@ public static class ProcessHelper
         var app = HelperLog.AppIds.Processes;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "Get", "pid=" + pid);
         var row = ProcessSnapshotter.CapturePid(pid, level);
-        HelperLog.Information(
-            app,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Inventory,
-            row is null ? $"Get pid={pid} gone" : $"Get pid={pid} name={row.Name}");
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, row is null ? $"Get pid={pid} gone" : $"Get pid={pid} name={row.Name}");
         return row;
     }
 
@@ -86,12 +76,16 @@ public static class ProcessHelper
                 break;
         }
 
-        HelperLog.Information(
-            app,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Inventory,
-            $"Search mode={mode} hits={hits.Count} max={maxResults}");
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Search mode={mode} hits={hits.Count} max={maxResults}");
         return hits;
+    }
+
+    public static void SetComment(int pid, string? comment, bool persist = false)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        var row = Get(pid, ProcessDetailLevel.Slim)
+            ?? throw new InvalidOperationException($"Process {pid} is gone.");
+        ProcessCommentStore.Set(ProcessCommentStore.Key(row.ImagePath, row.Name), comment, persist);
     }
 
     private static bool Matches(ProcessInfo row, string term, ProcessSearchMode mode, ProcessSearchFields fields)
@@ -99,6 +93,10 @@ public static class ProcessHelper
         if (fields.HasFlag(ProcessSearchFields.Name) && Compare(row.Name, term, mode))
             return true;
         if (fields.HasFlag(ProcessSearchFields.ImagePath) && Compare(row.ImagePath, term, mode))
+            return true;
+        if (fields.HasFlag(ProcessSearchFields.CommandLine) && Compare(row.CommandLine, term, mode))
+            return true;
+        if (fields.HasFlag(ProcessSearchFields.WindowTitle) && Compare(row.WindowTitle, term, mode))
             return true;
         return false;
     }
