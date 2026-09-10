@@ -11,10 +11,7 @@ public sealed class ProcessHelperTests
 
     [Fact]
     public void List_includes_current_process()
-    {
-        var rows = ProcessHelper.List();
-        Assert.Contains(rows, row => row.Pid == Environment.ProcessId);
-    }
+        => Assert.Contains(ProcessHelper.List(), row => row.Pid == Environment.ProcessId);
 
     [Fact]
     public void Get_current_process_has_name_and_image()
@@ -24,6 +21,36 @@ public sealed class ProcessHelperTests
         Assert.Equal(Environment.ProcessId, row.Pid);
         Assert.False(string.IsNullOrWhiteSpace(row.Name));
         Assert.False(string.IsNullOrWhiteSpace(row.ImagePath));
+    }
+
+    [Fact]
+    public void Get_full_row_sets_image_type()
+    {
+        var row = ProcessHelper.Get(Environment.ProcessId);
+        Assert.NotNull(row);
+        Assert.NotEqual(ProcessImageType.Unknown, row.ImageType);
+        Assert.NotNull(row.VerifiedSigner);
+        Assert.True(row.VerifiedSigner.Value.Trust is SignerTrust.Verified or SignerTrust.NotSigned or SignerTrust.Untrusted or SignerTrust.Expired or SignerTrust.Denied or SignerTrust.Unknown);
+    }
+
+    [Fact]
+    public void SetComment_round_trips_on_injected_store()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumProcessTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        ProcessTestHooks.CommentStorePath = Path.Combine(dir, "comments.json");
+        try
+        {
+            ProcessHelper.SetComment(Environment.ProcessId, "phase-2", persist: true);
+            var row = ProcessHelper.Get(Environment.ProcessId);
+            Assert.Equal("phase-2", row?.Comment);
+            Assert.True(File.Exists(ProcessTestHooks.CommentStorePath));
+        }
+        finally
+        {
+            ProcessTestHooks.CommentStorePath = null;
+            try { Directory.Delete(dir, true); } catch { }
+        }
     }
 
     [Fact]
@@ -51,8 +78,7 @@ public sealed class ProcessHelperTests
     public void Search_starts_with_current_name()
     {
         var self = MustSelf();
-        var prefix = Prefix(self.Name, 3);
-        var hits = ProcessHelper.Search(prefix, ProcessSearchMode.StartsWith, ProcessSearchFields.Name);
+        var hits = ProcessHelper.Search(Prefix(self.Name, 3), ProcessSearchMode.StartsWith, ProcessSearchFields.Name);
         Assert.Contains(hits, row => row.Pid == self.Pid);
     }
 
@@ -60,8 +86,7 @@ public sealed class ProcessHelperTests
     public void Search_ends_with_current_name()
     {
         var self = MustSelf();
-        var suffix = Suffix(self.Name, 3);
-        var hits = ProcessHelper.Search(suffix, ProcessSearchMode.EndsWith, ProcessSearchFields.Name);
+        var hits = ProcessHelper.Search(Suffix(self.Name, 3), ProcessSearchMode.EndsWith, ProcessSearchFields.Name);
         Assert.Contains(hits, row => row.Pid == self.Pid);
     }
 
@@ -69,8 +94,7 @@ public sealed class ProcessHelperTests
     public void Search_contains_current_name()
     {
         var self = MustSelf();
-        var token = Token(self.Name);
-        var hits = ProcessHelper.Search(token, ProcessSearchMode.Contains, ProcessSearchFields.Name);
+        var hits = ProcessHelper.Search(Token(self.Name), ProcessSearchMode.Contains, ProcessSearchFields.Name);
         Assert.Contains(hits, row => row.Pid == self.Pid);
     }
 
@@ -84,10 +108,8 @@ public sealed class ProcessHelperTests
     [Fact]
     public void Search_rejects_out_of_range_max()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 0));
-        Assert.Throws<ArgumentException>(() =>
-            ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 4097));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 0));
+        Assert.Throws<ArgumentException>(() => ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 4097));
     }
 
     private static ProcessInfo MustSelf()
@@ -97,17 +119,11 @@ public sealed class ProcessHelperTests
         return row;
     }
 
-    private static string Prefix(string name, int length)
-        => name[..Math.Min(length, name.Length)];
-
-    private static string Suffix(string name, int length)
-        => name[^Math.Min(length, name.Length)..];
-
+    private static string Prefix(string name, int length) => name[..Math.Min(length, name.Length)];
+    private static string Suffix(string name, int length) => name[^Math.Min(length, name.Length)..];
     private static string Token(string name)
     {
         var stem = Path.GetFileNameWithoutExtension(name);
-        if (stem.Length >= 3)
-            return stem[1..Math.Min(4, stem.Length)];
-        return name[..1];
+        return stem.Length >= 3 ? stem[1..Math.Min(4, stem.Length)] : name[..1];
     }
 }
