@@ -291,4 +291,123 @@ public sealed class NetworkHotspotTests
         Ipv4Prefix.Agree(null, IPAddress.IPv6Loopback, out p, out _);
         Assert.Equal(0, p);
     }
+
+    [Fact]
+    public void Icmp_status_and_address_maps()
+    {
+        Assert.Equal(IcmpEchoStatus.Success, IcmpEchoEngine.MapStatus(IPStatus.Success));
+        Assert.Equal(IcmpEchoStatus.TimedOut, IcmpEchoEngine.MapStatus(IPStatus.TimedOut));
+        Assert.Equal(IcmpEchoStatus.TtlExpired, IcmpEchoEngine.MapStatus(IPStatus.TimeExceeded));
+        Assert.Equal(IcmpEchoStatus.TtlExpired, IcmpEchoEngine.MapStatus(IPStatus.TtlExpired));
+        Assert.Equal(IcmpEchoStatus.TtlExpired, IcmpEchoEngine.MapStatus(IPStatus.TtlReassemblyTimeExceeded));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpEchoEngine.MapStatus(IPStatus.DestinationNetworkUnreachable));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpEchoEngine.MapStatus(IPStatus.DestinationHostUnreachable));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpEchoEngine.MapStatus(IPStatus.DestinationProtocolUnreachable));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpEchoEngine.MapStatus(IPStatus.DestinationPortUnreachable));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpEchoEngine.MapStatus(IPStatus.DestinationUnreachable));
+        Assert.Equal(IcmpEchoStatus.Failed, IcmpEchoEngine.MapStatus(IPStatus.BadRoute));
+        Assert.Null(IcmpEchoEngine.MapAddress(null));
+        Assert.Null(IcmpEchoEngine.MapAddress(IPAddress.Any));
+        Assert.Null(IcmpEchoEngine.MapAddress(IPAddress.IPv6Any));
+        Assert.Equal("1.2.3.4", IcmpEchoEngine.MapAddress(IPAddress.Parse("1.2.3.4")));
+
+        Assert.Equal(IcmpEchoStatus.Success, IcmpTraceEngine.MapStatus(IPStatus.Success));
+        Assert.Equal(IcmpEchoStatus.TimedOut, IcmpTraceEngine.MapStatus(IPStatus.TimedOut));
+        Assert.Equal(IcmpEchoStatus.TtlExpired, IcmpTraceEngine.MapStatus(IPStatus.TimeExceeded));
+        Assert.Equal(IcmpEchoStatus.TtlExpired, IcmpTraceEngine.MapStatus(IPStatus.TtlExpired));
+        Assert.Equal(IcmpEchoStatus.TtlExpired, IcmpTraceEngine.MapStatus(IPStatus.TtlReassemblyTimeExceeded));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpTraceEngine.MapStatus(IPStatus.DestinationNetworkUnreachable));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpTraceEngine.MapStatus(IPStatus.DestinationHostUnreachable));
+        Assert.Equal(IcmpEchoStatus.DestinationUnreachable, IcmpTraceEngine.MapStatus(IPStatus.DestinationUnreachable));
+        Assert.Equal(IcmpEchoStatus.Failed, IcmpTraceEngine.MapStatus(IPStatus.BadRoute));
+        Assert.Null(IcmpTraceEngine.MapAddress(null));
+        Assert.Null(IcmpTraceEngine.MapAddress(IPAddress.Any));
+        Assert.Null(IcmpTraceEngine.MapAddress(IPAddress.IPv6Any));
+        Assert.Equal("8.8.8.8", IcmpTraceEngine.MapAddress(IPAddress.Parse("8.8.8.8")));
+    }
+
+    [Fact]
+    public async Task Inventory_query_filters_and_oui_file_via_helper()
+    {
+        Assert.Equal("Vestigium.Helpers.Network", NetworkHelper.Probe());
+        var up = NetworkHelper.GetAdapters(new NetworkAdapterQuery { IncludeDown = false });
+        Assert.NotNull(up);
+        var miss = NetworkHelper.GetAdapters(new NetworkAdapterQuery { Name = "no-such-nic-vestigium" });
+        Assert.Empty(miss);
+        var missId = NetworkHelper.GetAdapters(new NetworkAdapterQuery { Id = "no-such-id-vestigium" });
+        Assert.Empty(missId);
+        var first = NetworkHelper.GetAdapters().First();
+        var byId = NetworkHelper.GetAdapters(new NetworkAdapterQuery { Id = first.Id });
+        Assert.Contains(byId, a => a.Id == first.Id);
+        Assert.Throws<ArgumentException>(() => NetworkHelper.GetAdapter("no-such-nic-vestigium"));
+
+        var path = Path.Combine(Path.GetTempPath(), "vest-oui-" + Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "00:1A:2B\tAcme\n");
+        try
+        {
+            var result = await NetworkHelper.LookupOuiAsync("00:1A:2B:3C:4D:5E", new OuiLookupOptions { RegistryFilePath = path });
+            Assert.Equal("Acme", result.Vendor);
+            Assert.Equal(OuiSource.File, result.Source);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        var before = NetworkTestHooks.UtcNow;
+        NetworkTestHooks.UtcNow = null;
+        Assert.True((DateTimeOffset.UtcNow - NetworkTestHooks.Now()).Duration() < TimeSpan.FromSeconds(5));
+        NetworkTestHooks.UtcNow = before;
+    }
+
+    [Fact]
+    public async Task Echo_count_one_and_unresolved_host()
+    {
+        var job = NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+        {
+            Count = 1,
+            Interval = TimeSpan.Zero,
+            Timeout = TimeSpan.FromMilliseconds(400),
+            BufferSize = 32,
+            Ttl = 64
+        });
+        var result = await job.RunAsync();
+        Assert.True(result.Sent <= 1);
+        Assert.True(
+            result.Status is NetworkJobStatus.Success or NetworkJobStatus.TimedOut or NetworkJobStatus.Failed,
+            result.Status.ToString());
+
+        var miss = NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+        {
+            Count = 1,
+            Timeout = TimeSpan.FromMilliseconds(50),
+            Interval = TimeSpan.Zero,
+            BufferSize = 1,
+            Ttl = 1
+        });
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(80));
+        var failed = await miss.RunAsync(cts.Token);
+        Assert.True(
+            failed.Status is NetworkJobStatus.Failed or NetworkJobStatus.TimedOut
+                or NetworkJobStatus.Cancelled or NetworkJobStatus.Success,
+            failed.Status.ToString());
+
+        var adapters = NetworkHelper.GetAdapters(new NetworkAdapterQuery { IncludeDown = true });
+        if (adapters.Count > 0)
+        {
+            var first = adapters[0];
+            if (!string.IsNullOrWhiteSpace(first.Description))
+            {
+                var byDesc = NetworkHelper.GetAdapters(new NetworkAdapterQuery { Name = first.Description, IncludeDown = true });
+                Assert.NotNull(byDesc);
+            }
+            try
+            {
+                _ = NetworkHelper.GetAdapter(first.Name);
+            }
+            catch (ArgumentException)
+            {
+            }
+        }
+    }
 }

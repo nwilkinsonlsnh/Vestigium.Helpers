@@ -121,7 +121,50 @@ public sealed class NetworkCoverageBoostTests : IDisposable
             Gateway = "fe80::1",
             PrefixLength = 24
         }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => NetworkHelper.RemoveRoute(new NetworkRouteChange
+        {
+            Destination = "10.0.0.0",
+            Gateway = "10.0.0.1",
+            PrefixLength = -1
+        }));
+        var linux = new NetworkRouteChange
+        {
+            Destination = "10.0.0.0",
+            Gateway = "10.0.0.1",
+            PrefixLength = 8,
+            Metric = 0,
+            Persistent = true,
+            InterfaceIndex = 1
+        };
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Throws<PlatformNotSupportedException>(() => NetworkHelper.AddRoute(linux));
+            Assert.Throws<PlatformNotSupportedException>(() => NetworkHelper.ChangeRoute(linux));
+            Assert.Throws<PlatformNotSupportedException>(() => NetworkHelper.RemoveRoute(linux));
+            Assert.Throws<PlatformNotSupportedException>(() => NetworkHelper.DeleteRoute(linux));
+        }
     }
+
+    [Fact]
+    public void Campaign_jsonl_read_window_and_kind_filters()
+    {
+        var missing = CampaignJsonl.Read(Path.Combine(_proc, "nope.jsonl"));
+        Assert.Empty(missing);
+        var path = Path.Combine(_proc, "nested", "camp.jsonl");
+        CampaignJsonl.Append(path, new { kind = "windowSummary", campaignId = "c1", date = "2026-09-10", localTime = "08:00" });
+        CampaignJsonl.Append(path, new { kind = "echo", campaignId = "c1", note = "line1\nline2" });
+        CampaignJsonl.Append(path, new { kind = "windowMissed", campaignId = "c2", date = "2026-09-10", localTime = "08:00" });
+        var rows = CampaignJsonl.Read(path);
+        Assert.True(rows.Count >= 3);
+        Assert.True(CampaignJsonl.HasTerminalWindow(rows, "c1", "2026-09-10", "08:00"));
+        Assert.False(CampaignJsonl.HasTerminalWindow(rows, "nope", "2026-09-10", "08:00"));
+        Assert.False(CampaignJsonl.HasTerminalWindow(rows, "c1", "1999-01-01", "08:00"));
+        Assert.False(CampaignJsonl.HasTerminalWindow(rows, "c1", "2026-09-10", "99:99"));
+        Assert.True(CampaignJsonl.HasKind(rows, "c1", "echo"));
+        Assert.False(CampaignJsonl.HasKind(rows, "c1", "windowMissed"));
+        Assert.False(CampaignJsonl.HasKind(rows, "missing", "echo"));
+    }
+
 
     [Fact]
     public void Snapshot_and_netbios_do_not_throw()

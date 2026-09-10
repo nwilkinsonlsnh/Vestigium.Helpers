@@ -197,23 +197,29 @@ internal static class IcmpEchoEngine
 
     static IcmpEchoReply Map(PingReply reply, int sequence, bool payloadRestricted)
     {
-        var status = reply.Status switch
-        {
-            IPStatus.Success => IcmpEchoStatus.Success,
-            IPStatus.TimedOut => IcmpEchoStatus.TimedOut,
-            IPStatus.TimeExceeded or IPStatus.TtlExpired or IPStatus.TtlReassemblyTimeExceeded => IcmpEchoStatus.TtlExpired,
-            IPStatus.DestinationNetworkUnreachable or IPStatus.DestinationHostUnreachable
-                or IPStatus.DestinationProtocolUnreachable or IPStatus.DestinationPortUnreachable
-                or IPStatus.DestinationUnreachable => IcmpEchoStatus.DestinationUnreachable,
-            _ => IcmpEchoStatus.Failed
-        };
-        var address = reply.Address is null || reply.Address.Equals(IPAddress.Any) || reply.Address.Equals(IPAddress.IPv6Any)
-            ? null : reply.Address.ToString();
+        var status = MapStatus(reply.Status);
+        var address = MapAddress(reply.Address);
         var ttl = 0;
         try { ttl = reply.Options?.Ttl ?? 0; } catch (NotSupportedException) { }
         return new IcmpEchoReply(sequence, status, address, reply.RoundtripTime, ttl, payloadRestricted,
             reply.Status == IPStatus.Success ? null : reply.Status.ToString());
     }
+
+    internal static IcmpEchoStatus MapStatus(IPStatus status) => status switch
+    {
+        IPStatus.Success => IcmpEchoStatus.Success,
+        IPStatus.TimedOut => IcmpEchoStatus.TimedOut,
+        IPStatus.TimeExceeded or IPStatus.TtlExpired or IPStatus.TtlReassemblyTimeExceeded => IcmpEchoStatus.TtlExpired,
+        IPStatus.DestinationNetworkUnreachable or IPStatus.DestinationHostUnreachable
+            or IPStatus.DestinationProtocolUnreachable or IPStatus.DestinationPortUnreachable
+            or IPStatus.DestinationUnreachable => IcmpEchoStatus.DestinationUnreachable,
+        _ => IcmpEchoStatus.Failed
+    };
+
+    internal static string? MapAddress(IPAddress? address)
+        => address is null || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any)
+            ? null
+            : address.ToString();
 
     internal static bool IsForbidden(Exception ex)
     {

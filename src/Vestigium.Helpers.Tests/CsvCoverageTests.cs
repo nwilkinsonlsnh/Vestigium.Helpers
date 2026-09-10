@@ -261,4 +261,16 @@ public sealed class CsvCoverageTests
         Assert.Equal(2, file.Read().Rows.Count);
     }
 
+    [Fact]
+    public void Probe_and_export_paths()
+    {
+        Assert.Equal("Vestigium.Helpers.Csv", CsvHelper.Probe());
+        Assert.Contains(Path.Combine("Vestigium", "Exports", "Csv"), CsvHelper.DefaultExportDirectory("Csv"));
+        Assert.Throws<ArgumentException>(() => CsvHelper.DefaultExportDirectory(" "));
+        var named = CsvHelper.NewExportPath("Csv", "nathan");
+        Assert.Contains("nathan-", Path.GetFileName(named));
+        Assert.EndsWith(".csv", named);
+        var stamped = CsvHelper.NewExportPath("Csv");
+        Assert.Contains("vestigium-Csv-", Path.GetFileName(stamped));
+    }
 }

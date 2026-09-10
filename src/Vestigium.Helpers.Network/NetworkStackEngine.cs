@@ -56,10 +56,13 @@ internal static class NetworkStackEngine
             var props = IPGlobalProperties.GetIPGlobalProperties();
             t4 = MapTcp(props.GetTcpIPv4Statistics());
             u4 = MapUdp(props.GetUdpIPv4Statistics());
-            try { t6 = MapTcp(props.GetTcpIPv6Statistics()); } catch (NetworkInformationException) { }
-            try { u6 = MapUdp(props.GetUdpIPv6Statistics()); } catch (NetworkInformationException) { }
+            try { t6 = MapTcp(props.GetTcpIPv6Statistics()); } catch (NetworkInformationException) { } catch (PlatformNotSupportedException) { }
+            try { u6 = MapUdp(props.GetUdpIPv6Statistics()); } catch (NetworkInformationException) { } catch (PlatformNotSupportedException) { }
         }
         catch (NetworkInformationException)
+        {
+        }
+        catch (PlatformNotSupportedException)
         {
         }
 

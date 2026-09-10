@@ -142,19 +142,8 @@ internal static class IcmpTraceEngine
                     .ConfigureAwait(false);
             }
 
-            var status = reply.Status switch
-            {
-                IPStatus.Success => IcmpEchoStatus.Success,
-                IPStatus.TimedOut => IcmpEchoStatus.TimedOut,
-                IPStatus.TimeExceeded or IPStatus.TtlExpired or IPStatus.TtlReassemblyTimeExceeded => IcmpEchoStatus.TtlExpired,
-                IPStatus.DestinationNetworkUnreachable
-                    or IPStatus.DestinationHostUnreachable
-                    or IPStatus.DestinationUnreachable => IcmpEchoStatus.DestinationUnreachable,
-                _ => IcmpEchoStatus.Failed
-            };
-            var address = reply.Address is null || Equals(reply.Address, IPAddress.Any) || Equals(reply.Address, IPAddress.IPv6Any)
-                ? null
-                : reply.Address.ToString();
+            var status = MapStatus(reply.Status);
+            var address = MapAddress(reply.Address);
             return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, reply.RoundtripTime, reply.Status.ToString());
         }
         catch (OperationCanceledException)
@@ -245,4 +234,20 @@ internal static class IcmpTraceEngine
             return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Udp, IcmpEchoStatus.TimedOut, null, 0, ex.SocketErrorCode.ToString());
         }
     }
+
+    internal static IcmpEchoStatus MapStatus(IPStatus status) => status switch
+    {
+        IPStatus.Success => IcmpEchoStatus.Success,
+        IPStatus.TimedOut => IcmpEchoStatus.TimedOut,
+        IPStatus.TimeExceeded or IPStatus.TtlExpired or IPStatus.TtlReassemblyTimeExceeded => IcmpEchoStatus.TtlExpired,
+        IPStatus.DestinationNetworkUnreachable
+            or IPStatus.DestinationHostUnreachable
+            or IPStatus.DestinationUnreachable => IcmpEchoStatus.DestinationUnreachable,
+        _ => IcmpEchoStatus.Failed
+    };
+
+    internal static string? MapAddress(IPAddress? address)
+        => address is null || Equals(address, IPAddress.Any) || Equals(address, IPAddress.IPv6Any)
+            ? null
+            : address.ToString();
 }

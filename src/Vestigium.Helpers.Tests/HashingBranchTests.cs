@@ -340,6 +340,128 @@ public sealed class HashingBranchTests
             var fromStream = HashingHelper.ShakeFile(stream, ShakeAlgorithm.Shake128, 32);
             Assert.Equal(64, fromStream.Length);
             Assert.Throws<ArgumentOutOfRangeException>(() => HashingHelper.ShakeData(utf8, (ShakeAlgorithm)99));
+            Assert.Throws<ArgumentOutOfRangeException>(() => HashingHelper.ShakeData(utf8, ShakeAlgorithm.Shake128, 1025));
+            using var shakePath = new TempHashFile(utf8);
+            var shakeHex = HashingHelper.ShakeFile(shakePath.FilePath, ShakeAlgorithm.Shake256);
+            Assert.False(HashingHelper.VerifyShakeFile(shakePath.FilePath, new string('0', 128), ShakeAlgorithm.Shake256));
+            Assert.True(HashingHelper.VerifyShakeFile(shakePath.FilePath, shakeHex, ShakeAlgorithm.Shake256));
+        }
+    }
+
+    [Fact]
+    public void Hashing_log_redacts_secrets_and_probe_runs()
+    {
+        Assert.Equal("Vestigium.Helpers.Hashing", HashingHelper.Probe());
+        Assert.Equal("", HashingLog.Safe(""));
+        Assert.Equal("ok", HashingLog.Safe("ok"));
+        Assert.Equal("[redacted]", HashingLog.Safe("$argon2id$v=19"));
+        Assert.Equal("[redacted]", HashingLog.Safe("BEGIN PRIVATE KEY"));
+        Assert.Equal("[redacted]", HashingLog.Safe("password=secret"));
+        Assert.Equal("[redacted]", HashingLog.Safe("passphrase=x"));
+        Assert.Equal("[redacted]", HashingLog.Safe("hmac-key=aa"));
+        Assert.Equal("[redacted]", HashingLog.Safe("salt=aa"));
+        Assert.False(HashingLog.LooksLikeSecret(" "));
+        Assert.False(HashingLog.LooksLikeSecret("digest=abc"));
+        HashingLog.Pending("Probe", "ok");
+        HashingLog.Success("Probe", "ok");
+        HashingLog.Failed("ok");
+        using (HashingLog.Begin("Probe", "ok")) { }
+        Assert.Equal("[redacted]", HashingLog.Safe("PRIVATE KEY material"));
+        Assert.Equal("[redacted]", HashingLog.Safe("-----END"));
+        Assert.Equal("[redacted]", HashingLog.Safe("BEGIN CERTIFICATE"));
+        Assert.False(HashingLog.LooksLikeSecret("ok"));
+    }
+
+    [Fact]
+    public void HashFile_hmac_and_checksum_cover_every_supported_algorithm()
+    {
+        using var tmp = new TempHashFile("abc"u8.ToArray());
+        foreach (var alg in Digests)
+        {
+            if (!HashingHelper.IsSupported(alg))
+                continue;
+            using var stream = File.OpenRead(tmp.FilePath);
+            var hex = HashingHelper.HashFile(stream, alg, HashingTextFormat.HexLower, tmp.FilePath);
+            Assert.Equal(HashingHelper.DigestLength(alg) * 2, hex.Length);
+            Assert.True(HashingHelper.VerifyFile(tmp.FilePath, hex, alg));
+            Assert.False(HashingHelper.VerifyFile(tmp.FilePath, new string('0', hex.Length), alg));
+            Assert.True(HashingHelper.VerifyBytes("abc"u8, hex, alg));
+        }
+
+        using var key = HmacKey.Generate();
+        foreach (var alg in Hmacs)
+        {
+            if (!HashingHelper.IsHmacSupported(alg))
+                continue;
+            var mac = HashingHelper.HmacFile(tmp.FilePath, key, alg);
+            Assert.True(HashingHelper.VerifyHmacFile(tmp.FilePath, key, mac, alg));
+            Assert.False(HashingHelper.VerifyHmacFile(tmp.FilePath, key, new string('0', mac.Length), alg));
+            var printed = HashingHelper.HmacString("abc", key, alg);
+            Assert.True(HashingHelper.VerifyHmacString("abc", key, printed, alg));
+            Assert.False(HashingHelper.VerifyHmacString("abc", key, new string('0', printed.Length), alg));
+            using var stream = File.OpenRead(tmp.FilePath);
+            Assert.Equal(mac, HashingHelper.HmacFile(stream, key, alg, HashingTextFormat.HexLower, tmp.FilePath));
+        }
+
+        foreach (var alg in Checksums)
+        {
+            var hex = HashingHelper.ChecksumFile(tmp.FilePath, alg);
+            Assert.True(HashingHelper.VerifyChecksumFile(tmp.FilePath, hex, alg));
+            Assert.False(HashingHelper.VerifyChecksumFile(tmp.FilePath, new string('0', hex.Length), alg));
+            Assert.True(HashingHelper.VerifyChecksumString("abc", HashingHelper.ChecksumString("abc", alg), alg));
+        }
+
+        using var empty = new MemoryStream();
+        var emptyHex = HashingHelper.HashFile(empty, HashingAlgorithm.Sha256);
+        Assert.Equal(64, emptyHex.Length);
+    }
+
+
+    [Fact]
+    public void Kmac_output_bounds_and_file_verify_when_supported()
+    {
+        using var key = HmacKey.Generate();
+        if (!HashingHelper.IsKmacSupported)
+        {
+            Assert.Throws<NotSupportedException>(() => HashingHelper.KmacData("abc"u8, key));
+            return;
+        }
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => HashingHelper.KmacData("abc"u8, key, KmacAlgorithm.Kmac128, 8));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HashingHelper.KmacData("abc"u8, key, KmacAlgorithm.Kmac128, 2000));
+        var hex = HashingHelper.KmacString("abc", key, KmacAlgorithm.Kmac256, 64);
+        Assert.False(HashingHelper.VerifyKmacString("abc", key, new string('0', hex.Length), KmacAlgorithm.Kmac256, outputLength: 64));
+        Assert.True(HashingHelper.VerifyKmacString("abc", key, hex, KmacAlgorithm.Kmac256, outputLength: 64));
+        using var tmp = new TempHashFile("kmac-file"u8.ToArray());
+        var fileHex = HashingHelper.KmacFile(tmp.FilePath, key, KmacAlgorithm.Kmac128, 0);
+        Assert.True(HashingHelper.VerifyKmacFile(tmp.FilePath, key, fileHex));
+        Assert.False(HashingHelper.VerifyKmacFile(tmp.FilePath, key, new string('0', fileHex.Length), KmacAlgorithm.Kmac128));
+        var k256 = HashingHelper.KmacFile(tmp.FilePath, key, KmacAlgorithm.Kmac256);
+        Assert.True(HashingHelper.VerifyKmacFile(tmp.FilePath, key, k256, KmacAlgorithm.Kmac256));
+        using var stream = File.OpenRead(tmp.FilePath);
+        var streamed = HashingHelper.KmacFile(stream, key, KmacAlgorithm.Kmac128, 0);
+        Assert.Equal(fileHex, streamed);
+        var customized = HashingHelper.KmacBytes("abc"u8, key, KmacAlgorithm.Kmac256, 0, HashingTextFormat.HexLower, "vestigium"u8);
+        Assert.Equal(128, customized.Length);
+        Assert.Equal(64, HashingHelper.KmacDefaultLength(KmacAlgorithm.Kmac256));
+        Assert.Equal(32, HashingHelper.KmacDefaultLength(KmacAlgorithm.Kmac128));
+
+    }
+
+    private sealed class TempHashFile : IDisposable
+    {
+        public TempHashFile(byte[] payload)
+        {
+            var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "VestigiumHashTests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            FilePath = System.IO.Path.Combine(dir, "blob.bin");
+            File.WriteAllBytes(FilePath, payload);
+        }
+
+        public string FilePath { get; }
+        public void Dispose()
+        {
+            try { Directory.Delete(System.IO.Path.GetDirectoryName(FilePath)!, true); } catch { }
         }
     }
 }

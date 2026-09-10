@@ -265,6 +265,44 @@ public sealed class EncryptionCoverageTests
         Assert.Equal("Vestigium.Helpers.Encryption", EncryptionHelper.Probe());
     }
 
+    [Fact]
+    public void Key_ring_covers_status_find_slip_and_json_rejects()
+    {
+        using var ring = EncryptionKeyRing.Create("Ops ring");
+        var pair = ring.AddPair("Ops receive", "Ops", "Wilkinson", "Gallery pair", EncryptionIssuedToKind.Person, "Gallery", 2048);
+        using var pub = pair.Key.PublicOnly();
+        var contact = ring.AddContact("Vendor", "App", "Acme", pub, "contact", EncryptionIssuedToKind.Organization, "AppX");
+        Assert.Equal(EncryptionKeyStatus.Active, ring.EffectiveStatus(pair));
+        Assert.NotNull(ring.FindPrivate(pair.Key.Thumbprint));
+        Assert.Null(ring.FindPrivate(new byte[32]));
+        Assert.Null(ring.FindByThumbprintHex("deadbeef"));
+        Assert.NotNull(ring.FindByThumbprintHex(pair.ThumbprintSha256));
+        Assert.Contains("VESTIGIUM-KEYRING", ring.ExportPublicSlip(contact), StringComparison.Ordinal);
+
+        ring.Disable(pair);
+        Assert.Equal(EncryptionKeyStatus.Disabled, ring.EffectiveStatus(pair));
+        Assert.Throws<EncryptionTokenException>(() => ring.RequireForSeal(pair));
+        Assert.NotNull(ring.RequireForSeal(pair, EncryptionKeyOverride.Request("qa", "restore")));
+        ring.Enable(pair);
+        ring.Expire(pair, DateTimeOffset.UtcNow.AddDays(2));
+        Assert.Equal(EncryptionKeyStatus.Active, ring.EffectiveStatus(pair));
+        ring.Expire(pair, DateTimeOffset.UtcNow.AddMinutes(-1));
+        Assert.Equal(EncryptionKeyStatus.Expired, ring.EffectiveStatus(pair));
+        ring.Enable(pair);
+        ring.Retire(pair);
+        Assert.Throws<EncryptionTokenException>(() => ring.Enable(pair));
+
+        var other = ring.AddPair("Other", "Ops", "Wilkinson", application: "Other", keyBits: 2048);
+        ring.Compromise(other);
+        Assert.Throws<EncryptionTokenException>(() => ring.Disable(other));
+        Assert.Throws<ArgumentException>(() => ring.Enable(new EncryptionKeyRecord { Id = Guid.NewGuid(), ThumbprintSha256 = "nope" }));
+        Assert.Throws<NotSupportedException>(() => EncryptionKeyRing.FromJson("""{"format":"NOPE","formatMajor":1}"""));
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("BEGIN PRIVATE KEY", "reason"));
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("qa", "-----PEM-----"));
+        Assert.Equal("The token is not usable.", new EncryptionTokenException(Guid.NewGuid(), EncryptionKeyStatus.Compromised, EncryptionTokenUse.Open).Message);
+        ring.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => ring.AddPair("x", "y", "z"));
+    }
 
     private sealed class NonSeekableStream : Stream
     {

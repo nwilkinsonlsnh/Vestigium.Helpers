@@ -218,6 +218,159 @@ public sealed class ClosedXmlBranchTests
         Assert.Equal(path, saved);
     }
 
+    [Fact]
+    public void Chart_packer_skips_unknown_sheet_and_empty_list()
+    {
+        using var book = WorkbookHelper.Create("Data", "ClosedXml");
+        book.Sheet("Data").WriteTable(SheetTable.Create(["A", "B"], [["x", 1], ["y", 2]]));
+        book.AddChart(MakeChart("NoSuchSheet", "ghost", CxChartKind.Pie));
+        book.AddChart(MakeChart("Data", "pie", CxChartKind.Pie));
+        book.AddChart(MakeChart("Data", "bar", CxChartKind.Bar));
+        book.AddChart(MakeChart("Data", "line", CxChartKind.Line));
+        using var buffer = new MemoryStream();
+        book.SaveTo(buffer);
+        var packed = ChartPacker.Embed(buffer.ToArray(), []);
+        Assert.Equal(buffer.Length, packed.Length);
+
+        using var noCharts = WorkbookHelper.Create("Data", "ClosedXml");
+        noCharts.IncludeCharts = false;
+        WorkbookHelper.WriteSeries(noCharts, NumericSeries.From(Enumerable.Range(1, 8), "seq"), prefix: "Run", populationSize: 8);
+        noCharts.DefineName("Letter", "Data", 1, 1, 2, 2);
+        Assert.Contains(noCharts.NamedRanges, n => n.Contains("Letter", StringComparison.OrdinalIgnoreCase));
+        noCharts.WriteNamedRange("Letter", SheetTable.Create(["N"], [[9]]));
+        noCharts.ReorderSheets(" ", "Missing", "Run Summary");
+        noCharts.MoveSheet("Run Summary", 1);
+        Assert.Throws<KeyNotFoundException>(() => noCharts.MoveSheet("Nope", 1));
+        using var saved = new MemoryStream();
+        noCharts.SaveTo(saved);
+        Assert.True(saved.Length > 0);
+
+        var timed = NumericSeries.FromObservations(
+        [
+            new Observation(1m, DateTimeOffset.UtcNow),
+            new Observation(2m, DateTimeOffset.UtcNow.AddSeconds(1)),
+            new Observation(3m, DateTimeOffset.UtcNow.AddSeconds(2)),
+            new Observation(4m, DateTimeOffset.UtcNow.AddSeconds(3)),
+            new Observation(5m, DateTimeOffset.UtcNow.AddSeconds(4))
+        ], "timed");
+        using var dated = WorkbookHelper.Create("Timed", "ClosedXml");
+        dated.IncludeCharts = true;
+        WorkbookHelper.WriteSeries(dated, timed, prefix: "T", populationSize: 5);
+        using var datedBuf = new MemoryStream();
+        dated.SaveTo(datedBuf);
+        Assert.True(datedBuf.Length > 0);
+    }
+
+    [Fact]
+    public void Session_merge_unique_name_timespan_and_chart_repack()
+    {
+        using var book = WorkbookHelper.Create("Data", "ClosedXml");
+        book.Sheet("Data").WriteTable(SheetTable.Create(
+            ["When", "Span", "Num"],
+            [[new DateTime(2026, 9, 10, 8, 0, 0), TimeSpan.FromHours(1.5), 3.5]]));
+        book.AddSheet("Data");
+        Assert.Contains(book.SheetNames, n => n.StartsWith("Data", StringComparison.Ordinal));
+        book.AddSheet("Extra");
+        using var other = WorkbookHelper.Create("Other", "ClosedXml");
+        other.Sheet("Other").WriteTable(SheetTable.Create(["N"], [[1]]));
+        other.Sheet("Data").WriteTable(SheetTable.Create(["N"], [[9]]));
+        book.Merge(other);
+        Assert.Contains("Other", book.SheetNames);
+        Assert.Throws<ArgumentException>(() => book.Merge(book));
+        book.MoveSheet("Extra", 99);
+        Assert.Throws<KeyNotFoundException>(() => book.WriteNamedRange("MissingName", SheetTable.Create(["N"], [[1]])));
+        book.Dispose();
+        book.Dispose();
+
+        using var charts = WorkbookHelper.Create("Data", "ClosedXml");
+        charts.Sheet("Data").WriteTable(SheetTable.Create(["A", "B"], [["x", 1], ["y", 2]]));
+        charts.Sheet("Two").WriteTable(SheetTable.Create(["A", "B"], [["x", 3], ["y", 4]]));
+        charts.AddChart(MakeChart("Data", "one", CxChartKind.Column));
+        charts.AddChart(MakeChart("Two", "two", CxChartKind.Pie, twoSeries: false));
+        charts.AddChart(new SheetChart
+        {
+            Sheet = "Data",
+            Title = "plain",
+            Kind = CxChartKind.Scatter,
+            Color = null,
+            CategoriesFormula = "Data!$A$2:$A$3",
+            Categories = ["1", "2"],
+            NumericCategories = true,
+            Series =
+            [
+                new CxChartSeries { Name = "S", ValuesFormula = "Data!$B$2:$B$3", Values = [1, 2], Color = null }
+            ]
+        });
+        using var first = new MemoryStream();
+        charts.SaveTo(first);
+        var packed = ChartPacker.Embed(first.ToArray(),
+        [
+            MakeChart("Data", "again", CxChartKind.Line),
+            MakeChart("Two", "pie2", CxChartKind.Pie)
+        ]);
+        Assert.True(packed.Length > first.Length);
+
+        using var dateFmt = WorkbookHelper.Create("Dates", "ClosedXml");
+        dateFmt.Sheet("Dates").WriteTable(SheetTable.Create(
+            ["Day"],
+            [[new DateTime(2026, 1, 2)]],
+            "Dates"),
+            new SheetWriteOptions { DateFormat = "yyyy-mm-dd", CreateExcelTable = true });
+        var table = dateFmt.Sheet("Dates").ReadUsedRange();
+        Assert.NotEmpty(table.Rows);
+        var path = TempXlsx();
+        dateFmt.SaveAs(path);
+        using var reopened = WorkbookHelper.Open(path, "ClosedXml");
+        Assert.Contains("Dates", reopened.SheetNames);
+    }
+
+    [Fact]
+    public void Chart_packer_rewrites_sheet_targets_and_no_table()
+    {
+        using var book = WorkbookHelper.Create("Data", "ClosedXml");
+        book.Sheet("Data").WriteTable(
+            SheetTable.Create(["A", "B"], [["x", 1], ["y", 2]]),
+            new SheetWriteOptions { CreateExcelTable = false, Autosize = false });
+        book.AddChart(MakeChart("Data", "col", CxChartKind.Column));
+        using var buffer = new MemoryStream();
+        book.SaveTo(buffer);
+        var original = buffer.ToArray();
+
+        byte[] Rewrite(string target)
+        {
+            using var input = new MemoryStream(original);
+            using var output = new MemoryStream();
+            using (var zip = new System.IO.Compression.ZipArchive(input, System.IO.Compression.ZipArchiveMode.Read))
+            using (var dest = new System.IO.Compression.ZipArchive(output, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+            {
+                foreach (var entry in zip.Entries)
+                {
+                    var copy = dest.CreateEntry(entry.FullName);
+                    using var src = entry.Open();
+                    using var dst = copy.Open();
+                    if (entry.FullName.Replace('\\', '/').EndsWith("workbook.xml.rels", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var xml = System.Xml.Linq.XDocument.Load(src);
+                        foreach (var e in xml.Root!.Elements())
+                        {
+                            var t = (string?)e.Attribute("Target");
+                            if (t is not null && t.Contains("sheet", StringComparison.OrdinalIgnoreCase))
+                                e.SetAttributeValue("Target", target);
+                        }
+                        xml.Save(dst);
+                    }
+                    else
+                        src.CopyTo(dst);
+                }
+            }
+            return ChartPacker.Embed(output.ToArray(), [MakeChart("Data", "repack", CxChartKind.Bar)]);
+        }
+
+        Assert.True(Rewrite("/xl/worksheets/sheet1.xml").Length > 0);
+        Assert.True(Rewrite("xl/worksheets/sheet1.xml").Length > 0);
+        Assert.True(Rewrite("worksheets/sheet1.xml").Length > 0);
+    }
+
     static SheetChart MakeChart(string sheet, string title, CxChartKind kind, bool twoSeries = false)
     {
         var series = new List<CxChartSeries>
