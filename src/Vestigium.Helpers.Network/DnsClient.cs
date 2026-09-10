@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using Vestigium.Helpers;
@@ -71,7 +72,6 @@ internal static class DnsClient
     static string ToIp6Arpa(IPAddress ip)
     {
         var bytes = ip.GetAddressBytes();
-        var chars = new char[bytes.Length * 4]; // nibble + dot, last no extra handled below
         var parts = new List<string>(32);
         foreach (var b in bytes)
         {
@@ -319,7 +319,7 @@ internal static class DnsClient
             return false;
         var type = (DnsRecordType)BinaryPrimitives.ReadUInt16BigEndian(message.AsSpan(offset));
         offset += 2;
-        offset += 2; // class
+        offset += 2;
         var ttl = BinaryPrimitives.ReadInt32BigEndian(message.AsSpan(offset));
         offset += 4;
         var rdlen = BinaryPrimitives.ReadUInt16BigEndian(message.AsSpan(offset));
