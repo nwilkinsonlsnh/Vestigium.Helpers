@@ -33,15 +33,23 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
             throw new ArgumentOutOfRangeException(nameof(value), "Size cannot be negative.");
         }
 
-        var factor = Factor(unit);
-        var bytesDec = decimal.Round(value * factor, 0, MidpointRounding.AwayFromZero);
-        if (bytesDec > long.MaxValue)
+        try
+        {
+            var factor = Factor(unit);
+            var bytesDec = decimal.Round(value * factor, 0, MidpointRounding.AwayFromZero);
+            if (bytesDec > long.MaxValue)
+            {
+                HelperLog.Reject(HelperLog.AppIds.FileIo, "Size", nameof(From), "overflow");
+                throw new ArgumentOutOfRangeException(nameof(value), "Size does not fit in 64-bit bytes.");
+            }
+
+            return new FileIoSize((long)bytesDec, value, unit);
+        }
+        catch (OverflowException)
         {
             HelperLog.Reject(HelperLog.AppIds.FileIo, "Size", nameof(From), "overflow");
             throw new ArgumentOutOfRangeException(nameof(value), "Size does not fit in 64-bit bytes.");
         }
-
-        return new FileIoSize((long)bytesDec, value, unit);
     }
 
     public static FileIoSize FromBytes(long bytes) => new(bytes, bytes, FileIoSizeUnit.Byte);
@@ -99,6 +107,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         var text = value == decimal.Truncate(value)
             ? decimal.Truncate(value).ToString(CultureInfo.InvariantCulture)
             : value.ToString("0.###", CultureInfo.InvariantCulture);
-        return text + " " + unit;
+        var symbol = unit == FileIoSizeUnit.Byte ? "B" : unit.ToString();
+        return text + " " + symbol;
     }
 }
