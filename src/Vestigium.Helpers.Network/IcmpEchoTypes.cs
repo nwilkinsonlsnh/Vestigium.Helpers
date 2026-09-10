@@ -1,5 +1,3 @@
-using System.Net.NetworkInformation;
-
 namespace Vestigium.Helpers.Network;
 
 public enum IcmpEchoStatus
@@ -30,6 +28,7 @@ public sealed class IcmpEchoOptions
     public int Ttl { get; set; } = 128;
     public bool DontFragment { get; set; }
     public TimeSpan? MaxDuration { get; set; }
+    public string? StatsPath { get; set; }
 }
 
 public sealed record IcmpEchoReply(
