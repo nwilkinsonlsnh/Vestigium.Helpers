@@ -23,7 +23,7 @@ public sealed record DhcpInfo(
     DateTimeOffset? LeaseObtained,
     DateTimeOffset? LeaseExpires);
 
-public sealed record NetworkAdapterInfo(
+public sealed record NetworkAdapter(
     string Id,
     string Name,
     string Description,
@@ -42,7 +42,7 @@ public sealed record WorkstationNetwork(
     string HostName,
     string? DomainName,
     DateTimeOffset CapturedUtc,
-    IReadOnlyList<NetworkAdapterInfo> Adapters);
+    IReadOnlyList<NetworkAdapter> Adapters);
 
 public sealed record NetworkAdapterQuery(
     string? Name = null,
