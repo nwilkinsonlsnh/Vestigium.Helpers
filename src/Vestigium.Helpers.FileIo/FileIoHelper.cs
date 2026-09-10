@@ -54,6 +54,18 @@ public static class FileIoHelper
     public static FileIoJob Mirror(string source, string destination, FileIoJobOptions? options = null)
         => FileIoJob.Mirror(source, destination, options);
 
+    public static FileIoDirectoryAnalysis AnalyzeDirectory(string path, FileIoAnalyzeOptions? options = null)
+        => FileIoAnalyzeEngine.Analyze(path, options);
+
+    public static FileIoProbeResult WriteProbe(string directory, FileIoSize size, FileIoProbeOptions? options = null)
+        => FileIoProbeEngine.Write(directory, size, options);
+
+    public static FileIoProbeResult WriteProbe(string directory, decimal value, FileIoSizeUnit unit, FileIoProbeOptions? options = null)
+        => WriteProbe(directory, FileIoSize.From(value, unit), options);
+
+    public static FileIoProbeResult ReadProbe(string path)
+        => FileIoProbeEngine.Read(path);
+
     public static FileIoCompareResult CompareFiles(string left, string right, HashingAlgorithm algorithm = HashingAlgorithm.Sha256)
     {
         var leftMissing = !File.Exists(left);
