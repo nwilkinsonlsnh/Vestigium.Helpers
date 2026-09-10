@@ -7,13 +7,23 @@ public static class NetworkTestHooks
 {
     public static string? CampaignRoot { get; set; }
     public static DateTimeOffset? UtcNow { get; set; }
+    public static string? ProcRoot { get; set; }
 
     internal static DateTimeOffset Now()
         => UtcNow ?? DateTimeOffset.UtcNow;
+
+    internal static string ProcPath(string linuxPath)
+    {
+        if (string.IsNullOrWhiteSpace(ProcRoot))
+            return linuxPath;
+        var relative = linuxPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(ProcRoot, relative);
+    }
 
     internal static void Reset()
     {
         CampaignRoot = null;
         UtcNow = null;
+        ProcRoot = null;
     }
 }
