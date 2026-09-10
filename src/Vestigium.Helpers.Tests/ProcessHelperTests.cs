@@ -86,7 +86,8 @@ public sealed class ProcessHelperTests
     public void Search_ends_with_current_name()
     {
         var self = MustSelf();
-        var hits = ProcessHelper.Search(Suffix(self.Name, 3), ProcessSearchMode.EndsWith, ProcessSearchFields.Name);
+        // Full name: a 3-char suffix of testhost.exe is "exe" and hits the 256 cap before this PID.
+        var hits = ProcessHelper.Search(self.Name, ProcessSearchMode.EndsWith, ProcessSearchFields.Name);
         Assert.Contains(hits, row => row.Pid == self.Pid);
     }
 
@@ -120,7 +121,6 @@ public sealed class ProcessHelperTests
     }
 
     private static string Prefix(string name, int length) => name[..Math.Min(length, name.Length)];
-    private static string Suffix(string name, int length) => name[^Math.Min(length, name.Length)..];
     private static string Token(string name)
     {
         var stem = Path.GetFileNameWithoutExtension(name);
