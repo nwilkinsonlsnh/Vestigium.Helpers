@@ -28,6 +28,32 @@ public sealed class FileIoAnalyzeTests
         Assert.Equal(1_000_000_000_000L, FileIoSize.From(1, FileIoSizeUnit.TB).Bytes);
         Assert.Equal(500_000_000L, FileIoSize.From(500, FileIoSizeUnit.MB).Bytes);
         Assert.Equal(14L * 1_000_000_000_000L, FileIoSize.From(14, FileIoSizeUnit.TB).Bytes);
+        Assert.Equal(1_024, FileIoSize.From(1, FileIoSizeUnit.KiB).Bytes);
+        Assert.Equal(1_000, FileIoSize.From(1, FileIoSizeUnit.KB).Bytes);
+        Assert.Equal(1, FileIoSize.From(1, FileIoSizeUnit.Byte).Bytes);
+        Assert.Equal("100 B", FileIoSize.FromBytes(100).Display);
+    }
+
+    [Fact]
+    public void Size_rejects_negative_and_overflow()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => FileIoSize.From(-1, FileIoSizeUnit.MB));
+        Assert.Throws<ArgumentOutOfRangeException>(() => FileIoSize.From(decimal.MaxValue, FileIoSizeUnit.TiB));
+        Assert.Equal("0 B", FileIoSize.Normalize(-3));
+    }
+
+    [Fact]
+    public void Buckets_match_job_watermarks()
+    {
+        Assert.Equal(FileIoBucket.Tiny, FileIoBuckets.For(1));
+        Assert.Equal(FileIoBucket.Tiny, FileIoBuckets.For(256L * 1024));
+        Assert.Equal(FileIoBucket.Small, FileIoBuckets.For(256L * 1024 + 1));
+        Assert.Equal(FileIoBucket.Small, FileIoBuckets.For(4L * 1024 * 1024));
+        Assert.Equal(FileIoBucket.Medium, FileIoBuckets.For(4L * 1024 * 1024 + 1));
+        Assert.Equal(FileIoBucket.Medium, FileIoBuckets.For(32L * 1024 * 1024));
+        Assert.Equal(FileIoBucket.Large, FileIoBuckets.For(32L * 1024 * 1024 + 1));
+        Assert.Equal(FileIoBucket.Large, FileIoBuckets.For(256L * 1024 * 1024));
+        Assert.Equal(FileIoBucket.Huge, FileIoBuckets.For(256L * 1024 * 1024 + 1));
     }
 
     [Fact]
@@ -56,8 +82,61 @@ public sealed class FileIoAnalyzeTests
     }
 
     [Fact]
+    public void AnalyzeDirectory_empty_is_zeros()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "fio-empty-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var analysis = FileIoHelper.AnalyzeDirectory(root);
+            Assert.Equal(0, analysis.FileCount);
+            Assert.Equal(0, analysis.TotalBytes);
+            Assert.Equal(0, analysis.FileSizes.Count);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void AnalyzeDirectory_filters_mask_depth_and_size()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "fio-filter-" + Guid.NewGuid().ToString("N"));
+        var skip = Path.Combine(root, "skipme");
+        var keep = Path.Combine(root, "keep");
+        Directory.CreateDirectory(skip);
+        Directory.CreateDirectory(keep);
+        try
+        {
+            File.WriteAllBytes(Path.Combine(root, "tiny.bin"), new byte[10]);
+            File.WriteAllBytes(Path.Combine(root, "ignore.tmp"), new byte[20]);
+            File.WriteAllBytes(Path.Combine(skip, "hidden.bin"), new byte[30]);
+            File.WriteAllBytes(Path.Combine(keep, "ok.bin"), new byte[40]);
+            var analysis = FileIoHelper.AnalyzeDirectory(root, new FileIoAnalyzeOptions
+            {
+                ExcludeFileMasks = ["*.tmp"],
+                ExcludeDirectoryMasks = ["skipme"],
+                MinSizeBytes = 15,
+                MaxSizeBytes = 100,
+                MaxDepth = 2
+            });
+            Assert.Equal(1, analysis.FileCount);
+            Assert.Equal(40, analysis.TotalBytes);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void AnalyzeDirectory_missing_throws()
         => Assert.Throws<DirectoryNotFoundException>(() => FileIoHelper.AnalyzeDirectory(Path.Combine(Path.GetTempPath(), "missing-" + Guid.NewGuid().ToString("N"))));
+
+    [Fact]
+    public void AnalyzeDirectory_blank_throws()
+        => Assert.ThrowsAny<ArgumentException>(() => FileIoHelper.AnalyzeDirectory(" "));
 
     [Fact]
     public void WriteProbe_deletes_and_reports_rate()
@@ -75,6 +154,50 @@ public sealed class FileIoAnalyzeTests
         finally
         {
             Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public void WriteProbe_keep_zero_and_read()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "fio-probe-keep-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var written = FileIoHelper.WriteProbe(dir, FileIoSize.From(8, FileIoSizeUnit.KiB), new FileIoProbeOptions
+            {
+                RandomBytes = false,
+                KeepProbe = true,
+                FileName = "kept.bin"
+            });
+            Assert.False(written.Deleted);
+            Assert.True(File.Exists(written.Path));
+            Assert.Equal(8 * 1024, new FileInfo(written.Path).Length);
+            var read = FileIoHelper.ReadProbe(written.Path);
+            Assert.False(read.Deleted);
+            Assert.Equal(8 * 1024, read.Size.Bytes);
+            Assert.True(read.BytesPerSecond > 0);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public void WriteProbe_zero_bytes_and_blank_dir()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "fio-probe-zero-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var zero = FileIoHelper.WriteProbe(dir, FileIoSize.FromBytes(0));
+            Assert.True(zero.Deleted);
+            Assert.ThrowsAny<ArgumentException>(() => FileIoHelper.WriteProbe(" ", FileIoSize.FromBytes(1)));
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, true);
         }
     }
 }
