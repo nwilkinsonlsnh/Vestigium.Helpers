@@ -200,13 +200,13 @@ internal static class IcmpEchoEngine
         {
             var forbidden = IsForbidden(ex);
             return new IcmpEchoReply(
-                sequence,
-                forbidden ? IcmpEchoStatus.ProtocolForbidden : IcmpEchoStatus.Failed,
-                null,
-                0,
-                0,
-                payloadRestricted: false,
-                ex.InnerException?.Message ?? ex.Message);
+                Sequence: sequence,
+                Status: forbidden ? IcmpEchoStatus.ProtocolForbidden : IcmpEchoStatus.Failed,
+                Address: null,
+                RoundtripTimeMs: 0,
+                Ttl: 0,
+                PayloadRestricted: false,
+                Detail: ex.InnerException?.Message ?? ex.Message);
         }
         catch (SocketException ex)
         {
