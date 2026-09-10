@@ -99,4 +99,31 @@
       <ListBox ItemsSource="{Binding SnapshotLines}" FontFamily="Cascadia Mono, Consolas"/>
     </DockPanel>
   </DataTemplate>
+
+  <DataTemplate x:Key="SubnetTab">
+    <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+        <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="CIDR is the contract. Class A–E is a label only. IPv6 has no class. SLAAC LANs should split /64 rather than plan by host count."/>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <TextBlock VerticalAlignment="Center" Text="Parent / address" Margin="0,0,8,0"/>
+          <TextBox Width="220" Text="{Binding SubnetInput, UpdateSourceTrigger=PropertyChanged}"/>
+          <TextBlock VerticalAlignment="Center" Text="Hosts" Margin="16,0,8,0"/>
+          <TextBox Width="60" Text="{Binding SubnetHosts, UpdateSourceTrigger=PropertyChanged}"/>
+          <TextBlock VerticalAlignment="Center" Text="Nets" Margin="16,0,8,0"/>
+          <TextBox Width="60" Text="{Binding SubnetNetworks, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <TextBlock VerticalAlignment="Center" Text="VLSM" Margin="0,0,8,0"/>
+          <TextBox Width="200" Text="{Binding SubnetVlsm, UpdateSourceTrigger=PropertyChanged}"/>
+          <Button Content="Classify" Command="{Binding ClassifySubnetCommand}" Margin="16,0,0,0"/>
+          <Button Content="Describe" Command="{Binding DescribeSubnetCommand}" Margin="8,0,0,0"/>
+          <Button Content="By hosts" Command="{Binding PlanHostsCommand}" Margin="8,0,0,0"/>
+          <Button Content="By networks" Command="{Binding PlanNetworksCommand}" Margin="8,0,0,0"/>
+          <Button Content="Pack VLSM" Command="{Binding PackVlsmDemoCommand}" Margin="8,0,0,0"/>
+        </StackPanel>
+        <TextBlock Margin="0,8,0,0" Opacity="0.75" Text="{Binding SubnetSummary}" TextWrapping="Wrap"/>
+      </StackPanel>
+      <DataGrid ItemsSource="{Binding SubnetRows}" AutoGenerateColumns="True" IsReadOnly="True"/>
+    </DockPanel>
+  </DataTemplate>
 </ResourceDictionary>
