@@ -190,7 +190,7 @@ internal static class DnsClient
         }
     }
 
-    static byte[] EncodeQuery(ushort id, string qname, DnsRecordType type, bool rd)
+    internal static byte[] EncodeQuery(ushort id, string qname, DnsRecordType type, bool rd)
     {
         using var ms = new MemoryStream();
         Span<byte> header = stackalloc byte[12];
@@ -273,7 +273,7 @@ internal static class DnsClient
         }
     }
 
-    static DnsLookupResult Parse(
+    internal static DnsLookupResult Parse(
         string question,
         DnsRecordType type,
         string? server,

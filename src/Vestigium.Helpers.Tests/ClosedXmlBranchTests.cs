@@ -85,6 +85,27 @@ public sealed class ClosedXmlBranchTests
     }
 
     [Fact]
+    public void Cell_reader_kinds_and_mixed_round_trip()
+    {
+        Assert.Equal("blank", SheetTable.CellKind(null));
+        Assert.Equal("bool", SheetTable.CellKind(true));
+        Assert.Equal("datetime", SheetTable.CellKind(DateTime.UtcNow));
+        Assert.Equal("text", SheetTable.CellKind("hi"));
+        Assert.Equal("number", SheetTable.CellKind(3.14));
+
+        using var book = WorkbookHelper.Create("Mix", "ClosedXml");
+        var when = new DateTime(2026, 9, 10, 8, 0, 0, DateTimeKind.Unspecified);
+        book.Sheet("Mix").WriteTable(SheetTable.Create(
+            ["Blank", "Flag", "When", "Text", "Num"],
+            [[null, true, when, "hello", 42], [false, false, when.AddDays(1), "bye", 0]]));
+        var table = book.Sheet("Mix").ReadUsedRange();
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Contains(table.Rows[0], v => v is bool);
+        Assert.Contains(table.Rows[0], v => v is string);
+        Assert.Contains(table.Rows[0], v => v is double or int or long or decimal);
+    }
+
+    [Fact]
     public void OpenOrCreate_mints_then_reopens_without_mixing_saveto()
     {
         var path = TempXlsx();

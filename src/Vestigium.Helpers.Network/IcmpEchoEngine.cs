@@ -215,7 +215,7 @@ internal static class IcmpEchoEngine
             reply.Status == IPStatus.Success ? null : reply.Status.ToString());
     }
 
-    static bool IsForbidden(Exception ex)
+    internal static bool IsForbidden(Exception ex)
     {
         for (var cur = ex; cur is not null; cur = cur.InnerException)
         {

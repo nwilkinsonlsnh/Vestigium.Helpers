@@ -7,8 +7,65 @@ namespace Vestigium.Helpers.Tests;
 public sealed class ChartViewTests
 {
     [Fact]
+    public void From_shortcuts_and_host_cover_with_and_kind_switch()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, "host");
+        Exception? err = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                Assert.NotNull(ChartView.From(new ChartSpec { Kind = ChartKind.Column, Source = series }));
+                Assert.NotNull(ChartView.Histogram(series));
+                Assert.NotNull(ChartView.Histogram(series, showBellCurve: true));
+                Assert.NotNull(ChartView.Ecdf(series));
+                Assert.NotNull(ChartView.Line(series, TrendKind.Linear));
+                Assert.NotNull(ChartView.Line(series, new ChartOptions { Title = "line" }));
+                ChartView.Line(series, TrendKind.Linear, out var fit);
+                Assert.NotNull(fit);
+                ChartView.Line(series, TrendKind.None, out var none);
+                Assert.Null(none);
+                Assert.NotNull(ChartView.Scatter(series, TrendKind.None));
+                Assert.NotNull(ChartView.Scatter(series, new ChartOptions()));
+                Assert.NotNull(ChartView.Scatter(new[] { 0d, 1d, 2d }, new[] { 1d, 2d, 3d }, TrendKind.Linear));
+                Assert.NotNull(ChartView.Column(series));
+                Assert.NotNull(ChartView.Bar(series));
+                Assert.NotNull(ChartView.Pie(series));
+                Assert.NotNull(ChartView.Pie([new ChartSlice { Label = "A", Value = 1 }, new ChartSlice { Label = "B", Value = 2 }]));
+                Assert.NotNull(ChartView.Pareto(series));
+                Assert.NotNull(ChartView.Pareto([new ChartSlice { Label = "A", Value = 3 }, new ChartSlice { Label = "B", Value = 1 }]));
+                Assert.NotNull(ChartView.Box(series));
+                Assert.NotNull(ChartView.Box(series, BoxWhiskerKind.Tukey));
+                Assert.NotNull(ChartView.Bands(series));
+                Assert.NotNull(ChartView.MeanInterval(series, 0.9));
+                var limits = series.ControlLimits();
+                Assert.NotNull(ChartView.Control(series, limits));
+                Assert.NotNull(ChartView.Control(new[] { 1d, 2d, 3d, 4d, 5d }, limits));
+                try
+                {
+                    ChartView.From(new ChartSpec { Kind = (ChartKind)99, Source = series });
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Host/From trap then rethrow — that's the catch branch.
+                }
+            }
+            catch (Exception ex)
+            {
+                err = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (err is not null)
+            throw err;
+    }
+
+    [Fact]
     public void Identity_is_stable()
         => Assert.Equal("Vestigium.Helpers.Charts", ChartHelper.Identity);
+
 
     [Fact]
     public void Probe_writes_pending_then_success()

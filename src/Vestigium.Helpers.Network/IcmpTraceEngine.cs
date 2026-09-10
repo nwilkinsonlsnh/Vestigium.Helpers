@@ -118,7 +118,7 @@ internal static class IcmpTraceEngine
         return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, hops.Count, hops);
     }
 
-    static async Task<IcmpTraceProbe> IcmpProbeAsync(
+    internal static async Task<IcmpTraceProbe> IcmpProbeAsync(
         Ping ping,
         string target,
         byte[] buffer,
@@ -180,7 +180,7 @@ internal static class IcmpTraceEngine
         }
     }
 
-    static async Task<IcmpTraceProbe> UdpProbeAsync(
+    internal static async Task<IcmpTraceProbe> UdpProbeAsync(
         string target,
         int timeoutMs,
         int ttl,

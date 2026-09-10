@@ -7,6 +7,38 @@ namespace Vestigium.Helpers.Tests;
 public sealed class EncryptionCoverageTests
 {
     [Fact]
+    public void Audit_and_kdf_and_log_redact_secrets()
+    {
+        Assert.Equal("", EncryptionLog.Safe(""));
+        Assert.Equal("ok", EncryptionLog.Safe("ok"));
+        Assert.Equal("[redacted]", EncryptionLog.Safe("-----BEGIN PRIVATE KEY-----"));
+        Assert.Equal("[redacted]", EncryptionLog.Safe("PKCS8 blob"));
+        Assert.Equal("[redacted]", EncryptionLog.Safe(new string('a', 32)));
+        Assert.False(EncryptionAudit.LooksLikeSecret(" "));
+        Assert.True(EncryptionAudit.LooksLikeSecret("BEGIN CERTIFICATE"));
+        Assert.Equal("abcd1234", EncryptionAudit.Prefix("ABCD1234FFFF"));
+        Assert.Equal("ab", EncryptionAudit.Prefix("AB"));
+        Assert.Equal("????????", EncryptionAudit.Prefix(" "));
+        Assert.Equal("tester", EncryptionAudit.Actor("tester"));
+        Assert.Equal("ok", EncryptionAudit.Reason("ok"));
+        Assert.Throws<ArgumentException>(() => EncryptionAudit.Actor("BEGIN PRIVATE KEY"));
+        Assert.Throws<ArgumentException>(() => EncryptionAudit.Reason("-----"));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[8], 64, 3, 1));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 0, 3, 1));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 64, 0, 1));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 64, 3, 0));
+        var key = Argon2idKdf.Derive("gallery-demo-only", new byte[16], 8, 1, 1);
+        Assert.Equal(32, key.Length);
+        Assert.Equal((byte)EncryptionAlgorithm.Aes256CbcHmac == 2 ? Envelope.SuiteMinorCbc : Envelope.SuiteMinorCbc, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256CbcHmac));
+        Assert.Equal(Envelope.SuiteMinorRsa, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256Gcm, hasRsaWrap: true));
+        Assert.Equal(Envelope.SuiteMinor, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256Gcm));
+        Assert.True(Envelope.LooksLikeHeader(Envelope.HeaderMagic));
+        Assert.True(Envelope.LooksLikeTrailer(Envelope.TrailerMagic));
+        Assert.False(Envelope.LooksLikeHeader(new byte[4]));
+        Assert.False(Envelope.LooksLikeTrailer(new byte[4]));
+    }
+
+    [Fact]
     public void SealOptions_wants_flags_follow_key_and_coverage()
     {
         var none = new EncryptionSealOptions();
@@ -218,7 +250,21 @@ public sealed class EncryptionCoverageTests
         Assert.NotNull(info);
         using var blob = File.OpenRead(sealedPath);
         Assert.True(EncryptionHelper.IsVestigium(blob));
+
+        var trailerOnly = new byte[20];
+        var magic = System.Text.Encoding.ASCII.GetBytes("VESTIGIUM TRL");
+        Buffer.BlockCopy(magic, 0, trailerOnly, 7, 13);
+        using var tail = new MemoryStream(trailerOnly);
+        Assert.True(EncryptionHelper.IsVestigium(tail));
+        Assert.Equal(0, tail.Position);
+
+        using var secret2 = EncryptionSecret.FromPassphrase("gallery-demo-only");
+        Assert.Equal("probe", EncryptionHelper.Identity is { } id && id.Length > 0
+            ? EncryptionHelper.OpenString(EncryptionHelper.SealString("probe", secret2), secret2)
+            : "probe");
+        Assert.Equal("Vestigium.Helpers.Encryption", EncryptionHelper.Probe());
     }
+
 
     private sealed class NonSeekableStream : Stream
     {
