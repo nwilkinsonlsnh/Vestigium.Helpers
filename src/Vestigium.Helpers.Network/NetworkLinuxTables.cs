@@ -8,12 +8,8 @@ internal static class NetworkLinuxTables
 {
     public static IReadOnlyDictionary<(TransportProtocol, int, int), int> GetOwnerPids()
     {
-        var map = new Dictionary<(TransportProtocol, int, int), int>();
-        ReadProcNet("tcp", TransportProtocol.Tcp, map);
-        ReadProcNet("tcp6", TransportProtocol.Tcp, map);
-        ReadProcNet("udp", TransportProtocol.Udp, map);
-        ReadProcNet("udp6", TransportProtocol.Udp, map);
-        return map;
+        // Phase 8: do not walk /proc/*/fd for every inode. PID stays null on Linux.
+        return new Dictionary<(TransportProtocol, int, int), int>();
     }
 
     public static IReadOnlyList<NetworkRoute> GetRoutes(RouteFamily family)
@@ -56,69 +52,6 @@ internal static class NetworkLinuxTables
         return rows;
     }
 
-    static void ReadProcNet(string file, TransportProtocol protocol, Dictionary<(TransportProtocol, int, int), int> map)
-    {
-        var path = "/proc/net/" + file;
-        if (!File.Exists(path))
-            return;
-        foreach (var line in File.ReadLines(path).Skip(1))
-        {
-            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 10)
-                continue;
-            if (!TryParseHexEndpoint(parts[1], out var localPort))
-                continue;
-            TryParseHexEndpoint(parts[2], out var remotePort);
-            if (!int.TryParse(parts[9], out var inode))
-                continue;
-            var pid = FindPidByInode(inode);
-            if (pid > 0)
-                map[(protocol, localPort, remotePort)] = pid;
-        }
-    }
-
-    static bool TryParseHexEndpoint(string token, out int port)
-    {
-        port = 0;
-        var colon = token.LastIndexOf(':');
-        if (colon < 0)
-            return false;
-        return int.TryParse(token[(colon + 1)..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out port);
-    }
-
-    static int FindPidByInode(int inode)
-    {
-        try
-        {
-            foreach (var dir in Directory.EnumerateDirectories("/proc"))
-            {
-                var name = Path.GetFileName(dir);
-                if (!int.TryParse(name, out var pid))
-                    continue;
-                var fd = Path.Combine(dir, "fd");
-                if (!Directory.Exists(fd))
-                    continue;
-                foreach (var link in Directory.EnumerateFileSystemEntries(fd))
-                {
-                    try
-                    {
-                        var target = File.ResolveLinkTarget(link, false)?.Name ?? string.Empty;
-                        if (target.Contains("socket:[" + inode + "]", StringComparison.Ordinal))
-                            return pid;
-                    }
-                    catch (Exception)
-                    {
-                    }
-                }
-            }
-        }
-        catch (Exception)
-        {
-        }
-
-        return 0;
-    }
-
     static void ReadIpv4Routes(List<NetworkRoute> rows)
     {
         var path = "/proc/net/route";
@@ -137,16 +70,7 @@ internal static class NetworkLinuxTables
             var metric = int.TryParse(parts[6], out var m) ? m : 0;
             var prefix = Ipv4Prefix.PrefixFromMask(IPAddress.Parse(mask));
             rows.Add(new NetworkRoute(
-                AddressFamily.InterNetwork,
-                dest,
-                prefix,
-                mask,
-                gateway,
-                parts[0],
-                null,
-                metric,
-                false,
-                "kernel"));
+                AddressFamily.InterNetwork, dest, prefix, mask, gateway, parts[0], null, metric, false, "kernel"));
         }
     }
 
@@ -160,21 +84,10 @@ internal static class NetworkLinuxTables
             var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 10)
                 continue;
-            var destHex = parts[0];
             var prefix = int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var p) ? p : 0;
-            var gateway = FormatIpv6Hex(parts[4]);
             var metric = int.TryParse(parts[5], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var m) ? m : 0;
             rows.Add(new NetworkRoute(
-                AddressFamily.InterNetworkV6,
-                FormatIpv6Hex(destHex),
-                prefix,
-                null,
-                gateway,
-                parts[^1],
-                null,
-                metric,
-                false,
-                "kernel"));
+                AddressFamily.InterNetworkV6, FormatIpv6Hex(parts[0]), prefix, null, FormatIpv6Hex(parts[4]), parts[^1], null, metric, false, "kernel"));
         }
     }
 
@@ -207,6 +120,5 @@ internal static class NetworkLinuxTables
 
     static int ParseHex(string value)
         => int.TryParse(value.Replace("0x", "", StringComparison.OrdinalIgnoreCase), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var n)
-            ? n
-            : 0;
+            ? n : 0;
 }
