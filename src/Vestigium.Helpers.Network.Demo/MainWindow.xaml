@@ -1,0 +1,42 @@
+<Window x:Class="Vestigium.Helpers.Network.Demo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vestigium.Helpers.Network gallery"
+        Height="860" Width="1240"
+        MinHeight="620" MinWidth="920"
+        Background="#0B1A30" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20,16,20,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <DockPanel LastChildFill="False" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.Network gallery"/>
+        <TextBlock Opacity="0.7" Text="Inventory · ICMP Echo/Trace · RFC 1035 · tables · campaigns · snapshot · no cousin CLIs"/>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="APPID Network · Probe on startup only" HorizontalAlignment="Right"/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Grid.Row="1">
+      <TabItem Header="Overview"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource OverviewTab}"/></TabItem>
+      <TabItem Header="Adapters"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource AdaptersTab}"/></TabItem>
+      <TabItem Header="Echo"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource EchoTab}"/></TabItem>
+      <TabItem Header="Trace"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource TraceTab}"/></TabItem>
+      <TabItem Header="DNS"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource DnsTab}"/></TabItem>
+      <TabItem Header="Connections"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource ConnectionsTab}"/></TabItem>
+      <TabItem Header="Neighbors"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource NeighborsTab}"/></TabItem>
+      <TabItem Header="Routes"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource RoutesTab}"/></TabItem>
+      <TabItem Header="Campaign"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource CampaignTab}"/></TabItem>
+      <TabItem Header="Snapshot"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource SnapshotTab}"/></TabItem>
+    </TabControl>
+    <DockPanel Grid.Row="2" Margin="0,10,0,0">
+      <TextBlock Opacity="0.55" Text="{Binding StatusText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+    </DockPanel>
+  </Grid>
+</Window>
