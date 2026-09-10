@@ -16,5 +16,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.8" />
   </ItemGroup>
 </Project>

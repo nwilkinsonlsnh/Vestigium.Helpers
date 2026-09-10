@@ -9,7 +9,7 @@ internal sealed class SystemWatcher : ISystemWatcher
     private readonly Task _loop;
     private int _busy;
     private int _disposed;
-    private SystemTimes? _previous;
+    private SystemRawSnapshot? _previous;
 
     internal SystemWatcher(TimeSpan interval)
     {
@@ -65,8 +65,8 @@ internal sealed class SystemWatcher : ISystemWatcher
             if (Volatile.Read(ref _disposed) != 0)
                 return;
             var prior = first ? null : _previous;
-            var sample = SystemCounterReader.Capture(prior, first ? null : Interval);
-            _previous = SystemCounterReader.ReadTimes();
+            var sample = SystemCounterReader.Capture(prior, first ? null : Interval, out var raw);
+            _previous = raw;
             Sampled?.Invoke(this, sample);
         }
         catch { }
