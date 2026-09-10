@@ -1,4 +1,5 @@
 using Vestigium.Helpers;
+using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Network;
 
@@ -146,8 +147,18 @@ public static class NetworkHelper
     public static MacAddress ToModifiedEui64(MacAddress mac) => MacEngine.ToModifiedEui64(mac);
     public static MacAddress ToEui48(MacAddress mac) => MacEngine.ToEui48(mac);
     public static string? ToLinkLocal(MacAddress mac) => mac.LinkLocal;
+
     public static Task<OuiLookupResult> LookupOuiAsync(string macOrOui, OuiLookupOptions? options = null, CancellationToken cancellation = default)
-        => MacEngine.LookupOuiAsync(macOrOui, options, cancellation);
+    {
+        if (!string.IsNullOrWhiteSpace(options?.RegistryFilePath))
+            return Task.FromResult(LookupOuiFile(macOrOui, options.RegistryFilePath));
+        return MacEngine.LookupOuiAsync(macOrOui, options, cancellation);
+    }
+
+    public static IReadOnlyDictionary<string, string> LoadOuiRegistry(string path) => OuiRegistry.Load(path);
+
+    public static OuiLookupResult LookupOuiFile(string macOrOui, string registryPath)
+        => OuiRegistry.Lookup(macOrOui, OuiRegistry.Load(registryPath));
 
     public static BandwidthAmount Bandwidth(decimal value, DataUnit unit) => BandwidthEngine.From(value, unit);
     public static BandwidthAmount ConvertBandwidth(BandwidthAmount amount, DataUnit unit) => BandwidthEngine.Convert(amount, unit);
@@ -160,4 +171,13 @@ public static class NetworkHelper
         => BandwidthEngine.RateFromVolume(volume, basis);
     public static WebsiteTrafficResult EstimateWebsite(WebsiteTrafficQuery query) => BandwidthEngine.EstimateWebsite(query);
     public static int BandwidthSeconds(BandwidthBasis basis) => BandwidthEngine.Seconds(basis);
+
+    public static PercentileBill BillP95(IEnumerable<decimal> samplesBitsPerSecond)
+        => PercentileBillEngine.FromSamples(samplesBitsPerSecond, 0.95);
+
+    public static PercentileBill BillPercentile(IEnumerable<decimal> samplesBitsPerSecond, double percentile)
+        => PercentileBillEngine.FromSamples(samplesBitsPerSecond, percentile);
+
+    public static PercentileBill BillP95(NumericSeries series)
+        => PercentileBillEngine.FromSeries(series, 0.95);
 }
