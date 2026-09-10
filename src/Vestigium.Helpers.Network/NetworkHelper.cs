@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Network;
 /// <summary>
 /// Workstation inventory and protocol jobs for diagnostic hosts.
 /// Logging is <see cref="HelperLog"/> → Vestigium.Logging JSONL (APPID Network).
-/// Campaign statistics are JSONL via Vestigium.Helpers.Json.
+/// Route writes are explicit Windows IP Helper calls. Linux writes throw typed denies.
 /// </summary>
 public static class NetworkHelper
 {
@@ -108,4 +108,37 @@ public static class NetworkHelper
 
     public static IcmpEchoCampaign OpenEchoCampaign(string recipePath)
         => IcmpEchoCampaign.Open(recipePath);
+
+    public static NetworkSnapshot GetSnapshot()
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Inventory, nameof(GetSnapshot));
+        var snapshot = new NetworkSnapshot(
+            GetWorkstation(),
+            GetRoutes(),
+            GetConnections(),
+            GetNeighbors(),
+            GetStatistics(),
+            DateTimeOffset.UtcNow);
+        NetworkLog.Success(
+            HelperLog.Subcategories.Inventory,
+            $"snapshot adapters={snapshot.Workstation.Adapters.Count} routes={snapshot.Routes.Count} conns={snapshot.Connections.Count}");
+        return snapshot;
+    }
+
+    public static void AddRoute(NetworkRouteChange change)
+        => NetworkRouteMutation.Add(change);
+
+    public static void ChangeRoute(NetworkRouteChange change)
+        => NetworkRouteMutation.Change(change);
+
+    public static void RemoveRoute(NetworkRouteChange change)
+        => NetworkRouteMutation.Remove(change);
+
+    public static NetBiosInfo GetNetBios()
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Netbios, nameof(GetNetBios));
+        var info = NetworkNetBios.Capture();
+        NetworkLog.Success(HelperLog.Subcategories.Netbios, $"host={info.HostName} adapters={info.Adapters.Count}");
+        return info;
+    }
 }
