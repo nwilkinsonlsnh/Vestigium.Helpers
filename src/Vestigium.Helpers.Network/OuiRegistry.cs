@@ -28,7 +28,7 @@ internal static class OuiRegistry
                 continue;
             }
 
-            var parts = line.Split([',', '	', '|', ';'], 2, StringSplitOptions.TrimEntries);
+            var parts = line.Split(new[] { ',', '	', '|', ';' }, 2, StringSplitOptions.TrimEntries);
             if (parts.Length < 2)
                 continue;
             map[Normalize(parts[0])] = parts[1];
@@ -56,20 +56,24 @@ internal static class OuiRegistry
         if (hex.Length < 6)
             return hex.ToUpperInvariant();
         hex = hex[..6].ToUpperInvariant();
-        return $"{hex[0]}{hex[1]}:{hex[2]}{hex[3]}:{hex[4]}{hex[5]}";
+        return string.Concat(hex.AsSpan(0, 2), ":", hex.AsSpan(2, 2), ":", hex.AsSpan(4, 2));
     }
 
     static string? ExtractJson(string line, string name)
     {
-        var key = $""{name}"";
+        var key = "\"" + name + "\"";
         var i = line.IndexOf(key, StringComparison.OrdinalIgnoreCase);
-        if (i < 0) return null;
+        if (i < 0)
+            return null;
         var colon = line.IndexOf(':', i + key.Length);
-        if (colon < 0) return null;
+        if (colon < 0)
+            return null;
         var q1 = line.IndexOf('"', colon + 1);
-        if (q1 < 0) return null;
+        if (q1 < 0)
+            return null;
         var q2 = line.IndexOf('"', q1 + 1);
-        if (q2 < 0) return null;
-        return line[(q1 + 1)..q2];
+        if (q2 < 0)
+            return null;
+        return line.Substring(q1 + 1, q2 - q1 - 1);
     }
 }
