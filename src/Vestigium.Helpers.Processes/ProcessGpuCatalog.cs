@@ -147,11 +147,12 @@ internal static class ProcessGpuCatalog
         catch { return false; }
     }
 
-    private static IEnumerable<(string Name, double Value)> ReadInstances(string category, string counter)
+    private static List<(string Name, double Value)> ReadInstances(string category, string counter)
     {
+        var rows = new List<(string, double)>();
         string[] instances;
         try { instances = new PerformanceCounterCategory(category).GetInstanceNames(); }
-        catch { yield break; }
+        catch { return rows; }
 
         foreach (var instance in instances)
         {
@@ -162,11 +163,13 @@ internal static class ProcessGpuCatalog
                 var value = item.NextValue();
                 if (double.IsNaN(value) || double.IsInfinity(value))
                     continue;
-                yield return (instance, value);
+                rows.Add((instance, value));
             }
             catch { }
             finally { item?.Dispose(); }
         }
+
+        return rows;
     }
 
     private static bool TryPid(string instance, out int pid)
