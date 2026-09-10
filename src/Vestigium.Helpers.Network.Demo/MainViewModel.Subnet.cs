@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Vestigium.Helpers.Network;
 
@@ -9,11 +8,41 @@ public sealed partial class MainViewModel
 {
     public ObservableCollection<PrefixRow> SubnetRows { get; } = [];
 
-    [ObservableProperty] private string subnetInput = "10.8.0.0/16";
-    [ObservableProperty] private string subnetHosts = "200";
-    [ObservableProperty] private string subnetNetworks = "25";
-    [ObservableProperty] private string subnetVlsm = "200,50,12,2";
-    [ObservableProperty] private string subnetSummary = "IPv6 host counts pick a prefix by address size (200 → /121 from a /48). Use split /64 for SLAAC.";
+    string _subnetInput = "10.8.0.0/16";
+    string _subnetHosts = "200";
+    string _subnetNetworks = "25";
+    string _subnetVlsm = "200,50,12,2";
+    string _subnetSummary = "IPv6 host counts pick a prefix by address size (200 → /121 from a /48). Use split /64 for SLAAC.";
+
+    public string SubnetInput
+    {
+        get => _subnetInput;
+        set => SetProperty(ref _subnetInput, value);
+    }
+
+    public string SubnetHosts
+    {
+        get => _subnetHosts;
+        set => SetProperty(ref _subnetHosts, value);
+    }
+
+    public string SubnetNetworks
+    {
+        get => _subnetNetworks;
+        set => SetProperty(ref _subnetNetworks, value);
+    }
+
+    public string SubnetVlsm
+    {
+        get => _subnetVlsm;
+        set => SetProperty(ref _subnetVlsm, value);
+    }
+
+    public string SubnetSummary
+    {
+        get => _subnetSummary;
+        set => SetProperty(ref _subnetSummary, value);
+    }
 
     [RelayCommand]
     private void ClassifySubnet()
@@ -40,7 +69,8 @@ public sealed partial class MainViewModel
     {
         try
         {
-            var block = HasCidr(SubnetInput) ? NetworkHelper.DescribePrefix(SubnetInput.Trim()) : NetworkHelper.DescribePrefix(SubnetInput.Trim() + "/32");
+            var value = SubnetInput.Trim();
+            var block = value.Contains('/') ? NetworkHelper.DescribePrefix(value) : NetworkHelper.DescribePrefix(value + "/32");
             BindPlan(null, [block], $"describe {block.Network}/{block.PrefixLength} mask={block.SubnetMask ?? "—"} bcast={block.Broadcast ?? "—"}");
         }
         catch (Exception ex)
@@ -87,8 +117,9 @@ public sealed partial class MainViewModel
     {
         try
         {
-            var needs = SubnetVlsm.Split([',', ' ', ';'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => int.Parse(s.Trim()))
+            var needs = SubnetVlsm
+                .Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(static s => int.Parse(s.Trim()))
                 .ToArray();
             var plan = NetworkHelper.PackVlsm(RequireCidr(SubnetInput), needs);
             BindPlan(plan, plan.Networks.Concat(plan.Unused).ToList(), $"vlsm packed={plan.Networks.Count} unused={plan.Unused.Count}");
@@ -120,8 +151,6 @@ public sealed partial class MainViewModel
         SubnetSummary = summary + (plan is null ? "" : $" listed={Math.Min(64, rows.Count)}");
         StatusText = SubnetSummary;
     }
-
-    static bool HasCidr(string text) => text.Contains('/');
 
     static string RequireCidr(string text)
     {
