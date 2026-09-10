@@ -94,7 +94,11 @@ public sealed class ProcessCampaign : IDisposable
             hits = hits.Take(Recipe.MaxMatches).ToArray();
             if (!_loggedTruncated)
             {
-                Log("Campaign Truncated name=" + CampaignId + " max=" + Recipe.MaxMatches);
+                HelperLog.Warning(
+                    HelperLog.AppIds.Processes,
+                    VestigiumStatus.Warning,
+                    HelperLog.Subcategories.Campaign,
+                    "Campaign Truncated name=" + CampaignId + " max=" + Recipe.MaxMatches);
                 _loggedTruncated = true;
             }
         }
@@ -176,12 +180,6 @@ public sealed class ProcessCampaign : IDisposable
     internal static bool IsOpen(ProcessCampaignWindow window, DateTimeOffset now, TimeZoneInfo zone)
     {
         var local = TimeZoneInfo.ConvertTime(now, zone);
-        if (!DayMatches(window.Days, local.DayOfWeek))
-        {
-            if (window.Duration >= TimeSpan.FromDays(1))
-                return DayMatches(window.Days, local.DayOfWeek);
-        }
-
         var start = local.Date + window.StartLocal.ToTimeSpan();
         var end = start + window.Duration;
         if (local >= start && local < end && DayMatches(window.Days, start.DayOfWeek))
@@ -219,7 +217,7 @@ public sealed class ProcessCampaign : IDisposable
         => HelperLog.Information(
             HelperLog.AppIds.Processes,
             VestigiumStatus.Success,
-            HelperLog.Subcategories.Inventory,
+            HelperLog.Subcategories.Campaign,
             line);
 
     internal static ProcessCampaignRecipe Validate(ProcessCampaignRecipe recipe)
@@ -270,7 +268,10 @@ public sealed class ProcessCampaign : IDisposable
     internal static void WriteRecipe(string folder, ProcessCampaignRecipe recipe)
     {
         Directory.CreateDirectory(folder);
-        JsonHelper.WriteFile(Path.Combine(folder, "recipe.json"), recipe);
+        JsonHelper.WriteFile(
+            Path.Combine(folder, "recipe.json"),
+            recipe,
+            new JsonWriteOptions { Collision = JsonCollision.Overwrite });
     }
 
     internal static ProcessCampaignRecipe ReadRecipe(string folder)
