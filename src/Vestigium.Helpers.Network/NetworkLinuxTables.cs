@@ -8,7 +8,6 @@ internal static class NetworkLinuxTables
 {
     public static IReadOnlyDictionary<(TransportProtocol, int, int), int> GetOwnerPids()
     {
-        // Phase 8: do not walk /proc/*/fd for every inode. PID stays null on Linux.
         return new Dictionary<(TransportProtocol, int, int), int>();
     }
 
@@ -25,7 +24,7 @@ internal static class NetworkLinuxTables
     public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
     {
         var rows = new List<NetworkNeighbor>();
-        var path = "/proc/net/arp";
+        var path = NetworkTestHooks.ProcPath("/proc/net/arp");
         if (!File.Exists(path))
             return rows;
         foreach (var line in File.ReadLines(path).Skip(1))
@@ -54,12 +53,12 @@ internal static class NetworkLinuxTables
 
     static void ReadIpv4Routes(List<NetworkRoute> rows)
     {
-        var path = "/proc/net/route";
+        var path = NetworkTestHooks.ProcPath("/proc/net/route");
         if (!File.Exists(path))
             return;
         foreach (var line in File.ReadLines(path).Skip(1))
         {
-            var parts = line.Split('	', StringSplitOptions.RemoveEmptyEntries);
+            var parts = line.Split('\t', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 8)
                 parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 8)
@@ -76,7 +75,7 @@ internal static class NetworkLinuxTables
 
     static void ReadIpv6Routes(List<NetworkRoute> rows)
     {
-        var path = "/proc/net/ipv6_route";
+        var path = NetworkTestHooks.ProcPath("/proc/net/ipv6_route");
         if (!File.Exists(path))
             return;
         foreach (var line in File.ReadLines(path))
