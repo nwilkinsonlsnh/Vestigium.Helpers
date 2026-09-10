@@ -16,7 +16,7 @@
       <StackPanel>
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
         <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.FileIo gallery"/>
-        <TextBlock Opacity="0.7" Text="Recon team · five buckets · UniqueName · Audit Mode · Analytics sizes/rates · ALCOA+"/>
+        <TextBlock Opacity="0.7" Text="Recon · buckets · AnalyzeDirectory · size units · probe write · Analytics"/>
       </StackPanel>
       <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
         <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
@@ -30,6 +30,7 @@
       <TabItem Header="Delete"><ContentControl Content="{Binding Delete}" ContentTemplate="{StaticResource JobTab}"/></TabItem>
       <TabItem Header="Mirror"><ContentControl Content="{Binding Mirror}" ContentTemplate="{StaticResource JobTab}"/></TabItem>
       <TabItem Header="Audit Mode"><ContentControl Content="{Binding Audit}" ContentTemplate="{StaticResource JobTab}"/></TabItem>
+      <TabItem Header="Analyze"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource AnalyzeTab}"/></TabItem>
       <TabItem Header="UniqueName"><ContentControl Content="{Binding Unique}" ContentTemplate="{StaticResource UniqueNameTab}"/></TabItem>
       <TabItem Header="Compare"><ContentControl Content="{Binding Compare}" ContentTemplate="{StaticResource CompareTab}"/></TabItem>
       <TabItem Header="Index"><ContentControl Content="{Binding}" ContentTemplate="{StaticResource IndexTab}"/></TabItem>
