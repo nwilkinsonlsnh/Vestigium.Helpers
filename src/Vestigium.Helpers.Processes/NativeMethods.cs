@@ -48,16 +48,16 @@ internal static class NativeMethods
         ref uint flags,
         int length);
 
-    [DllImport("ntdll.dll")]
-    internal static extern int NtQueryInformationProcess(
+    [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationProcess")]
+    internal static extern int NtQueryProcessBasicInfo(
         nint processHandle,
         int processInformationClass,
         out ProcessBasicInfo processInformation,
         int processInformationLength,
         out int returnLength);
 
-    [DllImport("ntdll.dll")]
-    internal static extern int NtQueryInformationProcess(
+    [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationProcess")]
+    internal static extern int NtQueryProcessProtection(
         nint processHandle,
         int processInformationClass,
         out ProcessProtectionInfo processInformation,
