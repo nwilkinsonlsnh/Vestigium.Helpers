@@ -96,7 +96,10 @@ internal static class ProcessStarter
         var file = HelperGuard.NotBlank(request.FileName, nameof(request.FileName)).Trim();
         var user = HelperGuard.NotBlank(credentials.UserName, nameof(credentials.UserName)).Trim();
         if (credentials.Password is null || credentials.Password.Length == 0)
+        {
+            LogStartAs(file, credentials, request.LogCommandLine, null, false, ProcessStartError.LogonFailed);
             return ProcessStartResult.Fail(ProcessStartError.LogonFailed, "Password is required.");
+        }
 
         var raw = Marshal.SecureStringToGlobalAllocUnicode(credentials.Password);
         var password = Marshal.PtrToStringUni(raw) ?? "";
@@ -128,19 +131,19 @@ internal static class ProcessStarter
                     : code is 2 or 3 ? ProcessStartError.FileNotFound
                     : code == 5 ? ProcessStartError.AccessDenied
                     : ProcessStartError.Unknown;
-                LogStart(file, null, user, false, error);
+                LogStartAs(file, credentials, request.LogCommandLine, null, false, error);
                 return ProcessStartResult.Fail(error, "Win32 " + code);
             }
 
             if (info.Process != nint.Zero) NativeMethods.CloseHandle(info.Process);
             if (info.Thread != nint.Zero) NativeMethods.CloseHandle(info.Thread);
-            LogStart(file, info.ProcessId, user, true);
+            LogStartAs(file, credentials, request.LogCommandLine, info.ProcessId, true, null);
             return ProcessStartResult.Success(info.ProcessId);
         }
         catch (Exception ex)
         {
             var error = MapStart(ex);
-            LogStart(file, null, user, false, error);
+            LogStartAs(file, credentials, request.LogCommandLine, null, false, error);
             return ProcessStartResult.Fail(error, ex.Message);
         }
         finally
@@ -168,6 +171,25 @@ internal static class ProcessStarter
         if (user is not null) line += " user=" + user;
         if (pid is int value) line += " pid=" + value;
         if (error is { } err) line += " error=" + err;
+        HelperLog.Information(
+            HelperLog.AppIds.Processes,
+            ok ? VestigiumStatus.Success : VestigiumStatus.Failed,
+            HelperLog.Subcategories.Inventory,
+            line);
+    }
+
+    private static void LogStartAs(string file, ProcessStartAs credentials, bool logCommandLine, int? pid, bool ok, ProcessStartError? error)
+    {
+        var line =
+            "StartAs file=" + Path.GetFileName(file) +
+            " user=" + credentials.UserName +
+            " domain=" + (string.IsNullOrWhiteSpace(credentials.Domain) ? "-" : credentials.Domain) +
+            " loadProfile=" + credentials.LoadUserProfile +
+            " logon=" + credentials.LogonFlags;
+        if (pid is int value) line += " pid=" + value;
+        if (error is { } err) line += " error=" + err;
+        if (logCommandLine)
+            line += " args=set";
         HelperLog.Information(
             HelperLog.AppIds.Processes,
             ok ? VestigiumStatus.Success : VestigiumStatus.Failed,
