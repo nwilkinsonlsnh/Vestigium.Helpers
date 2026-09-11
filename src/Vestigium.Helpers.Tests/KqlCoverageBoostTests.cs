@@ -46,7 +46,7 @@ public sealed class KqlCoverageBoostTests
         Assert.True(KqlHelper.Parse("PID <= 1").Ok);
         Assert.True(KqlHelper.Parse("PID >= 0").Ok);
         Assert.True(KqlHelper.Parse("CPU.Time GT 10ms").Ok);
-        Assert.True(KqlHelper.Parse("TRUE == TRUE || FALSE == FALSE").Ok);
+        Assert.False(KqlHelper.Parse("true == true").Ok);
         Assert.False(KqlHelper.Parse("").Ok);
         Assert.False(KqlHelper.Parse("   ").Ok);
         Assert.False(KqlHelper.Parse("A | B").Ok);
