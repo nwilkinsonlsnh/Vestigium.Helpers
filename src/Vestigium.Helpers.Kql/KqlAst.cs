@@ -26,6 +26,22 @@ public sealed class KqlComparisonExpression : KqlExpression
     internal KqlField? BoundField { get; set; }
 }
 
+public sealed class KqlInExpression : KqlExpression
+{
+    public required string Field { get; init; }
+    public required IReadOnlyList<KqlLiteral> Values { get; init; }
+    public bool Negated { get; init; }
+    internal KqlField? BoundField { get; set; }
+}
+
+public sealed class KqlBetweenExpression : KqlExpression
+{
+    public required string Field { get; init; }
+    public required KqlLiteral Low { get; init; }
+    public required KqlLiteral High { get; init; }
+    internal KqlField? BoundField { get; set; }
+}
+
 public enum KqlLogicalOp
 {
     And = 0,
