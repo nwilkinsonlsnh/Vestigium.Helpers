@@ -38,6 +38,7 @@ public sealed class ProcessCampaignTests
             Assert.Contains("\"kind\":\"process\"", text);
             Assert.Contains("\"kind\":\"system\"", text);
             Assert.Contains(self.Name, text);
+            Assert.Contains("\"cpuPercent\":", text);
         }
         finally
         {
@@ -45,6 +46,56 @@ public sealed class ProcessCampaignTests
             ProcessTestHooks.Now = null;
             try { Directory.Delete(root, true); } catch { }
         }
+    }
+
+    [Fact]
+    public void Query_only_recipe_creates_and_samples()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "VestigiumProcessCampaigns", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        ProcessTestHooks.CampaignRoot = root;
+        var now = new DateTimeOffset(2026, 9, 10, 8, 1, 0, TimeSpan.FromHours(-4));
+        ProcessTestHooks.Now = () => now;
+        try
+        {
+            var campaign = ProcessHelper.CreateCampaign(new ProcessCampaignRecipe
+            {
+                Name = "query-only",
+                Query = "PID == " + Environment.ProcessId,
+                SampleInterval = TimeSpan.FromMilliseconds(250),
+                IncludeSystemCounters = false,
+                Windows =
+                [
+                    new ProcessCampaignWindow("morning", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)
+                ]
+            });
+
+            campaign.TickOnce();
+            campaign.TickOnce();
+            var text = File.ReadAllText(campaign.SamplePath);
+            Assert.Contains("\"cpuPercent\":", text);
+            Assert.Contains("\"ioReadBytesDelta\":", text);
+            Assert.Contains(Environment.ProcessId.ToString(), text);
+        }
+        finally
+        {
+            ProcessTestHooks.CampaignRoot = null;
+            ProcessTestHooks.Now = null;
+            try { Directory.Delete(root, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Recipe_without_query_or_term_throws()
+    {
+        Assert.Throws<ArgumentException>(() => ProcessHelper.CreateCampaign(new ProcessCampaignRecipe
+        {
+            Name = "empty-filter",
+            Windows =
+            [
+                new ProcessCampaignWindow("morning", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)
+            ]
+        }));
     }
 
     [Fact]
