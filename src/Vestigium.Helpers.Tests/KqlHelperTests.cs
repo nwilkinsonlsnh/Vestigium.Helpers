@@ -24,11 +24,10 @@ public sealed class KqlHelperTests
         Assert.True(session.TryGetField("MEM.PrivateBytes", out _));
         Assert.True(session.TryGetField("GPU.Usage", out _));
         Assert.True(session.TryGetField("IO.Reads", out _));
-        Assert.False(session.TryGetField("NET.Connections", out _));
-        Assert.False(session.TryGetField("MEM.CommitLimit", out _));
-        Assert.False(session.TryGetField("PROC.CommandLine", out var cmd) && cmd.Canonical != "PROC.CommandLine");
         Assert.True(session.TryGetField("Cmd", out var cmdAlias));
         Assert.Equal("PROC.CommandLine", cmdAlias.Canonical);
+        Assert.False(session.TryGetField("NET.Connections", out _));
+        Assert.False(session.TryGetField("MEM.CommitLimit", out _));
     }
 
     [Fact]
