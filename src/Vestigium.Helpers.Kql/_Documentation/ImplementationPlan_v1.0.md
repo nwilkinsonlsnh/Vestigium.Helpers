@@ -1,7 +1,7 @@
 # Vestigium.Helpers.Kql — Phase Implementation Plan
 
 **Document ID:** VEST-HLP-KQL-PLAN-000  
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Active. Build mode follows this file.  
 **Date:** 10 September 2026  
 **Package:** `Vestigium.Helpers.Kql` (product name **KQL**)  
@@ -37,13 +37,15 @@ Progress is the table in §1. Flip a row to **Done** only when its Close gate is
 | Phase | Goal | Status |
 |---|---|---|
 | **0 Paper + scaffold** | APPID `Kql`, slnx, Identity/Probe, Demo skeleton | **Done** |
-| **1 Catalog + session** | Packs, groups, aliases, `KqlHelper.Create`, field lookup | Not started |
-| **2 Parser** | Filter grammar, line/col errors | Not started |
-| **3 Bind + 3VL** | Enabled-field bind, true/false/unknown evaluate | Not started |
-| **4 LIKE + exact warning** | `*` `%` `?` on LIKE only; `==` literals + HelperLog Warning | Not started |
-| **5 Processes host** | `Search(query)`, Watch, Campaign accept a Kql string | Not started |
-| **6 Demo** | Catalog explorer + query box | Not started |
+| **1 Catalog + session** | Packs, groups, aliases, `KqlHelper.Create`, field lookup | **Done** |
+| **2 Parser** | Filter grammar, line/col errors | **Done** |
+| **3 Bind + 3VL** | Enabled-field bind, true/false/unknown evaluate | **Done** |
+| **4 LIKE + exact warning** | `*` `%` `?` on LIKE only; `==` literals + HelperLog Warning | **Done** |
+| **5 Processes host** | `Search(query)`, Watch, Campaign accept a Kql string | **Done** |
+| **6 Demo** | Catalog explorer + query box | **Done** |
 | **7 Harden** | Guide matches engine, sparse log, full tests | Not started |
+
+Companion (not a Kql phase): `VestigiumStatus.Warning` added on `Vestigium.Logging` so Phase 4 warnings compile.
 
 ---
 
@@ -80,47 +82,68 @@ Shipped: `KqlHelper` Identity/Probe, Demo skeleton, slnx, `HelperLog.AppIds.Kql`
 
 ---
 
-## 4. Phase 1 — Catalog and session
+## 4. Phase 1 — Done
 
-Packs, groups, aliases, `Create`. Close gate in v1.0 plan (unchanged).
-
----
-
-## 5. Phase 2 — Parser
-
-Grammar unchanged. No wildcard semantics here.
+`KqlHelper.Create`, packs, groups, aliases, `KqlSession.TryGetField`.
 
 ---
 
-## 6. Phase 3 — Bind and three-valued evaluate
+## 5. Phase 2 — Done
 
-Unchanged.
+`KqlHelper.Parse` → AST or line/column error. Pipe is a parse error. Unknown field names still parse.
 
 ---
 
-## 7. Phase 4 — LIKE matcher, exact literals, warning
+## 6. Phase 3 — Done
+
+`KqlHelper.Compile`, `IKqlRow` / `KqlRow`, Kleene AND/OR, top-level unknown is not a hit.
+
+---
+
+## 7. Phase 4 — Done
+
+LIKE `*` `%` `?`. Exact compare literals + HelperLog Warning when those chars appear. `KqlFixtureRow`.
+
+Requires `VestigiumStatus.Warning` on `Vestigium.Logging` (pulled as a project reference).
+
+---
+
+## 8. Phase 5 — Done
+
+Processes references Kql (not the reverse).
+
+- `ProcessHelper.Search(string query, …)`
+- `ProcessHelper.Watch(string query, …)` → `IProcessQueryWatcher`
+- `ProcessCampaignRecipe.Query` optional; `Match` term/mode still works
+
+---
+
+## 9. Phase 6 — Done
+
+`Vestigium.Helpers.Kql.Demo` is a real gallery: Catalog, Query (compile / fixture / live processes), JSONL. Not a SkeletonWindow. Probe does not parse the query box.
+
+---
+
+## 10. Phase 7 — Harden (next)
 
 **Ship**
 
-- LIKE: `*` and `%` = any run, `?` = one character
-- `==` / `!=` / `<>` do not honor wildcards
-- Compile detects `*` `%` `?` in an exact-compare string and calls HelperLog.Warning as in lock 11
-- `KqlFixtureRow` for tests
+- DevelopersGuide matches the shipped API (`Parse`, `Compile`, packs, LIKE vs `==`)
+- Tests cover parse errors, bind errors, 3VL, LIKE, exact-warning, Processes Search/Campaign query
+- No row values or RHS strings in HelperLog
+- Demo still does not call `VestigiumLogger.Initialize` itself (`HelperWpfHost.Start` only)
+- Kql.csproj still has no reference to Processes
 
 **Close gate**
 
-- `Name LIKE 'CCleaner%'` matches `CCleaner64.exe`
-- `Name == 'CCleaner%'` does **not** match `CCleaner64.exe` (looks for the literal name `CCleaner%`)
-- `Name LIKE '%EDGE%'` matches `msedge`
-- `Name LIKE 'ms?'` matches `ms1`, not `msedge`
-- Compile of `Name == 'CCleaner%'` with a temp `LogDirectory` writes a HelperLog line containing `exact compare treats wildcard chars as literals` and `chars=%`
-- That compile result is still Ok (warning, not Failed)
+- `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Kql` green
+- `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~ProcessKql` green
+- Guide examples compile against the public surface
+- `Vestigium.Helpers.Kql` project references: Helpers only (plus Logging transitively)
 
 ---
 
-## 8–12
-
-Phases 5–7, out-of-plan list, and commands stay as in v1.0.
+## 11. Commands
 
 ```
 dotnet build src/Vestigium.Helpers.Kql/Vestigium.Helpers.Kql.csproj
