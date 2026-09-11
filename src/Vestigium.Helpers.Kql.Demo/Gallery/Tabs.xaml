@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="CatalogTab">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <DockPanel LastChildFill="False" Margin="0,0,0,8">
+        <TextBlock VerticalAlignment="Center" Margin="0,0,12,0" Text="Pack"/>
+        <ComboBox Width="180" ItemsSource="{Binding Packs}" SelectedItem="{Binding SelectedPack}"/>
+        <Button DockPanel.Dock="Right" Content="Probe" Command="{Binding RunProbeCommand}"/>
+        <Button DockPanel.Dock="Right" Content="Reload" Command="{Binding ReloadCatalogCommand}"/>
+      </DockPanel>
+      <ListView Grid.Row="1" ItemsSource="{Binding Fields}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+        <ListView.View>
+          <GridView>
+            <GridViewColumn Header="Canonical" Width="220" DisplayMemberBinding="{Binding Canonical}"/>
+            <GridViewColumn Header="Type" Width="90" DisplayMemberBinding="{Binding Type}"/>
+            <GridViewColumn Header="Group" Width="80" DisplayMemberBinding="{Binding Group}"/>
+            <GridViewColumn Header="Aliases" Width="420" DisplayMemberBinding="{Binding Aliases}"/>
+          </GridView>
+        </ListView.View>
+      </ListView>
+    </Grid>
+  </DataTemplate>
+
+  <DataTemplate x:Key="QueryTab">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <TextBox AcceptsReturn="True" Height="90" TextWrapping="Wrap"
+               FontFamily="Cascadia Mono, Consolas"
+               Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}"/>
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,8">
+        <Button Content="Compile" Command="{Binding CompileQueryCommand}" Style="{StaticResource PrimaryButton}"/>
+        <Button Content="Fixture" Command="{Binding RunFixtureCommand}"/>
+        <Button Content="Live processes" Command="{Binding RunLiveCommand}"/>
+        <TextBox Width="160" Text="{Binding FixtureName, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBox Width="80" Text="{Binding FixturePid, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock VerticalAlignment="Center" Opacity="0.7" Text="{Binding CompileText}"/>
+      </StackPanel>
+      <ListView Grid.Row="2" ItemsSource="{Binding Hits}" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+    </Grid>
+  </DataTemplate>
+</ResourceDictionary>
