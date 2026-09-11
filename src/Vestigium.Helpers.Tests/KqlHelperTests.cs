@@ -26,6 +26,10 @@ public sealed class KqlHelperTests
         Assert.True(session.TryGetField("IO.Reads", out _));
         Assert.True(session.TryGetField("Cmd", out var cmdAlias));
         Assert.Equal("PROC.CommandLine", cmdAlias.Canonical);
+        Assert.True(session.TryGetField("CommandLine", out var commandLine));
+        Assert.Equal("PROC.CommandLine", commandLine.Canonical);
+        Assert.True(session.TryGetField("WindowTitle", out var title));
+        Assert.Equal("PROC.WindowTitle", title.Canonical);
         Assert.False(session.TryGetField("NET.Connections", out _));
         Assert.False(session.TryGetField("MEM.CommitLimit", out _));
     }
