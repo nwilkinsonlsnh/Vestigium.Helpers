@@ -16,7 +16,7 @@ public sealed class ProcessCoverageBoostTests
             ParentPid = 1,
             Name = "app.exe",
             SessionId = 1,
-            ImagePath = @"C:\\Windows\\System32\\app.exe",
+            ImagePath = @"C:\Windows\System32\app.exe",
             ImageType = ProcessImageType.X64,
             Description = "desc",
             CompanyName = "co",
@@ -189,7 +189,7 @@ public sealed class ProcessCoverageBoostTests
     {
         Assert.Equal("n", ProcessImagePath.Normalize(null, "n"));
         Assert.Equal("n", ProcessImagePath.Normalize("  ", "n"));
-        Assert.Contains("System32", ProcessImagePath.Normalize(@"C:\\Windows\\Sysnative\\a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("System32", ProcessImagePath.Normalize(@"C:\Windows\Sysnative\a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("System32", ProcessImagePath.Normalize(@"C:/Windows/SysWOW64/a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
 
         var zone = TimeZoneInfo.Local;
@@ -346,7 +346,7 @@ public sealed class ProcessCoverageBoostTests
         ProcessTestHooks.Now = () => now;
         try
         {
-            var key = ProcessCommentStore.Key(@"C:\\Windows\\System32\\x.exe", "x.exe");
+            var key = ProcessCommentStore.Key(@"C:\Windows\System32\x.exe", "x.exe");
             ProcessCommentStore.Set(key, "hi", persist: true);
             Assert.Equal("hi", ProcessCommentStore.Get(key));
             ProcessCommentStore.Set(key, "  ", persist: true);
