@@ -38,6 +38,42 @@ public static partial class ProcessHelper
         return taken;
     }
 
+    public static IReadOnlyList<ThreadInfo> SearchThreads(int pid, string query)
+    {
+        HelperGuard.InRange(pid, 1, nameof(pid));
+        HelperGuard.NotBlank(query, nameof(query));
+        using var session = KqlHelper.Create(KqlPack.Thread);
+        var compiled = KqlHelper.Compile(query, session);
+        if (!compiled.Ok)
+        {
+            HelperLog.Reject(compiled.Error?.Message ?? "query compile failed");
+            throw new ArgumentException(compiled.Error?.Message ?? "query compile failed", nameof(query));
+        }
+
+        var app = HelperLog.AppIds.Processes;
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Query, "SearchThreads", "pid=" + pid);
+        var hits = ProcessThreadReader.Capture(pid, includeStack: false)
+            .Where(row => compiled.Query!.Matches(new ThreadKqlRow(row)))
+            .ToArray();
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Query, $"SearchThreads pid={pid} hits={hits.Length}");
+        return hits;
+    }
+
+    public static bool MatchSystem(string query)
+    {
+        HelperGuard.NotBlank(query, nameof(query));
+        using var session = KqlHelper.Create(KqlPack.System);
+        var compiled = KqlHelper.Compile(query, session);
+        if (!compiled.Ok)
+        {
+            HelperLog.Reject(compiled.Error?.Message ?? "query compile failed");
+            throw new ArgumentException(compiled.Error?.Message ?? "query compile failed", nameof(query));
+        }
+
+        var counters = GetSystemCounters();
+        return compiled.Query!.Matches(new SystemKqlRow(counters));
+    }
+
     public static IProcessQueryWatcher Watch(string query, TimeSpan interval, ProcessWatchFields fields)
     {
         HelperGuard.NotBlank(query, nameof(query));
