@@ -8,6 +8,7 @@
     <IsPackable>false</IsPackable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationTitle>Vestigium.Helpers.Kql gallery</ApplicationTitle>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -15,5 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers.Gallery\Vestigium.Helpers.Gallery.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Processes\Vestigium.Helpers.Processes.csproj" />
   </ItemGroup>
 </Project>
