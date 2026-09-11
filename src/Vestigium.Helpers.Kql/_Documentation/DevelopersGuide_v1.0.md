@@ -1,15 +1,12 @@
 # Vestigium.Helpers.Kql — Developers Guide
 
 **Document ID:** VEST-HLP-KQL-DEV-000  
-**Version:** 1.1  
-**Status:** Matches the shipped engine  
-**Date:** 10 September 2026  
-**SRS:** [`Requirements_v1.0.md`](Requirements_v1.0.md)  
-**Plan:** [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)  
-**Counters:** [`Counters_v1.0.md`](Counters_v1.0.md)  
-**Logging:** [`Logging_v1.0.md`](Logging_v1.0.md)
+**Version:** 1.2  
+**Status:** Matches the shipped engine (PR02)  
+**Date:** 11 September 2026  
+**SRS:** [`Requirements_v1.0.md`](Requirements_v1.0.md)
 
-TFM `net10.0`. Façade `KqlHelper`. APPID `Kql`. This package does not enumerate processes, services, or counters.
+TFM `net10.0`. Façade `KqlHelper`. APPID `Kql`. This package does not enumerate processes, services, or counters. It does not reference `Vestigium.Helpers.Processes`.
 
 ---
 
@@ -19,10 +16,11 @@ TFM `net10.0`. Façade `KqlHelper`. APPID `Kql`. This package does not enumerate
 using var session = KqlHelper.Create(KqlPack.Process);
 session.TryGetField("CPU.PrivateBytes", out var field);
 // field.Canonical == "MEM.PrivateBytes"
+// field.WatchOnly is true for CPU.Usage and *Delta fields
 ```
 
 `Create` can take several packs or `KqlOptions` (`Packs`, `Groups`).  
-`Groups = None` means the pack defaults. A query cannot see a disabled group.
+`Groups = None` means the pack defaults.
 
 | Pack | Default groups |
 |---|---|
@@ -34,16 +32,19 @@ session.TryGetField("CPU.PrivateBytes", out var field);
 
 Aliases: `PID` → `PROC.Pid`, `Name` → `PROC.Name` (Process) or `SVC.Name` (Service), `CPU.PrivateBytes` / `RAM.PrivateBytes` → `MEM.PrivateBytes`.
 
+Unknown-field compile error:
+
+```text
+unknown field 'PID' on pack=Adapter. enabled (Gpu,Net): GPU.Usage, … +N
+```
+
 ---
 
 ## 2. Parse vs compile
 
 ```csharp
 var parsed = KqlHelper.Parse("(PID == 10 || Name LIKE '%edge%') && GPU.Usage GT 20");
-// Ok even if GPU.Usage is not in this session.
-
 var compiled = KqlHelper.Compile(text, session);
-// Fails if a name is not enabled. Error lists enabled canonical fields.
 ```
 
 `A | where B` is a parse error (`pipe is not supported`).
@@ -52,43 +53,26 @@ var compiled = KqlHelper.Compile(text, session);
 
 ## 3. Evaluate
 
-```csharp
-var row = new KqlFixtureRow(session)
-    .Set("Name", "msedge")
-    .Set("PID", 10);
-
-if (compiled.Query!.Matches(row))   // true only
-    hits.Add(row);
-
-var state = compiled.Query.Evaluate(row);  // True | False | Unknown
-```
-
-Missing, denied, or unsupported values are **unknown**.  
+Missing, denied, unsupported, or blank string values are **unknown** — never `""`.  
 `unknown && false` = false. `unknown || true` = true. Top-level unknown is **not** a hit.
-
-Hosts implement `IKqlRow.Get(canonical)` and return `KqlValue.Unknown` when the cell is empty.
 
 ---
 
-## 4. LIKE vs exact
+## 4. Operators
 
-| Operator | Wildcards `*` `%` `?` |
+| Operator | Notes |
 |---|---|
-| `LIKE` / `NOT LIKE` / `!LIKE` | honored (`*`/`%` = any run, `?` = one char) |
-| `==` `!=` `<>` | **literals** |
+| `==` `!=` `<>` | exact; `*` `%` `?` are literals; warning if those chars appear |
+| `LIKE` / `NOT LIKE` / `!LIKE` | wildcards |
+| `IN ('a','b')` / `NOT IN (...)` | literals only |
+| `BETWEEN 1 AND 3` | inclusive; `AND` not `&&` inside BETWEEN |
+| `GT` `LT` `GE` `LE` `<` `>` | |
 
-`Name LIKE 'CCleaner%'` matches `CCleaner64.exe`.  
-`Name == 'CCleaner%'` matches only the name `CCleaner%`.
-
-If an exact-compare string contains `*` `%` `?`, compile still succeeds and HelperLog writes:
+Type mismatch (no RHS text):
 
 ```text
-exact compare treats wildcard chars as literals field=PROC.Name op=== chars=%
+field=PROC.Pid type=Integer op=== rhs=String
 ```
-
-APPID `Kql`, subcategory `Query`. The RHS string is not logged.
-
-String `==` is ordinal ignore case. Keywords are case-insensitive.
 
 ---
 
@@ -99,23 +83,21 @@ String `==` is ordinal ignore case. Keywords are case-insensitive.
 ```csharp
 ProcessHelper.Search("PID == " + Environment.ProcessId);
 ProcessHelper.Watch("Name LIKE '%EDGE%'", TimeSpan.FromSeconds(1), ProcessWatchFields.All);
+ProcessHelper.SearchThreads(pid, "TID == 12");
+ProcessHelper.MatchSystem("SYS.ProcessCount GT 0");
 
 var campaign = ProcessHelper.CreateCampaign(new ProcessCampaignRecipe
 {
     Name = "edge-mornings",
-    Match = new ProcessSearchRequest { Term = "unused", Mode = ProcessSearchMode.Contains },
-    Query = "Name LIKE '%EDGE%'",
+    Query = "Name LIKE '%EDGE%'",   // Match is optional when Query is set
     Windows = [ new("midnight", new TimeOnly(0, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All) ]
 });
 ```
 
-`Search(term, StartsWith|EndsWith|Contains)` is unchanged. Empty UI box = list-all, not a Kql parse.
+`Search(term, StartsWith|EndsWith|Contains)` is unchanged.
 
 ---
 
 ## 6. Logging
 
-HelperLog only. Never `VestigiumLogger.Initialize` from this library.  
-Demo host: `HelperWpfHost.Start(this, HelperLog.AppIds.Kql)`.
-
-Probe describes the catalog. It does not parse a user query box.
+HelperLog only. Never log RHS strings, command lines, or passwords.

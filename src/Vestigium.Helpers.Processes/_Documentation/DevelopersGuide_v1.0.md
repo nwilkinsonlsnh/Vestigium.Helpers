@@ -1,31 +1,14 @@
 # Vestigium.Helpers.Processes — Developers Guide
 
 **Document ID:** VEST-HLP-PROCESSES-DEV-000  
-**Version:** 1.3  
-**Status:** Companion to accepted SRS v1.2. Matches the engine on `main`.  
-**Date:** 10 September 2026  
+**Version:** 1.4  
+**Status:** Matches the engine on `main` (PR02)  
+**Date:** 11 September 2026  
 **SRS:** [`Requirements_v1.0.md`](Requirements_v1.0.md)  
-**Plan:** [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)  
-**Campaigns:** [`Campaigns_v1.2.md`](Campaigns_v1.2.md)
+**Campaigns:** [`Campaigns_v1.2.md`](Campaigns_v1.2.md)  
+**Backlog:** [`PR02-Rev1-Backlog_Processes.md`](PR02-Rev1-Backlog_Processes.md)
 
-Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Processes/`.
-
-## Current tree
-
-| Path | Role |
-|---|---|
-| `ProcessHelper.cs` | Façade: List / Get / Search / tree / threads / watch / start / kill / campaign |
-| `ProcessSnapshotter.cs` | Slim + full row capture |
-| `ProcessFullReader.cs` | Signer, PE image type, PEB command line, autostart |
-| `ProcessTreeWalker.cs` | Live PPID walk + cycle guard |
-| `ProcessThreadReader.cs` | Thread snapshot |
-| `ProcessWatcher.cs` / `SystemWatcher.cs` | Interval samples, first tick null deltas |
-| `SystemCounterReader.cs` | Commit, physical, kernel, paging, topology |
-| `ProcessGpuCatalog.cs` | GPU Engine / Adapter / Process Memory (750 ms cache) |
-| `ProcessCampaign.cs` | In-process windows + `samples.jsonl` |
-| `../Vestigium.Helpers.Processes.Demo/` | WPF gallery: Processes, Watch, Threads, System, Start/Kill, Campaign, JSONL |
-
-TFM is `net10.0-windows`.
+TFM `net10.0-windows`. Façade `ProcessHelper`. APPID `Processes`.
 
 ## Call shapes
 
@@ -33,53 +16,40 @@ TFM is `net10.0-windows`.
 var rows = ProcessHelper.List();
 var one  = ProcessHelper.Get(pid);
 var hits = ProcessHelper.Search("vestigium", ProcessSearchMode.Contains);
+var kql  = ProcessHelper.Search("(PID == 10 || Name LIKE '%edge%') && GPU.Usage GT 20");
 var tree = ProcessHelper.GetTree(pid);
 var tids = ProcessHelper.GetThreads(pid);
+var some = ProcessHelper.SearchThreads(pid, "TID == 12");
+var hot  = ProcessHelper.MatchSystem("SYS.ProcessCount GT 0");
 
 using var watch = ProcessHelper.Watch(pid, TimeSpan.FromSeconds(1), ProcessWatchFields.All);
-watch.Sampled += (_, sample) => { /* marshal to UI */ };
-
-var started = ProcessHelper.Start(new ProcessStartRequest { FileName = @"C:\Windows\System32\notepad.exe" });
-var killed  = ProcessHelper.Kill(started.Pid);
+using var qwatch = ProcessHelper.Watch("CPU.Usage GT 5", TimeSpan.FromSeconds(1), ProcessWatchFields.All);
 ```
 
-Start-As takes `ProcessStartAs`. Passwords never go through `HelperLog`.
+Kql `Search` upgrades Slim → Full when the AST names a Full field (`CommandLine`, `Description`, …).  
+Term and Kql search sort **Name then Pid** before `maxResults`.
+
+`CPU.Usage` and IO deltas need two samples (query watcher / campaign). First tick is unknown.
+
+## Lifetime
+
+Start-As takes `ProcessStartAs`. Logs `file user domain loadProfile logon`. Never the password.  
+`Kill` / `KillTree` / `KillSearch` skip denylist, PPL, and `IntegrityLevel.Protected`. Confirm does not override. `KillTree` skips `AmbiguousParent` children.
 
 ## Campaign
 
-```csharp
-var campaign = ProcessHelper.CreateCampaign(new ProcessCampaignRecipe
-{
-    Name = "day-parts",
-    Match = new ProcessSearchRequest { Term = "vestigium", Mode = ProcessSearchMode.Contains },
-    SampleInterval = TimeSpan.FromSeconds(1),
-    IncludeSystemCounters = true,
-    Windows =
-    [
-        new("midnight", new TimeOnly(0, 0),  TimeSpan.FromMinutes(10), ProcessCampaignDays.All),
-        new("morning",  new TimeOnly(8, 0),  TimeSpan.FromMinutes(10), ProcessCampaignDays.All),
-        new("noon",     new TimeOnly(12, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All),
-    ]
-});
-campaign.Sampled += (_, tick) => { /* UI; file already appended */ };
-await campaign.RunAsync(cancellation);
-```
+In-process only. Host must stay running. No `schtasks`.
 
-Default disk: `%ProgramData%\Vestigium\Processes\Campaigns\{name}\recipe.json` and `samples.jsonl`.
-Tests set `ProcessTestHooks.CampaignRoot` and optionally `ProcessTestHooks.Now`.
-The host must stay running. This library does not install a scheduled task.
+Need **Query or Match.Term**. If both are set, Query wins (`Campaign query-overrides-match name=…`).
 
-`12:00` is noon. Midnight is `00:00`.
+JSONL process lines include `cpuPercent` and IO/memory deltas (null on the first tick of a window).
+
+## Comments and autostart
+
+Comment persist keys are **SHA-256 of the normalized image path** (SysWOW64/Sysnative → System32, case-folded). The JSON file does not store raw paths as keys.
+
+Autostart is **best-effort**: HKCU/HKLM Run + RunOnce and the user Startup folder. It is not a full Autoruns clone. Missing or unmatched → `None`.
 
 ## Logging
 
-APPID `Processes`. Sparse. Watcher ticks do not write HelperLog sample lines.
-Registered subcategories: `Inventory`, `Process`, `Thread`, `Watch`, `Start`, `Kill`, `System`, `Campaign`, `Jsonl`.
-
-## Native notes
-
-- Slim list: `Process.GetProcesses` plus limited query so protected rows still appear.
-- Missing fields: `Availability` Denied / Unsupported, never fake 0 for GPU.
-- Signer: WinVerifyTrust. No `sigcheck.exe`.
-- Start-As: create-with-logon. No credential UI.
-- Campaign scheduler: in-process only. No `schtasks`.
+APPID `Processes`. Watcher ticks do not write per-sample HelperLog lines. Tick faults log `type=` only.

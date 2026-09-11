@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace Vestigium.Helpers.Processes;
@@ -8,7 +10,13 @@ internal static class ProcessCommentStore
     private static readonly ConcurrentDictionary<string, string> Memory = new(StringComparer.OrdinalIgnoreCase);
 
     internal static string Key(string? imagePath, string name)
-        => ProcessImagePath.Normalize(imagePath, name);
+        => Hash(ProcessImagePath.Normalize(imagePath, name));
+
+    internal static string Hash(string normalized)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalized.ToUpperInvariant()));
+        return Convert.ToHexString(bytes);
+    }
 
     internal static string? Get(string key)
     {
