@@ -19,6 +19,19 @@ internal static class ProcessKiller
         "Secure System", "Memory Compression"
     };
 
+    internal static bool IsGuarded(ProcessInfo row)
+    {
+        if (ProtectedNames.Contains(row.Name) || ProtectedNames.Contains(Path.GetFileNameWithoutExtension(row.Name)))
+            return true;
+        if (row.IntegrityLevel == IntegrityLevel.Protected)
+            return true;
+        if (row.Protection is { } protection
+            && !string.IsNullOrWhiteSpace(protection.Level)
+            && !string.Equals(protection.Level, "None", StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
     internal static ProcessKillResult Kill(int pid, bool force)
     {
         HelperGuard.InRange(pid, 1, nameof(pid));
@@ -26,11 +39,8 @@ internal static class ProcessKiller
         if (row is null)
             return Finish(pid, ProcessKillStatus.Gone, force, "gone");
 
-        if (ProtectedNames.Contains(row.Name) || ProtectedNames.Contains(Path.GetFileNameWithoutExtension(row.Name)))
+        if (IsGuarded(row))
             return Finish(pid, ProcessKillStatus.Denied, force, "protected " + row.Name);
-
-        if (row.Protection is { } protection && !string.Equals(protection.Level, "None", StringComparison.OrdinalIgnoreCase))
-            return Finish(pid, ProcessKillStatus.Denied, force, "protection " + protection.Level);
 
         try
         {
@@ -59,7 +69,16 @@ internal static class ProcessKiller
         var descendants = ProcessTreeWalker.DescendantsOf(pid).OrderByDescending(row => row.Pid).ToArray();
         var results = new List<ProcessKillResult>(descendants.Length + 1);
         foreach (var child in descendants)
+        {
+            if (child.AmbiguousParent)
+            {
+                results.Add(Finish(child.Pid, ProcessKillStatus.Denied, force, "ambiguous parent"));
+                continue;
+            }
+
             results.Add(Kill(child.Pid, force));
+        }
+
         results.Add(Kill(pid, force));
         return results;
     }
