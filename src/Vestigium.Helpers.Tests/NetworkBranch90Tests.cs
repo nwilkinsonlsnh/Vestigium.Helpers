@@ -28,7 +28,7 @@ public sealed class NetworkBranch90Tests
         _ = NetworkHelper.FormatMac(mac);
         _ = NetworkHelper.ToModifiedEui64(mac);
         _ = NetworkHelper.MacFromInteger(1);
-        _ = NetworkHelper.Bandwidth(1, DataUnit.Megabit);
+        _ = NetworkHelper.Bandwidth(1, DataUnit.Mb);
         _ = NetworkHelper.BandwidthSeconds(BandwidthBasis.Days30);
         _ = NetworkHelper.BillP95([1m, 2m, 3m, 4m, 5m]);
     }
