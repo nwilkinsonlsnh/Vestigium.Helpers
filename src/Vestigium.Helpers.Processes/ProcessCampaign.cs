@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Vestigium.Helpers;
 using Vestigium.Helpers.Json;
@@ -14,6 +15,7 @@ public sealed class ProcessCampaign : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly object _file = new();
     private readonly ProcessDeltaMap _deltas = new();
+    private readonly Dictionary<int, IReadOnlyDictionary<string, object?>> _tickExtras = [];
     private int _disposed;
     private HashSet<string> _open = new(StringComparer.OrdinalIgnoreCase);
     private bool _loggedTruncated;
@@ -68,6 +70,7 @@ public sealed class ProcessCampaign : IDisposable
         Stop();
         _cts.Dispose();
         _deltas.Clear();
+        _tickExtras.Clear();
     }
 
     internal void TickOnce()
@@ -82,6 +85,7 @@ public sealed class ProcessCampaign : IDisposable
             State = ProcessCampaignState.Waiting;
             _loggedTruncated = false;
             _deltas.Clear();
+            _tickExtras.Clear();
             return;
         }
 
@@ -133,33 +137,38 @@ public sealed class ProcessCampaign : IDisposable
 
     private IReadOnlyList<ProcessInfo> SearchHits()
     {
-        if (string.IsNullOrWhiteSpace(Recipe.Query))
+        _tickExtras.Clear();
+        if (!string.IsNullOrWhiteSpace(Recipe.Query))
         {
-            return ProcessHelper.Search(
-                Recipe.Match.Term,
-                Recipe.Match.Mode,
-                Recipe.Match.Fields,
-                ProcessDetailLevel.Slim,
-                Recipe.MaxMatches + 1);
+            using var session = KqlHelper.Create(KqlPack.Process);
+            var compiled = KqlHelper.Compile(Recipe.Query, session);
+            if (!compiled.Ok)
+                throw new ArgumentException(compiled.Error?.Message ?? "Query compile failed.", nameof(Recipe.Query));
+
+            var level = ProcessKqlLevel.Resolve(ProcessDetailLevel.Slim, compiled.Query!.Expression, session);
+            var rows = ProcessSnapshotter.Capture(level);
+            var hits = new List<ProcessInfo>();
+            foreach (var row in rows)
+            {
+                var extras = _deltas.Remember(row, Recipe.SampleInterval);
+                _tickExtras[row.Pid] = extras;
+                if (compiled.Query.Matches(new ProcessKqlRow(row, extras)))
+                    hits.Add(row);
+            }
+
+            _deltas.Prune(rows.Select(item => item.Pid).ToHashSet());
+            return hits;
         }
 
-        using var session = KqlHelper.Create(KqlPack.Process);
-        var compiled = KqlHelper.Compile(Recipe.Query, session);
-        if (!compiled.Ok)
-            throw new ArgumentException(compiled.Error?.Message ?? "Query compile failed.", nameof(Recipe.Query));
-
-        var level = ProcessKqlLevel.Resolve(ProcessDetailLevel.Slim, compiled.Query!.Expression, session);
-        var rows = ProcessSnapshotter.Capture(level);
-        var hits = new List<ProcessInfo>();
-        foreach (var row in rows)
-        {
-            var extras = _deltas.Remember(row, Recipe.SampleInterval);
-            if (compiled.Query.Matches(new ProcessKqlRow(row, extras)))
-                hits.Add(row);
-        }
-
-        _deltas.Prune(rows.Select(item => item.Pid).ToHashSet());
-        return hits;
+        var termHits = ProcessHelper.Search(
+            Recipe.Match!.Term,
+            Recipe.Match.Mode,
+            Recipe.Match.Fields,
+            ProcessDetailLevel.Slim,
+            Recipe.MaxMatches + 1);
+        foreach (var row in termHits)
+            _tickExtras[row.Pid] = _deltas.Remember(row, Recipe.SampleInterval);
+        return termHits;
     }
 
     private void WriteLines(DateTimeOffset now, IReadOnlyList<string> open, IReadOnlyList<ProcessInfo> hits, SystemCounters? system)
@@ -169,6 +178,7 @@ public sealed class ProcessCampaign : IDisposable
         var lines = new List<string>(hits.Count + 1);
         foreach (var row in hits)
         {
+            _tickExtras.TryGetValue(row.Pid, out var extras);
             lines.Add(
                 "{" +
                 "\"kind\":\"process\"," +
@@ -179,8 +189,14 @@ public sealed class ProcessCampaign : IDisposable
                 "\"name\":" + JsonSerializer.Serialize(row.Name) + "," +
                 "\"imagePath\":" + JsonSerializer.Serialize(row.ImagePath) + "," +
                 "\"cpuTime\":" + JsonSerializer.Serialize(row.CpuTime?.ToString()) + "," +
+                "\"cpuPercent\":" + Num(Extra(extras, "CPU.Usage") ?? row.CpuPercent) + "," +
                 "\"privateBytes\":" + (row.PrivateBytes?.ToString() ?? "null") + "," +
-                "\"workingSet\":" + (row.WorkingSet?.ToString() ?? "null") +
+                "\"privateBytesDelta\":" + Num(Extra(extras, "MEM.PrivateBytesDelta")) + "," +
+                "\"workingSet\":" + (row.WorkingSet?.ToString() ?? "null") + "," +
+                "\"ioReadBytes\":" + (row.IoReadBytes?.ToString() ?? "null") + "," +
+                "\"ioWriteBytes\":" + (row.IoWriteBytes?.ToString() ?? "null") + "," +
+                "\"ioReadBytesDelta\":" + Num(Extra(extras, "IO.ReadBytesDelta")) + "," +
+                "\"ioWriteBytesDelta\":" + Num(Extra(extras, "IO.WriteBytesDelta")) +
                 "}");
         }
 
@@ -192,7 +208,7 @@ public sealed class ProcessCampaign : IDisposable
                 "\"campaign\":" + JsonSerializer.Serialize(CampaignId) + "," +
                 "\"windows\":[" + windows + "]," +
                 "\"ts\":" + JsonSerializer.Serialize(stamp) + "," +
-                "\"cpuPercent\":" + (system.CpuPercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null") + "," +
+                "\"cpuPercent\":" + Num(system.CpuPercent) + "," +
                 "\"commitCurrent\":" + (system.CommitCurrent?.ToString() ?? "null") + "," +
                 "\"physicalAvailable\":" + (system.PhysicalAvailable?.ToString() ?? "null") +
                 "}");
@@ -203,6 +219,19 @@ public sealed class ProcessCampaign : IDisposable
             Directory.CreateDirectory(Folder);
             File.AppendAllLines(SamplePath, lines);
         }
+    }
+
+    private static object? Extra(IReadOnlyDictionary<string, object?>? extras, string name)
+        => extras is not null && extras.TryGetValue(name, out var value) ? value : null;
+
+    private static string Num(object? value)
+    {
+        return value switch
+        {
+            null => "null",
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? "null",
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"
+        };
     }
 
     private void RaiseWindowChanges(IReadOnlyList<string> open, DateTimeOffset now)
@@ -272,16 +301,27 @@ public sealed class ProcessCampaign : IDisposable
         ProcessHelper.RequireInterval(recipe.SampleInterval);
         HelperGuard.InRange(recipe.MaxMatches, 1, nameof(recipe.MaxMatches));
         HelperGuard.Require(recipe.MaxMatches <= MaxMatchesCap, nameof(recipe.MaxMatches), "MaxMatches cap is 256.");
-        if (!string.IsNullOrWhiteSpace(recipe.Query))
+
+        var query = string.IsNullOrWhiteSpace(recipe.Query) ? null : recipe.Query.Trim();
+        var term = recipe.Match?.Term;
+        var hasTerm = !string.IsNullOrWhiteSpace(term);
+        if (query is null && !hasTerm)
+            throw new ArgumentException("A campaign needs Query or Match.Term.", nameof(recipe));
+
+        if (query is not null)
         {
             using var session = KqlHelper.Create(KqlPack.Process);
-            var compiled = KqlHelper.Compile(recipe.Query, session);
+            var compiled = KqlHelper.Compile(query, session);
             if (!compiled.Ok)
                 throw new ArgumentException(compiled.Error?.Message ?? "Query compile failed.", nameof(recipe.Query));
-        }
-        else
-        {
-            HelperGuard.NotBlank(recipe.Match.Term, nameof(recipe.Match.Term));
+            if (hasTerm)
+            {
+                HelperLog.Information(
+                    HelperLog.AppIds.Processes,
+                    VestigiumStatus.Success,
+                    HelperLog.Subcategories.Campaign,
+                    "Campaign query-overrides-match name=" + Sanitize(name));
+            }
         }
 
         foreach (var window in recipe.Windows)
@@ -295,7 +335,7 @@ public sealed class ProcessCampaign : IDisposable
         {
             Name = Sanitize(name),
             Match = recipe.Match,
-            Query = string.IsNullOrWhiteSpace(recipe.Query) ? null : recipe.Query.Trim(),
+            Query = query,
             Fields = recipe.Fields == 0 ? ProcessWatchFields.All : recipe.Fields,
             IncludeSystemCounters = recipe.IncludeSystemCounters,
             SampleInterval = recipe.SampleInterval,
