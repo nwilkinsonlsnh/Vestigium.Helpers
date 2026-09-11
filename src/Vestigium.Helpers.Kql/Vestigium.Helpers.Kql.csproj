@@ -15,4 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
 </Project>
