@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Vestigium.Helpers;
 using Vestigium.Helpers.Json;
+using Vestigium.Helpers.Kql;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
@@ -82,12 +83,7 @@ public sealed class ProcessCampaign : IDisposable
         }
 
         State = ProcessCampaignState.Sampling;
-        var hits = ProcessHelper.Search(
-            Recipe.Match.Term,
-            Recipe.Match.Mode,
-            Recipe.Match.Fields,
-            ProcessDetailLevel.Slim,
-            Recipe.MaxMatches + 1);
+        var hits = SearchHits();
         var truncated = hits.Count > Recipe.MaxMatches;
         if (truncated)
         {
@@ -116,6 +112,19 @@ public sealed class ProcessCampaign : IDisposable
             System = system,
             Truncated = truncated
         });
+    }
+
+    private IReadOnlyList<ProcessInfo> SearchHits()
+    {
+        if (!string.IsNullOrWhiteSpace(Recipe.Query))
+            return ProcessHelper.Search(Recipe.Query, ProcessDetailLevel.Slim, Recipe.MaxMatches + 1);
+
+        return ProcessHelper.Search(
+            Recipe.Match.Term,
+            Recipe.Match.Mode,
+            Recipe.Match.Fields,
+            ProcessDetailLevel.Slim,
+            Recipe.MaxMatches + 1);
     }
 
     private void WriteLines(DateTimeOffset now, IReadOnlyList<string> open, IReadOnlyList<ProcessInfo> hits, SystemCounters? system)
@@ -228,7 +237,18 @@ public sealed class ProcessCampaign : IDisposable
         ProcessHelper.RequireInterval(recipe.SampleInterval);
         HelperGuard.InRange(recipe.MaxMatches, 1, nameof(recipe.MaxMatches));
         HelperGuard.Require(recipe.MaxMatches <= MaxMatchesCap, nameof(recipe.MaxMatches), "MaxMatches cap is 256.");
-        HelperGuard.NotBlank(recipe.Match.Term, nameof(recipe.Match.Term));
+        if (!string.IsNullOrWhiteSpace(recipe.Query))
+        {
+            using var session = KqlHelper.Create(KqlPack.Process);
+            var compiled = KqlHelper.Compile(recipe.Query, session);
+            if (!compiled.Ok)
+                throw new ArgumentException(compiled.Error?.Message ?? "Query compile failed.", nameof(recipe.Query));
+        }
+        else
+        {
+            HelperGuard.NotBlank(recipe.Match.Term, nameof(recipe.Match.Term));
+        }
+
         foreach (var window in recipe.Windows)
         {
             HelperGuard.NotBlank(window.Name, nameof(window.Name));
@@ -240,6 +260,7 @@ public sealed class ProcessCampaign : IDisposable
         {
             Name = Sanitize(name),
             Match = recipe.Match,
+            Query = string.IsNullOrWhiteSpace(recipe.Query) ? null : recipe.Query.Trim(),
             Fields = recipe.Fields == 0 ? ProcessWatchFields.All : recipe.Fields,
             IncludeSystemCounters = recipe.IncludeSystemCounters,
             SampleInterval = recipe.SampleInterval,
