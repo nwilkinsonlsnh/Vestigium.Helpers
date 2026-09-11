@@ -41,7 +41,6 @@ public sealed class ProcessDeltaTests
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         HelperLog.InitializeHost(HelperLog.AppIds.Processes, cfg => cfg.LogDirectory = dir);
-        ProcessTestHooks.QueryWatchFault = new InvalidOperationException("boom CCleaner% secret");
         try
         {
             using var watch = ProcessHelper.Watch("Name LIKE '%edge%'", TimeSpan.FromMilliseconds(250), ProcessWatchFields.All);
@@ -51,6 +50,7 @@ public sealed class ProcessDeltaTests
                 if (sample.Matches.Count == 0)
                     gotEmpty.Set();
             };
+            ProcessTestHooks.QueryWatchFault = new InvalidOperationException("boom CCleaner% secret");
             Assert.True(gotEmpty.Wait(TimeSpan.FromSeconds(5)));
             Assert.Contains(
                 HelperLog.RecentJsonLines,
