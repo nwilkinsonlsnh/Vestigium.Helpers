@@ -86,6 +86,11 @@ internal sealed class KqlParser
         {
             var token = _current;
             Advance();
+            if (_current.Kind == KqlTokenKind.Like)
+            {
+                throw new KqlParseException(token.Line, token.Column, "expected field name");
+            }
+
             return new KqlNotExpression
             {
                 Operand = ParseNot(),
@@ -119,27 +124,28 @@ internal sealed class KqlParser
 
         var field = _current;
         Advance();
-
         var op = ReadCompareOp();
         var value = ReadLiteral();
         return new KqlComparisonExpression
         {
             Field = field.Text,
-            Op = op.Op,
+            Op = op,
             Value = value,
             Line = field.Line,
             Column = field.Column
         };
     }
 
-    private (KqlCompareOp Op, KqlToken Token) ReadCompareOp()
+    private KqlCompareOp ReadCompareOp()
     {
-        if (_current.Kind == KqlTokenKind.Not && PeekLike())
+        if (_current.Kind == KqlTokenKind.Not)
         {
             var token = _current;
             Advance();
+            if (_current.Kind != KqlTokenKind.Like)
+                throw new KqlParseException(token.Line, token.Column, "expected LIKE after NOT");
             Advance();
-            return (KqlCompareOp.NotLike, token);
+            return KqlCompareOp.NotLike;
         }
 
         var map = _current.Kind switch
@@ -158,17 +164,8 @@ internal sealed class KqlParser
         if (map is null)
             throw Error(_current, "expected comparison operator");
 
-        var current = _current;
         Advance();
-        return (map.Value, current);
-    }
-
-    private bool PeekLike()
-    {
-        // NOT LIKE is two tokens; lexer already consumed NOT as current.
-        // We cannot peek the lexer easily; handle NOT LIKE in ParseComparison
-        // by checking current is Not and next ident is LIKE after advance.
-        return false;
+        return map.Value;
     }
 
     private KqlLiteral ReadLiteral()
@@ -181,7 +178,8 @@ internal sealed class KqlParser
                 return new KqlLiteral { Type = KqlType.String, Value = token.Text };
             case KqlTokenKind.Number:
                 Advance();
-                if (token.Text.Contains('.') && double.TryParse(token.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var real))
+                if (token.Text.Contains('.')
+                    && double.TryParse(token.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var real))
                     return new KqlLiteral { Type = KqlType.Number, Value = real };
                 if (long.TryParse(token.Text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var whole))
                     return new KqlLiteral { Type = KqlType.Integer, Value = whole };
