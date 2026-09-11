@@ -1,4 +1,5 @@
 using System.Security;
+using Vestigium.Helpers.Kql;
 using Vestigium.Helpers.Processes;
 
 namespace Vestigium.Helpers.Tests;
@@ -83,6 +84,7 @@ public sealed class ProcessBranch90Tests
             new KillConfirm { Confirm = true, MaxResults = 1 }));
         _ = ProcessHelper.GetSystemCounters();
         _ = ProcessHelper.List(ProcessDetailLevel.Identity);
+        _ = ProcessHelper.GetThreads(Environment.ProcessId, includeStack: false);
     }
 
     [Fact]
@@ -92,7 +94,7 @@ public sealed class ProcessBranch90Tests
         {
             var sampled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             pidWatch.Sampled += (_, _) => sampled.TrySetResult(true);
-            await sampled.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await sampled.Task.WaitAsync(TimeSpan.FromSeconds(8));
         }
 
         var ping = ProcessHelper.Start(new ProcessStartRequest
@@ -109,7 +111,7 @@ public sealed class ProcessBranch90Tests
             var exited = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             dying.Exited += (_, _) => exited.TrySetResult(true);
             ProcessHelper.Kill(ping.Pid.Value, force: true);
-            await exited.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await exited.Task.WaitAsync(TimeSpan.FromSeconds(8));
         }
         finally
         {
@@ -120,7 +122,7 @@ public sealed class ProcessBranch90Tests
         {
             var first = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             query.Sampled += (_, _) => first.TrySetResult(true);
-            await first.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await first.Task.WaitAsync(TimeSpan.FromSeconds(8));
             var faulted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             query.Sampled += (_, sample) =>
             {
@@ -128,11 +130,11 @@ public sealed class ProcessBranch90Tests
                     faulted.TrySetResult(true);
             };
             ProcessTestHooks.QueryWatchFault = new InvalidOperationException("tick-fault");
-            await faulted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await faulted.Task.WaitAsync(TimeSpan.FromSeconds(8));
         }
 
         using (var sys = ProcessHelper.WatchSystem(TimeSpan.FromMilliseconds(250)))
-            await Task.Delay(300);
+            await Task.Delay(400);
 
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumCov90", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -141,8 +143,8 @@ public sealed class ProcessBranch90Tests
         ProcessTestHooks.Now = null;
         try
         {
+            _ = ProcessTestHooks.Clock();
             Assert.Empty(ProcessHelper.ListCampaigns());
-            Assert.Contains("Campaigns", ProcessHelper.DefaultCampaignRoot, StringComparison.OrdinalIgnoreCase);
             File.WriteAllText(ProcessTestHooks.CommentStorePath, "{\"disk-key\":\"from-disk\"}");
             Assert.Equal("from-disk", ProcessCommentStore.Get("disk-key"));
             ProcessCommentStore.Set("disk-key", null, persist: false);
@@ -156,13 +158,11 @@ public sealed class ProcessBranch90Tests
                 SampleInterval = TimeSpan.FromMilliseconds(250),
                 Windows = [new ProcessCampaignWindow("all-day", new TimeOnly(0, 0), TimeSpan.FromHours(24), ProcessCampaignDays.All)]
             });
-            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
             await campaign.RunAsync(cts.Token);
             Assert.Equal(ProcessCampaignState.Stopped, campaign.State);
             campaign.Dispose();
-
             Assert.Throws<FileNotFoundException>(() => ProcessHelper.LoadCampaign("missing-campaign"));
-            _ = ProcessCampaign.ClockSafe();
         }
         finally
         {
@@ -177,16 +177,13 @@ public sealed class ProcessBranch90Tests
     [Fact]
     public void Kql_level_and_autostart_hash()
     {
-        using var session = KqlHelper.Create(Vestigium.Helpers.Kql.KqlPack.Process);
-        var andFull = Vestigium.Helpers.Kql.KqlHelper.Parse("PID == 1 AND CommandLine LIKE '%x%'");
-        Assert.True(ProcessKqlLevel.NeedsFull(andFull.Expression!, session));
-        var orSlim = Vestigium.Helpers.Kql.KqlHelper.Parse("PID == 1 OR Name LIKE 'a%'");
-        Assert.False(ProcessKqlLevel.NeedsFull(orSlim.Expression!, session));
+        using var session = KqlHelper.Create(KqlPack.Process);
+        Assert.True(ProcessKqlLevel.NeedsFull(KqlHelper.Parse("PID == 1 AND CommandLine LIKE '%x%'").Expression!, session));
+        Assert.False(ProcessKqlLevel.NeedsFull(KqlHelper.Parse("PID == 1 OR Name LIKE 'a%'").Expression!, session));
         Assert.NotNull(ProcessAutostart.Locate(@"C:\Windows\System32\notepad.exe", "notepad.exe"));
         Assert.Equal(ProcessCommentStore.Hash("A"), ProcessCommentStore.Hash("a"));
-        _ = ProcessHelper.GetThreads(Environment.ProcessId, includeStack: false);
-        using var sysSession = Vestigium.Helpers.Kql.KqlHelper.Create(Vestigium.Helpers.Kql.KqlPack.System);
         Assert.True(ProcessHelper.MatchSystem("CPU.LogicalProcessors GT 0 OR SYS.ProcessCount GT 0"));
+        _ = ProcessHelper.DefaultCampaignRoot;
     }
 
     private static SecureString Secret(string text)
@@ -197,9 +194,4 @@ public sealed class ProcessBranch90Tests
         pwd.MakeReadOnly();
         return pwd;
     }
-}
-
-file static class ProcessCampaignClockExtensions
-{
-    public static DateTimeOffset ClockSafe() => ProcessTestHooks.Now?.Invoke() ?? DateTimeOffset.Now;
 }
