@@ -87,9 +87,7 @@ internal sealed class KqlParser
             var token = _current;
             Advance();
             if (_current.Kind == KqlTokenKind.Like)
-            {
                 throw new KqlParseException(token.Line, token.Column, "expected field name");
-            }
 
             return new KqlNotExpression
             {
@@ -117,13 +115,39 @@ internal sealed class KqlParser
         return ParseComparison();
     }
 
-    private KqlComparisonExpression ParseComparison()
+    private KqlExpression ParseComparison()
     {
         if (_current.Kind != KqlTokenKind.Ident)
             throw Error(_current, "expected field name");
 
         var field = _current;
         Advance();
+        if (_current.Kind == KqlTokenKind.In)
+            return ParseIn(field, negated: false);
+        if (_current.Kind == KqlTokenKind.Between)
+            return ParseBetween(field);
+        if (_current.Kind == KqlTokenKind.Not)
+        {
+            var not = _current;
+            Advance();
+            if (_current.Kind == KqlTokenKind.In)
+                return ParseIn(field, negated: true);
+            if (_current.Kind == KqlTokenKind.Like)
+            {
+                Advance();
+                return new KqlComparisonExpression
+                {
+                    Field = field.Text,
+                    Op = KqlCompareOp.NotLike,
+                    Value = ReadLiteral(),
+                    Line = field.Line,
+                    Column = field.Column
+                };
+            }
+
+            throw new KqlParseException(not.Line, not.Column, "expected LIKE or IN after NOT");
+        }
+
         var op = ReadCompareOp();
         var value = ReadLiteral();
         return new KqlComparisonExpression
@@ -131,6 +155,51 @@ internal sealed class KqlParser
             Field = field.Text,
             Op = op,
             Value = value,
+            Line = field.Line,
+            Column = field.Column
+        };
+    }
+
+    private KqlInExpression ParseIn(KqlToken field, bool negated)
+    {
+        Advance();
+        if (_current.Kind != KqlTokenKind.LParen)
+            throw Error(_current, "expected '(' after IN");
+        Advance();
+        var values = new List<KqlLiteral>();
+        values.Add(ReadLiteral());
+        while (_current.Kind == KqlTokenKind.Comma)
+        {
+            Advance();
+            values.Add(ReadLiteral());
+        }
+
+        if (_current.Kind != KqlTokenKind.RParen)
+            throw Error(_current, "expected ')' after IN list");
+        Advance();
+        return new KqlInExpression
+        {
+            Field = field.Text,
+            Values = values,
+            Negated = negated,
+            Line = field.Line,
+            Column = field.Column
+        };
+    }
+
+    private KqlBetweenExpression ParseBetween(KqlToken field)
+    {
+        Advance();
+        var low = ReadLiteral();
+        if (_current.Kind != KqlTokenKind.And)
+            throw Error(_current, "expected AND in BETWEEN");
+        Advance();
+        var high = ReadLiteral();
+        return new KqlBetweenExpression
+        {
+            Field = field.Text,
+            Low = low,
+            High = high,
             Line = field.Line,
             Column = field.Column
         };
