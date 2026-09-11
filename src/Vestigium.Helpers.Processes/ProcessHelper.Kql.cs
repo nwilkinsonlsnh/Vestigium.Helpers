@@ -23,19 +23,20 @@ public static partial class ProcessHelper
             throw new ArgumentException(compiled.Error?.Message ?? "query compile failed", nameof(query));
         }
 
+        var capture = ProcessKqlLevel.Resolve(level, compiled.Query!.Expression, session);
         var app = HelperLog.AppIds.Processes;
-        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Query, "Search", "kql max=" + maxResults);
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Query, "Search", $"kql max={maxResults} level={capture}");
         var hits = new List<ProcessInfo>();
-        foreach (var row in ProcessSnapshotter.Capture(level))
+        foreach (var row in ProcessSnapshotter.Capture(capture))
         {
-            if (!compiled.Query!.Matches(new ProcessKqlRow(row)))
+            if (!compiled.Query.Matches(new ProcessKqlRow(row)))
                 continue;
             hits.Add(row);
             if (hits.Count >= maxResults)
                 break;
         }
 
-        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Query, $"Search kql hits={hits.Count} max={maxResults}");
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Query, $"Search kql hits={hits.Count} max={maxResults} level={capture}");
         return hits;
     }
 

@@ -1,3 +1,4 @@
+using Vestigium.Helpers.Kql;
 using Vestigium.Helpers.Processes;
 
 namespace Vestigium.Helpers.Tests;
@@ -19,6 +20,44 @@ public sealed class ProcessKqlTests
         Assert.NotNull(self);
         var hits = ProcessHelper.Search("Name LIKE '%" + Path.GetFileNameWithoutExtension(self.Name) + "%'");
         Assert.Contains(hits, row => row.Pid == Environment.ProcessId);
+    }
+
+    [Fact]
+    public void Description_like_matches_bound_row()
+    {
+        using var session = KqlHelper.Create(KqlPack.Process);
+        var compiled = KqlHelper.Compile("Description LIKE '%'", session);
+        Assert.True(compiled.Ok, compiled.Error?.ToString());
+        var row = new ProcessKqlRow(new ProcessInfo { Pid = 1, Name = "app.exe", Description = "Widget Host" });
+        Assert.True(compiled.Query!.Matches(row));
+    }
+
+    [Fact]
+    public void Missing_window_title_does_not_match_empty_string()
+    {
+        using var session = KqlHelper.Create(KqlPack.Process);
+        var compiled = KqlHelper.Compile("WindowTitle == ''", session);
+        Assert.True(compiled.Ok, compiled.Error?.ToString());
+        var row = new ProcessKqlRow(new ProcessInfo { Pid = 1, Name = "app.exe", WindowTitle = null });
+        Assert.False(compiled.Query!.Matches(row));
+        Assert.Equal(KqlTriState.Unknown, compiled.Query.Evaluate(row));
+    }
+
+    [Fact]
+    public void Command_line_query_upgrades_to_full()
+    {
+        using var session = KqlHelper.Create(KqlPack.Process);
+        var parsed = KqlHelper.Parse("CommandLine LIKE '%dotnet%'");
+        Assert.True(parsed.Ok, parsed.Error?.ToString());
+        Assert.True(ProcessKqlLevel.NeedsFull(parsed.Expression!, session));
+        Assert.False(ProcessKqlLevel.NeedsFull(KqlHelper.Parse("PID == 1").Expression!, session));
+    }
+
+    [Fact]
+    public void Search_command_line_query_does_not_throw()
+    {
+        var hits = ProcessHelper.Search("CommandLine LIKE '%dotnet%'", ProcessDetailLevel.Slim, 64);
+        Assert.NotNull(hits);
     }
 
     [Fact]
