@@ -1,7 +1,7 @@
 # PR02-Rev1 — Processes & Kql Library Backlog
 
 **Document ID:** VEST-HLP-PRC-PR02-REV1  
-**Version:** 1.7  
+**Version:** 1.8  
 **Status:** Active.  
 **Date:** 11 September 2026  
 **Scope:** Processes + Kql libraries only.
@@ -14,7 +14,7 @@
 | **D Campaign** | Processes | Optional Match; richer JSONL | **Done** |
 | **E Safety** | Processes | KillTree/KillSearch + search order | **Done** |
 | **F Rows** | Processes | Thread + system `IKqlRow` | **Done** |
-| **G Completeness** | both | IN/BETWEEN, type-mismatch, WOW64, Start-As | Not started |
+| **G Completeness** | both | IN/BETWEEN, type-mismatch, WOW64, Start-As | **Done** |
 | **H Harden** | both | Guides and tests | Not started |
 
-Phase F: `ThreadKqlRow` / `SystemKqlRow`. `ProcessHelper.SearchThreads(pid, query)` uses `KqlPack.Thread`. `ProcessHelper.MatchSystem(query)` uses `KqlPack.System`.
+Phase G: `Name IN ('a','b')`, `NOT IN`, `MEM.PrivateBytes BETWEEN 1 AND 3`. Type errors `field= type= op= rhs=` with no RHS text. Comment/Autostart keys normalize SysWOW64/Sysnative → System32. StartAs logs `file user domain loadProfile logon` never the password.
