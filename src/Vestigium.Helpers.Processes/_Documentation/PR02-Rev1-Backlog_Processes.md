@@ -1,28 +1,26 @@
 # PR02-Rev1 — Processes & Kql Library Backlog
 
 **Document ID:** VEST-HLP-PRC-PR02-REV1  
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Active. Build mode follows this file.  
 **Date:** 11 September 2026  
 **Scope:** `Vestigium.Helpers.Processes` and `Vestigium.Helpers.Kql` **libraries only**  
 **Out of scope:** Demo galleries, Vestigium product hosts, Services / Network / Charts UI  
 **Parent:** Processes [`Requirements_v1.0.md`](Requirements_v1.0.md), Kql [`Requirements_v1.0.md`](../../Vestigium.Helpers.Kql/_Documentation/Requirements_v1.0.md)
 
-PR01 shipped Processes v1 and Kql v1 (catalog, parser, 3VL, LIKE, host Search/Watch/Campaign, harden).  
-PR02 closes the gaps that make a compiled query evaluate empty on a live table.
-
-Other helper libraries (Services, Network, …) may add Kql catalog fields later. That work is **not** this PR. When it happens, add a row to §6 and open a new PR.
+PR01 shipped Processes v1 and Kql v1.  
+PR02 closes library gaps so a compiled query can evaluate on a live table. No Demo work.
 
 ---
 
 ## 0. How build mode uses this file
 
 1. One phase at a time. Flip **Done** only when that phase's Close gate is green on `main`.
-2. Commit form: `PR02 phase N: <short goal>`.
-3. Do not change Demo projects unless a library test host is required. No gallery tabs, no XAML.
+2. Commit form: `PR02 phase X: <short goal>`.
+3. Do not change Demo projects. No gallery tabs, no XAML.
 4. `Vestigium.Helpers.Kql` must not reference Processes / Services / Network.
-5. Processes may reference Kql (already does).
-6. HelperLog only. Never log passwords, command lines unless the caller set `LogCommandLine`, row values, or Kql RHS strings.
+5. Processes may reference Kql.
+6. HelperLog only. Never log passwords, command lines unless `LogCommandLine`, row values, or Kql RHS strings.
 7. If this file and the SRS disagree, the SRS wins after a written lock change here.
 
 ---
@@ -37,11 +35,12 @@ Other helper libraries (Services, Network, …) may add Kql catalog fields later
 | **D Campaign** | Processes | `Match` optional when `Query` set; JSONL carries watcher counters | Not started |
 | **E Safety** | Processes | KillTree/KillSearch honor protection + PID reuse; search order | Not started |
 | **F Rows** | Processes | Thread row + system row as `IKqlRow` | Not started |
-| **G Harden** | both | Tests, guides, no new Demo work | Not started |
+| **G Completeness** | both | `IN`/`BETWEEN`, type-mismatch copy, WOW64 path, Start-As audit | Not started |
+| **H Harden** | both | Tests, guides, comment-key hash, no Demo work | Not started |
 
 ---
 
-## 2. Locks (do not debate in build mode)
+## 2. Locks
 
 | # | Lock |
 |---|---|
@@ -51,155 +50,132 @@ Other helper libraries (Services, Network, …) may add Kql catalog fields later
 | 4 | Slim `List` stays the cheap default. Kql `Search` may take Full when the AST needs it. |
 | 5 | GPU missing → `Unsupported` / unknown. Never write `0`. |
 | 6 | Protected / Critical / denylist processes are never killed by a wide query, even with `Confirm`. |
-| 7 | Campaign remains in-process. Host must stay alive. Document, do not pretend it is Task Scheduler. |
+| 7 | Campaign remains in-process. Host must stay alive. |
 | 8 | No regex. No Azure Kusto pipes. |
-| 9 | `IN` / `BETWEEN` are **not** this PR unless Phase A finishes early and the catalog is stable. Parked in §5. |
-| 10 | Tests inject nothing into ProgramData except existing comment/campaign hooks under temp roots. |
+| 9 | `IN` / `BETWEEN` ship in **Phase G**. Literals only. No subqueries. |
+| 10 | Tests inject nothing into ProgramData except existing hooks under temp roots. |
+| 11 | Start-As never logs the password. `LogCommandLine` defaults false for Start-As. |
+| 12 | Comment and Autostart keys use a normalized image path (WOW64-aware). |
 
 ---
 
-## 3. Backlog (source of phases)
+## 3. Backlog
 
 ### 3.1 Kql
 
 | Pri | ID | Gap | Why it bites | Phase |
 |---|---|---|---|---|
-| P1 | K1 | Catalog missing Full process fields | Description, Version, Signer, Package, Autostart, Comment, WindowStatus, DEP, ASLR, CFG, Stack, Protection, DPI, UI Access, Virtualized, EnterpriseContext cannot be queried | A |
+| P1 | K1 | Catalog missing Full process fields | Cannot query Description / Signer / mitigations | A |
 | P1 | K2 | Bind error lists every enabled field | Hosts cannot show why `PID` failed | A |
-| P3 | K3 | No watch-only flag on a field | `CPU.Usage` looks like a snapshot column | A |
-| P2 | K4 | Empty string vs unknown not documented on `KqlValue` | Hosts bind `""` for missing WindowTitle | A (docs + helper) |
-| P2 | K5 | No built-in system/thread row type | Packs exist; hosts invent shape | F (Processes supplies rows; Kql stays generic `IKqlRow`) |
-| P3 | K6 | `IN` / `BETWEEN` | Parked | §5 |
+| P3 | K3 | No watch-only flag | `CPU.Usage` looks like a snapshot column | A |
+| P2 | K4 | Empty string vs unknown | Hosts bind `""` for missing WindowTitle | A |
+| P2 | K5 | No system/thread row type in Kql | Packs exist; hosts invent shape | F (Processes `IKqlRow`; Kql stays generic) |
+| P3 | K6 | `IN` / `BETWEEN` | PID sets and ranges are noisy OR-chains | **G** |
+| P3 | K7 | Type-mismatch message names field, not intent | `PID LIKE '%10%'` fails with prose hosts cannot parse | **G** |
 
 ### 3.2 Processes
 
 | Pri | ID | Gap | Why it bites | Phase |
 |---|---|---|---|---|
 | P0 | P1 | Query watcher drops previous sample | `CPU.Usage GT 20` never hits | C |
-| P0 | P2 | `Search(query)` always Slim | GPU / command line / signer queries compile and return nothing | B |
-| P0 | P3 | `ProcessKqlRow` thin | Full snapshot fields never reach Kql | B |
+| P0 | P2 | `Search(query)` always Slim | GPU / command line queries return nothing | B |
+| P0 | P3 | `ProcessKqlRow` thin | Full snapshot never reaches Kql | B |
 | P1 | P4 | `Match` required when `Query` set | Dummy term in every recipe | D |
 | P1 | P5 | Campaign JSONL is a stub | Cannot chart a window later | D |
 | P1 | P6 | Query watcher swallows tick exceptions | Sampler death looks like zero hits | C |
-| P1 | P7 | Search cap is encounter-order | `LIKE '%.exe'` truncates wherever `GetProcesses` walked | E |
+| P1 | P7 | Search cap is encounter-order | Truncation depends on `GetProcesses` order | E |
 | P2 | P8 | KillTree / KillSearch vs PID reuse and PPL | Wrong tree or a wide LIKE | E |
-| P2 | P9 | GPU instance mapping | PID recycle → 0% looks like a hit | C (keep Unsupported) |
+| P2 | P9 | GPU instance mapping | PID recycle → 0% looks like a hit | C |
 | P2 | P10 | Session 0 title bound as `""` | `WindowTitle` predicates lie | B |
-| P2 | P11 | Comment key path-only | Two command lines, one comment | G (hash optional, SRS §3.13) |
+| P2 | P11 | Comment key path-only | Two command lines, one comment | H |
 | P2 | P12 | Thread list not an `IKqlRow` | `KqlPack.Thread` unused | F |
 | P2 | P13 | System counters not an `IKqlRow` | Cannot `MEM.PhysicalPercent GT 90` | F |
-| P3 | P14 | Full list handle pressure | Already mitigated by Slim default; do not change List default | — |
-| P3 | P15 | Campaign in-process only | Accepted; document in Campaigns + D | D |
+| P2 | P16 | WOW64 path vs ImageType | `System32`/`SysWOW64` merge two images on comments and Autostart | **G** |
+| P3 | P17 | Start-As audit | Password or command line can leak into HelperLog | **G** |
+| P3 | P14 | Full list handle pressure | Slim default stays | — |
+| P3 | P15 | Campaign in-process only | Document in D + H | D, H |
+| P3 | P18 | Autostart completeness | Best-effort only; stay `None`/`Unsupported` | H (docs) |
+
+### 3.3 Cross-cutting
+
+| Pri | ID | Gap | Why it bites | Phase |
+|---|---|---|---|---|
+| P1 | X1 | Watch-only unmarked and uncomputed | Valid Kql is permanently unknown | A + C |
+| P2 | X2 | Pack vs field (`PID` on Adapter) | Correct compile error; Process search stays Process pack | lock 4 |
 
 ---
 
 ## 4. Phases
 
-### Phase A — Kql catalog (library `Vestigium.Helpers.Kql`)
+### Phase A — Kql catalog
 
-**Ship**
+Unchanged from v1.0: Full process fields, `WatchOnly`, bind-error shape, empty vs unknown on `KqlValue`.
 
-- Add Process-pack fields (string unless noted):
-  - `PROC.Description`, `PROC.Version`, `PROC.Signer` (publisher string), `PROC.SignerTrust`, `PROC.Package`, `PROC.Autostart`, `PROC.Comment`, `PROC.WindowStatus`
-  - `PROC.Dep`, `PROC.Aslr` (bool), `PROC.Cfg`, `PROC.StackProtection`, `PROC.Protection`, `PROC.Dpi`, `PROC.UiAccess` (bool), `PROC.Virtualized` (bool), `PROC.EnterpriseContext`
-- Aliases: `Description`, `Version`, `Signer`, `Package`, `Comment`
-- Optional `KqlField.WatchOnly` (bool). Set on `CPU.Usage`, `CPU.TimeDelta`, `MEM.*Delta`, `IO.*Delta`, `GPU.Usage` when those names already exist.
-- Bind error format: `unknown field '{name}' on pack={packs}. enabled ({group}): {up to 12 names} … +{rest}`.
-- `KqlValue` XML / guide: missing string → `Unknown`, not `""`.
+### Phase B — Bind
 
-**Close gate**
-
-- `Create(Process).TryGetField("Description")` → `PROC.Description`
-- `Create(Service)` still rejects `PROC.Description`
-- `Compile("Nope == 1", Process)` message contains `pack=Process` and does not dump the entire catalog as one undifferentiated blob
-- Kql.csproj still references only Helpers
-
-### Phase B — Bind (library `Vestigium.Helpers.Processes`)
-
-**Ship**
-
-- `ProcessKqlRow` maps every Phase A field from `ProcessInfo`. Null / Denied / Unsupported → `KqlValue.Unknown`. Do not bind empty window title as `""`.
-- `Search(string query, …)` inspects the bound AST:
-  - identity/resource-only → Slim is enough
-  - any Full-only field → capture Full
-- Keep the `Search(term, mode, …)` overload unchanged.
-
-**Close gate**
-
-- Fixture/live row with `Description` set matches `Description LIKE '%'`
-- Missing `WindowTitle` does not match `WindowTitle == ''`
-- `Search("CommandLine LIKE '%dotnet%'")` can see command lines the token is allowed to read (skip assertion if Denied on the host)
+Unchanged: full `ProcessKqlRow`, Kql Search takes Full when the AST needs it, missing WindowTitle is unknown.
 
 ### Phase C — Tempo
 
-**Ship**
+Unchanged: previous-sample map on query watcher and campaign ticks; log tick failures; GPU never coerced to 0.
 
-- `ProcessQueryWatcher` keeps `pid → previous ProcessInfo` (or raw CpuTime + I/O counters).
-- Second tick onward fills `CpuPercent` and I/O / memory deltas; bind those into `ProcessKqlRow` extras.
-- Campaign `TickOnce` uses the same previous-sample map while a window stays open. Clear the map when the window closes.
-- Tick exceptions: HelperLog Warning (APPID Processes, subcategory Watch or Campaign), then raise `Sampled` with `Matches = []` only after logging. Do not swallow silently.
-- GPU: if the catalog instance is missing, leave unknown. Never coerce to 0.
+### Phase D — Campaign
 
-**Close gate**
+Unchanged: optional `Match` when `Query` set; richer JSONL; in-process note.
 
-- Two synthetic samples: first `CPU.Usage GT 0` is not a hit; second with increased `CpuTime` is a hit.
-- A thrown sampler logs a Warning line that does not include command line or query RHS.
+### Phase E — Safety
 
-### Phase D — Campaign recipe + JSONL
-
-**Ship**
-
-- `ProcessSearchRequest? Match` (optional). Validate: `Query` or (`Match` + term), not both required.
-- If both set, **Query wins**. Log one Information line `Campaign query-overrides-match name=...` (no term, no query body).
-- JSONL process line adds: `cpuPercent`, `ioReadBytes`, `ioWriteBytes`, `ioReadBytesDelta`, `ioWriteBytesDelta`, `privateBytesDelta` when known.
-- Campaigns doc states: in-process only; host process must be running.
-
-**Close gate**
-
-- Recipe with only `Query` + windows creates and samples.
-- Recipe with neither Query nor term throws.
-- Sample file contains `cpuPercent` after two ticks inside a window (may be null on tick 1).
-
-### Phase E — Safety and search order
-
-**Ship**
-
-- `KillTree` / `KillSearch` skip denylist + Protected + Critical. Result `Denied` per PID. Confirm does not override.
-- Skip a child whose `AmbiguousParent` is true.
-- Kql and term search: when hitting `maxResults`, sort by Name then Pid before take so truncation is stable.
-
-**Close gate**
-
-- Unit test: denylist name is Denied even with Confirm.
-- Two searches with the same query + cap return the same PID set (stable sort).
+Unchanged: denylist / PPL / `AmbiguousParent`; stable Name+Pid sort before `maxResults`.
 
 ### Phase F — Other rows
 
-**Ship**
+Unchanged: `ThreadKqlRow`, `SystemKqlRow`, `SearchThreads`, `MatchSystem`.
 
-- `ThreadKqlRow` from `ThreadInfo` for `THR.*` + thread CPU.
-- `SystemKqlRow` from `SystemCounters` for SYS / MEM / CPU topology / IO deltas already on that type.
-- `ProcessHelper.SearchThreads(int pid, string query)` and `ProcessHelper.MatchSystem(string query)` — small façade, no Demo.
+### Phase G — Completeness (was parked leftovers)
+
+**Ship — Kql**
+
+- Grammar (filter dialect only):
+  - `field IN (literal, literal, …)` — same type as the field; empty list is a compile error
+  - `field BETWEEN low AND high` — numeric / timespan / datetime; inclusive; `low` and `high` literals
+  - Keywords case-insensitive. No subqueries. No `IN` of identifiers.
+- Type-mismatch error shape:
+  - `type mismatch field={canonical} type={KqlType} op={op} rhs={rhsKind}`
+  - Example: `type mismatch field=PROC.Pid type=Integer op=LIKE rhs=string`
+  - Still no RHS string value in the log or the message.
+
+**Ship — Processes**
+
+- Normalize image path for comment key and Autostart lookup:
+  - If ImageType is X86 on a 64-bit OS and path contains `\System32\`, also consider `\SysWOW64\` (and the reverse) as the same image key.
+  - Store the normalized path + optional command-line hash hook used in H.
+- Start-As:
+  - Password never appears in HelperLog (assert on RecentJsonLines in tests).
+  - `LogCommandLine` defaults **false** on Start-As. When false, arguments are not logged.
+  - Credential object is not retained after `CreateProcess` returns.
 
 **Close gate**
 
-- `GetThreads` + `TID == {known}` returns that thread when the token can read it.
-- `MatchSystem("SYS.ProcessCount GT 0")` is true on a live box.
+- `PID IN (10, 20, 30)` matches 20, not 40
+- `MEM.PrivateBytes BETWEEN 1000 AND 2000` inclusive at both ends
+- `PID LIKE '%10%'` compile error contains `op=LIKE` and `type=Integer` and does not contain `%10%`
+- Two WOW64-equivalent paths resolve to one comment key in a unit test with a fake path pair
+- Start-As test (or Start with `LogCommandLine=false`) leaves no password substring in HelperLog
 
-### Phase G — Harden
+### Phase H — Harden
 
 **Ship**
 
-- Processes DevelopersGuide + Campaigns_v1.2: Query optional, Slim vs Full for Kql Search, in-process campaign.
-- Kql DevelopersGuide: new fields, watch-only, bind-error shape, empty vs unknown.
-- Tests under `FullyQualifiedName~Kql` and `~ProcessKql` / `~ProcessCampaign` cover A–F.
-- Comment store: optional command-line hash per SRS §3.13 if the existing key helper is a one-line change; otherwise file a follow-up ID and leave P11 open.
+- Processes DevelopersGuide + Campaigns: Query optional, Slim vs Full for Kql Search, in-process campaign, WOW64 key, Start-As logging, Autostart is best-effort.
+- Kql DevelopersGuide: new fields, watch-only, bind-error shape, empty vs unknown, `IN` / `BETWEEN`, type-mismatch shape.
+- Tests `~Kql` and `~ProcessKql` / `~ProcessCampaign` / `~ProcessStart` cover A–G.
+- Comment store: optional command-line hash per SRS §3.13 on the normalized path from G. If the hook is already there, turn it on; do not invent a second store.
 
 **Close gate**
 
-- Guides name only public types that compile.
-- Kql project references Helpers only.
-- No Demo project diff required to close PR02.
+- Guides name only public types that compile
+- Kql.csproj references Helpers only
+- No Demo project diff required to close PR02
 
 ---
 
@@ -207,12 +183,11 @@ Other helper libraries (Services, Network, …) may add Kql catalog fields later
 
 | Item | Notes |
 |---|---|
-| Kql `IN` / `BETWEEN` | New grammar. Open PR03 if hosts need PID sets. |
 | Suspend / Resume / dump | New verbs. |
 | Remote / WMI process table | Out of v1 SRS. |
-| Regex | LIKE is the wildcard path. |
+| Regex | LIKE / `IN` cover the v1 filter set. |
 | GPU clocks / power / temp | Locked out of Kql v1. |
-| Task Scheduler campaign | Would be a different host, not this library. |
+| Task Scheduler campaign | Different host, not this library. |
 | Services / Network Kql packs filled from those libraries | Separate PR when those libraries are reviewed. |
 | Demo / Vestigium solution UI | Explicitly excluded. |
 
@@ -220,13 +195,7 @@ Other helper libraries (Services, Network, …) may add Kql catalog fields later
 
 ## 6. Later Kql expansions (other libraries)
 
-When Services, Network, or WinReg are reviewed, add catalog fields in **Kql** first (pack + group), then bind an `IKqlRow` in that library. Do not grow Processes to own SVC.* or NET.*.
-
-| Library | Likely pack | Trigger |
-|---|---|---|
-| Services | `KqlPack.Service` (already stubbed) | SCM review |
-| Network | `KqlPack` + `KqlGroups.Net` | Inventory / echo review |
-| WinReg | new pack or group | If query-over-keys is wanted |
+When Services, Network, or WinReg are reviewed, add catalog fields in **Kql** first, then bind `IKqlRow` in that library. Do not grow Processes to own SVC.* or NET.*.
 
 ---
 
@@ -236,4 +205,4 @@ When Services, Network, or WinReg are reviewed, add catalog fields in **Kql** fi
 dotnet test src/Vestigium.Helpers.Tests --filter "FullyQualifiedName~Kql|FullyQualifiedName~Process"
 ```
 
-No `dotnet run` of a Demo is a close gate for this PR.
+No Demo `dotnet run` is a close gate for this PR.
