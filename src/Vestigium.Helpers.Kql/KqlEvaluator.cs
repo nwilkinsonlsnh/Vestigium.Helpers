@@ -10,6 +10,8 @@ internal static class KqlEvaluator
             KqlLogicalExpression logical => Combine(logical.Op, Evaluate(logical.Left, row), Evaluate(logical.Right, row)),
             KqlNotExpression not => Not(Evaluate(not.Operand, row)),
             KqlComparisonExpression cmp => Compare(cmp, row),
+            KqlInExpression inn => In(inn, row),
+            KqlBetweenExpression between => Between(between, row),
             _ => KqlTriState.Unknown
         };
     }
@@ -71,6 +73,52 @@ internal static class KqlEvaluator
             _ => false
         };
         return ok ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState In(KqlInExpression inn, IKqlRow row)
+    {
+        var field = inn.BoundField ?? throw new InvalidOperationException("IN is not bound");
+        var left = row.Get(field.Canonical);
+        if (left.IsUnknown)
+            return KqlTriState.Unknown;
+
+        var hit = false;
+        var anyUnknown = false;
+        foreach (var value in inn.Values)
+        {
+            var relation = CompareValues(left, value);
+            if (relation is null)
+            {
+                anyUnknown = true;
+                continue;
+            }
+
+            if (relation == 0)
+            {
+                hit = true;
+                break;
+            }
+        }
+
+        if (hit)
+            return inn.Negated ? KqlTriState.False : KqlTriState.True;
+        if (anyUnknown)
+            return KqlTriState.Unknown;
+        return inn.Negated ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState Between(KqlBetweenExpression between, IKqlRow row)
+    {
+        var field = between.BoundField ?? throw new InvalidOperationException("BETWEEN is not bound");
+        var left = row.Get(field.Canonical);
+        if (left.IsUnknown)
+            return KqlTriState.Unknown;
+
+        var low = CompareValues(left, between.Low);
+        var high = CompareValues(left, between.High);
+        if (low is null || high is null)
+            return KqlTriState.Unknown;
+        return low >= 0 && high <= 0 ? KqlTriState.True : KqlTriState.False;
     }
 
     private static int? CompareValues(KqlValue left, KqlLiteral right)

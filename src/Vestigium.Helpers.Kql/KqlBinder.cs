@@ -68,21 +68,41 @@ internal static class KqlBinder
                 Bind(not.Operand, session);
                 break;
             case KqlComparisonExpression cmp:
-                if (!session.TryGetField(cmp.Field, out var field))
-                {
-                    throw new KqlParseException(
-                        cmp.Line,
-                        cmp.Column,
-                        UnknownFieldMessage(cmp.Field, session));
-                }
-
+            {
+                var field = RequireField(cmp.Field, cmp.Line, cmp.Column, session);
                 cmp.BoundField = field;
-                CheckTypes(cmp, field);
+                CheckTypes(field, cmp.Op.ToString(), cmp.Value.Type, cmp.Line, cmp.Column, like: cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike);
                 WarnExactWildcard(cmp, field);
                 break;
+            }
+            case KqlInExpression inn:
+            {
+                var field = RequireField(inn.Field, inn.Line, inn.Column, session);
+                inn.BoundField = field;
+                if (inn.Values.Count == 0)
+                    throw new KqlParseException(inn.Line, inn.Column, "IN list is empty");
+                foreach (var value in inn.Values)
+                    CheckTypes(field, "IN", value.Type, inn.Line, inn.Column, like: false);
+                break;
+            }
+            case KqlBetweenExpression between:
+            {
+                var field = RequireField(between.Field, between.Line, between.Column, session);
+                between.BoundField = field;
+                CheckTypes(field, "BETWEEN", between.Low.Type, between.Line, between.Column, like: false);
+                CheckTypes(field, "BETWEEN", between.High.Type, between.Line, between.Column, like: false);
+                break;
+            }
             default:
                 throw new KqlParseException(expr.Line, expr.Column, "unsupported expression");
         }
+    }
+
+    private static KqlField RequireField(string name, int line, int column, KqlSession session)
+    {
+        if (!session.TryGetField(name, out var field))
+            throw new KqlParseException(line, column, UnknownFieldMessage(name, session));
+        return field;
     }
 
     internal static string UnknownFieldMessage(string name, KqlSession session)
@@ -96,21 +116,21 @@ internal static class KqlBinder
         return $"unknown field '{name}' on pack={packs}. enabled ({groups}): {head}{rest}";
     }
 
-    private static void CheckTypes(KqlComparisonExpression cmp, KqlField field)
+    private static void CheckTypes(KqlField field, string op, KqlType rhs, int line, int column, bool like)
     {
-        if (cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike)
+        if (like)
         {
-            if (field.Type != KqlType.String || cmp.Value.Type != KqlType.String)
-                throw new KqlParseException(cmp.Line, cmp.Column, $"LIKE requires string field and string value ({field.Canonical})");
+            if (field.Type != KqlType.String || rhs != KqlType.String)
+                throw new KqlParseException(line, column, $"field={field.Canonical} type={field.Type} op={op} rhs={rhs}");
             return;
         }
 
-        if (!TypesCompatible(field.Type, cmp.Value.Type))
+        if (!TypesCompatible(field.Type, rhs))
         {
             throw new KqlParseException(
-                cmp.Line,
-                cmp.Column,
-                $"type mismatch {field.Canonical}:{field.Type} vs {cmp.Value.Type}");
+                line,
+                column,
+                $"field={field.Canonical} type={field.Type} op={op} rhs={rhs}");
         }
     }
 
