@@ -7,13 +7,15 @@ public sealed class KqlField
         KqlType type,
         KqlGroups group,
         IReadOnlyList<KqlPack> packs,
-        params string[] aliases)
+        IReadOnlyList<string> aliases,
+        bool watchOnly = false)
     {
         Canonical = canonical;
         Type = type;
         Group = group;
         Packs = packs;
         Aliases = aliases;
+        WatchOnly = watchOnly;
     }
 
     public string Canonical { get; }
@@ -21,4 +23,5 @@ public sealed class KqlField
     public KqlGroups Group { get; }
     public IReadOnlyList<KqlPack> Packs { get; }
     public IReadOnlyList<string> Aliases { get; }
+    public bool WatchOnly { get; }
 }

@@ -70,11 +70,10 @@ internal static class KqlBinder
             case KqlComparisonExpression cmp:
                 if (!session.TryGetField(cmp.Field, out var field))
                 {
-                    var enabled = string.Join(", ", session.Fields.Select(f => f.Canonical));
                     throw new KqlParseException(
                         cmp.Line,
                         cmp.Column,
-                        $"unknown field '{cmp.Field}'. enabled: {enabled}");
+                        UnknownFieldMessage(cmp.Field, session));
                 }
 
                 cmp.BoundField = field;
@@ -84,6 +83,17 @@ internal static class KqlBinder
             default:
                 throw new KqlParseException(expr.Line, expr.Column, "unsupported expression");
         }
+    }
+
+    internal static string UnknownFieldMessage(string name, KqlSession session)
+    {
+        var packs = string.Join(',', session.Packs);
+        var groups = session.Groups.ToString().Replace(" ", "", StringComparison.Ordinal);
+        var names = session.Fields.Select(f => f.Canonical).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        const int take = 12;
+        var head = string.Join(", ", names.Take(take));
+        var rest = names.Length > take ? $" +{names.Length - take}" : "";
+        return $"unknown field '{name}' on pack={packs}. enabled ({groups}): {head}{rest}";
     }
 
     private static void CheckTypes(KqlComparisonExpression cmp, KqlField field)
