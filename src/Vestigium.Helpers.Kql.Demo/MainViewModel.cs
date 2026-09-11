@@ -11,6 +11,7 @@ namespace Vestigium.Helpers.Kql.Demo;
 public sealed partial class MainViewModel : GalleryViewModelBase
 {
     private KqlSession _session;
+    private bool _ready;
 
     public MainViewModel()
     {
@@ -19,7 +20,9 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         Packs = Enum.GetValues<KqlPack>();
         StatusText = $"Logger initialized · APPID {HelperLog.AppIds.Kql}";
         _session = KqlHelper.Create(SelectedPack);
+        QueryText = SampleQuery(SelectedPack);
         ReloadCatalog();
+        _ready = true;
     }
 
     public string Identity => KqlHelper.Identity;
@@ -28,15 +31,21 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     public ObservableCollection<string> Hits { get; }
 
     [ObservableProperty] private KqlPack selectedPack = KqlPack.Process;
-    [ObservableProperty] private string queryText = "(PID == 10 || Name LIKE '%edge%') && Name LIKE '%edge%'";
-    [ObservableProperty] private string compileText = "Compile to bind against the enabled catalog.";
+    [ObservableProperty] private string queryText = "";
+    [ObservableProperty] private string compileText = "Compile binds against the selected pack.";
     [ObservableProperty] private string fixtureName = "msedge";
     [ObservableProperty] private string fixturePid = "10";
 
+    public string PackCaption => $"Pack {SelectedPack} · {_session.Fields.Count} field(s)";
+
     partial void OnSelectedPackChanged(KqlPack value)
     {
+        if (!_ready)
+            return;
         _session.Dispose();
         _session = KqlHelper.Create(value);
+        QueryText = SampleQuery(value);
+        OnPropertyChanged(nameof(PackCaption));
         ReloadCatalog();
     }
 
@@ -55,7 +64,8 @@ public sealed partial class MainViewModel : GalleryViewModelBase
             });
         }
 
-        StatusText = $"{SelectedPack} · {Fields.Count} field(s)";
+        OnPropertyChanged(nameof(PackCaption));
+        StatusText = PackCaption;
         RefreshLines();
     }
 
@@ -64,8 +74,8 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     {
         var compiled = KqlHelper.Compile(QueryText, _session);
         CompileText = compiled.Ok
-            ? "Compile Ok"
-            : compiled.Error?.ToString() ?? "Compile failed";
+            ? $"Compile Ok · {SelectedPack}"
+            : $"{SelectedPack} · {compiled.Error}";
         StatusText = CompileText;
         RefreshLines();
     }
@@ -76,18 +86,20 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         var compiled = KqlHelper.Compile(QueryText, _session);
         if (!compiled.Ok)
         {
-            CompileText = compiled.Error?.ToString() ?? "Compile failed";
+            CompileText = $"{SelectedPack} · {compiled.Error}";
             StatusText = CompileText;
             RefreshLines();
             return;
         }
 
-        var row = new KqlFixtureRow(_session).Set("Name", FixtureName);
+        var row = new KqlFixtureRow(_session);
+        if (_session.TryGetField("Name", out _))
+            row.Set("Name", FixtureName);
         if (int.TryParse(FixturePid, out var pid) && _session.TryGetField("PID", out _))
             row.Set("PID", pid);
 
         var hit = compiled.Query!.Matches(row);
-        CompileText = hit ? "Fixture matched" : "Fixture did not match (false or unknown)";
+        CompileText = hit ? $"Fixture matched · {SelectedPack}" : $"Fixture did not match · {SelectedPack}";
         Hits.Clear();
         Hits.Add($"fixture Name={FixtureName} PID={FixturePid} → {hit}");
         StatusText = CompileText;
@@ -99,7 +111,8 @@ public sealed partial class MainViewModel : GalleryViewModelBase
     {
         if (SelectedPack != KqlPack.Process)
         {
-            StatusText = "Live process search requires the Process pack.";
+            CompileText = "Live process search requires the Process pack.";
+            StatusText = CompileText;
             return;
         }
 
@@ -134,6 +147,16 @@ public sealed partial class MainViewModel : GalleryViewModelBase
         _session.Dispose();
         base.Dispose();
     }
+
+    private static string SampleQuery(KqlPack pack) => pack switch
+    {
+        KqlPack.Process => "(PID == 10 || Name LIKE '%edge%') && Name LIKE '%edge%'",
+        KqlPack.Service => "Name LIKE '%Win%' && Status == 'Running'",
+        KqlPack.Thread => "TID > 0 && State == 'Wait'",
+        KqlPack.System => "MEM.PhysicalPercent GT 50 && CPU.Usage GT 10",
+        KqlPack.Adapter => "GPU.Usage GT 20 || NET.BytesSentDelta GT 0",
+        _ => "PID == 0"
+    };
 }
 
 public sealed class KqlFieldRow

@@ -9,6 +9,7 @@
       <DockPanel LastChildFill="False" Margin="0,0,0,8">
         <TextBlock VerticalAlignment="Center" Margin="0,0,12,0" Text="Pack"/>
         <ComboBox Width="180" ItemsSource="{Binding Packs}" SelectedItem="{Binding SelectedPack}"/>
+        <TextBlock VerticalAlignment="Center" Margin="16,0,0,0" Opacity="0.7" Text="{Binding PackCaption}"/>
         <Button DockPanel.Dock="Right" Content="Probe" Command="{Binding RunProbeCommand}"/>
         <Button DockPanel.Dock="Right" Content="Reload" Command="{Binding ReloadCatalogCommand}"/>
       </DockPanel>
@@ -30,20 +31,26 @@
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
         <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
-      <TextBox AcceptsReturn="True" Height="90" TextWrapping="Wrap"
+      <DockPanel LastChildFill="False" Margin="0,0,0,8">
+        <TextBlock VerticalAlignment="Center" Margin="0,0,12,0" Text="Pack"/>
+        <ComboBox Width="180" ItemsSource="{Binding Packs}" SelectedItem="{Binding SelectedPack}"/>
+        <TextBlock VerticalAlignment="Center" Margin="16,0,0,0" Opacity="0.7" Text="{Binding PackCaption}"/>
+      </DockPanel>
+      <TextBox Grid.Row="1" AcceptsReturn="True" Height="90" TextWrapping="Wrap"
                FontFamily="Cascadia Mono, Consolas"
                Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}"/>
-      <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,8">
+      <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,8">
         <Button Content="Compile" Command="{Binding CompileQueryCommand}" Style="{StaticResource PrimaryButton}"/>
         <Button Content="Fixture" Command="{Binding RunFixtureCommand}"/>
         <Button Content="Live processes" Command="{Binding RunLiveCommand}"/>
         <TextBox Width="160" Text="{Binding FixtureName, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBox Width="80" Text="{Binding FixturePid, UpdateSourceTrigger=PropertyChanged}"/>
-        <TextBlock VerticalAlignment="Center" Opacity="0.7" Text="{Binding CompileText}"/>
+        <TextBlock VerticalAlignment="Center" Opacity="0.7" TextWrapping="Wrap" MaxWidth="520" Text="{Binding CompileText}"/>
       </StackPanel>
-      <ListView Grid.Row="2" ItemsSource="{Binding Hits}" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+      <ListView Grid.Row="3" ItemsSource="{Binding Hits}" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
     </Grid>
   </DataTemplate>
 </ResourceDictionary>
