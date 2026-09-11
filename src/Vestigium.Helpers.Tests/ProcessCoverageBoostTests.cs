@@ -192,24 +192,24 @@ public sealed class ProcessCoverageBoostTests
         Assert.Contains("System32", ProcessImagePath.Normalize(@"C:\Windows\Sysnative\a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("System32", ProcessImagePath.Normalize(@"C:/Windows/SysWOW64/a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
 
-        var zone = TimeZoneInfo.Utc;
+        var zone = TimeZoneInfo.Local;
         var wrap = new ProcessCampaignWindow("night", new TimeOnly(23, 0), TimeSpan.FromHours(3), ProcessCampaignDays.All);
-        Assert.True(ProcessCampaign.IsOpen(wrap, new DateTimeOffset(2026, 9, 12, 0, 30, 0, TimeSpan.Zero), zone));
-        Assert.False(ProcessCampaign.IsOpen(wrap, new DateTimeOffset(2026, 9, 11, 22, 0, 0, TimeSpan.Zero), zone));
-        var sat = new DateTimeOffset(2026, 9, 12, 10, 0, 0, TimeSpan.Zero);
+        Assert.True(ProcessCampaign.IsOpen(wrap, Wall(zone, 2026, 9, 12, 0, 30), zone));
+        Assert.False(ProcessCampaign.IsOpen(wrap, Wall(zone, 2026, 9, 11, 22, 0), zone));
+        var sat = Wall(zone, 2026, 9, 12, 10, 0);
         Assert.False(ProcessCampaign.IsOpen(new ProcessCampaignWindow("w", new TimeOnly(9, 0), TimeSpan.FromHours(2), ProcessCampaignDays.Weekdays), sat, zone));
         Assert.True(ProcessCampaign.IsOpen(new ProcessCampaignWindow("w", new TimeOnly(9, 0), TimeSpan.FromHours(2), ProcessCampaignDays.Weekend), sat, zone));
         Assert.True(ProcessCampaign.IsOpen(new ProcessCampaignWindow("w", new TimeOnly(9, 0), TimeSpan.FromHours(2), 0), sat, zone));
 
         foreach (var day in new[]
                  {
-                     (new DateTimeOffset(2026, 9, 13, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Sunday),
-                     (new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Monday),
-                     (new DateTimeOffset(2026, 9, 15, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Tuesday),
-                     (new DateTimeOffset(2026, 9, 16, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Wednesday),
-                     (new DateTimeOffset(2026, 9, 17, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Thursday),
-                     (new DateTimeOffset(2026, 9, 18, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Friday),
-                     (new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Saturday)
+                     (Wall(zone, 2026, 9, 13, 10, 0), ProcessCampaignDays.Sunday),
+                     (Wall(zone, 2026, 9, 14, 10, 0), ProcessCampaignDays.Monday),
+                     (Wall(zone, 2026, 9, 15, 10, 0), ProcessCampaignDays.Tuesday),
+                     (Wall(zone, 2026, 9, 16, 10, 0), ProcessCampaignDays.Wednesday),
+                     (Wall(zone, 2026, 9, 17, 10, 0), ProcessCampaignDays.Thursday),
+                     (Wall(zone, 2026, 9, 18, 10, 0), ProcessCampaignDays.Friday),
+                     (Wall(zone, 2026, 9, 19, 10, 0), ProcessCampaignDays.Saturday)
                  })
         {
             var window = new ProcessCampaignWindow("d", new TimeOnly(9, 0), TimeSpan.FromHours(2), day.Item2);
@@ -278,10 +278,11 @@ public sealed class ProcessCoverageBoostTests
         Assert.False(ProcessHelper.TryGet(0, out _));
         Assert.NotEmpty(ProcessHelper.List(ProcessDetailLevel.Full));
         Assert.NotEmpty(ProcessHelper.GetThreads(Environment.ProcessId, includeStack: true));
-        Assert.NotEmpty(ProcessHelper.Search(Environment.ProcessId.ToString(), ProcessSearchMode.Contains, (ProcessSearchFields)0, ProcessDetailLevel.Identity, 8));
+        Assert.NotEmpty(ProcessHelper.Search("PID == " + Environment.ProcessId));
         Assert.Empty(ProcessHelper.Search("zzzz-no-hit", (ProcessSearchMode)99, ProcessSearchFields.Name, ProcessDetailLevel.Identity, 4));
         var self = ProcessHelper.Get(Environment.ProcessId, ProcessDetailLevel.Full);
         Assert.NotNull(self);
+        Assert.NotEmpty(ProcessHelper.Search(self.Name, ProcessSearchMode.Contains, ProcessSearchFields.Name, ProcessDetailLevel.Identity, 32));
         if (!string.IsNullOrWhiteSpace(self.ImagePath))
             Assert.NotNull(ProcessHelper.Search(Path.GetFileName(self.ImagePath), ProcessSearchMode.Contains, ProcessSearchFields.ImagePath, ProcessDetailLevel.Identity, 32));
         _ = ProcessHelper.Search("no-window-title-zzzz", ProcessSearchMode.Contains, ProcessSearchFields.WindowTitle, ProcessDetailLevel.Slim, 4);
@@ -409,5 +410,11 @@ public sealed class ProcessCoverageBoostTests
         Assert.Equal(ProcessDetailLevel.Full, ProcessKqlLevel.Resolve(ProcessDetailLevel.Full, KqlHelper.Parse("PID == 1").Expression!, session));
         Assert.Equal(ProcessDetailLevel.Full, ProcessKqlLevel.Resolve(ProcessDetailLevel.Slim, KqlHelper.Parse("CommandLine LIKE '%x%'").Expression!, session));
         Assert.Equal(ProcessDetailLevel.Slim, ProcessKqlLevel.Resolve(ProcessDetailLevel.Identity, KqlHelper.Parse("PID == 1").Expression!, session));
+    }
+
+    private static DateTimeOffset Wall(TimeZoneInfo zone, int year, int month, int day, int hour, int minute)
+    {
+        var local = new DateTime(year, month, day, hour, minute, 0);
+        return new DateTimeOffset(local, zone.GetUtcOffset(local));
     }
 }
