@@ -1,5 +1,6 @@
 using Vestigium.Helpers.Kql;
 using Vestigium.Helpers.Processes;
+using ProcessThreadState = Vestigium.Helpers.Processes.ThreadState;
 
 namespace Vestigium.Helpers.Tests;
 
@@ -152,11 +153,15 @@ public sealed class ProcessCoverageBoostTests
 
         var empty = new SystemCounters();
         Assert.Null(empty.CommitCurrentK);
+        Assert.Null(empty.CommitLimitK);
+        Assert.Null(empty.CommitPeakK);
         Assert.Null(empty.PhysicalTotalK);
-        Assert.Equal(1, counters.CommitCurrentK);
-        Assert.Equal(18 / 1024, counters.PhysicalTotalK);
-        Assert.Equal(16 / 1024, counters.CommitPeakK);
+        Assert.Null(empty.PhysicalAvailableK);
+        Assert.Null(empty.CacheWorkingSetK);
+        Assert.Equal(14 / 1024, counters.CommitCurrentK);
         Assert.Equal(15 / 1024, counters.CommitLimitK);
+        Assert.Equal(16 / 1024, counters.CommitPeakK);
+        Assert.Equal(18 / 1024, counters.PhysicalTotalK);
         Assert.Equal(19 / 1024, counters.PhysicalAvailableK);
         Assert.Equal(20 / 1024, counters.CacheWorkingSetK);
 
@@ -164,7 +169,7 @@ public sealed class ProcessCoverageBoostTests
         {
             ThreadId = 9,
             ProcessId = 1,
-            State = ThreadState.Running,
+            State = ProcessThreadState.Running,
             StartAddress = "0x1",
             CpuPercent = 3.2
         });
@@ -173,7 +178,7 @@ public sealed class ProcessCoverageBoostTests
         Assert.False(thread.Get("THR.StartAddress").IsUnknown);
         Assert.False(thread.Get("THR.Cpu").IsUnknown);
         Assert.False(thread.Get("CPU.Usage").IsUnknown);
-        var blank = new ThreadKqlRow(new ThreadInfo { ThreadId = 1, ProcessId = 1, State = ThreadState.Unknown });
+        var blank = new ThreadKqlRow(new ThreadInfo { ThreadId = 1, ProcessId = 1, State = ProcessThreadState.Unknown });
         Assert.True(blank.Get("THR.State").IsUnknown);
         Assert.True(blank.Get("THR.Cpu").IsUnknown);
         Assert.True(blank.Get("nope").IsUnknown);
@@ -196,6 +201,21 @@ public sealed class ProcessCoverageBoostTests
         Assert.True(ProcessCampaign.IsOpen(new ProcessCampaignWindow("w", new TimeOnly(9, 0), TimeSpan.FromHours(2), ProcessCampaignDays.Weekend), sat, zone));
         Assert.True(ProcessCampaign.IsOpen(new ProcessCampaignWindow("w", new TimeOnly(9, 0), TimeSpan.FromHours(2), 0), sat, zone));
 
+        foreach (var day in new[]
+                 {
+                     (new DateTimeOffset(2026, 9, 13, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Sunday),
+                     (new DateTimeOffset(2026, 9, 14, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Monday),
+                     (new DateTimeOffset(2026, 9, 15, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Tuesday),
+                     (new DateTimeOffset(2026, 9, 16, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Wednesday),
+                     (new DateTimeOffset(2026, 9, 17, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Thursday),
+                     (new DateTimeOffset(2026, 9, 18, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Friday),
+                     (new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero), ProcessCampaignDays.Saturday)
+                 })
+        {
+            var window = new ProcessCampaignWindow("d", new TimeOnly(9, 0), TimeSpan.FromHours(2), day.Item2);
+            Assert.True(ProcessCampaign.IsOpen(window, day.Item1, zone));
+        }
+
         Assert.Equal("a-b", ProcessCampaign.Sanitize("a b!"));
         Assert.Equal("campaign", ProcessCampaign.Sanitize("***"));
 
@@ -217,6 +237,18 @@ public sealed class ProcessCoverageBoostTests
             Query = "PID == 1",
             Windows = [new ProcessCampaignWindow("m", new TimeOnly(8, 0), TimeSpan.FromHours(25), ProcessCampaignDays.All)]
         }));
+        Assert.Throws<ArgumentException>(() => ProcessCampaign.Validate(new ProcessCampaignRecipe
+        {
+            Name = "x",
+            Windows = [new ProcessCampaignWindow("m", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)]
+        }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessCampaign.Validate(new ProcessCampaignRecipe
+        {
+            Name = "x",
+            Query = "PID == 1",
+            MaxMatches = 300,
+            Windows = [new ProcessCampaignWindow("m", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)]
+        }));
 
         var map = new ProcessDeltaMap();
         var a = new ProcessInfo { Pid = 9, Name = "a", CpuTime = TimeSpan.FromSeconds(1), PrivateBytes = 1, WorkingSet = 1, IoReads = 1, IoReadBytes = 1, IoWrites = 1, IoWriteBytes = 1 };
@@ -225,6 +257,7 @@ public sealed class ProcessCoverageBoostTests
         var extras = map.Remember(b, TimeSpan.FromSeconds(1));
         Assert.True(extras.ContainsKey("CPU.Usage"));
         Assert.Equal(2L, extras["MEM.PrivateBytesDelta"]);
+        Assert.False(ProcessDeltaMap.Diff(b, a, TimeSpan.Zero).ContainsKey("CPU.Usage"));
         map.Prune(new HashSet<int> { 1 });
         map.Clear();
 
@@ -235,6 +268,7 @@ public sealed class ProcessCoverageBoostTests
             new ProcessInfo { Pid = 3, Name = "a" }
         ], 2);
         Assert.Equal([1, 3], sorted.Select(r => r.Pid));
+        Assert.Empty(ProcessSearchSort.TakeStable([], 5));
     }
 
     [Fact]
@@ -245,6 +279,7 @@ public sealed class ProcessCoverageBoostTests
         Assert.NotEmpty(ProcessHelper.List(ProcessDetailLevel.Full));
         Assert.NotEmpty(ProcessHelper.GetThreads(Environment.ProcessId, includeStack: true));
         Assert.NotEmpty(ProcessHelper.Search(Environment.ProcessId.ToString(), ProcessSearchMode.Contains, (ProcessSearchFields)0, ProcessDetailLevel.Identity, 8));
+        Assert.Empty(ProcessHelper.Search("zzzz-no-hit", (ProcessSearchMode)99, ProcessSearchFields.Name, ProcessDetailLevel.Identity, 4));
         var self = ProcessHelper.Get(Environment.ProcessId, ProcessDetailLevel.Full);
         Assert.NotNull(self);
         if (!string.IsNullOrWhiteSpace(self.ImagePath))
@@ -252,16 +287,21 @@ public sealed class ProcessCoverageBoostTests
         _ = ProcessHelper.Search("no-window-title-zzzz", ProcessSearchMode.Contains, ProcessSearchFields.WindowTitle, ProcessDetailLevel.Slim, 4);
         _ = ProcessHelper.Search("no-cmd-zzzz", ProcessSearchMode.Contains, ProcessSearchFields.CommandLine, ProcessDetailLevel.Slim, 4);
         Assert.NotNull(ProcessAutostart.Locate(self.ImagePath, self.Name));
+        Assert.NotNull(ProcessAutostart.Locate(null, self.Name));
         Assert.True(ProcessHelper.MatchSystem("SYS.ProcessCount GT 0"));
         Assert.False(ProcessHelper.MatchSystem("SYS.ProcessCount == 0"));
         Assert.Throws<ArgumentException>(() => ProcessHelper.MatchSystem("Nope == 1"));
         Assert.Throws<ArgumentException>(() => ProcessHelper.Search("Nope == 1"));
         Assert.Throws<ArgumentException>(() => ProcessHelper.SearchThreads(Environment.ProcessId, "Nope == 1"));
         Assert.Throws<ArgumentException>(() => ProcessHelper.Watch("Nope == 1", TimeSpan.FromSeconds(1), ProcessWatchFields.All));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.WatchSystem(TimeSpan.FromMilliseconds(249)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.GetChildren(0));
         var threads = ProcessHelper.SearchThreads(Environment.ProcessId, "TID GT 0");
         Assert.NotEmpty(threads);
         ProcessHelper.GetChildren(Environment.ProcessId);
         ProcessHelper.GetDescendants(Environment.ProcessId);
+        ProcessHelper.SetComment(Environment.ProcessId, "cov", persist: false);
+
         var started = ProcessHelper.Start(new ProcessStartRequest
         {
             FileName = Path.Combine(Environment.SystemDirectory, "ping.exe"),
@@ -274,7 +314,9 @@ public sealed class ProcessCoverageBoostTests
         Assert.True(started.Ok, started.Message);
         try
         {
-            var tree = ProcessHelper.KillTree(started.Pid!.Value, force: true);
+            var soft = ProcessHelper.Kill(started.Pid!.Value, force: false);
+            Assert.True(soft.Status is ProcessKillStatus.Failed or ProcessKillStatus.Ok or ProcessKillStatus.Gone);
+            var tree = ProcessHelper.KillTree(started.Pid.Value, force: true);
             Assert.Contains(tree, item => item.Pid == started.Pid);
         }
         finally
@@ -282,8 +324,11 @@ public sealed class ProcessCoverageBoostTests
             try { ProcessHelper.Kill(started.Pid!.Value, force: true); } catch { }
         }
 
+        Assert.True(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "lsass.exe" }));
+        Assert.True(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "x", IntegrityLevel = IntegrityLevel.Protected }));
         Assert.True(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "x", Protection = new ProcessProtection("PPL", "WinTcb") }));
         Assert.False(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "x", Protection = new ProcessProtection("None", null) }));
+        Assert.Equal(ProcessKillStatus.Denied, ProcessHelper.KillTree(1, force: true)[^1].Status);
     }
 
     [Fact]
@@ -312,14 +357,37 @@ public sealed class ProcessCoverageBoostTests
                 MaxMatches = 1,
                 SampleInterval = TimeSpan.FromMilliseconds(250),
                 IncludeSystemCounters = true,
+                TimeZoneId = "Not/AZone",
                 Windows = [new ProcessCampaignWindow("morning", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)]
             });
+            var opened = false;
+            campaign.WindowChanged += (_, e) => opened |= e.Open;
             campaign.TickOnce();
+            Assert.True(opened);
+            Assert.Equal(ProcessCampaignState.Sampling, campaign.State);
             Assert.True(File.Exists(campaign.SamplePath));
             Assert.Contains("cov-both", ProcessHelper.ListCampaigns());
             var loaded = ProcessHelper.LoadCampaign("cov-both");
             Assert.Equal(campaign.CampaignId, loaded.CampaignId);
+
+            ProcessTestHooks.Now = () => new DateTimeOffset(2026, 9, 10, 7, 0, 0, TimeSpan.FromHours(-4));
+            campaign.TickOnce();
+            Assert.Equal(ProcessCampaignState.Waiting, campaign.State);
+            campaign.Stop();
             campaign.Dispose();
+            campaign.Dispose();
+
+            var termOnly = ProcessHelper.CreateCampaign(new ProcessCampaignRecipe
+            {
+                Name = "term-only",
+                Match = new ProcessSearchRequest { Term = "testhost", Mode = ProcessSearchMode.Contains },
+                IncludeSystemCounters = false,
+                SampleInterval = TimeSpan.FromMilliseconds(250),
+                Windows = [new ProcessCampaignWindow("morning", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)]
+            });
+            ProcessTestHooks.Now = () => now;
+            termOnly.TickOnce();
+            termOnly.Dispose();
         }
         finally
         {
@@ -340,5 +408,6 @@ public sealed class ProcessCoverageBoostTests
         Assert.False(ProcessKqlLevel.NeedsFull(KqlHelper.Parse("PID BETWEEN 1 AND 2").Expression!, session));
         Assert.Equal(ProcessDetailLevel.Full, ProcessKqlLevel.Resolve(ProcessDetailLevel.Full, KqlHelper.Parse("PID == 1").Expression!, session));
         Assert.Equal(ProcessDetailLevel.Full, ProcessKqlLevel.Resolve(ProcessDetailLevel.Slim, KqlHelper.Parse("CommandLine LIKE '%x%'").Expression!, session));
+        Assert.Equal(ProcessDetailLevel.Slim, ProcessKqlLevel.Resolve(ProcessDetailLevel.Identity, KqlHelper.Parse("PID == 1").Expression!, session));
     }
 }
