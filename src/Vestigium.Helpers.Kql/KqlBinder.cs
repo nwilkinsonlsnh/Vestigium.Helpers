@@ -79,6 +79,7 @@ internal static class KqlBinder
 
                 cmp.BoundField = field;
                 CheckTypes(cmp, field);
+                WarnExactWildcard(cmp, field);
                 break;
             default:
                 throw new KqlParseException(expr.Line, expr.Column, "unsupported expression");
@@ -101,6 +102,28 @@ internal static class KqlBinder
                 cmp.Column,
                 $"type mismatch {field.Canonical}:{field.Type} vs {cmp.Value.Type}");
         }
+    }
+
+    private static void WarnExactWildcard(KqlComparisonExpression cmp, KqlField field)
+    {
+        if (cmp.Op is not (KqlCompareOp.Eq or KqlCompareOp.Ne))
+            return;
+        if (cmp.Value.Type != KqlType.String || cmp.Value.Value is not string text)
+            return;
+
+        var chars = new System.Text.StringBuilder();
+        if (text.Contains('%')) chars.Append('%');
+        if (text.Contains('*')) chars.Append('*');
+        if (text.Contains('?')) chars.Append('?');
+        if (chars.Length == 0)
+            return;
+
+        var op = cmp.Op == KqlCompareOp.Eq ? "==" : "!=";
+        HelperLog.Warning(
+            HelperLog.AppIds.Kql,
+            VestigiumStatus.Warning,
+            HelperLog.Subcategories.Query,
+            $"exact compare treats wildcard chars as literals field={field.Canonical} op={op} chars={chars}");
     }
 
     private static bool TypesCompatible(KqlType field, KqlType literal)
