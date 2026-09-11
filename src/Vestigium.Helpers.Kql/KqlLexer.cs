@@ -16,11 +16,14 @@ internal enum KqlTokenKind
     Ge,
     Like,
     NotLike,
+    In,
+    Between,
     And,
     Or,
     Not,
     LParen,
     RParen,
+    Comma,
     Eof
 }
 
@@ -90,6 +93,12 @@ internal sealed class KqlLexer
         {
             Advance();
             return new KqlToken(KqlTokenKind.RParen, ")", line, column);
+        }
+
+        if (ch == ',')
+        {
+            Advance();
+            return new KqlToken(KqlTokenKind.Comma, ",", line, column);
         }
 
         if (ch == Quote || ch == DoubleQuote)
@@ -190,6 +199,10 @@ internal sealed class KqlLexer
             return new KqlToken(KqlTokenKind.Not, ident, line, column);
         if (ident.Equals("LIKE", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.Like, ident, line, column);
+        if (ident.Equals("IN", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.In, ident, line, column);
+        if (ident.Equals("BETWEEN", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.Between, ident, line, column);
         if (ident.Equals("GT", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.Gt, ident, line, column);
         if (ident.Equals("LT", StringComparison.OrdinalIgnoreCase))
