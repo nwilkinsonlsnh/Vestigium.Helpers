@@ -17,6 +17,14 @@ public sealed class KqlSession : IDisposable
         foreach (var field in fields)
         {
             _lookup[field.Canonical] = field;
+            var dot = field.Canonical.LastIndexOf('.');
+            if (dot >= 0 && dot < field.Canonical.Length - 1)
+            {
+                var shortName = field.Canonical[(dot + 1)..];
+                if (!_lookup.ContainsKey(shortName))
+                    _lookup[shortName] = field;
+            }
+
             foreach (var alias in field.Aliases)
             {
                 if (!_lookup.ContainsKey(alias))
