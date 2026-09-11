@@ -72,15 +72,13 @@ public static partial class ProcessHelper
         var hits = new List<ProcessInfo>();
         foreach (var row in ProcessSnapshotter.Capture(level))
         {
-            if (!Matches(row, needle, mode, fields))
-                continue;
-            hits.Add(row);
-            if (hits.Count >= maxResults)
-                break;
+            if (Matches(row, needle, mode, fields))
+                hits.Add(row);
         }
 
-        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Search mode={mode} hits={hits.Count} max={maxResults}");
-        return hits;
+        var taken = ProcessSearchSort.TakeStable(hits, maxResults);
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Search mode={mode} hits={taken.Count} max={maxResults}");
+        return taken;
     }
 
     public static ProcessTree GetTree(int pid, ProcessDetailLevel level = ProcessDetailLevel.Identity)
