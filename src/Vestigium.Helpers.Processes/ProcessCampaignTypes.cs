@@ -25,6 +25,7 @@ public sealed class ProcessCampaignRecipe
 {
     public required string Name { get; init; }
     public required ProcessSearchRequest Match { get; init; }
+    public string? Query { get; init; }
     public ProcessWatchFields Fields { get; init; } = ProcessWatchFields.All;
     public bool IncludeSystemCounters { get; init; } = true;
     public TimeSpan SampleInterval { get; init; } = TimeSpan.FromSeconds(1);
