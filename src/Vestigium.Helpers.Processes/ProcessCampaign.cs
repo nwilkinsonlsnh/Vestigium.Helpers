@@ -13,6 +13,7 @@ public sealed class ProcessCampaign : IDisposable
 
     private readonly CancellationTokenSource _cts = new();
     private readonly object _file = new();
+    private readonly ProcessDeltaMap _deltas = new();
     private int _disposed;
     private HashSet<string> _open = new(StringComparer.OrdinalIgnoreCase);
     private bool _loggedTruncated;
@@ -66,6 +67,7 @@ public sealed class ProcessCampaign : IDisposable
             return;
         Stop();
         _cts.Dispose();
+        _deltas.Clear();
     }
 
     internal void TickOnce()
@@ -79,11 +81,26 @@ public sealed class ProcessCampaign : IDisposable
         {
             State = ProcessCampaignState.Waiting;
             _loggedTruncated = false;
+            _deltas.Clear();
             return;
         }
 
         State = ProcessCampaignState.Sampling;
-        var hits = SearchHits();
+        IReadOnlyList<ProcessInfo> hits;
+        try
+        {
+            hits = SearchHits();
+        }
+        catch (Exception ex) when (ex is not ArgumentException)
+        {
+            HelperLog.Warning(
+                HelperLog.AppIds.Processes,
+                VestigiumStatus.Warning,
+                HelperLog.Subcategories.Campaign,
+                $"Campaign tick failed name={CampaignId} type={ex.GetType().Name}");
+            hits = [];
+        }
+
         var truncated = hits.Count > Recipe.MaxMatches;
         if (truncated)
         {
@@ -116,15 +133,33 @@ public sealed class ProcessCampaign : IDisposable
 
     private IReadOnlyList<ProcessInfo> SearchHits()
     {
-        if (!string.IsNullOrWhiteSpace(Recipe.Query))
-            return ProcessHelper.Search(Recipe.Query, ProcessDetailLevel.Slim, Recipe.MaxMatches + 1);
+        if (string.IsNullOrWhiteSpace(Recipe.Query))
+        {
+            return ProcessHelper.Search(
+                Recipe.Match.Term,
+                Recipe.Match.Mode,
+                Recipe.Match.Fields,
+                ProcessDetailLevel.Slim,
+                Recipe.MaxMatches + 1);
+        }
 
-        return ProcessHelper.Search(
-            Recipe.Match.Term,
-            Recipe.Match.Mode,
-            Recipe.Match.Fields,
-            ProcessDetailLevel.Slim,
-            Recipe.MaxMatches + 1);
+        using var session = KqlHelper.Create(KqlPack.Process);
+        var compiled = KqlHelper.Compile(Recipe.Query, session);
+        if (!compiled.Ok)
+            throw new ArgumentException(compiled.Error?.Message ?? "Query compile failed.", nameof(Recipe.Query));
+
+        var level = ProcessKqlLevel.Resolve(ProcessDetailLevel.Slim, compiled.Query!.Expression, session);
+        var rows = ProcessSnapshotter.Capture(level);
+        var hits = new List<ProcessInfo>();
+        foreach (var row in rows)
+        {
+            var extras = _deltas.Remember(row, Recipe.SampleInterval);
+            if (compiled.Query.Matches(new ProcessKqlRow(row, extras)))
+                hits.Add(row);
+        }
+
+        _deltas.Prune(rows.Select(item => item.Pid).ToHashSet());
+        return hits;
     }
 
     private void WriteLines(DateTimeOffset now, IReadOnlyList<string> open, IReadOnlyList<ProcessInfo> hits, SystemCounters? system)
