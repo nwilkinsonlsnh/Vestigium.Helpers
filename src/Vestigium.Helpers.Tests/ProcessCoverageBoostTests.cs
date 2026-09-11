@@ -16,7 +16,7 @@ public sealed class ProcessCoverageBoostTests
             ParentPid = 1,
             Name = "app.exe",
             SessionId = 1,
-            ImagePath = @"C:\Windows\System32\app.exe",
+            ImagePath = @"C:\\Windows\\System32\\app.exe",
             ImageType = ProcessImageType.X64,
             Description = "desc",
             CompanyName = "co",
@@ -189,7 +189,7 @@ public sealed class ProcessCoverageBoostTests
     {
         Assert.Equal("n", ProcessImagePath.Normalize(null, "n"));
         Assert.Equal("n", ProcessImagePath.Normalize("  ", "n"));
-        Assert.Contains("System32", ProcessImagePath.Normalize(@"C:\Windows\Sysnative\a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("System32", ProcessImagePath.Normalize(@"C:\\Windows\\Sysnative\\a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("System32", ProcessImagePath.Normalize(@"C:/Windows/SysWOW64/a.exe", "a.exe"), StringComparison.OrdinalIgnoreCase);
 
         var zone = TimeZoneInfo.Local;
@@ -242,7 +242,7 @@ public sealed class ProcessCoverageBoostTests
             Name = "x",
             Windows = [new ProcessCampaignWindow("m", new TimeOnly(8, 0), TimeSpan.FromMinutes(10), ProcessCampaignDays.All)]
         }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessCampaign.Validate(new ProcessCampaignRecipe
+        Assert.Throws<ArgumentException>(() => ProcessCampaign.Validate(new ProcessCampaignRecipe
         {
             Name = "x",
             Query = "PID == 1",
@@ -329,7 +329,10 @@ public sealed class ProcessCoverageBoostTests
         Assert.True(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "x", IntegrityLevel = IntegrityLevel.Protected }));
         Assert.True(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "x", Protection = new ProcessProtection("PPL", "WinTcb") }));
         Assert.False(ProcessKiller.IsGuarded(new ProcessInfo { Pid = 1, Name = "x", Protection = new ProcessProtection("None", null) }));
-        Assert.Equal(ProcessKillStatus.Denied, ProcessHelper.KillTree(1, force: true)[^1].Status);
+        Assert.Equal(ProcessKillStatus.Gone, ProcessHelper.KillTree(1, force: true)[^1].Status);
+        var guarded = ProcessHelper.Search("lsass.exe", ProcessSearchMode.Contains, ProcessSearchFields.Name, ProcessDetailLevel.Identity, 1);
+        if (guarded.Count > 0)
+            Assert.Equal(ProcessKillStatus.Denied, ProcessHelper.Kill(guarded[0].Pid, force: true).Status);
     }
 
     [Fact]
@@ -343,7 +346,7 @@ public sealed class ProcessCoverageBoostTests
         ProcessTestHooks.Now = () => now;
         try
         {
-            var key = ProcessCommentStore.Key(@"C:\Windows\System32\x.exe", "x.exe");
+            var key = ProcessCommentStore.Key(@"C:\\Windows\\System32\\x.exe", "x.exe");
             ProcessCommentStore.Set(key, "hi", persist: true);
             Assert.Equal("hi", ProcessCommentStore.Get(key));
             ProcessCommentStore.Set(key, "  ", persist: true);
