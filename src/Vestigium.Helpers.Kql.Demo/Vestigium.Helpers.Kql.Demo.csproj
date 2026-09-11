@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Vestigium.Helpers.Kql.Demo</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Kql.Demo</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationTitle>Vestigium.Helpers.Kql gallery</ApplicationTitle>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vestigium.Helpers.Gallery\Vestigium.Helpers.Gallery.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Vestigium.Helpers.Kql</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Kql</AssemblyName>
+    <Description>KQL-inspired filter dialect and field catalog.</Description>
+    <Version>1.0.0</Version>
+    <Authors>Vestigium</Authors>
+    <Company>Wilkinson Business</Company>
+    <PackageTags>kql;query;filter;vestigium</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+  </ItemGroup>
+</Project>
