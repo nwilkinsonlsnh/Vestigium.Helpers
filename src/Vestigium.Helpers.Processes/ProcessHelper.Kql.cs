@@ -29,15 +29,13 @@ public static partial class ProcessHelper
         var hits = new List<ProcessInfo>();
         foreach (var row in ProcessSnapshotter.Capture(capture))
         {
-            if (!compiled.Query.Matches(new ProcessKqlRow(row)))
-                continue;
-            hits.Add(row);
-            if (hits.Count >= maxResults)
-                break;
+            if (compiled.Query.Matches(new ProcessKqlRow(row)))
+                hits.Add(row);
         }
 
-        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Query, $"Search kql hits={hits.Count} max={maxResults} level={capture}");
-        return hits;
+        var taken = ProcessSearchSort.TakeStable(hits, maxResults);
+        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Query, $"Search kql hits={taken.Count} max={maxResults} level={capture}");
+        return taken;
     }
 
     public static IProcessQueryWatcher Watch(string query, TimeSpan interval, ProcessWatchFields fields)
