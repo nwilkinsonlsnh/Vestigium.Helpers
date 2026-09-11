@@ -6,7 +6,7 @@ internal static class ProcessAutostart
 {
     internal static string? Locate(string? imagePath, string name)
     {
-        var file = string.IsNullOrWhiteSpace(imagePath) ? name : imagePath;
+        var file = ProcessImagePath.Normalize(imagePath, name);
         var shortName = Path.GetFileName(file);
 
         foreach (var hit in ReadRun(RegistryHive.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Run", "HKCU Run"))
