@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.8" />
   </ItemGroup>
   <ItemGroup>
