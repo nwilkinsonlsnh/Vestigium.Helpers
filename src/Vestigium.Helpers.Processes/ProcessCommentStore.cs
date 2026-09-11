@@ -8,11 +8,7 @@ internal static class ProcessCommentStore
     private static readonly ConcurrentDictionary<string, string> Memory = new(StringComparer.OrdinalIgnoreCase);
 
     internal static string Key(string? imagePath, string name)
-    {
-        if (!string.IsNullOrWhiteSpace(imagePath))
-            return imagePath.Trim();
-        return name;
-    }
+        => ProcessImagePath.Normalize(imagePath, name);
 
     internal static string? Get(string key)
     {
@@ -63,7 +59,6 @@ internal static class ProcessCommentStore
         }
         catch
         {
-            // Corrupt store does not fail Get.
         }
     }
 }
