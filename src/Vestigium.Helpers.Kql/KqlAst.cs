@@ -23,6 +23,7 @@ public sealed class KqlComparisonExpression : KqlExpression
     public required string Field { get; init; }
     public required KqlCompareOp Op { get; init; }
     public required KqlLiteral Value { get; init; }
+    internal KqlField? BoundField { get; set; }
 }
 
 public enum KqlLogicalOp

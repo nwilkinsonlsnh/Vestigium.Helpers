@@ -3,7 +3,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Kql;
 
-/// <summary>KQL-inspired filter helpers. Phase 2: catalog, session, parser.</summary>
+/// <summary>KQL-inspired filter helpers. Phase 3: catalog, parser, bind, evaluate.</summary>
 public static class KqlHelper
 {
     public static string Identity => "Vestigium.Helpers.Kql";
@@ -13,12 +13,12 @@ public static class KqlHelper
         var app = HelperLog.AppIds.Kql;
         HelperLog.Information(app, VestigiumStatus.Pending, app, "Describing the KQL filter catalog.");
         using var session = Create(KqlPack.Process);
-        var parsed = Parse("PID == 0");
+        var compiled = Compile("PID == 0", session);
         HelperLog.Information(
             app,
             VestigiumStatus.Success,
             app,
-            $"KQL probe complete. Identity={Identity} fields={session.Fields.Count} parseOk={parsed.Ok}");
+            $"KQL probe complete. Identity={Identity} fields={session.Fields.Count} compileOk={compiled.Ok}");
         return Identity;
     }
 
@@ -50,4 +50,7 @@ public static class KqlHelper
 
         return result;
     }
+
+    public static KqlCompileResult Compile(string text, KqlSession session)
+        => KqlBinder.Compile(text, session);
 }
