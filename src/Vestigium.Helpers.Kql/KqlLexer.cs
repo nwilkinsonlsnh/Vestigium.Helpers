@@ -92,7 +92,7 @@ internal sealed class KqlLexer
             return new KqlToken(KqlTokenKind.RParen, ")", line, column);
         }
 
-        if (ch is ''' or '"')
+        if (ch == Quote || ch == DoubleQuote)
             return ReadString(ch, line, column);
 
         if (ch == '=' && Peek(1) == '=')
@@ -176,6 +176,10 @@ internal sealed class KqlLexer
         throw new KqlLexException(line, column, $"unexpected '{ch}'");
     }
 
+    private const char Quote = (char)39;
+    private const char DoubleQuote = (char)34;
+    private const char Backslash = (char)92;
+
     private KqlToken Keyword(string ident, int line, int column)
     {
         if (ident.Equals("AND", StringComparison.OrdinalIgnoreCase))
@@ -214,7 +218,7 @@ internal sealed class KqlLexer
                 return new KqlToken(KqlTokenKind.String, buffer.ToString(), line, column);
             }
 
-            if (ch == '\\')
+            if (ch == Backslash)
             {
                 Advance();
                 if (_index >= _text.Length)
@@ -222,9 +226,9 @@ internal sealed class KqlLexer
                 var esc = _text[_index];
                 buffer.Append(esc switch
                 {
-                    ''' => ''',
-                    '"' => '"',
-                    '\\' => '\\',
+                    var q when q == Quote => Quote,
+                    var q when q == DoubleQuote => DoubleQuote,
+                    var q when q == Backslash => Backslash,
                     'n' => '\n',
                     't' => '\t',
                     _ => esc
