@@ -104,7 +104,7 @@ public sealed class KqlBranch90Tests
         Assert.False(Ok("PROC.Aslr == false", session, row));
         Assert.True(Ok("CPU.Time BETWEEN 1s AND 3s", session, row));
         Assert.True(Ok("CPU.Time BETWEEN 1ms AND 1h", session, row));
-        Assert.True(Ok("CPU.Time BETWEEN 1m AND 1d", session, row));
+        Assert.False(Ok("CPU.Time BETWEEN 1m AND 1d", session, row));
         Assert.Equal(KqlTriState.Unknown, Comp("CommandLine LIKE '%x%'", session).Query!.Evaluate(row));
         Assert.Equal(KqlTriState.Unknown, Comp("NOT (CommandLine == 'x')", session).Query!.Evaluate(row));
         Assert.Throws<ArgumentNullException>(() => Comp("PID == 1", session).Query!.Evaluate(null!));
