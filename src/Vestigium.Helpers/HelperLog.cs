@@ -31,6 +31,7 @@ public static class HelperLog
         public const string Network = "Network";
         public const string Csv = "Csv";
         public const string Charts = "Charts";
+        public const string Kql = "Kql";
     }
 
     public static class Subcategories
@@ -98,7 +99,8 @@ public static class HelperLog
         AppIds.Analytics,
         AppIds.Network,
         AppIds.Csv,
-        AppIds.Charts
+        AppIds.Charts,
+        AppIds.Kql
     ];
 
     public static VestigiumTaxonomy Taxonomy { get; } = CreateTaxonomy();
