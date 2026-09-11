@@ -58,6 +58,12 @@ internal static class ProcessKqlLevel
             case KqlComparisonExpression cmp:
                 yield return cmp.Field;
                 break;
+            case KqlInExpression inn:
+                yield return inn.Field;
+                break;
+            case KqlBetweenExpression between:
+                yield return between.Field;
+                break;
         }
     }
 }
