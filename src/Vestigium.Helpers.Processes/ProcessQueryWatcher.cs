@@ -24,6 +24,8 @@ internal sealed class ProcessQueryWatcher : IProcessQueryWatcher
     private readonly Task _loop;
     private readonly KqlBoundQuery _query;
     private readonly KqlSession _session;
+    private readonly ProcessDeltaMap _deltas = new();
+    private readonly ProcessDetailLevel _level;
     private int _busy;
     private int _disposed;
 
@@ -37,6 +39,7 @@ internal sealed class ProcessQueryWatcher : IProcessQueryWatcher
         if (!compiled.Ok)
             throw new ArgumentException(compiled.Error?.Message ?? "query compile failed", nameof(query));
         _query = compiled.Query!;
+        _level = ProcessKqlLevel.Resolve(ProcessDetailLevel.Slim, _query.Expression, _session);
         HelperLog.Information(
             HelperLog.AppIds.Processes,
             VestigiumStatus.Success,
@@ -58,6 +61,7 @@ internal sealed class ProcessQueryWatcher : IProcessQueryWatcher
         try { _loop.Wait(TimeSpan.FromSeconds(2)); } catch { }
         _cts.Dispose();
         _session.Dispose();
+        _deltas.Clear();
     }
 
     private async Task RunAsync(CancellationToken token)
@@ -85,13 +89,23 @@ internal sealed class ProcessQueryWatcher : IProcessQueryWatcher
         {
             if (Volatile.Read(ref _disposed) != 0)
                 return;
-            var hits = new List<ProcessInfo>();
-            foreach (var row in ProcessSnapshotter.Capture(ProcessDetailLevel.Slim))
+
+            if (ProcessTestHooks.QueryWatchFault is { } fault)
             {
-                if (_query.Matches(new ProcessKqlRow(row)))
+                ProcessTestHooks.QueryWatchFault = null;
+                throw fault;
+            }
+
+            var hits = new List<ProcessInfo>();
+            var rows = ProcessSnapshotter.Capture(_level);
+            foreach (var row in rows)
+            {
+                var extras = _deltas.Remember(row, Interval);
+                if (_query.Matches(new ProcessKqlRow(row, extras)))
                     hits.Add(row);
             }
 
+            _deltas.Prune(rows.Select(item => item.Pid).ToHashSet());
             Sampled?.Invoke(this, new ProcessQuerySample
             {
                 Timestamp = DateTimeOffset.Now,
@@ -99,7 +113,20 @@ internal sealed class ProcessQueryWatcher : IProcessQueryWatcher
                 Matches = hits
             });
         }
-        catch { }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            HelperLog.Warning(
+                HelperLog.AppIds.Processes,
+                VestigiumStatus.Warning,
+                HelperLog.Subcategories.Watch,
+                $"Watch query tick failed type={ex.GetType().Name}");
+            Sampled?.Invoke(this, new ProcessQuerySample
+            {
+                Timestamp = DateTimeOffset.Now,
+                Interval = Interval,
+                Matches = []
+            });
+        }
         finally { Volatile.Write(ref _busy, 0); }
     }
 }
