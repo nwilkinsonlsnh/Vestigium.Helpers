@@ -69,6 +69,12 @@ public static class RegistryHelper
         bool confirm = false)
         => Local.Export(path, hive, key, format, view, confirm);
 
+    public static RegistryWriteResult Import(
+        string path,
+        RegistryViewKind view = RegistryViewKind.Default,
+        bool confirm = false)
+        => Local.Import(path, view, confirm);
+
     public static string Probe()
     {
         var app = HelperLog.AppIds.WinReg;
