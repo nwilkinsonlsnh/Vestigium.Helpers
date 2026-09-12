@@ -1,10 +1,9 @@
 # Vestigium.Helpers.Services — Phase Implementation Plan
 
 **Document ID:** VEST-HLP-SERVICES-PLAN-000  
-**Version:** 1.5  
-**Status:** Phase 0 Locked. Phases 1–4 Done. Phase 5 of 8 in flight.  
-**Date:** 12 September 2026  
-**Package:** `Vestigium.Helpers.Services`
+**Version:** 1.6  
+**Status:** Phase 0 Locked. Phases 1–5 Done. Phase 6 of 8 in flight.  
+**Date:** 12 September 2026
 
 ---
 
@@ -17,50 +16,51 @@
 | **2 Full row** | Config, account, image path, delayed, failure actions (read) | **Done** |
 | **3 Hidden + tree** | `ListHidden` + `List(All)`. Depends-on / depended-by | **Done** |
 | **4 Control** | Start, Stop, Restart, Pause, Continue, SetStartType | **Done** |
-| **5 Logon** | LocalSystem, desktop interact, account+password, logon rights | **In progress** |
-| **6 Recovery** | First / second / subsequent + reset period | Planned |
+| **5 Logon** | LocalSystem, desktop interact, account+password, logon rights | **Done** |
+| **6 Recovery** | First / second / subsequent + reset period | **In progress** |
 | **7 Watch + KQL + campaigns** | Interval samples, `KqlPack.Service`, JSONL windows | Planned |
 | **8 Harden** | Tests, no password in logs, guide matches engine | Planned |
 
 ---
 
-## 2. Phase 5 scope
+## 2. Phase 6 scope
 
 ```text
-ServiceHelper.SetLogon(name, ServiceLogonRequest)
-ServiceHelper.QueryLogonRights(account)
-ServiceHelper.GrantLogonRights(account, Service | Batch | ServiceAndBatch)
+ServiceHelper.GetRecovery(name) -> ServiceRecoveryInfo?
+ServiceHelper.SetRecovery(name, ServiceRecoveryRequest)
 ```
 
-| Rule | Behavior |
+| Field | Meaning |
 |---|---|
-| `Confirm = false` | Denied. No SCM write. |
-| Protected name | Denied. EventLog never changes account. |
-| Kind = LocalSystem | Account `LocalSystem`, empty password. |
-| InteractWithDesktop | LocalSystem only. Own-process only. Shared-process → InvalidState. |
-| Kind = LocalService / NetworkService | Built-in names. Empty password. |
-| Kind = Account | Account required. Password accepted, never logged, never returned. |
-| GrantLogonRight | Opt-in. Default None. `SeServiceLogonRight` / `SeBatchLogonRight`. |
-| Read | `Get` Account + DesktopInteract. No Password property anywhere. |
+| FirstFailure | SC_ACTION 0 |
+| SecondFailure | SC_ACTION 1 |
+| SubsequentFailures | SC_ACTION 2 |
+| ActionDelay | Delay applied to each action |
+| ResetPeriod | Fail-count reset. Days are `TimeSpan.FromDays(n)`. 0 = never reset. |
+| Command | Required when any action is RunCommand |
+| RebootMessage | Optional when an action is Reboot |
+| Confirm | Required for write |
 
-Logs write `password=***` only.
+Protected names cannot SetRecovery. Missing name is NotFound. Negative reset/delay is InvalidState.
+
+Read is also on `Get(name, Full).FailureActions`.
 
 ---
 
 ## 3. Close gates
 
-1. SetLogon without confirm is Denied.
-2. SetLogon EventLog with confirm is Denied / protected.
-3. InteractWithDesktop + Account kind is InvalidState.
-4. Account kind with blank account throws ArgumentException.
-5. QueryLogonRights on `NT AUTHORITY\SYSTEM` does not throw.
-6. Grant None does not add rights.
-7. ServiceInfo and ServiceControlResult have no Password property.
+1. GetRecovery EventLog returns Name + Actions + ResetPeriod.
+2. GetRecovery missing is null.
+3. SetRecovery confirm false is Denied.
+4. SetRecovery EventLog confirm true is Denied / protected.
+5. SetRecovery missing is NotFound.
+6. RunCommand without Command is InvalidState.
+7. Negative ResetPeriod is InvalidState.
 
 ---
 
 ## 4. Commands
 
 ```
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase5
+dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase6
 ```

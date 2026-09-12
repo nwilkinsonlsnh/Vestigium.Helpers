@@ -177,6 +177,9 @@ public static class ServiceHelper
     public static ServiceControlResult SetRecovery(string name, ServiceRecoveryRequest request)
         => ServiceRecovery.Set(HelperGuard.NotBlank(name, nameof(name)), request);
 
+    public static ServiceRecoveryInfo? GetRecovery(string name)
+        => ServiceRecovery.Get(HelperGuard.NotBlank(name, nameof(name)));
+
     public static IServiceWatcher Watch(string name, TimeSpan interval, ServiceWatchFields fields = ServiceWatchFields.Status | ServiceWatchFields.Pid)
     {
         var key = HelperGuard.NotBlank(name, nameof(name));

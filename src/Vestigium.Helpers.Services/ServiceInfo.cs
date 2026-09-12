@@ -104,6 +104,19 @@ public sealed class ServiceRecoveryRequest
     public bool Confirm { get; init; }
 }
 
+public sealed class ServiceRecoveryInfo
+{
+    public required string Name { get; init; }
+    public TimeSpan? ResetPeriod { get; init; }
+    public string? Command { get; init; }
+    public string? RebootMessage { get; init; }
+    public IReadOnlyList<ServiceFailureAction> Actions { get; init; } = [];
+
+    public ServiceFailureActionKind? FirstFailure => Actions.Count > 0 ? Actions[0].Kind : null;
+    public ServiceFailureActionKind? SecondFailure => Actions.Count > 1 ? Actions[1].Kind : null;
+    public ServiceFailureActionKind? SubsequentFailures => Actions.Count > 2 ? Actions[2].Kind : null;
+}
+
 public readonly record struct ServiceAccountRightInfo(
     string Account,
     bool HasServiceLogon,
