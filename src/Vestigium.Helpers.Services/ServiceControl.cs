@@ -143,7 +143,7 @@ internal static class ServiceControl
     {
         try
         {
-            using var controller = new ServiceController(name);
+            using var controller = new ServiceController(name, ServiceMachine.ControllerName);
             _ = controller.Status;
             var result = body(controller);
             if (result.Status == ServiceControlStatus.Ok)
