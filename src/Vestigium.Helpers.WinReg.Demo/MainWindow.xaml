@@ -1,0 +1,87 @@
+<Window x:Class="Vestigium.Helpers.WinReg.Demo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vestigium.Helpers.WinReg gallery"
+        Height="820" Width="1180"
+        MinHeight="600" MinWidth="880"
+        Background="#0B1A30" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20,16,20,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <DockPanel LastChildFill="False" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="Vestigium.Helpers.WinReg gallery"/>
+        <TextBlock Opacity="0.7" Text="Local / remote read · CRUD with confirm · .reg export/import · hive mount · search"/>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="APPID WinReg · no reg.exe" HorizontalAlignment="Right"/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Grid.Row="1">
+      <TabItem Header="Browse">
+        <DockPanel Margin="12">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <ComboBox Width="160" ItemsSource="{Binding Hives}" SelectedItem="{Binding SelectedHive}"/>
+            <TextBox Width="420" Margin="8,0" Text="{Binding KeyPath, UpdateSourceTrigger=PropertyChanged}"/>
+            <Button Content="List" Command="{Binding ListCommand}" Margin="0,0,8,0" Padding="12,4"/>
+            <Button Content="Get" Command="{Binding GetCommand}" Padding="12,4"/>
+          </StackPanel>
+          <ListBox ItemsSource="{Binding SubKeys}" SelectedItem="{Binding SelectedSubKey}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock FontFamily="Cascadia Mono, Consolas" Text="{Binding}"/>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="Sandbox">
+        <StackPanel Margin="12">
+          <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Writes stay under HKCU\Software\Vestigium\Helpers.Demo. confirm is always true in this gallery."/>
+          <StackPanel Orientation="Horizontal" Margin="0,8">
+            <TextBox Width="200" Text="{Binding ValueName, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Width="280" Margin="8,0" Text="{Binding ValueData, UpdateSourceTrigger=PropertyChanged}"/>
+            <Button Content="Set" Command="{Binding SetValueCommand}" Margin="0,0,8,0" Padding="12,4"/>
+            <Button Content="Delete" Command="{Binding DeleteValueCommand}" Padding="12,4"/>
+          </StackPanel>
+          <TextBlock FontFamily="Cascadia Mono, Consolas" Text="{Binding SandboxValue}"/>
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="Search">
+        <DockPanel Margin="12">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBox Width="280" Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"/>
+            <ComboBox Width="140" Margin="8,0" ItemsSource="{Binding SearchModes}" SelectedItem="{Binding SearchMode}"/>
+            <Button Content="Search" Command="{Binding SearchCommand}" Padding="12,4"/>
+          </StackPanel>
+          <ListBox ItemsSource="{Binding Hits}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock FontFamily="Cascadia Mono, Consolas" Text="{Binding}"/>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="Export">
+        <StackPanel Margin="12">
+          <TextBlock Opacity="0.7" Text="{Binding ExportPath}"/>
+          <StackPanel Orientation="Horizontal" Margin="0,8">
+            <Button Content="Export .reg" Command="{Binding ExportCommand}" Margin="0,0,8,0" Padding="12,4"/>
+            <Button Content="Import .reg" Command="{Binding ImportCommand}" Padding="12,4"/>
+          </StackPanel>
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="JSONL">
+        <ListBox ItemsSource="{Binding Lines}" FontFamily="Cascadia Mono, Consolas" FontSize="11"/>
+      </TabItem>
+    </TabControl>
+    <TextBlock Grid.Row="2" Margin="0,10,0,0" Opacity="0.55" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis"/>
+  </Grid>
+</Window>
