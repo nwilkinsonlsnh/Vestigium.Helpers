@@ -38,13 +38,55 @@ internal static partial class ServiceSnapshotter
 
     public static ServiceInfo? CaptureName(string name, ServiceDetailLevel level, bool joinProcess)
     {
-        foreach (var row in Capture(level, ServiceKind.All, ServiceListScope.All, joinProcess))
+        ServiceController? controller = null;
+        try
         {
-            if (string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase))
-                return row;
+            controller = new ServiceController(name);
+            _ = controller.Status;
+            var raw = new RawRow(
+                controller.ServiceName,
+                SafeDisplay(controller),
+                ParseKind((int)controller.ServiceType),
+                (ServiceTypeFlags)(int)controller.ServiceType,
+                Hidden: false,
+                Controller: controller);
+            return Materialize(raw, level, joinProcess);
         }
+        catch (InvalidOperationException)
+        {
+            controller?.Dispose();
+            return CaptureHiddenName(name, level, joinProcess);
+        }
+        catch
+        {
+            controller?.Dispose();
+            return CaptureHiddenName(name, level, joinProcess);
+        }
+    }
 
-        return null;
+    private static ServiceInfo? CaptureHiddenName(string name, ServiceDetailLevel level, bool joinProcess)
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name);
+            if (key is null)
+                return null;
+            var type = Convert.ToInt32(key.GetValue("Type", 0) ?? 0);
+            if (type == 0 || !LooksLikeService(type))
+                return null;
+            var raw = new RawRow(
+                name,
+                key.GetValue("DisplayName") as string ?? name,
+                ParseKind(type),
+                (ServiceTypeFlags)type,
+                Hidden: true,
+                Controller: TryOpen(name));
+            return Materialize(raw, level, joinProcess);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static Dictionary<string, RawRow> ReadVisible()

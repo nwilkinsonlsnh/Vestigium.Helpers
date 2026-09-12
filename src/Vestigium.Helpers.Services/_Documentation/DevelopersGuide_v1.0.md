@@ -1,8 +1,8 @@
 # Vestigium.Helpers.Services — Developers Guide
 
 **Document ID:** VEST-HLP-SERVICES-DEV-000  
-**Version:** 1.1  
-**Status:** Phase 1  
+**Version:** 1.2  
+**Status:** Phase 2  
 **Date:** 11 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Services/`.
@@ -10,25 +10,32 @@ Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Se
 ## Phase 1 API
 
 ```csharp
-ServiceHelper.Identity;          // "Vestigium.Helpers.Services"
-ServiceHelper.Probe();           // read-only count + EventLog lookup
-
-var rows = ServiceHelper.List(); // visible Win32, slim
-var one  = ServiceHelper.Get("EventLog");
-ServiceHelper.TryGet("Spooler", out var spooler);
-
-var hits = ServiceHelper.Search("sql", ServiceSearchMode.Contains);
-hits = ServiceHelper.Search("Event", ServiceSearchMode.StartsWith, ServiceSearchFields.Name);
-hits = ServiceHelper.Search("Log", ServiceSearchMode.EndsWith, ServiceSearchFields.Name);
+ServiceHelper.Identity;
+ServiceHelper.Probe();
+ServiceHelper.List();
+ServiceHelper.Get("EventLog");
+ServiceHelper.Search("sql", ServiceSearchMode.Contains);
 ```
 
-`List()` does not include hidden services. That is Phase 3.
+## Phase 2 API
 
-Control, logon, recovery, KQL, and campaigns are later phases. Do not call them from Phase 1 tests except as not-yet-gated scaffolding.
+```csharp
+var slim = ServiceHelper.Get("EventLog", ServiceDetailLevel.Slim, joinProcess: false);
+// slim.ImagePath, slim.Account, slim.StartType, slim.DelayedAutoStart, slim.DesktopInteract
+
+var full = ServiceHelper.Get("EventLog", ServiceDetailLevel.Full, joinProcess: false);
+// + Description, FailureActions, FailureResetPeriod, FailureCommand
+
+ServiceHelper.Search("LocalSystem", ServiceSearchMode.Contains, ServiceSearchFields.Account);
+ServiceHelper.Search("windows", ServiceSearchMode.Contains, ServiceSearchFields.ImagePath);
+```
+
+`LocalSystem` / `NT AUTHORITY\SYSTEM` normalize to `LocalSystem`. There is no password on the snapshot.
+
+Hidden lists and trees are Phase 3. Control verbs are Phase 4.
 
 ## Build
 
 ```
-dotnet build src/Vestigium.Helpers.Services/Vestigium.Helpers.Services.csproj
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase1
+dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase2
 ```

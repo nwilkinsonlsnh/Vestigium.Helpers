@@ -1,8 +1,8 @@
 # Vestigium.Helpers.Services — Phase Implementation Plan
 
 **Document ID:** VEST-HLP-SERVICES-PLAN-000  
-**Version:** 1.1  
-**Status:** Phase 0 **Locked**. Phase 1 of 8 in flight.  
+**Version:** 1.2  
+**Status:** Phase 0 Locked. Phase 1 Done. Phase 2 of 8 in flight.  
 **Date:** 11 September 2026  
 **Package:** `Vestigium.Helpers.Services`  
 **TFM:** `net10.0-windows`  
@@ -20,8 +20,8 @@ Demo gallery is **out** of all eight phases.
 | Phase | Goal | Status |
 |---|---|---|
 | **0 Paper** | SRS + this plan. Lock TFM, verbs, logon, recovery, hidden. | **Locked** |
-| **1 List / Get / Search** | Visible Win32 rows. StartsWith / EndsWith / Contains. Probe. | **In progress** |
-| **2 Full row** | Config, account, image path, delayed auto-start, failure actions (read) | Planned |
+| **1 List / Get / Search** | Visible Win32 rows. StartsWith / EndsWith / Contains. Probe. | **Done** |
+| **2 Full row** | Config, account, image path, delayed auto-start, failure actions (read) | **In progress** |
 | **3 Hidden + tree** | `ListHidden` + `List(All)`. Depends-on / depended-by walk | Planned |
 | **4 Control** | Start, Stop, Restart, Pause, Continue, SetStartType | Planned |
 | **5 Logon** | LocalSystem, desktop interact, account+password, logon-as-service / batch | Planned |
@@ -35,52 +35,29 @@ Later-phase types may already exist in the tree. A phase is **Done** only when i
 
 ## 2. Phase 0 — locked decisions
 
-Accepted 11 September 2026.
-
-| Item | Locked as |
-|---|---|
-| TFM | `net10.0-windows`. SCM is Windows-only. |
-| Façade | `ServiceHelper`. Snapshots are immutable. No `sc.exe` / `net.exe` / WMI control path. |
-| Visible list | `List()` = services.msc Win32 (`ServiceController.GetServices()`). |
-| Hidden list | `ListHidden()` = `HKLM\SYSTEM\CurrentControlSet\Services` keys that look like a service/driver and are **not** in the visible Win32 set. |
-| Combined list | `List(..., scope: All)` returns both and sets `IsHidden`. |
-| Search (Phase 1) | `StartsWith` / `EndsWith` / `Contains`, case-insensitive ordinal. Fields: Name, DisplayName, Description, ImagePath. Cap 256. |
-| KQL search | Phase 7. `KqlPack.Service`. |
-| Start / Stop / Restart | Phase 4. Typed `ServiceControlResult`. No throw on Access Denied. |
-| Pause / Continue | Phase 4. `Unsupported` when the service does not accept pause/continue. |
-| Set startup type | Phase 4. `confirm: true`. AutomaticDelayed supported. |
-| Read Log On account | Phase 2 read / Phase 5 write. Password never returned. |
-| Set Log On = Local System + interact with desktop | Phase 5. Desktop interact requires LocalSystem. |
-| Set Log On = account + password | Phase 5. Password never logged, never JSONL, never kept. |
-| Grant logon rights | Phase 5 **opt-in**. `SeServiceLogonRight` and/or `SeBatchLogonRight`. Default is do not touch policy. |
-| Recovery | Phase 6. First / second / subsequent + reset fail count after *n* days. |
-| Dependency walk | Phase 3. Cycle guard. |
-| Process join | Slim `ProcessHelper.Get(pid)` when running. Shared-process CPU is not attributed to one service. |
-| Create / Delete / change binary path | **Out of v1.** |
-| Demo | **Out of these eight phases.** |
-| Campaigns | Phase 7. |
-| Tests | Never stop EventLog, RpcSs, DcomLaunch, LSM, PlugPlay, ProfSvc, SamSs, Schedule, Winmgmt, CryptSvc. |
+Accepted 11 September 2026. Unchanged from v1.1.
 
 ---
 
-## 3. Phase 1 scope
+## 3. Phase 2 scope
 
-Public surface that must work:
+`Get(name, Full)` and `List(Slim|Full)` fill a config row from SCM. No writes.
 
-```text
-ServiceHelper.Identity
-ServiceHelper.Probe()
-ServiceHelper.List(level = Slim, kind = Win32, scope = Visible)
-ServiceHelper.Get(name, level = Full)
-ServiceHelper.TryGet(name, out info)
-ServiceHelper.Search(term, StartsWith | EndsWith | Contains, fields, level, scope, maxResults)
-```
+| Field | Level | Source |
+|---|---|---|
+| StartType | Slim+ | `QueryServiceConfig`. Automatic + delayed flag → `AutomaticDelayed`. |
+| DelayedAutoStart | Slim+ | `SERVICE_CONFIG_DELAYED_AUTO_START_INFO` |
+| ImagePath | Slim+ | Binary path. Never rewritten in v1. |
+| Account | Slim+ | Start name. `LocalSystem` / `NT AUTHORITY\SYSTEM` normalized to `LocalSystem`. Password is never read. |
+| DesktopInteract | Slim+ | `SERVICE_INTERACTIVE_PROCESS` bit |
+| ErrorControl, LoadOrderGroup, TagId | Slim+ | `QueryServiceConfig` |
+| SidType, RequiredPrivileges, PreshutdownTimeout, LaunchProtected | Slim+ | `QueryServiceConfig2` when present |
+| Description | Full | `SERVICE_CONFIG_DESCRIPTION` |
+| FailureActions + reset period + command | Full | `SERVICE_CONFIG_FAILURE_ACTIONS` |
 
-`List()` default is visible Win32 only. Stopped services are included. One unreadable service does not fail the table.
+`Get` opens one service by name. It does not walk the whole SCM. Missing name still returns null.
 
-`Get` is case-insensitive on the SCM name. Missing name → `null`, not throw.
-
-Search cap is 256. Above that → `ArgumentException`. Blank term → `ArgumentException`.
+`ServiceInfo` has no `Password` property.
 
 ---
 
@@ -88,20 +65,18 @@ Search cap is 256. Above that → `ArgumentException`. Blank term → `ArgumentE
 
 ### Phase 1
 
-1. `Probe()` returns `Vestigium.Helpers.Services` and does not start or stop anything.
-2. `List()` is non-empty on a standard workstation and contains `EventLog`.
-3. Every `List()` row has `IsHidden == false`.
-4. `Get("EventLog")` returns Name + DisplayName + a real Status.
-5. `Get("NoSuchService_Vestigium")` returns null.
-6. `TryGet(" ")` is false.
-7. Search Contains `spool` hits Print Spooler by name or display name.
-8. Search StartsWith / EndsWith against `EventLog` each return at least one row.
-9. Search `maxResults: 300` throws `ArgumentException`.
-10. Project builds as `net10.0-windows`.
+Unchanged. Filter `FullyQualifiedName~ServicePhase1`.
 
-### Later phases
+### Phase 2
 
-Written when that phase starts. Do not treat control / logon / recovery as Phase 1 work.
+1. `Get("EventLog", Identity)` has no ImagePath / Account / StartType.
+2. `Get("EventLog", Slim)` has ImagePath, Account, StartType. FailureActions is empty.
+3. `Get("EventLog", Full)` has ImagePath containing `svchost`, Account `LocalSystem`, a StartType, a Description, and a FailureActions list (may be empty actions, never null).
+4. Delayed Automatic services report `StartType == AutomaticDelayed` and `DelayedAutoStart == true`.
+5. Search ImagePath Contains `windows` returns only rows whose path contains `windows`.
+6. Search Account Contains `LocalSystem` returns only those accounts.
+7. `ServiceInfo` has no public `Password` property.
+8. A denied config query records Availability. It does not throw.
 
 ---
 
@@ -109,5 +84,5 @@ Written when that phase starts. Do not treat control / logon / recovery as Phase
 
 ```
 dotnet build src/Vestigium.Helpers.Services/Vestigium.Helpers.Services.csproj
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase1
+dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase2
 ```

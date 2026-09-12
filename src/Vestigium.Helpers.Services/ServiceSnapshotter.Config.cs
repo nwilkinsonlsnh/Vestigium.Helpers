@@ -11,6 +11,8 @@ internal static partial class ServiceSnapshotter
         if (service == 0)
         {
             availability.Add(new ServiceFieldAvailability(ServiceField.StartType, "Denied", "OpenService"));
+            availability.Add(new ServiceFieldAvailability(ServiceField.ImagePath, "Denied", "OpenService"));
+            availability.Add(new ServiceFieldAvailability(ServiceField.Account, "Denied", "OpenService"));
             return;
         }
 
@@ -24,6 +26,8 @@ internal static partial class ServiceSnapshotter
                 if (!ServiceNative.QueryServiceConfig(service, buffer, size, out _))
                 {
                     availability.Add(new ServiceFieldAvailability(ServiceField.StartType, "Denied", "QueryServiceConfig"));
+                    availability.Add(new ServiceFieldAvailability(ServiceField.ImagePath, "Denied", "QueryServiceConfig"));
+                    availability.Add(new ServiceFieldAvailability(ServiceField.Account, "Denied", "QueryServiceConfig"));
                     return;
                 }
 
@@ -33,7 +37,7 @@ internal static partial class ServiceSnapshotter
                 info.ImagePath = ServiceNative.PtrToString(cfg.BinaryPathName);
                 info.LoadOrderGroup = ServiceNative.PtrToString(cfg.LoadOrderGroup);
                 info.TagId = cfg.TagId == 0 ? null : (int)cfg.TagId;
-                info.Account = ServiceNative.PtrToString(cfg.ServiceStartName);
+                info.Account = NormalizeAccount(ServiceNative.PtrToString(cfg.ServiceStartName));
                 info.DesktopInteract = ((ServiceTypeFlags)cfg.ServiceType).HasFlag(ServiceTypeFlags.InteractiveProcess);
                 info.DependsOn = ParseMulti(ServiceNative.PtrToString(cfg.Dependencies));
             }
@@ -45,11 +49,51 @@ internal static partial class ServiceSnapshotter
             info.DelayedAutoStart = QueryDelayed(service);
             if (info.DelayedAutoStart == true && info.StartType == ServiceStartType.Automatic)
                 info.StartType = ServiceStartType.AutomaticDelayed;
+
+            FillSidAndPrivileges(service, info);
         }
         finally
         {
             ServiceNative.CloseServiceHandle(service);
         }
+    }
+
+    private static void FillSidAndPrivileges(nint service, ServiceInfo info)
+    {
+        var sidBuf = Marshal.AllocHGlobal(8);
+        try
+        {
+            if (ServiceNative.QueryServiceConfig2(service, ServiceNative.ServiceConfigServiceSidInfo, sidBuf, 8, out _))
+                info.SidType = (ServiceSidType)Marshal.ReadInt32(sidBuf);
+        }
+        finally { Marshal.FreeHGlobal(sidBuf); }
+
+        var privBuf = Marshal.AllocHGlobal(8 * 1024);
+        try
+        {
+            if (ServiceNative.QueryServiceConfig2(service, ServiceNative.ServiceConfigRequiredPrivileges, privBuf, 8 * 1024, out _))
+            {
+                var ptr = Marshal.ReadIntPtr(privBuf);
+                info.RequiredPrivileges = ParseMulti(ServiceNative.PtrToString(ptr));
+            }
+        }
+        finally { Marshal.FreeHGlobal(privBuf); }
+
+        var preBuf = Marshal.AllocHGlobal(8);
+        try
+        {
+            if (ServiceNative.QueryServiceConfig2(service, ServiceNative.ServiceConfigPreshutdown, preBuf, 8, out _))
+                info.PreshutdownTimeout = TimeSpan.FromMilliseconds(Marshal.ReadInt32(preBuf));
+        }
+        finally { Marshal.FreeHGlobal(preBuf); }
+
+        var launchBuf = Marshal.AllocHGlobal(8);
+        try
+        {
+            if (ServiceNative.QueryServiceConfig2(service, ServiceNative.ServiceConfigLaunchProtected, launchBuf, 8, out _))
+                info.LaunchProtected = (ServiceLaunchProtected)Marshal.ReadInt32(launchBuf);
+        }
+        finally { Marshal.FreeHGlobal(launchBuf); }
     }
 
     private static void FillDescription(string name, ServiceInfo info, List<ServiceFieldAvailability> availability)
@@ -94,7 +138,7 @@ internal static partial class ServiceSnapshotter
                 info.FailureRebootMessage = ServiceNative.PtrToString(actions.RebootMsg);
                 info.FailureCommand = ServiceNative.PtrToString(actions.Command);
                 var list = new List<ServiceFailureAction>();
-                if (actions.Actions != 0)
+                if (actions.Actions != 0 && actions.Count > 0 && actions.Count < 16)
                 {
                     var stride = Marshal.SizeOf<ServiceNative.ScAction>();
                     for (var i = 0; i < actions.Count; i++)
@@ -186,6 +230,18 @@ internal static partial class ServiceSnapshotter
     {
         try { return controller.DisplayName; }
         catch { return controller.ServiceName; }
+    }
+
+    private static string? NormalizeAccount(string? account)
+    {
+        if (string.IsNullOrWhiteSpace(account))
+            return account;
+        if (account.Equals("LocalSystem", StringComparison.OrdinalIgnoreCase)
+            || account.Equals(@".\LocalSystem", StringComparison.OrdinalIgnoreCase)
+            || account.Equals(@"NT AUTHORITY\SYSTEM", StringComparison.OrdinalIgnoreCase)
+            || account.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase))
+            return "LocalSystem";
+        return account;
     }
 
     private static ServiceStatus MapStatus(System.ServiceProcess.ServiceControllerStatus status)
