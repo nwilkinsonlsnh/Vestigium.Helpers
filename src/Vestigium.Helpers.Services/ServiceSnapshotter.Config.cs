@@ -214,7 +214,7 @@ internal static partial class ServiceSnapshotter
 
     internal static nint Open(string name, uint access)
     {
-        var scm = ServiceNative.OpenSCManager(null, null, ServiceNative.ScManagerConnect);
+        var scm = ServiceNative.OpenSCManager(ServiceMachine.Name, null, ServiceNative.ScManagerConnect);
         if (scm == 0) return 0;
         try { return ServiceNative.OpenService(scm, name, access); }
         finally { ServiceNative.CloseServiceHandle(scm); }
@@ -222,7 +222,7 @@ internal static partial class ServiceSnapshotter
 
     private static ServiceController? TryOpen(string name)
     {
-        try { return new ServiceController(name); }
+        try { return new ServiceController(name, ServiceMachine.ControllerName); }
         catch { return null; }
     }
 
@@ -237,8 +237,8 @@ internal static partial class ServiceSnapshotter
         if (string.IsNullOrWhiteSpace(account))
             return account;
         if (account.Equals("LocalSystem", StringComparison.OrdinalIgnoreCase)
-            || account.Equals(@".\LocalSystem", StringComparison.OrdinalIgnoreCase)
-            || account.Equals(@"NT AUTHORITY\SYSTEM", StringComparison.OrdinalIgnoreCase)
+            || account.Equals(@".\\LocalSystem", StringComparison.OrdinalIgnoreCase)
+            || account.Equals(@"NT AUTHORITY\\SYSTEM", StringComparison.OrdinalIgnoreCase)
             || account.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase))
             return "LocalSystem";
         return account;
