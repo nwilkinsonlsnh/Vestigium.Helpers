@@ -152,7 +152,7 @@ internal static class ServiceControl
         }
         catch (InvalidOperationException ex) { return Fail(name, Map(ex), ex.Message); }
         catch (System.ServiceProcess.TimeoutException) { return Fail(name, ServiceControlStatus.Timeout, "wait expired"); }
-        catch (TimeoutException) { return Fail(name, ServiceControlStatus.Timeout, "wait expired"); }
+        catch (System.TimeoutException) { return Fail(name, ServiceControlStatus.Timeout, "wait expired"); }
         catch (UnauthorizedAccessException ex) { return Fail(name, ServiceControlStatus.Denied, ex.Message); }
         catch (Win32Exception ex) { return Fail(name, ServiceControlStatus.Denied, ex.Message); }
         catch (Exception ex) { return Fail(name, ServiceControlStatus.Failed, ex.Message); }
