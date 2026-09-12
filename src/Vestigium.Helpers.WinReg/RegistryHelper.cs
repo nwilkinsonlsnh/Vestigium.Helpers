@@ -75,6 +75,72 @@ public static class RegistryHelper
         bool confirm = false)
         => Local.Import(path, view, confirm);
 
+    public static IRegistryMount? MountHive(
+        string hiveFile,
+        RegistryHiveKind destination,
+        string subKey,
+        bool confirm,
+        out RegistryWriteResult result)
+    {
+        var file = HelperGuard.NotBlank(hiveFile, nameof(hiveFile));
+        var name = RegistryPath.Normalize(HelperGuard.NotBlank(subKey, nameof(subKey)));
+        if (destination is not RegistryHiveKind.LocalMachine and not RegistryHiveKind.Users)
+        {
+            result = new RegistryWriteResult(RegistryWriteStatus.Unsupported, destination, name, null, "LocalMachine or Users only");
+            return null;
+        }
+
+        if (!confirm)
+        {
+            result = new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "confirm=false");
+            return null;
+        }
+
+        if (!File.Exists(file))
+        {
+            result = new RegistryWriteResult(RegistryWriteStatus.NotFound, destination, name, null, "hive file missing");
+            return null;
+        }
+
+        if (Local.GetKey(destination, name) is not null)
+        {
+            result = new RegistryWriteResult(RegistryWriteStatus.InUse, destination, name, null, "subkey already present");
+            return null;
+        }
+
+        _ = RegistryNative.EnablePrivileges("SeBackupPrivilege", "SeRestorePrivilege");
+        var status = RegistryNative.RegLoadKey(RegistryMount.HiveHandle(destination), name, file);
+        if (status != 0)
+        {
+            result = new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "RegLoadKey=" + status);
+            return null;
+        }
+
+        HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Mount dest={destination} sub={name}");
+        result = new RegistryWriteResult(RegistryWriteStatus.Ok, destination, name, null, file);
+        return new RegistryMount(file, destination, name);
+    }
+
+    public static RegistryWriteResult DismountHive(
+        RegistryHiveKind destination,
+        string subKey,
+        bool confirm = false)
+    {
+        var name = RegistryPath.Normalize(HelperGuard.NotBlank(subKey, nameof(subKey)));
+        if (destination is not RegistryHiveKind.LocalMachine and not RegistryHiveKind.Users)
+            return new RegistryWriteResult(RegistryWriteStatus.Unsupported, destination, name, null, "LocalMachine or Users only");
+        if (!confirm)
+            return new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "confirm=false");
+
+        _ = RegistryNative.EnablePrivileges("SeBackupPrivilege", "SeRestorePrivilege");
+        var status = RegistryNative.RegUnLoadKey(RegistryMount.HiveHandle(destination), name);
+        if (status != 0)
+            return new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "RegUnLoadKey=" + status);
+
+        HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Dismount dest={destination} sub={name}");
+        return new RegistryWriteResult(RegistryWriteStatus.Ok, destination, name, null, null);
+    }
+
     public static string Probe()
     {
         var app = HelperLog.AppIds.WinReg;
