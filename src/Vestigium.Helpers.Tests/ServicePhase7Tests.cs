@@ -8,7 +8,7 @@ public sealed class ServicePhase7Tests : IDisposable
     public ServicePhase7Tests()
     {
         ServiceTestHooks.CampaignRoot = Path.Combine(Path.GetTempPath(), "vest-svc-" + Guid.NewGuid().ToString("N"));
-        ServiceTestHooks.Now = () => new DateTimeOffset(2026, 9, 12, 12, 0, 0, TimeSpan.Zero);
+        ServiceTestHooks.Now = () => DateTimeOffset.Now;
     }
 
     public void Dispose()
@@ -53,15 +53,18 @@ public sealed class ServicePhase7Tests : IDisposable
     [Fact]
     public void Campaign_writes_jsonl_inside_window()
     {
+        var now = DateTimeOffset.Now;
+        ServiceTestHooks.Now = () => now;
+        var start = TimeOnly.FromTimeSpan(now.LocalDateTime.TimeOfDay);
         var campaign = ServiceHelper.CreateCampaign(new ServiceCampaignRecipe
         {
             Name = "live-demo",
             Query = "Name LIKE 'Event%'",
             SampleInterval = TimeSpan.FromSeconds(1),
-            TimeZoneId = "UTC",
+            TimeZoneId = TimeZoneInfo.Local.Id,
             Windows =
             [
-                new ServiceCampaignWindow("noon", new TimeOnly(12, 0), TimeSpan.FromMinutes(10), ServiceCampaignDays.All)
+                new ServiceCampaignWindow("now", start, TimeSpan.FromMinutes(10), ServiceCampaignDays.All)
             ]
         });
 
@@ -77,16 +80,18 @@ public sealed class ServicePhase7Tests : IDisposable
     [Fact]
     public void Campaign_outside_window_does_not_sample()
     {
-        ServiceTestHooks.Now = () => new DateTimeOffset(2026, 9, 12, 3, 0, 0, TimeSpan.Zero);
+        var now = DateTimeOffset.Now;
+        ServiceTestHooks.Now = () => now;
+        var start = TimeOnly.FromTimeSpan(now.LocalDateTime.TimeOfDay).AddHours(6);
         var campaign = ServiceHelper.CreateCampaign(new ServiceCampaignRecipe
         {
             Name = "off-hours",
             Match = new ServiceSearchRequest { Term = "Event", Mode = ServiceSearchMode.StartsWith },
             SampleInterval = TimeSpan.FromSeconds(1),
-            TimeZoneId = "UTC",
+            TimeZoneId = TimeZoneInfo.Local.Id,
             Windows =
             [
-                new ServiceCampaignWindow("noon", new TimeOnly(12, 0), TimeSpan.FromMinutes(5), ServiceCampaignDays.All)
+                new ServiceCampaignWindow("later", start, TimeSpan.FromMinutes(5), ServiceCampaignDays.All)
             ]
         });
         campaign.TickOnce();
@@ -108,13 +113,14 @@ public sealed class ServicePhase7Tests : IDisposable
     [Fact]
     public void ListCampaigns_sees_created()
     {
+        var now = DateTimeOffset.Now;
         ServiceHelper.CreateCampaign(new ServiceCampaignRecipe
         {
             Name = "listed",
             Query = "Name LIKE 'Event%'",
             SampleInterval = TimeSpan.FromSeconds(1),
-            TimeZoneId = "UTC",
-            Windows = [new ServiceCampaignWindow("noon", new TimeOnly(12, 0), TimeSpan.FromMinutes(5), ServiceCampaignDays.All)]
+            TimeZoneId = TimeZoneInfo.Local.Id,
+            Windows = [new ServiceCampaignWindow("now", TimeOnly.FromTimeSpan(now.LocalDateTime.TimeOfDay), TimeSpan.FromMinutes(5), ServiceCampaignDays.All)]
         });
         Assert.Contains("listed", ServiceHelper.ListCampaigns());
     }
