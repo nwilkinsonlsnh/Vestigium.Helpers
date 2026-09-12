@@ -15,8 +15,11 @@ public interface IRegistryMount : IDisposable
 
 internal sealed class RegistryMount : IRegistryMount
 {
-    internal const nint HkeyLocalMachine = unchecked((nint)0x80000002);
-    internal const nint HkeyUsers = unchecked((nint)0x80000003);
+    private const int HkeyLocalMachineRaw = unchecked((int)0x80000002);
+    private const int HkeyUsersRaw = unchecked((int)0x80000003);
+
+    internal static nint HkeyLocalMachine => HkeyLocalMachineRaw;
+    internal static nint HkeyUsers => HkeyUsersRaw;
 
     private int _unloaded;
 
