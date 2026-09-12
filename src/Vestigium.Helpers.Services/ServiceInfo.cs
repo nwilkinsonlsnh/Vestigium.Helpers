@@ -5,6 +5,7 @@ namespace Vestigium.Helpers.Services;
 public sealed class ServiceInfo
 {
     public required string Name { get; init; }
+    public string? Machine { get; init; }
     public string? DisplayName { get; init; }
     public string? Description { get; set; }
     public ServiceKind Kind { get; init; }
