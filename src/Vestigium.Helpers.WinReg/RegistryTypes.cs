@@ -46,6 +46,12 @@ public enum RegistryWriteStatus
     Unsupported = 6
 }
 
+public enum RegistryExportFormat
+{
+    RegFile = 0,
+    HiveFile = 1
+}
+
 public readonly record struct RegistryFieldAvailability(string Field, string State, string? Reason);
 
 public sealed class RegistryKeyInfo

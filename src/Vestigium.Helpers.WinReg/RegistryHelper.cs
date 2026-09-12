@@ -60,6 +60,15 @@ public static class RegistryHelper
         }
     }
 
+    public static RegistryWriteResult Export(
+        string path,
+        RegistryHiveKind hive,
+        string? key,
+        RegistryExportFormat format = RegistryExportFormat.RegFile,
+        RegistryViewKind view = RegistryViewKind.Default,
+        bool confirm = false)
+        => Local.Export(path, hive, key, format, view, confirm);
+
     public static string Probe()
     {
         var app = HelperLog.AppIds.WinReg;
