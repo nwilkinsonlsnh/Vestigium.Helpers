@@ -7,7 +7,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.WinReg;
 
 [SupportedOSPlatform("windows")]
-public sealed class RegistryClient
+public sealed partial class RegistryClient
 {
     internal RegistryClient(string? machine) => Machine = RegistryPath.NormalizeMachine(machine);
 
@@ -72,15 +72,10 @@ public sealed class RegistryClient
             if (opened is null)
                 return null;
             var options = expand ? RegistryValueOptions.None : RegistryValueOptions.DoNotExpandEnvironmentNames;
-            var data = opened.GetValue(name, null, options);
-            if (data is null && opened.GetValueKind(name) is var _)
-            {
-            }
-
             try
             {
                 var kind = MapKind(opened.GetValueKind(name));
-                data = opened.GetValue(name, null, options);
+                var data = opened.GetValue(name, null, options);
                 return new RegistryValueInfo
                 {
                     Name = name,
@@ -221,30 +216,6 @@ public sealed class RegistryClient
                         DataText = Format(data, kind)
                     });
                 }
-
-                try
-                {
-                    var kind = MapKind(opened.GetValueKind(string.Empty));
-                    var data = opened.GetValue(string.Empty, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
-                    if (data is not null || opened.GetValueNames().Any(n => n.Length == 0))
-                    {
-                        if (list.All(v => v.Name.Length != 0))
-                        {
-                            list.Insert(0, new RegistryValueInfo
-                            {
-                                Name = string.Empty,
-                                IsDefault = true,
-                                Type = kind,
-                                Data = data,
-                                DataText = Format(data, kind)
-                            });
-                        }
-                    }
-                }
-                catch (IOException)
-                {
-                }
-
                 values = list;
             }
             catch
@@ -268,7 +239,7 @@ public sealed class RegistryClient
         };
     }
 
-    private static RegistryHive MapHive(RegistryHiveKind hive) => hive switch
+    internal static RegistryHive MapHive(RegistryHiveKind hive) => hive switch
     {
         RegistryHiveKind.ClassesRoot => RegistryHive.ClassesRoot,
         RegistryHiveKind.CurrentUser => RegistryHive.CurrentUser,
@@ -278,7 +249,7 @@ public sealed class RegistryClient
         _ => throw new ArgumentOutOfRangeException(nameof(hive))
     };
 
-    private static RegistryView MapView(RegistryViewKind view) => view switch
+    internal static RegistryView MapView(RegistryViewKind view) => view switch
     {
         RegistryViewKind.Registry64 => RegistryView.Registry64,
         RegistryViewKind.Registry32 => RegistryView.Registry32,
