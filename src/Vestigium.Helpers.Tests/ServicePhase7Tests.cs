@@ -47,8 +47,8 @@ public sealed class ServicePhase7Tests : IDisposable
     }
 
     [Fact]
-    public void Search_kql_bad_field_throws()
-        => Assert.Throws<ArgumentException>(() => ServiceHelper.Search("PID == 1"));
+    public void Search_kql_process_field_throws()
+        => Assert.Throws<ArgumentException>(() => ServiceHelper.Search("WindowTitle == 'x'"));
 
     [Fact]
     public void Campaign_writes_jsonl_inside_window()
