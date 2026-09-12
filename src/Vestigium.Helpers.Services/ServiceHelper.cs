@@ -10,6 +10,7 @@ public static class ServiceHelper
 {
     public const int DefaultMaxSearchResults = 256;
     public const int MaxSearchResultsCap = 256;
+    public const int MaxTreeNodes = 256;
     public static readonly TimeSpan MinWatchInterval = TimeSpan.FromMilliseconds(250);
     public static readonly TimeSpan MaxWatchInterval = TimeSpan.FromSeconds(60);
     public static readonly TimeSpan DefaultWatchInterval = TimeSpan.FromSeconds(1);
