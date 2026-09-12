@@ -6,7 +6,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Services;
 
 /// <summary>Service Control Manager helpers.</summary>
-public static class ServiceHelper
+public static partial class ServiceHelper
 {
     public const int DefaultMaxSearchResults = 256;
     public const int MaxSearchResultsCap = 256;
