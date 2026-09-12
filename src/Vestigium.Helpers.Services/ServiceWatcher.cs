@@ -10,6 +10,7 @@ internal sealed class ServiceWatcher : IServiceWatcher
 {
     private readonly string? _name;
     private readonly string? _query;
+    private readonly string? _machine;
     private readonly ServiceWatchFields _fields;
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _loop;
@@ -18,6 +19,7 @@ internal sealed class ServiceWatcher : IServiceWatcher
     {
         _name = name;
         _query = query;
+        _machine = ServiceMachine.Name;
         _fields = fields;
         Interval = interval;
         _loop = Task.Run(RunAsync);
@@ -36,6 +38,7 @@ internal sealed class ServiceWatcher : IServiceWatcher
 
     private async Task RunAsync()
     {
+        using var bind = ServiceMachine.Push(_machine);
         while (!_cts.IsCancellationRequested)
         {
             try
@@ -43,7 +46,7 @@ internal sealed class ServiceWatcher : IServiceWatcher
                 IReadOnlyList<ServiceInfo> rows;
                 if (_name is not null)
                 {
-                    var one = ServiceHelper.Get(_name, ServiceDetailLevel.Slim, joinProcess: _fields.HasFlag(ServiceWatchFields.Process));
+                    var one = ServiceHelper.Get(_name, ServiceDetailLevel.Slim, joinProcess: _fields.HasFlag(ServiceWatchFields.Process) && ServiceMachine.IsLocal);
                     rows = one is null ? [] : [one];
                 }
                 else if (_query is not null)
