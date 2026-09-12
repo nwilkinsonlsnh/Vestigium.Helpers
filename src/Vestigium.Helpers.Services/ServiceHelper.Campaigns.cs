@@ -4,6 +4,17 @@ namespace Vestigium.Helpers.Services;
 
 public static partial class ServiceHelper
 {
+    public static ServiceClient Local { get; } = new(null);
+
+    public static ServiceClient For(string machine)
+        => new(HelperGuard.NotBlank(machine, nameof(machine)));
+
+    public static bool CanConnect(string machine)
+        => ServiceMachine.TryConnect(machine, out _);
+
+    public static bool CanConnect(string machine, out string? reason)
+        => ServiceMachine.TryConnect(machine, out reason);
+
     public static string DefaultCampaignRoot => ServiceCampaign.Root();
 
     public static ServiceCampaign CreateCampaign(ServiceCampaignRecipe recipe)
