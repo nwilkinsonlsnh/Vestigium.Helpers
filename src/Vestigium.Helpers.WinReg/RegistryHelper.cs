@@ -75,6 +75,17 @@ public static class RegistryHelper
         bool confirm = false)
         => Local.Import(path, view, confirm);
 
+    public static IReadOnlyList<RegistryHit> Search(
+        RegistryHiveKind hive,
+        string? key,
+        string term,
+        RegistrySearchMode mode = RegistrySearchMode.Contains,
+        RegistrySearchFields fields = RegistrySearchFields.KeyName | RegistrySearchFields.ValueName,
+        int maxDepth = 16,
+        int maxResults = RegistryClient.MaxSearchResults,
+        RegistryViewKind view = RegistryViewKind.Default)
+        => Local.Search(hive, key, term, mode, fields, maxDepth, maxResults, view);
+
     public static IRegistryMount? MountHive(
         string hiveFile,
         RegistryHiveKind destination,
