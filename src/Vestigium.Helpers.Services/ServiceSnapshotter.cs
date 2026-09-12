@@ -14,7 +14,9 @@ internal static partial class ServiceSnapshotter
     {
         var visible = ReadVisible();
         var visibleNames = new HashSet<string>(visible.Keys, StringComparer.OrdinalIgnoreCase);
-        var hidden = scope == ServiceListScope.Visible ? Array.Empty<RawRow>() : ReadHidden(visibleNames);
+        IReadOnlyList<RawRow> hidden = scope == ServiceListScope.Visible
+            ? Array.Empty<RawRow>()
+            : ReadHidden(visibleNames);
 
         IEnumerable<RawRow> rows = scope switch
         {
@@ -84,8 +86,8 @@ internal static partial class ServiceSnapshotter
                     sub.GetValue("DisplayName") as string ?? name,
                     ParseKind(type),
                     (ServiceTypeFlags)type,
-                    hidden: true,
-                    controller: TryOpen(name)));
+                    Hidden: true,
+                    Controller: TryOpen(name)));
             }
         }
         catch
@@ -100,7 +102,13 @@ internal static partial class ServiceSnapshotter
         try
         {
             var name = controller.ServiceName;
-            map[name] = new RawRow(name, SafeDisplay(controller), ParseKind((int)controller.ServiceType), (ServiceTypeFlags)(int)controller.ServiceType, hidden, controller);
+            map[name] = new RawRow(
+                name,
+                SafeDisplay(controller),
+                ParseKind((int)controller.ServiceType),
+                (ServiceTypeFlags)(int)controller.ServiceType,
+                Hidden: hidden,
+                Controller: controller);
         }
         catch
         {
