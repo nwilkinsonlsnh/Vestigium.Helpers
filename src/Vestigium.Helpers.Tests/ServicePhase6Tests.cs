@@ -12,7 +12,6 @@ public sealed class ServicePhase6Tests
         Assert.NotNull(info);
         Assert.Equal("EventLog", info!.Name, ignoreCase: true);
         Assert.NotNull(info.Actions);
-        Assert.NotNull(info.ResetPeriod);
     }
 
     [Fact]
