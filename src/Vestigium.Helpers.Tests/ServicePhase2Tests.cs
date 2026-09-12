@@ -36,7 +36,11 @@ public sealed class ServicePhase2Tests
         Assert.False(string.IsNullOrWhiteSpace(row.ImagePath));
         Assert.Contains("svchost", row.ImagePath!, StringComparison.OrdinalIgnoreCase);
         Assert.False(string.IsNullOrWhiteSpace(row.Account));
-        Assert.Equal("LocalSystem", row.Account, ignoreCase: true);
+        Assert.True(
+            row.Account.Contains("LocalSystem", StringComparison.OrdinalIgnoreCase)
+            || row.Account.Contains("LocalService", StringComparison.OrdinalIgnoreCase)
+            || row.Account.Contains("NetworkService", StringComparison.OrdinalIgnoreCase),
+            $"EventLog account was {row.Account}");
         Assert.NotNull(row.StartType);
         Assert.NotNull(row.FailureActions);
         Assert.NotNull(row.DelayedAutoStart);

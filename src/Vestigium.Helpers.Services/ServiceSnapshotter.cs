@@ -92,16 +92,21 @@ internal static partial class ServiceSnapshotter
     private static Dictionary<string, RawRow> ReadVisible()
     {
         var map = new Dictionary<string, RawRow>(StringComparer.OrdinalIgnoreCase);
+        TryAddControllers(map, () => ServiceController.GetServices());
+        TryAddControllers(map, () => ServiceController.GetDevices());
+        return map;
+    }
+
+    private static void TryAddControllers(Dictionary<string, RawRow> map, Func<ServiceController[]> source)
+    {
         try
         {
-            foreach (var controller in ServiceController.GetServices())
+            foreach (var controller in source())
                 AddController(map, controller, hidden: false);
         }
         catch
         {
         }
-
-        return map;
     }
 
     private static List<RawRow> ReadHidden(HashSet<string> visibleNames)
@@ -205,12 +210,15 @@ internal static partial class ServiceSnapshotter
         };
 
         if (level != ServiceDetailLevel.Identity)
+        {
             FillConfig(raw.Name, info, availability);
+            FillDepends(raw.Controller, info, availability);
+        }
+
         if (level == ServiceDetailLevel.Full)
         {
             FillDescription(raw.Name, info, availability);
             FillFailure(raw.Name, info, availability);
-            FillDepends(raw.Controller, info, availability);
         }
 
         if (joinProcess && pid is > 0)
