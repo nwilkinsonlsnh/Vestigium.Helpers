@@ -1,27 +1,37 @@
 # Vestigium.Helpers.Services — Developers Guide
 
 **Document ID:** VEST-HLP-SERVICES-DEV-000  
-**Version:** 1.4  
-**Status:** Phase 4  
-**Date:** 11 September 2026
+**Version:** 1.5  
+**Status:** Phase 5  
+**Date:** 12 September 2026
 
-## Control
+## Logon
 
 ```csharp
-ServiceHelper.Start("Spooler");
-ServiceHelper.Stop("Spooler", confirmDependents: true);
-ServiceHelper.Restart("Spooler", confirmDependents: true);
-ServiceHelper.Pause("wuauserv");     // Unsupported if the service cannot pause
-ServiceHelper.Continue("wuauserv");
-ServiceHelper.SetStartType("Spooler", ServiceStartType.AutomaticDelayed, confirm: true);
+ServiceHelper.SetLogon("MySvc", new ServiceLogonRequest
+{
+    Kind = ServiceLogonKind.LocalSystem,
+    InteractWithDesktop = true,   // LocalSystem + own-process only
+    Confirm = true
+});
+
+ServiceHelper.SetLogon("MySvc", new ServiceLogonRequest
+{
+    Kind = ServiceLogonKind.Account,
+    Account = @"DOMAIN\svc-my",
+    Password = password,          // never logged, never on ServiceInfo
+    GrantLogonRight = ServiceGrantLogonRight.Service, // opt-in
+    Confirm = true
+});
+
+var rights = ServiceHelper.QueryLogonRights(@"DOMAIN\svc-my");
+ServiceHelper.GrantLogonRights(@"DOMAIN\svc-my", ServiceGrantLogonRight.ServiceAndBatch);
 ```
 
-Every verb returns `ServiceControlResult`. Access Denied and missing names are statuses, not exceptions.
-
-`ServiceHelper.ProtectedNames` cannot be Stopped, Restarted, or have StartType changed. EventLog is on that list.
+Protected services (EventLog, RpcSs, …) cannot change logon.
 
 ## Build
 
 ```
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase4
+dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase5
 ```

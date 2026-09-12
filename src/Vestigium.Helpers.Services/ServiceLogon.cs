@@ -9,6 +9,7 @@ internal static class ServiceLogon
     public const string LocalSystemName = "LocalSystem";
     public const string LocalServiceName = @"NT AUTHORITY\LocalService";
     public const string NetworkServiceName = @"NT AUTHORITY\NetworkService";
+    public const string SystemAccount = @"NT AUTHORITY\SYSTEM";
     public const string SeServiceLogonRight = "SeServiceLogonRight";
     public const string SeBatchLogonRight = "SeBatchLogonRight";
 
@@ -17,14 +18,18 @@ internal static class ServiceLogon
         ArgumentNullException.ThrowIfNull(request);
         if (!request.Confirm)
             return new ServiceControlResult(name, ServiceControlStatus.Denied, null, "confirm=false");
+        if (ServiceControl.IsProtected(name))
+            return new ServiceControlResult(name, ServiceControlStatus.Denied, null, "protected service");
         if (request.InteractWithDesktop && request.Kind != ServiceLogonKind.LocalSystem)
             return new ServiceControlResult(name, ServiceControlStatus.InvalidState, null, "InteractWithDesktop requires LocalSystem");
+        if (request.Kind == ServiceLogonKind.Account)
+            HelperGuard.NotBlank(request.Account, nameof(request.Account));
 
         var (account, password) = request.Kind switch
         {
             ServiceLogonKind.LocalService => (LocalServiceName, string.Empty),
             ServiceLogonKind.NetworkService => (NetworkServiceName, string.Empty),
-            ServiceLogonKind.Account => (HelperGuard.NotBlank(request.Account, nameof(request.Account)), request.Password ?? string.Empty),
+            ServiceLogonKind.Account => (request.Account!.Trim(), request.Password ?? string.Empty),
             _ => (LocalSystemName, string.Empty)
         };
 
@@ -40,16 +45,27 @@ internal static class ServiceLogon
             return new ServiceControlResult(name, ServiceControlStatus.Denied, null, "OpenService");
         try
         {
-            uint serviceType = ServiceNative.ServiceNoChange;
-            if (request.Kind == ServiceLogonKind.LocalSystem)
+            var serviceType = ServiceNative.ServiceNoChange;
+            if (request.Kind == ServiceLogonKind.LocalSystem && request.InteractWithDesktop)
             {
-                serviceType = (uint)ServiceTypeFlags.Win32OwnProcess;
-                if (request.InteractWithDesktop)
-                    serviceType |= (uint)ServiceTypeFlags.InteractiveProcess;
+                if (IsShareProcess(handle))
+                    return new ServiceControlResult(name, ServiceControlStatus.InvalidState, null, "InteractWithDesktop requires an own-process service");
+                serviceType = (uint)(ServiceTypeFlags.Win32OwnProcess | ServiceTypeFlags.InteractiveProcess);
             }
-            if (!ServiceNative.ChangeServiceConfig(handle, serviceType, ServiceNative.ServiceNoChange, ServiceNative.ServiceNoChange, null, null, 0, null, account, password, null))
+
+            if (!ServiceNative.ChangeServiceConfig(
+                    handle,
+                    serviceType,
+                    ServiceNative.ServiceNoChange,
+                    ServiceNative.ServiceNoChange,
+                    null, null, 0, null, account, password, null))
                 return new ServiceControlResult(name, ServiceControlStatus.Denied, null, "ChangeServiceConfig");
-            HelperLog.Information(HelperLog.AppIds.Services, VestigiumStatus.Success, HelperLog.Subcategories.Start, $"SetLogon {name} kind={request.Kind} account={account}");
+
+            HelperLog.Information(
+                HelperLog.AppIds.Services,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Start,
+                $"SetLogon {name} kind={request.Kind} account={account} password=***");
             var snap = ServiceSnapshotter.CaptureName(name, ServiceDetailLevel.Slim, joinProcess: false);
             return new ServiceControlResult(name, ServiceControlStatus.Ok, snap?.Status, null);
         }
@@ -58,18 +74,18 @@ internal static class ServiceLogon
 
     public static ServiceAccountRightInfo QueryRights(string account)
     {
-        var name = HelperGuard.NotBlank(account, nameof(account));
+        var name = NormalizeLookup(HelperGuard.NotBlank(account, nameof(account)));
         if (!TrySid(name, out var sid, out var reason))
-            return new ServiceAccountRightInfo(name, false, false, reason);
+            return new ServiceAccountRightInfo(account.Trim(), false, false, reason);
         var attrs = new ServiceNative.LsaObjectAttributes { Length = Marshal.SizeOf<ServiceNative.LsaObjectAttributes>() };
         var status = ServiceNative.LsaOpenPolicy(0, ref attrs, ServiceNative.PolicyLookupNames, out var policy);
         if (status != 0)
-            return new ServiceAccountRightInfo(name, false, false, "LsaOpenPolicy " + Win(status));
+            return new ServiceAccountRightInfo(account.Trim(), false, false, "LsaOpenPolicy " + Win(status));
         try
         {
             status = ServiceNative.LsaEnumerateAccountRights(policy, sid, out var buffer, out var count);
             if (status != 0)
-                return new ServiceAccountRightInfo(name, false, false, status == unchecked((int)0xC0000034) ? null : "LsaEnumerateAccountRights " + Win(status));
+                return new ServiceAccountRightInfo(account.Trim(), false, false, status == unchecked((int)0xC0000034) ? null : "LsaEnumerateAccountRights " + Win(status));
             try
             {
                 var hasService = false;
@@ -82,7 +98,7 @@ internal static class ServiceLogon
                     if (string.Equals(right, SeServiceLogonRight, StringComparison.OrdinalIgnoreCase)) hasService = true;
                     if (string.Equals(right, SeBatchLogonRight, StringComparison.OrdinalIgnoreCase)) hasBatch = true;
                 }
-                return new ServiceAccountRightInfo(name, hasService, hasBatch, null);
+                return new ServiceAccountRightInfo(account.Trim(), hasService, hasBatch, null);
             }
             finally { ServiceNative.LsaFreeMemory(buffer); }
         }
@@ -94,7 +110,7 @@ internal static class ServiceLogon
         var name = HelperGuard.NotBlank(account, nameof(account));
         if (rights == ServiceGrantLogonRight.None)
             return QueryRights(name);
-        if (!TrySid(name, out var sid, out var reason))
+        if (!TrySid(NormalizeLookup(name), out var sid, out var reason))
             return new ServiceAccountRightInfo(name, false, false, reason);
         var wanted = new List<string>();
         if (rights.HasFlag(ServiceGrantLogonRight.Service)) wanted.Add(SeServiceLogonRight);
@@ -126,6 +142,30 @@ internal static class ServiceLogon
         }
     }
 
+    private static bool IsShareProcess(nint handle)
+    {
+        ServiceNative.QueryServiceConfig(handle, nint.Zero, 0, out var needed);
+        var size = Math.Max(needed, 256);
+        var buffer = Marshal.AllocHGlobal(size);
+        try
+        {
+            if (!ServiceNative.QueryServiceConfig(handle, buffer, size, out _))
+                return false;
+            var cfg = Marshal.PtrToStructure<ServiceNative.QueryServiceConfigData>(buffer);
+            return ((ServiceTypeFlags)cfg.ServiceType).HasFlag(ServiceTypeFlags.Win32ShareProcess);
+        }
+        finally { Marshal.FreeHGlobal(buffer); }
+    }
+
+    private static string NormalizeLookup(string account)
+    {
+        if (account.Equals(LocalSystemName, StringComparison.OrdinalIgnoreCase)
+            || account.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase)
+            || account.Equals(@".\LocalSystem", StringComparison.OrdinalIgnoreCase))
+            return SystemAccount;
+        return account;
+    }
+
     private static bool TrySid(string account, out byte[] sid, out string? reason)
     {
         sid = new byte[256];
@@ -138,7 +178,7 @@ internal static class ServiceLogon
             reason = "LookupAccountName " + Marshal.GetLastWin32Error();
             return false;
         }
-        if (sidLen != sid.Length) Array.Resize(ref sid, sidLen);
+        if (sidLen != sid.Length && sidLen > 0 && sidLen < sid.Length) Array.Resize(ref sid, sidLen);
         reason = null;
         return true;
     }
