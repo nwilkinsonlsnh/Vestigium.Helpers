@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Vestigium.Helpers;
 using Vestigium.Logging;
@@ -29,7 +30,7 @@ public sealed partial class RegistryClient
             if (format == RegistryExportFormat.HiveFile)
                 return ExportHive(opened.Handle, dest, hive, keyPath);
 
-            using var writer = new StreamWriter(dest, false, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            using var writer = new StreamWriter(dest, false, Encoding.Unicode);
             RegistryRegFile.WriteTree(this, hive, keyPath, view, writer);
             HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Export hive={hive} path={keyPath} file={dest}");
             return new RegistryWriteResult(RegistryWriteStatus.Ok, hive, keyPath, null, dest);
