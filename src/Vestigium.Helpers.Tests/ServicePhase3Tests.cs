@@ -81,6 +81,10 @@ public sealed class ServicePhase3Tests
     public void Both_directions_do_not_loop_forever()
     {
         var tree = ServiceHelper.GetDependencyTree("EventLog", ServiceTreeDirection.Both, ServiceDetailLevel.Slim);
-        Assert.True(tree.Flatten().Count < 4096);
+        var flat = tree.Flatten();
+        Assert.True(flat.Count <= ServiceTreeWalker.MaxNodes + 8, $"nodes={flat.Count}");
+        Assert.Equal("EventLog", flat[0].Name, ignoreCase: true);
+        var names = flat.Select(r => r.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(names.Count, flat.Count);
     }
 }
