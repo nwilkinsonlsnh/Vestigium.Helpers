@@ -1,13 +1,11 @@
 # Vestigium.Helpers.Services — Phase Implementation Plan
 
 **Document ID:** VEST-HLP-SERVICES-PLAN-000  
-**Version:** 1.3  
-**Status:** Phase 0 Locked. Phases 1–2 Done. Phase 3 of 8 in flight.  
+**Version:** 1.4  
+**Status:** Phase 0 Locked. Phases 1–3 Done. Phase 4 of 8 in flight.  
 **Date:** 11 September 2026  
 **Package:** `Vestigium.Helpers.Services`  
-**TFM:** `net10.0-windows`  
-**Contract:** [`Requirements_v1.0.md`](Requirements_v1.0.md)  
-**Companion:** [`DevelopersGuide_v1.0.md`](DevelopersGuide_v1.0.md)
+**TFM:** `net10.0-windows`
 
 Demo gallery is **out** of all eight phases.
 
@@ -19,9 +17,9 @@ Demo gallery is **out** of all eight phases.
 |---|---|---|
 | **0 Paper** | SRS + this plan. | **Locked** |
 | **1 List / Get / Search** | Visible Win32. StartsWith / EndsWith / Contains. | **Done** |
-| **2 Full row** | Config, account, image path, delayed auto-start, failure actions (read) | **Done** |
-| **3 Hidden + tree** | `ListHidden` + `List(All)`. Depends-on / depended-by walk | **In progress** |
-| **4 Control** | Start, Stop, Restart, Pause, Continue, SetStartType | Planned |
+| **2 Full row** | Config, account, image path, delayed, failure actions (read) | **Done** |
+| **3 Hidden + tree** | `ListHidden` + `List(All)`. Depends-on / depended-by | **Done** |
+| **4 Control** | Start, Stop, Restart, Pause, Continue, SetStartType | **In progress** |
 | **5 Logon** | LocalSystem, desktop interact, account+password, logon rights | Planned |
 | **6 Recovery** | First / second / subsequent + reset period | Planned |
 | **7 Watch + KQL + campaigns** | Interval samples, `KqlPack.Service`, JSONL windows | Planned |
@@ -29,55 +27,39 @@ Demo gallery is **out** of all eight phases.
 
 ---
 
-## 2. Phase 3 scope
+## 2. Phase 4 scope
 
-Visible set = `ServiceController.GetServices()` union `GetDevices()`. Kind filter still applies.
+Typed `ServiceControlResult`. No throw on Access Denied, timeout, or missing name.
 
-Hidden set = `HKLM\SYSTEM\CurrentControlSet\Services` keys with a service/driver Type that are **not** in the visible set.
-
-| Call | Meaning |
+| Verb | Rules |
 |---|---|
-| `List()` | Visible Win32. `IsHidden == false`. services.msc default. |
-| `List(..., kind: Driver)` | Visible drivers. |
-| `ListHidden()` | Registry-only rows. Every row `IsHidden == true`. |
-| `List(..., scope: All)` | Union. Count = visible + hidden. |
+| Start | Already running → Ok. Disabled → InvalidState. Missing → NotFound. |
+| Stop | Protected name → Denied. Dependents and `confirmDependents=false` → HasDependents. Cannot stop → Unsupported. |
+| Restart | Stop then Start. Protected → Denied before Stop. |
+| Pause / Continue | `CanPauseAndContinue == false` → Unsupported. Wrong state → InvalidState. |
+| SetStartType | `confirm: false` → Denied. Protected → Denied. Boot/System → Unsupported. AutomaticDelayed writes Automatic + delayed flag. |
 
-Tree:
+Protected names (never Stop / Restart / SetStartType): EventLog, RpcSs, DcomLaunch, LSM, PlugPlay, ProfSvc, SamSs, Schedule, Winmgmt, CryptSvc, and a short companion list on `ServiceHelper.ProtectedNames`.
 
-```text
-GetDependsOn(name)
-GetDependedBy(name)
-GetDependencyTree(name, DependsOn | DependedBy | Both)
-ServiceTree.Flatten()
-```
-
-Cycle or depth > 32 sets `AmbiguousDependency` and stops that branch. Missing root throws `InvalidOperationException`.
-
-Depends-on / depended-by fill at Slim so the tree does not require Full.
+Create / Delete / change binary path stay out of v1.
 
 ---
 
 ## 3. Close gates
 
-### Phase 2 correction
-
-EventLog account is whatever SCM reports (`LocalSystem`, `NT AUTHORITY\LocalService`, or `NetworkService`). Do not hard-code LocalSystem.
-
-### Phase 3
-
-1. Visible Win32 list never sets `IsHidden`.
-2. Hidden list is disjoint from visible names. Every hidden row has `IsHidden`.
-3. `List(All)` count = visible + hidden.
-4. Visible drivers are not marked hidden.
-5. `GetDependsOn` / `GetDependedBy` on EventLog do not throw.
-6. EventLog DependsOn tree Flatten starts with EventLog.
-7. Missing name throws `InvalidOperationException`.
-8. Both-directions walk stays under 4096 nodes.
+1. `Stop("EventLog")` is Denied / protected. EventLog stays running.
+2. `Restart("EventLog")` is Denied.
+3. `SetStartType(..., confirm: false)` is Denied.
+4. `SetStartType("EventLog", confirm: true)` is still Denied (protected).
+5. `SetStartType(..., Boot)` is Unsupported.
+6. Missing name Start/Stop/Pause is NotFound.
+7. Pause EventLog is Unsupported or Denied, never a throw.
+8. Control verbs do not throw.
 
 ---
 
 ## 4. Commands
 
 ```
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase3
+dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase4
 ```

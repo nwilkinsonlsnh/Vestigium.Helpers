@@ -14,6 +14,8 @@ public static class ServiceHelper
     public static readonly TimeSpan MaxWatchInterval = TimeSpan.FromSeconds(60);
     public static readonly TimeSpan DefaultWatchInterval = TimeSpan.FromSeconds(1);
 
+    public static IReadOnlyCollection<string> ProtectedNames => ServiceControl.ProtectedNames;
+
     public static string Identity => "Vestigium.Helpers.Services";
 
     public static string Probe()
