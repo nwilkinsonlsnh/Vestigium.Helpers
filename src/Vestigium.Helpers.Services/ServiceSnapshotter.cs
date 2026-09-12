@@ -30,7 +30,7 @@ internal static partial class ServiceSnapshotter
         {
             if (!MatchesKind(raw.Kind, kind))
                 continue;
-            result.Add(Materialize(raw, level, joinProcess));
+            result.Add(Materialize(raw, level, joinProcess && ServiceMachine.IsLocal));
         }
 
         return result.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -41,7 +41,7 @@ internal static partial class ServiceSnapshotter
         ServiceController? controller = null;
         try
         {
-            controller = new ServiceController(name);
+            controller = new ServiceController(name, ServiceMachine.ControllerName);
             _ = controller.Status;
             var raw = new RawRow(
                 controller.ServiceName,
@@ -50,7 +50,7 @@ internal static partial class ServiceSnapshotter
                 (ServiceTypeFlags)(int)controller.ServiceType,
                 Hidden: false,
                 Controller: controller);
-            return Materialize(raw, level, joinProcess);
+            return Materialize(raw, level, joinProcess && ServiceMachine.IsLocal);
         }
         catch (InvalidOperationException)
         {
@@ -68,7 +68,7 @@ internal static partial class ServiceSnapshotter
     {
         try
         {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name);
+            using var key = OpenServiceKey(name);
             if (key is null)
                 return null;
             var type = Convert.ToInt32(key.GetValue("Type", 0) ?? 0);
@@ -81,7 +81,7 @@ internal static partial class ServiceSnapshotter
                 (ServiceTypeFlags)type,
                 Hidden: true,
                 Controller: TryOpen(name));
-            return Materialize(raw, level, joinProcess);
+            return Materialize(raw, level, joinProcess && ServiceMachine.IsLocal);
         }
         catch
         {
@@ -92,8 +92,9 @@ internal static partial class ServiceSnapshotter
     private static Dictionary<string, RawRow> ReadVisible()
     {
         var map = new Dictionary<string, RawRow>(StringComparer.OrdinalIgnoreCase);
-        TryAddControllers(map, () => ServiceController.GetServices());
-        TryAddControllers(map, () => ServiceController.GetDevices());
+        var machine = ServiceMachine.ControllerName;
+        TryAddControllers(map, () => ServiceController.GetServices(machine));
+        TryAddControllers(map, () => ServiceController.GetDevices(machine));
         return map;
     }
 
@@ -114,7 +115,7 @@ internal static partial class ServiceSnapshotter
         var hidden = new List<RawRow>();
         try
         {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services");
+            using var key = OpenServicesRoot();
             if (key is null)
                 return hidden;
 
@@ -142,6 +143,36 @@ internal static partial class ServiceSnapshotter
         }
 
         return hidden;
+    }
+
+    private static RegistryKey? OpenServicesRoot()
+    {
+        try
+        {
+            if (ServiceMachine.IsLocal)
+                return Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services");
+            return RegistryKey.OpenRemoteBaseKey(RegistryHive.LocalMachine, ServiceMachine.Name!)
+                .OpenSubKey(@"SYSTEM\CurrentControlSet\Services");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static RegistryKey? OpenServiceKey(string name)
+    {
+        try
+        {
+            if (ServiceMachine.IsLocal)
+                return Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name);
+            return RegistryKey.OpenRemoteBaseKey(RegistryHive.LocalMachine, ServiceMachine.Name!)
+                .OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static void AddController(Dictionary<string, RawRow> map, ServiceController controller, bool hidden)
@@ -194,6 +225,7 @@ internal static partial class ServiceSnapshotter
         var info = new ServiceInfo
         {
             Name = raw.Name,
+            Machine = ServiceMachine.Name,
             DisplayName = raw.DisplayName,
             Kind = raw.Kind,
             ServiceType = raw.ServiceType,
@@ -221,7 +253,7 @@ internal static partial class ServiceSnapshotter
             FillFailure(raw.Name, info, availability);
         }
 
-        if (joinProcess && pid is > 0)
+        if (joinProcess && pid is > 0 && ServiceMachine.IsLocal)
         {
             try { info.Process = ProcessHelper.Get(pid.Value, ProcessDetailLevel.Slim); }
             catch { }
