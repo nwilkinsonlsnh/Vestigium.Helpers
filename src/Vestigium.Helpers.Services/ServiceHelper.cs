@@ -189,6 +189,10 @@ public static partial class ServiceHelper
     public static IServiceWatcher WatchQuery(string query, TimeSpan interval, ServiceWatchFields fields = ServiceWatchFields.Status | ServiceWatchFields.Pid)
     {
         var text = HelperGuard.NotBlank(query, nameof(query));
+        using var session = KqlHelper.Create(KqlPack.Service);
+        var compiled = KqlHelper.Compile(text, session);
+        if (!compiled.Ok || compiled.Query is null)
+            throw new ArgumentException(compiled.Error?.ToString() ?? "invalid query", nameof(query));
         return new ServiceWatcher(name: null, text, RequireInterval(interval), fields);
     }
 
