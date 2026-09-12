@@ -124,7 +124,7 @@ public sealed partial class RegistryClient
             using var opened = Open(hive, path, view, writable: true);
             if (opened is null)
                 return Fail(hive, path, name, RegistryWriteStatus.NotFound, "key gone");
-            opened.DeleteValue(name, throwIfMissing: false);
+            opened.DeleteValue(name, throwOnMissingValue: false);
             Log("DeleteValue", hive, path, name);
             return Ok(hive, path, name);
         }

@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 [Collection("Logger")]
 public sealed class RegistryPhase2Tests : IDisposable
 {
-    private const RegistryHiveKind Hive = RegistryHiveKind.CurrentUser;
+    private static readonly RegistryHiveKind Hive = RegistryHiveKind.CurrentUser;
     private readonly string _root;
 
     public RegistryPhase2Tests()

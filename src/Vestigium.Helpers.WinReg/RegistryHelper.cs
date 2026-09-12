@@ -10,6 +10,8 @@ public static class RegistryHelper
 {
     public static string Identity => "Vestigium.Helpers.WinReg";
 
+    public static TimeSpan ConnectTimeout { get; set; } = TimeSpan.FromSeconds(3);
+
     public static RegistryClient Local { get; } = new(null);
 
     public static RegistryClient For(string machine)
@@ -29,7 +31,19 @@ public static class RegistryHelper
 
         try
         {
-            using var key = client.Open(RegistryHiveKind.CurrentUser, string.Empty, RegistryViewKind.Default, writable: false);
+            var timeout = ConnectTimeout <= TimeSpan.Zero ? TimeSpan.FromSeconds(3) : ConnectTimeout;
+            var task = Task.Run(() => client.Open(
+                RegistryHiveKind.LocalMachine,
+                string.Empty,
+                RegistryViewKind.Default,
+                writable: false));
+            if (!task.Wait(timeout))
+            {
+                reason = "timeout";
+                return false;
+            }
+
+            using var key = task.Result;
             if (key is null)
             {
                 reason = "OpenRemoteBaseKey failed";
