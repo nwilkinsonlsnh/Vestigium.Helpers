@@ -23,7 +23,13 @@ internal static class ServiceTreeWalker
         HashSet<string> seen,
         int depth)
     {
-        if (depth > MaxDepth || seen.Count >= MaxNodes || !seen.Add(node.Name))
+        if (!seen.Add(node.Name))
+        {
+            node.AmbiguousDependency = true;
+            return new ServiceTree { Root = node, Children = [] };
+        }
+
+        if (depth >= MaxDepth || seen.Count >= MaxNodes)
         {
             node.AmbiguousDependency = true;
             return new ServiceTree { Root = node, Children = [] };
@@ -53,6 +59,9 @@ internal static class ServiceTreeWalker
             var child = ServiceSnapshotter.CaptureName(childName, level, joinProcess: false);
             if (child is null)
                 continue;
+            if (seen.Contains(child.Name))
+                continue;
+
             children.Add(BuildNode(child, direction, level, seen, depth + 1));
         }
 
