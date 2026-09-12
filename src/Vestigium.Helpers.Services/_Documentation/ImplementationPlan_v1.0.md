@@ -1,8 +1,8 @@
 # Vestigium.Helpers.Services — Phase Implementation Plan
 
 **Document ID:** VEST-HLP-SERVICES-PLAN-000  
-**Version:** 1.7  
-**Status:** Phase 0 Locked. Phases 1–6 Done. Phase 7 of 8 in flight.  
+**Version:** 1.8  
+**Status:** Phases 0–8 **Done**.  
 **Date:** 12 September 2026
 
 ---
@@ -11,57 +11,34 @@
 
 | Phase | Goal | Status |
 |---|---|---|
-| **0–6** | List through recovery | **Done** |
-| **7 Watch + KQL + campaigns** | Interval samples, `KqlPack.Service`, JSONL windows | **In progress** |
-| **8 Harden** | Tests, no password in logs, guide matches engine | Planned |
+| **0 Paper** | SRS + this plan. | **Locked** |
+| **1 List / Get / Search** | Visible Win32. StartsWith / EndsWith / Contains. | **Done** |
+| **2 Full row** | Config, account, image path, delayed, failure actions (read) | **Done** |
+| **3 Hidden + tree** | `ListHidden` + `List(All)`. Depends-on / depended-by | **Done** |
+| **4 Control** | Start, Stop, Restart, Pause, Continue, SetStartType | **Done** |
+| **5 Logon** | LocalSystem, desktop interact, account+password, logon rights | **Done** |
+| **6 Recovery** | First / second / subsequent + reset period | **Done** |
+| **7 Watch + KQL + campaigns** | Interval samples, `KqlPack.Service`, JSONL windows | **Done** |
+| **8 Harden** | Tests, no password on snapshots, guide matches engine | **Done** |
+
+Demo gallery stays out of this plan.
 
 ---
 
-## 2. Phase 7 scope
+## 2. Phase 8 gates
 
-Watch (continuous):
-
-```text
-ServiceHelper.Watch(name, interval)
-ServiceHelper.WatchQuery(kql, interval)
-```
-
-Interval 250 ms – 60 s. Inner ticks do not write JSONL.
-
-KQL search uses `KqlPack.Service`. `Name LIKE 'Event%'`. `PID` is not a Service field (`SVC.Pid` / `Pid` is).
-
-Campaign (scheduled):
-
-```text
-CreateCampaign(recipe)   // recipe.json overwritten in campaign folder
-LoadCampaign(name)
-ListCampaigns()
-RunAsync() / TickOnce() / Stop()
-```
-
-Root is `%ProgramData%\Vestigium\Services\Campaigns` unless `ServiceTestHooks.CampaignRoot` is set. Tests must set that.
-
-A campaign needs ≥1 window (1 min–24 h) and Query or Match.Term. Samples append `samples.jsonl` only while a window is open. No password field on the line.
-
-Example windows: 00:00 for 10 min, 08:00 for 10 min, 12:00 for 10 min. Filter `Name LIKE 'app%'` or StartsWith/Contains terms.
+1. `ServiceInfo`, `ServiceControlResult`, `ServiceRecoveryInfo`, `ServiceCampaignTick` have no Password property. Password exists only on `ServiceLogonRequest` (write input).
+2. `WatchQuery` with a Process-only field throws at construct, not on the first tick.
+3. `CreateCampaign` overwrites `recipe.json` (no destination-exists throw).
+4. `LoadCampaign` round-trips. Missing name throws `FileNotFoundException`.
+5. Protected names deny Stop / SetStartType / SetLogon / SetRecovery even with confirm.
+6. Tests never write `%ProgramData%\Vestigium\Services` — they set `ServiceTestHooks.CampaignRoot`.
+7. Guide lists the same public surface as `ServiceHelper`.
 
 ---
 
-## 3. Close gates
-
-1. Watch interval 10 ms throws.
-2. Watch EventLog raises Sampled with EventLog.
-3. `Search("Name LIKE 'Event%'")` hits EventLog.
-4. `Search("PID == 1")` throws (wrong pack).
-5. Open window writes samples.jsonl containing EventLog and `kind=service`.
-6. Closed window does not create samples.jsonl.
-7. Recipe without Query/Match throws.
-8. JSONL has no password token.
-
----
-
-## 4. Commands
+## 3. Commands
 
 ```
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase7
+dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~ServicePhase
 ```
