@@ -188,6 +188,7 @@ public sealed partial class RegistryClient
         var availability = new List<RegistryFieldAvailability>();
         int? subCount = null;
         int? valCount = null;
+        DateTimeOffset? lastWrite = null;
         string[] names = [];
         IReadOnlyList<RegistryValueInfo> values = [];
 
@@ -200,21 +201,19 @@ public sealed partial class RegistryClient
 
         if (level == RegistryDetailLevel.Full)
         {
+            lastWrite = RegistryNative.TryLastWrite(opened.Handle);
+            if (lastWrite is null)
+                availability.Add(new("LastWriteTime", "Denied", "RegQueryInfoKey"));
+
             try
             {
                 var list = new List<RegistryValueInfo>();
+                TryAddValue(opened, string.Empty, list);
                 foreach (var name in opened.GetValueNames())
                 {
-                    var kind = MapKind(opened.GetValueKind(name));
-                    var data = opened.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
-                    list.Add(new RegistryValueInfo
-                    {
-                        Name = name,
-                        IsDefault = name.Length == 0,
-                        Type = kind,
-                        Data = data,
-                        DataText = Format(data, kind)
-                    });
+                    if (name.Length == 0)
+                        continue;
+                    TryAddValue(opened, name, list);
                 }
                 values = list;
             }
@@ -233,10 +232,32 @@ public sealed partial class RegistryClient
             View = view,
             SubKeyCount = subCount,
             ValueCount = valCount,
+            LastWriteTime = lastWrite,
             SubKeyNames = names,
             Values = values,
             Availability = availability
         };
+    }
+
+    private static void TryAddValue(RegistryKey opened, string name, List<RegistryValueInfo> list)
+    {
+        try
+        {
+            var kind = MapKind(opened.GetValueKind(name));
+            var data = opened.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+            list.Add(new RegistryValueInfo
+            {
+                Name = name,
+                IsDefault = name.Length == 0,
+                Type = kind,
+                Data = data,
+                DataText = Format(data, kind)
+            });
+        }
+        catch (IOException)
+        {
+            // default value often absent
+        }
     }
 
     internal static RegistryHive MapHive(RegistryHiveKind hive) => hive switch
