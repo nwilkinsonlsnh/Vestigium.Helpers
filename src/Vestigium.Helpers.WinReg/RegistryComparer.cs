@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Vestigium.Helpers;
@@ -24,7 +23,6 @@ internal static class RegistryComparer
         IProgress<RegistryCompareProgress>? progress,
         CancellationToken cancel)
     {
-        _ = includeSame;
         _ = includePayload;
         leftIndex = HelperGuard.FileExists(leftIndex, nameof(leftIndex));
         rightIndex = HelperGuard.FileExists(rightIndex, nameof(rightIndex));
@@ -42,8 +40,8 @@ internal static class RegistryComparer
             && string.Equals(left.View, right.View, StringComparison.OrdinalIgnoreCase);
 
         var shared = left.Keys.Intersect(right.Keys, StringComparer.OrdinalIgnoreCase).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var leftOnly = left.Keys.Except(right.Keys, StringComparer.OrdinalIgnoreCase).ToList();
-        var rightOnly = right.Keys.Except(left.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+        var leftOnlyKeys = left.Keys.Except(right.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+        var rightOnlyKeys = right.Keys.Except(left.Keys, StringComparer.OrdinalIgnoreCase).ToList();
         var union = left.Keys.Count + right.Keys.Count - shared.Count;
         var relatedness = union == 0 ? 0d : (double)shared.Count / union;
         var coverageLeft = left.Keys.Count == 0 ? 0d : (double)shared.Count / left.Keys.Count;
@@ -71,22 +69,101 @@ internal static class RegistryComparer
             ["keysLeft"] = left.Keys.Count,
             ["keysRight"] = right.Keys.Count,
             ["keysShared"] = shared.Count,
-            ["sampleLeftOnly"] = leftOnly.Take(12).ToArray(),
-            ["sampleRightOnly"] = rightOnly.Take(12).ToArray()
+            ["sampleLeftOnly"] = leftOnlyKeys.Take(12).ToArray(),
+            ["sampleRightOnly"] = rightOnlyKeys.Take(12).ToArray()
         });
+
+        var same = 0;
+        var changed = 0;
+        var leftOnly = 0;
+        var rightOnly = 0;
+        if (!stop)
+        {
+            progress?.Report(new RegistryCompareProgress { Phase = "Merge", KeysSeen = union });
+            Merge(left, right, writer, includeSame, ref same, ref changed, ref leftOnly, ref rightOnly, cancel);
+        }
+
         Write(writer, new Dictionary<string, object?>
         {
             ["rec"] = "footer",
-            ["same"] = 0,
-            ["changed"] = 0,
-            ["leftOnly"] = 0,
-            ["rightOnly"] = 0,
+            ["same"] = same,
+            ["changed"] = changed,
+            ["leftOnly"] = leftOnly,
+            ["rightOnly"] = rightOnly,
             ["stopped"] = stop
         });
 
-        HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Compare verdict={verdict} out={output}");
-        progress?.Report(new RegistryCompareProgress { Phase = "Done", KeysSeen = union });
+        HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Compare verdict={verdict} changed={changed} left={leftOnly} right={rightOnly}");
+        progress?.Report(new RegistryCompareProgress { Phase = "Done", KeysSeen = union, Same = same, Changed = changed, LeftOnly = leftOnly, RightOnly = rightOnly });
         return new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, output, null, verdict);
+    }
+
+    private static void Merge(
+        IndexFile left,
+        IndexFile right,
+        StreamWriter writer,
+        bool includeSame,
+        ref int same,
+        ref int changed,
+        ref int leftOnly,
+        ref int rightOnly,
+        CancellationToken cancel)
+    {
+        foreach (var id in left.Values.Keys.Union(right.Values.Keys, StringComparer.OrdinalIgnoreCase).OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+        {
+            cancel.ThrowIfCancellationRequested();
+            left.Values.TryGetValue(id, out var l);
+            right.Values.TryGetValue(id, out var r);
+            if (l is null)
+            {
+                rightOnly++;
+                WriteDelta(writer, "RightOnly", r!);
+                continue;
+            }
+            if (r is null)
+            {
+                leftOnly++;
+                WriteDelta(writer, "LeftOnly", l);
+                continue;
+            }
+
+            if (string.Equals(l.Type, r.Type, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(l.Hash, r.Hash, StringComparison.OrdinalIgnoreCase))
+            {
+                same++;
+                if (includeSame)
+                    WriteDelta(writer, "Same", l, r);
+                continue;
+            }
+
+            changed++;
+            WriteDelta(writer, "Changed", l, r);
+        }
+    }
+
+    private static void WriteDelta(StreamWriter writer, string kind, IndexValue left, IndexValue? right = null)
+    {
+        var row = new Dictionary<string, object?>
+        {
+            ["rec"] = "delta",
+            ["kind"] = kind,
+            ["path"] = left.Path,
+            ["name"] = left.Name,
+            ["leftType"] = left.Type,
+            ["rightType"] = right?.Type,
+            ["leftHash"] = left.Hash,
+            ["rightHash"] = right?.Hash
+        };
+        if (kind == "RightOnly" && right is not null)
+        {
+            row["path"] = right.Path;
+            row["name"] = right.Name;
+            row["leftType"] = null;
+            row["leftHash"] = null;
+            row["rightType"] = right.Type;
+            row["rightHash"] = right.Hash;
+        }
+        Write(writer, row);
     }
 
     internal static string Verdict(bool headerMatch, double relatedness, double coverageLeft, double coverageRight)
@@ -131,6 +208,11 @@ internal static class RegistryComparer
             {
                 file.Keys.Add(Str(root, "path"));
             }
+            else if (kind == "value")
+            {
+                var item = new IndexValue(Str(root, "path"), Str(root, "name"), Str(root, "type"), Str(root, "hash"));
+                file.Values[item.Id] = item;
+            }
         }
         return file;
     }
@@ -160,5 +242,11 @@ internal static class RegistryComparer
         public string CapturedAt { get; set; } = "";
         public string Source { get; set; } = "";
         public HashSet<string> Keys { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, IndexValue> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    internal sealed record IndexValue(string Path, string Name, string Type, string Hash)
+    {
+        public string Id => Path + "\0" + Name;
     }
 }
