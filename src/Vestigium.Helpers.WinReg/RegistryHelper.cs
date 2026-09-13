@@ -6,7 +6,7 @@ namespace Vestigium.Helpers.WinReg;
 
 /// <summary>Windows Registry helpers. Windows-only.</summary>
 [SupportedOSPlatform("windows")]
-public static class RegistryHelper
+public static partial class RegistryHelper
 {
     public static string Identity => "Vestigium.Helpers.WinReg";
 
