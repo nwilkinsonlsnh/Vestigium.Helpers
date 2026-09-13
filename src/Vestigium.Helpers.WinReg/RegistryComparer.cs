@@ -23,17 +23,38 @@ internal static class RegistryComparer
         IProgress<RegistryCompareProgress>? progress,
         CancellationToken cancel)
     {
+        try
+        {
+            return CompareCore(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel);
+        }
+        catch (OperationCanceledException)
+        {
+            return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, output, null, "canceled");
+        }
+    }
+
+    private static RegistryWriteResult CompareCore(
+        string leftIndex,
+        string rightIndex,
+        string output,
+        bool confirm,
+        bool force,
+        bool includeSame,
+        bool includePayload,
+        IProgress<RegistryCompareProgress>? progress,
+        CancellationToken cancel)
+    {
         _ = includePayload;
         leftIndex = HelperGuard.FileExists(leftIndex, nameof(leftIndex));
         rightIndex = HelperGuard.FileExists(rightIndex, nameof(rightIndex));
         output = HelperGuard.NotBlank(output, nameof(output));
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, output, null, "confirm=false");
+        cancel.ThrowIfCancellationRequested();
 
         var left = LoadIndex(leftIndex);
         var right = LoadIndex(rightIndex);
         progress?.Report(new RegistryCompareProgress { Phase = "Verify", KeysSeen = left.Keys.Count + right.Keys.Count });
-        cancel.ThrowIfCancellationRequested();
 
         var headerMatch = string.Equals(left.Hive, right.Hive, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.Path, right.Path, StringComparison.OrdinalIgnoreCase)
