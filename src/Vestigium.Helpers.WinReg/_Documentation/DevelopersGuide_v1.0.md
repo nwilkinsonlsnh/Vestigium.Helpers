@@ -1,50 +1,44 @@
 # Vestigium.Helpers.WinReg — Developers Guide
 
 **Document ID:** VEST-HLP-WINREG-DEV-000  
-**Version:** 1.1  
-**Status:** Matches engine after Phase 7  
-**Date:** 12 September 2026  
+**Version:** 1.2  
+**Status:** Engine through Phase 7. Comparer is specified, not shipped.  
+**Date:** 13 September 2026  
 **TFM:** `net10.0-windows`
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.WinReg/`.
 
 No `reg.exe`. No `regedit`. Demo gallery is out of this guide.
 
-## Façade
+Comparer paper: [`Requirements_Comparer_v1.0.md`](Requirements_Comparer_v1.0.md), [`Design_Comparer_v1.0.md`](Design_Comparer_v1.0.md).
+
+## Façade (shipped)
 
 ```text
-RegistryHelper.Identity
-RegistryHelper.Probe()
-RegistryHelper.Local
-RegistryHelper.For(machine)
-RegistryHelper.CanConnect(machine)
-RegistryHelper.ConnectTimeout
-
-RegistryHelper.Export(path, hive, key, format, view, confirm)
-RegistryHelper.Import(path, view, confirm)
-RegistryHelper.Search(hive, key, term, mode, fields, maxDepth, maxResults, view)
-RegistryHelper.MountHive(hiveFile, destination, subKey, confirm, out result)
-RegistryHelper.DismountHive(destination, subKey, confirm)
+RegistryHelper.Identity / Probe()
+RegistryHelper.Local / For(machine) / CanConnect / ConnectTimeout
+RegistryHelper.Export / Import / Search
+RegistryHelper.MountHive / DismountHive
 ```
 
-`RegistryClient` owns the same read / write / search / export / import methods bound to one machine.
+`RegistryClient` owns read / write / search / export / import bound to one machine.
 
-## Read
+## Read / write / search / mount
 
-`GetKey` / `TryGetKey` / `GetValue` / `TryGetValue` / `ListSubKeys`
+Missing Get → null. `/` throws. Views: Default / Registry64 / Registry32.  
+Writes need `confirm: true`. HKLM SYSTEM / SAM / SECURITY / SOFTWARE\Microsoft → Denied.  
+Logs path + value **name** only.
 
-Missing → null. `/` in a path throws. Views: Default / Registry64 / Registry32.
+Search: StartsWith / EndsWith / Contains. Cap 256 / depth 32.  
+Mount: HKLM or HKU, local only. Dispose unloads.
 
-## Write
+## Comparer (specified, not shipped)
 
-`CreateKey` / `SetValue` / `DeleteKey` / `DeleteValue`
+```text
+WriteIndex(path, hive, key, confirm, progress, cancel)     → vest-regidx/1
+Compare(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel)
+                                                            → vest-regcmp/1
+```
 
-`confirm: false` → Denied. HKLM SYSTEM / SAM / SECURITY / SOFTWARE\Microsoft → Denied. Logs path + value **name** only.
-
-## Search
-
-StartsWith / EndsWith / Contains. Fields: KeyName, ValueName, ValueData (strings only). `maxResults` cap 256. `maxDepth` cap 32.
-
-## Mount
-
-HKLM or HKU only. Local only. Dispose unloads.
+Collect on each box, copy JSONL to the desk, compare there.  
+Verify is keys only. Unrelated stops unless `force`. Same values are footer counts unless `includeSame`.
