@@ -25,6 +25,13 @@ internal static class RegistryNative
         public uint Attributes;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FileTime
+    {
+        public uint Low;
+        public uint High;
+    }
+
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern bool LookupPrivilegeValue(string? system, string name, out Luid luid);
 
@@ -45,6 +52,35 @@ internal static class RegistryNative
 
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern int RegUnLoadKey(nint hive, string subKey);
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode)]
+    internal static extern int RegQueryInfoKey(
+        SafeRegistryHandle key,
+        nint className,
+        nint classLen,
+        nint reserved,
+        nint subKeys,
+        nint maxSubKey,
+        nint maxClass,
+        nint values,
+        nint maxValueName,
+        nint maxValue,
+        nint security,
+        out FileTime lastWrite);
+
+    internal static DateTimeOffset? TryLastWrite(SafeRegistryHandle handle)
+    {
+        if (handle.IsInvalid)
+            return null;
+        var status = RegQueryInfoKey(handle, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, out var ft);
+        if (status != 0)
+            return null;
+        var ticks = ((long)ft.High << 32) | ft.Low;
+        if (ticks <= 0)
+            return null;
+        try { return DateTimeOffset.FromFileTime(ticks); }
+        catch { return null; }
+    }
 
     internal static bool EnablePrivileges(params string[] names)
     {
@@ -69,7 +105,6 @@ internal static class RegistryNative
         }
         finally
         {
-            Marshal.FreeHGlobal(token == 0 ? 0 : 0);
             CloseHandle(token);
         }
     }
