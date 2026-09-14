@@ -94,12 +94,8 @@ public sealed partial class RegistryClient
         if (GetKey(hive, dest, view, RegistryDetailLevel.Identity) is not null)
             return new RegistryWriteResult(RegistryWriteStatus.InUse, hive, dest, null, "dest exists");
 
-        if (SameParent(src, dest))
-        {
-            var atomic = TryAtomicRename(hive, src, dest, view);
-            if (atomic is not null)
-                return atomic;
-        }
+        if (SameParent(src, dest) && TryAtomicRename(hive, src, dest, view) is { } atomic)
+            return atomic;
 
         var copy = CopyKey(hive, src, hive, dest, view, confirm: true, progress, cancel);
         if (copy.Status != RegistryWriteStatus.Ok)
@@ -115,20 +111,18 @@ public sealed partial class RegistryClient
 
     private RegistryWriteResult? TryAtomicRename(RegistryHiveKind hive, string src, string dest, RegistryViewKind view)
     {
-        var parentPath = Parent(src);
-        var oldName = RegistryPath.Leaf(src);
         var newName = RegistryPath.Leaf(dest);
         if (newName.Contains('\\'))
             return null;
 
-        using var parent = Open(hive, parentPath, view, writable: true);
+        using var parent = Open(hive, Parent(src), view, writable: true);
         if (parent is null)
-            return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, src, null, "OpenParent");
+            return null;
 
-        var status = RegistryNative.RegRenameKey(parent.Handle, oldName, newName);
-        if (status != 0)
-            return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, src, null, "RegRenameKey=" + status);
-        return new RegistryWriteResult(RegistryWriteStatus.Ok, hive, dest, null, src);
+        var status = RegistryNative.RegRenameKey(parent.Handle, RegistryPath.Leaf(src), newName);
+        return status == 0
+            ? new RegistryWriteResult(RegistryWriteStatus.Ok, hive, dest, null, src)
+            : null;
     }
 
     private static bool SameParent(string src, string dest)
