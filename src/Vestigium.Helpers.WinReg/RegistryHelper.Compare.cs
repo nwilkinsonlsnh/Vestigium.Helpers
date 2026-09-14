@@ -16,6 +16,15 @@ public static partial class RegistryHelper
         CancellationToken cancel = default)
         => Local.WriteIndex(path, hive, key, view, confirm, includePayload, progress, cancel);
 
+    public static RegistryWriteResult IndexFromReg(
+        string regPath,
+        string indexPath,
+        bool confirm = false,
+        bool includePayload = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+        => RegistryIndexFromReg.Write(regPath, indexPath, confirm, includePayload, progress, cancel);
+
     public static RegistryWriteResult Compare(
         string leftIndex,
         string rightIndex,
