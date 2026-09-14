@@ -68,6 +68,8 @@ public sealed class RegistryKeyInfo
     public int? SubKeyCount { get; init; }
     public int? ValueCount { get; init; }
     public DateTimeOffset? LastWriteTime { get; init; }
+    public string? Owner { get; init; }
+    public string? Sddl { get; init; }
     public IReadOnlyList<string> SubKeyNames { get; init; } = [];
     public IReadOnlyList<RegistryValueInfo> Values { get; init; } = [];
     public IReadOnlyList<RegistryFieldAvailability> Availability { get; init; } = [];
