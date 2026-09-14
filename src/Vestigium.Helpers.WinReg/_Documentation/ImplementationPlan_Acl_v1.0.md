@@ -1,8 +1,8 @@
 # Vestigium.Helpers.WinReg — ACL + Hygiene Plan
 
 **Document ID:** VEST-HLP-WINREG-PLAN-ACL-000  
-**Version:** 1.6  
-**Status:** A0 paper. A1–A5 **Done**. A6–A7 planned.  
+**Version:** 1.7  
+**Status:** A0 paper. A1–A6 **Done**. A7 planned.  
 **Date:** 14 September 2026
 
 | Phase | Covers | Status |
@@ -13,5 +13,5 @@
 | **A3 IndexFromHive** | Mount → WriteIndex → Dismount. | **Done** |
 | **A4 Rare type hash** | Link / resource list as raw bytes. | **Done** |
 | **A5 ACL + owner read** | Full snapshot Owner + Sddl. | **Done** |
-| **A6 ACL write + take ownership** | SetOwner, TakeOwnership, SetSddl. | Planned |
+| **A6 ACL write + take ownership** | SetOwner, TakeOwnership, SetSddl. | **Done** |
 | **A7 Atomic rename** | `RegRenameKey` same parent. Else copy + delete + rollback dest. | Planned |
