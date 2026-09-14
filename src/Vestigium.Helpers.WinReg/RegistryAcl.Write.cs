@@ -31,29 +31,14 @@ internal static partial class RegistryAcl
     public static uint TrySetSddl(SafeRegistryHandle handle, string sddl)
     {
         if (!sddl.Contains("D:", StringComparison.OrdinalIgnoreCase))
-            return 87; // ERROR_INVALID_PARAMETER
+            return 87;
         if (!ConvertStringSecurityDescriptorToSecurityDescriptor(sddl, SddlRevision1, out var sd, out _))
             return (uint)Marshal.GetLastPInvokeError();
         try
         {
-            var status = GetSecurityInfo(handle, SeRegistryKey, DaclInformation, out _, out _, out var dacl, out _, out var copy);
-            if (copy != 0) LocalFree(copy);
-            _ = dacl;
-            if (!ConvertStringSecurityDescriptorToSecurityDescriptor(sddl, SddlRevision1, out var parsed, out _))
-                return (uint)Marshal.GetLastPInvokeError();
-            try
-            {
-                status = GetSecurityInfo(IntPtr.Zero, SeRegistryKey, 0, out _, out _, out _, out _, out _);
-                _ = status;
-            }
-            finally
-            {
-                LocalFree(parsed);
-            }
-
-            var daclPtr = GetDacl(sd);
+            var dacl = GetDacl(sd);
             using var scope = new RegistryNative.PrivilegeScope("SeSecurityPrivilege", "SeRestorePrivilege");
-            return SetSecurityInfo(handle, SeRegistryKey, DaclInformation, 0, 0, daclPtr, 0);
+            return SetSecurityInfo(handle, SeRegistryKey, DaclInformation, 0, 0, dacl, 0);
         }
         finally
         {
@@ -95,7 +80,6 @@ internal static partial class RegistryAcl
 
     public static SafeRegistryHandle? OpenWriteAcl(RegistryHiveKind hive, string path, out uint status)
     {
-        status = 0;
         var root = HiveHandle(hive);
         if (root == 0)
         {
@@ -121,16 +105,6 @@ internal static partial class RegistryAcl
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern uint SetSecurityInfo(
         SafeRegistryHandle handle,
-        int objectType,
-        uint securityInfo,
-        nint owner,
-        nint group,
-        nint dacl,
-        nint sacl);
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern uint SetSecurityInfo(
-        nint handle,
         int objectType,
         uint securityInfo,
         nint owner,
