@@ -87,8 +87,9 @@ public static partial class RegistryHelper
         RegistryViewKind view = RegistryViewKind.Default,
         bool confirm = false,
         IProgress<RegistryCompareProgress>? progress = null,
-        CancellationToken cancel = default)
-        => Local.Import(path, view, confirm, progress, cancel);
+        CancellationToken cancel = default,
+        IReadOnlyList<RegistryHiveKind>? allowedHives = null)
+        => Local.Import(path, view, confirm, progress, cancel, allowedHives);
 
     public static IReadOnlyList<RegistryHit> Search(
         RegistryHiveKind hive,
@@ -98,8 +99,9 @@ public static partial class RegistryHelper
         RegistrySearchFields fields = RegistrySearchFields.KeyName | RegistrySearchFields.ValueName,
         int maxDepth = 16,
         int maxResults = RegistryClient.MaxSearchResults,
-        RegistryViewKind view = RegistryViewKind.Default)
-        => Local.Search(hive, key, term, mode, fields, maxDepth, maxResults, view);
+        RegistryViewKind view = RegistryViewKind.Default,
+        CancellationToken cancel = default)
+        => Local.Search(hive, key, term, mode, fields, maxDepth, maxResults, view, cancel);
 
     public static IRegistryMount? MountHive(
         string hiveFile,
