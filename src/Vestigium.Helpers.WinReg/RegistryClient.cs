@@ -189,6 +189,8 @@ public sealed partial class RegistryClient
         int? subCount = null;
         int? valCount = null;
         DateTimeOffset? lastWrite = null;
+        string? owner = null;
+        string? sddl = null;
         string[] names = [];
         IReadOnlyList<RegistryValueInfo> values = [];
 
@@ -204,6 +206,10 @@ public sealed partial class RegistryClient
             lastWrite = RegistryNative.TryLastWrite(opened.Handle);
             if (lastWrite is null)
                 availability.Add(new("LastWriteTime", "Denied", "RegQueryInfoKey"));
+
+            RegistryAcl.TryRead(opened.Handle, out owner, out sddl, out var aclError);
+            if (aclError is not null)
+                availability.Add(new("Owner", "Denied", aclError));
 
             try
             {
@@ -233,6 +239,8 @@ public sealed partial class RegistryClient
             SubKeyCount = subCount,
             ValueCount = valCount,
             LastWriteTime = lastWrite,
+            Owner = owner,
+            Sddl = sddl,
             SubKeyNames = names,
             Values = values,
             Availability = availability
@@ -256,7 +264,6 @@ public sealed partial class RegistryClient
         }
         catch (IOException)
         {
-            // default value often absent
         }
     }
 
