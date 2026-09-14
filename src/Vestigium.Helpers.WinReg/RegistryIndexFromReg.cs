@@ -14,10 +14,10 @@ internal static class RegistryIndexFromReg
         IProgress<RegistryCompareProgress>? progress,
         CancellationToken cancel)
     {
-        var source = HelperGuard.FileExists(regPath, nameof(regPath));
         indexPath = HelperGuard.NotBlank(indexPath, nameof(indexPath));
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, indexPath, null, "confirm=false");
+        var source = HelperGuard.FileExists(regPath, nameof(regPath));
         if (cancel.IsCancellationRequested)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, indexPath, null, "canceled");
 
