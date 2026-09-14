@@ -9,6 +9,7 @@ internal static class RegistryNative
     internal const uint TokenQuery = 0x0008;
     internal const uint SePrivilegeEnabled = 0x00000002;
     internal const uint RegStandardFormat = 1;
+    internal const int PrivilegeSetAllNecessary = 1;
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct Luid
@@ -21,6 +22,15 @@ internal static class RegistryNative
     internal struct TokenPrivileges
     {
         public int PrivilegeCount;
+        public Luid Luid;
+        public uint Attributes;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct PrivilegeSet
+    {
+        public int PrivilegeCount;
+        public int Control;
         public Luid Luid;
         public uint Attributes;
     }
@@ -40,6 +50,9 @@ internal static class RegistryNative
 
     [DllImport("advapi32.dll", SetLastError = true)]
     internal static extern bool AdjustTokenPrivileges(nint token, bool disableAll, ref TokenPrivileges NewState, int bufferLength, nint previous, nint required);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    internal static extern bool PrivilegeCheck(nint token, ref PrivilegeSet required, out bool result);
 
     [DllImport("kernel32.dll")]
     internal static extern nint GetCurrentProcess();
@@ -95,7 +108,7 @@ internal static class RegistryNative
 
     internal sealed class PrivilegeScope : IDisposable
     {
-        private readonly List<Luid> _luids = [];
+        private readonly List<(Luid Luid, uint Attributes)> _restore = [];
         public bool Enabled { get; }
 
         public PrivilegeScope(params string[] names)
@@ -117,11 +130,24 @@ internal static class RegistryNative
                         continue;
                     }
 
+                    var check = new PrivilegeSet
+                    {
+                        PrivilegeCount = 1,
+                        Control = PrivilegeSetAllNecessary,
+                        Luid = luid,
+                        Attributes = SePrivilegeEnabled
+                    };
+                    var wasEnabled = PrivilegeCheck(token, ref check, out var present) && present;
+                    var previous = wasEnabled ? SePrivilegeEnabled : 0u;
+
                     var priv = new TokenPrivileges { PrivilegeCount = 1, Luid = luid, Attributes = SePrivilegeEnabled };
                     if (!AdjustTokenPrivileges(token, false, ref priv, 0, 0, 0))
+                    {
                         ok = false;
-                    else
-                        _luids.Add(luid);
+                        continue;
+                    }
+
+                    _restore.Add((luid, previous));
                 }
             }
             finally
@@ -129,20 +155,20 @@ internal static class RegistryNative
                 CloseHandle(token);
             }
 
-            Enabled = ok && _luids.Count > 0;
+            Enabled = ok && _restore.Count > 0;
         }
 
         public void Dispose()
         {
-            if (_luids.Count == 0)
+            if (_restore.Count == 0)
                 return;
             if (!OpenProcessToken(GetCurrentProcess(), TokenAdjustPrivileges | TokenQuery, out var token))
                 return;
             try
             {
-                foreach (var luid in _luids)
+                foreach (var (luid, attributes) in _restore)
                 {
-                    var priv = new TokenPrivileges { PrivilegeCount = 1, Luid = luid, Attributes = 0 };
+                    var priv = new TokenPrivileges { PrivilegeCount = 1, Luid = luid, Attributes = attributes };
                     AdjustTokenPrivileges(token, false, ref priv, 0, 0, 0);
                 }
             }
