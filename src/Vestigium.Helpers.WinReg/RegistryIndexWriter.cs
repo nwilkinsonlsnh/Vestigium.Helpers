@@ -160,8 +160,17 @@ internal static class RegistryIndexWriter
         RegistryValueKind.MultiString => Multi(value.Data as string[] ?? []),
         RegistryValueKind.DWord => BitConverter.GetBytes(value.Data is int i ? i : Convert.ToInt32(value.Data, CultureInfo.InvariantCulture)),
         RegistryValueKind.QWord => BitConverter.GetBytes(value.Data is long l ? l : Convert.ToInt64(value.Data, CultureInfo.InvariantCulture)),
-        RegistryValueKind.Binary or RegistryValueKind.None => value.Data as byte[] ?? [],
-        _ => Encoding.Unicode.GetBytes(value.DataText ?? string.Empty)
+        RegistryValueKind.Binary or RegistryValueKind.None
+            or RegistryValueKind.Link or RegistryValueKind.ResourceList
+            or RegistryValueKind.FullResourceDescriptor or RegistryValueKind.ResourceRequirementsList
+            or RegistryValueKind.Unknown => Raw(value),
+        _ => Raw(value)
+    };
+
+    private static byte[] Raw(RegistryValueInfo value) => value.Data switch
+    {
+        byte[] bytes => bytes,
+        _ => []
     };
 
     private static byte[] Multi(string[] parts)
