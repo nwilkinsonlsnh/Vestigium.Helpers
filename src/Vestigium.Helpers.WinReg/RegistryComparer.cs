@@ -21,11 +21,12 @@ internal static class RegistryComparer
         bool includeSame,
         bool includePayload,
         IProgress<RegistryCompareProgress>? progress,
-        CancellationToken cancel)
+        CancellationToken cancel,
+        IReadOnlyList<string>? ignorePathPrefixes = null)
     {
         try
         {
-            return CompareCore(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel);
+            return CompareCore(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel, ignorePathPrefixes);
         }
         catch (OperationCanceledException)
         {
@@ -42,7 +43,8 @@ internal static class RegistryComparer
         bool includeSame,
         bool includePayload,
         IProgress<RegistryCompareProgress>? progress,
-        CancellationToken cancel)
+        CancellationToken cancel,
+        IReadOnlyList<string>? ignorePathPrefixes)
     {
         leftIndex = HelperGuard.FileExists(leftIndex, nameof(leftIndex));
         rightIndex = HelperGuard.FileExists(rightIndex, nameof(rightIndex));
@@ -53,6 +55,7 @@ internal static class RegistryComparer
 
         var left = LoadIndex(leftIndex);
         var right = LoadIndex(rightIndex);
+        var ignored = DropIgnored(left, right, ignorePathPrefixes);
         progress?.Report(new RegistryCompareProgress { Phase = "Verify", KeysSeen = left.Keys.Count + right.Keys.Count });
 
         var headerMatch = string.Equals(left.Hive, right.Hive, StringComparison.OrdinalIgnoreCase)
@@ -89,6 +92,7 @@ internal static class RegistryComparer
             ["keysLeft"] = left.Keys.Count,
             ["keysRight"] = right.Keys.Count,
             ["keysShared"] = shared.Count,
+            ["ignored"] = ignored,
             ["sampleLeftOnly"] = leftOnlyKeys.Take(12).ToArray(),
             ["sampleRightOnly"] = rightOnlyKeys.Take(12).ToArray()
         });
@@ -111,10 +115,11 @@ internal static class RegistryComparer
             ["changed"] = changed,
             ["leftOnly"] = leftOnly,
             ["rightOnly"] = rightOnly,
+            ["ignored"] = ignored,
             ["stopped"] = stop
         });
 
-        HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Compare verdict={verdict} changed={changed} left={leftOnly} right={rightOnly}");
+        HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Compare verdict={verdict} changed={changed} ignored={ignored}");
         progress?.Report(new RegistryCompareProgress { Phase = "Done", KeysSeen = union, Same = same, Changed = changed, LeftOnly = leftOnly, RightOnly = rightOnly });
         return new RegistryCompareSummary
         {
@@ -131,6 +136,52 @@ internal static class RegistryComparer
             OutputPath = output,
             Deltas = deltas.Take(RegistryCompareSummary.MaxDeltas).ToList()
         };
+    }
+
+    internal static int DropIgnored(IndexFile left, IndexFile right, IReadOnlyList<string>? prefixes)
+    {
+        if (prefixes is null || prefixes.Count == 0)
+            return 0;
+        var list = prefixes.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
+        if (list.Length == 0)
+            return 0;
+        return Drop(left, list) + Drop(right, list);
+    }
+
+    private static int Drop(IndexFile file, string[] prefixes)
+    {
+        var dropped = 0;
+        foreach (var key in file.Keys.ToList())
+        {
+            if (!IsIgnored(key, prefixes))
+                continue;
+            file.Keys.Remove(key);
+            dropped++;
+        }
+
+        foreach (var id in file.Values.Keys.ToList())
+        {
+            if (!IsIgnored(file.Values[id].Path, prefixes))
+                continue;
+            file.Values.Remove(id);
+            dropped++;
+        }
+
+        return dropped;
+    }
+
+    internal static bool IsIgnored(string path, IReadOnlyList<string> prefixes)
+    {
+        foreach (var prefix in prefixes)
+        {
+            if (string.IsNullOrWhiteSpace(prefix))
+                continue;
+            if (path.Equals(prefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (path.StartsWith(prefix + "\\", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 
     private static void Merge(
