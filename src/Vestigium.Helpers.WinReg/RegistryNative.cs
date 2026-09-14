@@ -3,7 +3,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Vestigium.Helpers.WinReg;
 
-internal static class RegistryNative
+internal static partial class RegistryNative
 {
     internal const uint TokenAdjustPrivileges = 0x0020;
     internal const uint TokenQuery = 0x0008;
