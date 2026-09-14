@@ -82,33 +82,74 @@ internal static class RegistryNative
         catch { return null; }
     }
 
+    internal static PrivilegeScope BackupRestore() => new("SeBackupPrivilege", "SeRestorePrivilege");
+
     internal static bool EnablePrivileges(params string[] names)
     {
-        if (!OpenProcessToken(GetCurrentProcess(), TokenAdjustPrivileges | TokenQuery, out var token))
-            return false;
-        try
-        {
-            var ok = true;
-            foreach (var name in names)
-            {
-                if (!LookupPrivilegeValue(null, name, out var luid))
-                {
-                    ok = false;
-                    continue;
-                }
-
-                var priv = new TokenPrivileges { PrivilegeCount = 1, Luid = luid, Attributes = SePrivilegeEnabled };
-                if (!AdjustTokenPrivileges(token, false, ref priv, 0, 0, 0))
-                    ok = false;
-            }
-            return ok;
-        }
-        finally
-        {
-            CloseHandle(token);
-        }
+        using var scope = new PrivilegeScope(names);
+        return scope.Enabled;
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(nint handle);
+
+    internal sealed class PrivilegeScope : IDisposable
+    {
+        private readonly List<Luid> _luids = [];
+        public bool Enabled { get; }
+
+        public PrivilegeScope(params string[] names)
+        {
+            if (!OpenProcessToken(GetCurrentProcess(), TokenAdjustPrivileges | TokenQuery, out var token))
+            {
+                Enabled = false;
+                return;
+            }
+
+            var ok = true;
+            try
+            {
+                foreach (var name in names)
+                {
+                    if (!LookupPrivilegeValue(null, name, out var luid))
+                    {
+                        ok = false;
+                        continue;
+                    }
+
+                    var priv = new TokenPrivileges { PrivilegeCount = 1, Luid = luid, Attributes = SePrivilegeEnabled };
+                    if (!AdjustTokenPrivileges(token, false, ref priv, 0, 0, 0))
+                        ok = false;
+                    else
+                        _luids.Add(luid);
+                }
+            }
+            finally
+            {
+                CloseHandle(token);
+            }
+
+            Enabled = ok && _luids.Count > 0;
+        }
+
+        public void Dispose()
+        {
+            if (_luids.Count == 0)
+                return;
+            if (!OpenProcessToken(GetCurrentProcess(), TokenAdjustPrivileges | TokenQuery, out var token))
+                return;
+            try
+            {
+                foreach (var luid in _luids)
+                {
+                    var priv = new TokenPrivileges { PrivilegeCount = 1, Luid = luid, Attributes = 0 };
+                    AdjustTokenPrivileges(token, false, ref priv, 0, 0, 0);
+                }
+            }
+            finally
+            {
+                CloseHandle(token);
+            }
+        }
+    }
 }
