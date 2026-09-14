@@ -48,8 +48,9 @@ internal sealed class RegistryMount : IRegistryMount
             return new RegistryWriteResult(RegistryWriteStatus.Denied, Destination, SubKey, null, "confirm=false");
         }
 
-        _ = RegistryNative.EnablePrivileges("SeBackupPrivilege", "SeRestorePrivilege");
-        var status = RegistryNative.RegUnLoadKey(HiveHandle(Destination), SubKey);
+        int status;
+        using (RegistryNative.BackupRestore())
+            status = RegistryNative.RegUnLoadKey(HiveHandle(Destination), SubKey);
         if (status != 0)
         {
             Interlocked.Exchange(ref _unloaded, 0);
