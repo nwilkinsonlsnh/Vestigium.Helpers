@@ -4,12 +4,12 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Vestigium.Helpers.WinReg;
 
-internal static class RegistryAcl
+internal static partial class RegistryAcl
 {
-    private const int SeRegistryKey = 6;
-    private const uint OwnerInformation = 0x00000001;
-    private const uint DaclInformation = 0x00000004;
-    private const uint SddlRevision1 = 1;
+    internal const int SeRegistryKey = 6;
+    internal const uint OwnerInformation = 0x00000001;
+    internal const uint DaclInformation = 0x00000004;
+    internal const uint SddlRevision1 = 1;
 
     public static void TryRead(SafeRegistryHandle handle, out string? owner, out string? sddl, out string? error)
     {
@@ -75,7 +75,7 @@ internal static class RegistryAcl
     }
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    private static extern uint GetSecurityInfo(
+    internal static extern uint GetSecurityInfo(
         SafeRegistryHandle handle,
         int objectType,
         uint securityInfo,
@@ -97,5 +97,5 @@ internal static class RegistryAcl
     private static extern bool ConvertSidToStringSid(nint sid, out nint stringSid);
 
     [DllImport("kernel32.dll")]
-    private static extern nint LocalFree(nint block);
+    internal static extern nint LocalFree(nint block);
 }
