@@ -29,15 +29,16 @@ public static partial class RegistryHelper
             return true;
         }
 
+        var timeout = ConnectTimeout <= TimeSpan.Zero ? TimeSpan.FromSeconds(3) : ConnectTimeout;
+        using var cts = new CancellationTokenSource(timeout);
         try
         {
-            var timeout = ConnectTimeout <= TimeSpan.Zero ? TimeSpan.FromSeconds(3) : ConnectTimeout;
             var task = Task.Run(() => client.Open(
                 RegistryHiveKind.LocalMachine,
                 string.Empty,
                 RegistryViewKind.Default,
-                writable: false));
-            if (!task.Wait(timeout))
+                writable: false), cts.Token);
+            if (!task.Wait(timeout, cts.Token))
             {
                 reason = "timeout";
                 return false;
@@ -52,6 +53,16 @@ public static partial class RegistryHelper
 
             reason = null;
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            reason = "timeout";
+            return false;
+        }
+        catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
+        {
+            reason = "timeout";
+            return false;
         }
         catch (Exception ex)
         {
@@ -123,8 +134,9 @@ public static partial class RegistryHelper
             return null;
         }
 
-        _ = RegistryNative.EnablePrivileges("SeBackupPrivilege", "SeRestorePrivilege");
-        var status = RegistryNative.RegLoadKey(RegistryMount.HiveHandle(destination), name, file);
+        int status;
+        using (RegistryNative.BackupRestore())
+            status = RegistryNative.RegLoadKey(RegistryMount.HiveHandle(destination), name, file);
         if (status != 0)
         {
             result = new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "RegLoadKey=" + status);
@@ -147,8 +159,9 @@ public static partial class RegistryHelper
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "confirm=false");
 
-        _ = RegistryNative.EnablePrivileges("SeBackupPrivilege", "SeRestorePrivilege");
-        var status = RegistryNative.RegUnLoadKey(RegistryMount.HiveHandle(destination), name);
+        int status;
+        using (RegistryNative.BackupRestore())
+            status = RegistryNative.RegUnLoadKey(RegistryMount.HiveHandle(destination), name);
         if (status != 0)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, destination, name, null, "RegUnLoadKey=" + status);
 
