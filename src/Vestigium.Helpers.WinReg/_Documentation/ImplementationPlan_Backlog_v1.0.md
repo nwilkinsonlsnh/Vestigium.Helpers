@@ -1,8 +1,8 @@
 # Vestigium.Helpers.WinReg — Backlog Implementation Plan
 
 **Document ID:** VEST-HLP-WINREG-PLAN-BL-000  
-**Version:** 1.5  
-**Status:** B0 locked. B1–B5 **Done**. B6–B7 planned.  
+**Version:** 1.6  
+**Status:** B0 locked. B1–B6 **Done**. B7 planned.  
 **Date:** 14 September 2026
 
 | Phase | Covers | Status |
@@ -13,5 +13,5 @@
 | **B3 Compare host API** | `CompareDetailed` + `includePayload` | **Done** |
 | **B4 IndexFromReg** | `.reg` → `vest-regidx/1` | **Done** |
 | **B5 Privilege + connect** | Revert backup/restore; CanConnect timeout | **Done** |
-| **B6 Write extras** | Import allow-list; Copy/Rename; Search cancel | Planned |
+| **B6 Write extras** | Import allow-list; Copy/Rename; Search cancel | **Done** |
 | **B7 Optional** | Compare ignore prefixes | Planned |
