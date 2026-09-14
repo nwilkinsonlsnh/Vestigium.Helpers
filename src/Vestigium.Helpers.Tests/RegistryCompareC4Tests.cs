@@ -73,7 +73,7 @@ public sealed class RegistryCompareC4Tests : IDisposable
     [Fact]
     public void Caps_are_documented()
     {
-        Assert.Equal(2_000_000, RegistryIndexWriter.MaxValues);
-        Assert.Equal(64, RegistryIndexWriter.MaxDepth);
+        Assert.Equal(2_000_000, RegistryHelper.MaxIndexValues);
+        Assert.Equal(64, RegistryHelper.MaxIndexDepth);
     }
 }
