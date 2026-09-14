@@ -30,7 +30,11 @@ public enum RegistryValueKind
     ExpandString = 2,
     Binary = 3,
     DWord = 4,
+    Link = 6,
     MultiString = 7,
+    ResourceList = 8,
+    FullResourceDescriptor = 9,
+    ResourceRequirementsList = 10,
     QWord = 11,
     Unknown = -1
 }
