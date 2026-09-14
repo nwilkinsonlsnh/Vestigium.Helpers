@@ -1,8 +1,8 @@
 # Vestigium.Helpers.WinReg — Backlog Implementation Plan
 
 **Document ID:** VEST-HLP-WINREG-PLAN-BL-000  
-**Version:** 1.7  
-**Status:** B0–B7 **Done**.  
+**Version:** 1.8  
+**Status:** B0–B7 **Done**. Next slice: ACL + hygiene (`ImplementationPlan_Acl_v1.0.md`).  
 **Date:** 14 September 2026
 
 | Phase | Covers | Status |
@@ -16,4 +16,4 @@
 | **B6 Write extras** | Import allow-list; Copy/Rename; Search cancel | **Done** |
 | **B7 Optional** | Compare ignore prefixes | **Done** |
 
-ACL read stays deferred. Alt creds, remote mount, Kql `REG.*`, watchers stay out.
+Next: **A0–A7** in `ImplementationPlan_Acl_v1.0.md`.
