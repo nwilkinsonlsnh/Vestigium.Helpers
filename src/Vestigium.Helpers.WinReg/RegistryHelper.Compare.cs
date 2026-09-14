@@ -34,9 +34,10 @@ public static partial class RegistryHelper
         bool includeSame = false,
         bool includePayload = false,
         IProgress<RegistryCompareProgress>? progress = null,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default,
+        IReadOnlyList<string>? ignorePathPrefixes = null)
     {
-        var summary = CompareDetailed(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel);
+        var summary = CompareDetailed(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel, ignorePathPrefixes);
         return new RegistryWriteResult(summary.Status, RegistryHiveKind.CurrentUser, output, null, summary.Reason ?? summary.Verdict);
     }
 
@@ -49,6 +50,7 @@ public static partial class RegistryHelper
         bool includeSame = false,
         bool includePayload = false,
         IProgress<RegistryCompareProgress>? progress = null,
-        CancellationToken cancel = default)
-        => RegistryComparer.Compare(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel);
+        CancellationToken cancel = default,
+        IReadOnlyList<string>? ignorePathPrefixes = null)
+        => RegistryComparer.Compare(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel, ignorePathPrefixes);
 }
