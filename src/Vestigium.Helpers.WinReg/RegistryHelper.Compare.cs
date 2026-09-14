@@ -5,6 +5,27 @@ public static partial class RegistryHelper
     public const int MaxIndexValues = RegistryIndexWriter.MaxValues;
     public const int MaxIndexDepth = RegistryIndexWriter.MaxDepth;
 
+    public static RegistryWriteResult CopyKey(
+        RegistryHiveKind sourceHive,
+        string? sourceKey,
+        RegistryHiveKind destHive,
+        string? destKey,
+        RegistryViewKind view = RegistryViewKind.Default,
+        bool confirm = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+        => Local.CopyKey(sourceHive, sourceKey, destHive, destKey, view, confirm, progress, cancel);
+
+    public static RegistryWriteResult RenameKey(
+        RegistryHiveKind hive,
+        string? sourceKey,
+        string? destKey,
+        RegistryViewKind view = RegistryViewKind.Default,
+        bool confirm = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+        => Local.RenameKey(hive, sourceKey, destKey, view, confirm, progress, cancel);
+
     public static RegistryWriteResult WriteIndex(
         string path,
         RegistryHiveKind hive,
