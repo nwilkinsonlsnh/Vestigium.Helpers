@@ -7,6 +7,7 @@ public sealed class RegistryCompareC4Tests : IDisposable
 {
     private static readonly RegistryHiveKind Hive = RegistryHiveKind.CurrentUser;
     private readonly string _root;
+    private readonly string _other;
     private readonly string _dir;
 
     public RegistryCompareC4Tests()
@@ -14,13 +15,17 @@ public sealed class RegistryCompareC4Tests : IDisposable
         _dir = Path.Combine(Path.GetTempPath(), "vest-regc4-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
         _root = @"Software\Vestigium\Helpers.Tests\" + Guid.NewGuid().ToString("N");
+        _other = @"Software\Vestigium\Helpers.Tests\" + Guid.NewGuid().ToString("N");
         RegistryHelper.Local.CreateKey(Hive, _root, confirm: true);
         RegistryHelper.Local.SetValue(Hive, _root, "Mark", "c4-secret-payload", confirm: true);
+        RegistryHelper.Local.CreateKey(Hive, _other, confirm: true);
+        RegistryHelper.Local.SetValue(Hive, _other, "Other", "y", confirm: true);
     }
 
     public void Dispose()
     {
         RegistryHelper.Local.DeleteKey(Hive, _root, recursive: true, confirm: true);
+        RegistryHelper.Local.DeleteKey(Hive, _other, recursive: true, confirm: true);
         try { Directory.Delete(_dir, true); } catch { }
     }
 
@@ -54,7 +59,7 @@ public sealed class RegistryCompareC4Tests : IDisposable
         var b = Path.Combine(_dir, "b.jsonl");
         var output = Path.Combine(_dir, "f.jsonl");
         Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.WriteIndex(a, Hive, _root, confirm: true).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.WriteIndex(b, Hive, "Software", confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.WriteIndex(b, Hive, _other, confirm: true).Status);
         Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Compare(a, b, output, confirm: true, force: true).Status);
         Assert.Contains("\"stopped\":false", File.ReadAllText(output));
     }
