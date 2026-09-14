@@ -8,11 +8,15 @@ public sealed partial class RegistryClient
     public RegistryWriteResult Import(
         string path,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
     {
         var file = HelperGuard.FileExists(path, nameof(path));
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, file, null, "confirm=false");
+        if (cancel.IsCancellationRequested)
+            return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, file, null, "canceled");
 
         var text = RegistryRegFile.ReadAllText(file);
         var lines = RegistryRegFile.PhysicalLines(text);
@@ -31,6 +35,8 @@ public sealed partial class RegistryClient
         var applied = 0;
         for (var i = 1; i < lines.Count; i++)
         {
+            if (cancel.IsCancellationRequested)
+                return new RegistryWriteResult(RegistryWriteStatus.Denied, currentHive ?? RegistryHiveKind.CurrentUser, file, null, "canceled");
             var line = lines[i].Trim();
             var lineNo = i + 1;
             if (line.Length == 0 || line.StartsWith(';'))
@@ -46,6 +52,8 @@ public sealed partial class RegistryClient
                 if (result.Status is not RegistryWriteStatus.Ok and not RegistryWriteStatus.NotFound)
                     return FailLine(hive, keyPath, lineNo, result);
                 applied++;
+                if (applied % 25 == 0)
+                    progress?.Report(new RegistryCompareProgress { Phase = "Import", KeysSeen = applied, CurrentPath = currentPath });
                 continue;
             }
 
@@ -64,6 +72,7 @@ public sealed partial class RegistryClient
         }
 
         HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Import file={file} lines={applied}");
+        progress?.Report(new RegistryCompareProgress { Phase = "Done", KeysSeen = applied });
         return new RegistryWriteResult(RegistryWriteStatus.Ok, currentHive ?? RegistryHiveKind.CurrentUser, file, null, $"applied={applied}");
     }
 

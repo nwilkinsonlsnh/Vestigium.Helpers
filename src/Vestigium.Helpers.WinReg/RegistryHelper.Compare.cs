@@ -2,6 +2,9 @@ namespace Vestigium.Helpers.WinReg;
 
 public static partial class RegistryHelper
 {
+    public const int MaxIndexValues = RegistryIndexWriter.MaxValues;
+    public const int MaxIndexDepth = RegistryIndexWriter.MaxDepth;
+
     public static RegistryWriteResult WriteIndex(
         string path,
         RegistryHiveKind hive,
@@ -10,7 +13,7 @@ public static partial class RegistryHelper
         bool confirm = false,
         IProgress<RegistryCompareProgress>? progress = null,
         CancellationToken cancel = default)
-        => RegistryIndexWriter.Write(Local, path, hive, key, view, confirm, progress, cancel);
+        => Local.WriteIndex(path, hive, key, view, confirm, progress, cancel);
 
     public static RegistryWriteResult Compare(
         string leftIndex,
