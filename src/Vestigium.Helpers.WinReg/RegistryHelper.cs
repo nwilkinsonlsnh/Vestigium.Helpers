@@ -66,14 +66,18 @@ public static partial class RegistryHelper
         string? key,
         RegistryExportFormat format = RegistryExportFormat.RegFile,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
-        => Local.Export(path, hive, key, format, view, confirm);
+        bool confirm = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+        => Local.Export(path, hive, key, format, view, confirm, progress, cancel);
 
     public static RegistryWriteResult Import(
         string path,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
-        => Local.Import(path, view, confirm);
+        bool confirm = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+        => Local.Import(path, view, confirm, progress, cancel);
 
     public static IReadOnlyList<RegistryHit> Search(
         RegistryHiveKind hive,
