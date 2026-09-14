@@ -55,7 +55,7 @@ public sealed partial class RegistryClient
 
     private static RegistryWriteResult ExportHive(SafeRegistryHandle handle, string dest, RegistryHiveKind hive, string keyPath)
     {
-        _ = RegistryNative.EnablePrivileges("SeBackupPrivilege", "SeRestorePrivilege");
+        using var privileges = RegistryNative.BackupRestore();
         if (File.Exists(dest))
             File.Delete(dest);
         var status = RegistryNative.RegSaveKeyEx(handle, dest, 0, RegistryNative.RegStandardFormat);
