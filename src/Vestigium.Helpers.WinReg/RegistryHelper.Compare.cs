@@ -46,6 +46,34 @@ public static partial class RegistryHelper
         CancellationToken cancel = default)
         => RegistryIndexFromReg.Write(regPath, indexPath, confirm, includePayload, progress, cancel);
 
+    public static RegistryWriteResult IndexFromHive(
+        string hiveFile,
+        string indexPath,
+        RegistryHiveKind destination,
+        string subKey,
+        bool confirm = false,
+        bool includePayload = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+    {
+        indexPath = HelperGuard.NotBlank(indexPath, nameof(indexPath));
+        if (!confirm)
+            return new RegistryWriteResult(RegistryWriteStatus.Denied, destination, subKey, null, "confirm=false");
+
+        var mount = MountHive(hiveFile, destination, subKey, confirm: true, out var mounted);
+        if (mount is null)
+            return mounted;
+
+        try
+        {
+            return WriteIndex(indexPath, destination, subKey, confirm: true, includePayload: includePayload, progress: progress, cancel: cancel);
+        }
+        finally
+        {
+            _ = mount.Dismount(confirm: true);
+        }
+    }
+
     public static RegistryWriteResult Compare(
         string leftIndex,
         string rightIndex,
