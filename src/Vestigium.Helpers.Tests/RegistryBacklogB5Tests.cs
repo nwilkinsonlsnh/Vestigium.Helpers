@@ -7,10 +7,10 @@ namespace Vestigium.Helpers.Tests;
 public sealed class RegistryBacklogB5Tests
 {
     [Fact]
-    public void Privilege_scope_dispose_does_not_throw()
+    public void Privilege_scope_on_dismount_does_not_throw()
     {
-        using var scope = RegistryNative.BackupRestore();
-        Assert.True(true);
+        var result = RegistryHelper.DismountHive(RegistryHiveKind.LocalMachine, "VESTIGIUM_NO_SUCH_MOUNT", confirm: true);
+        Assert.Equal(RegistryWriteStatus.Denied, result.Status);
     }
 
     [Fact]
