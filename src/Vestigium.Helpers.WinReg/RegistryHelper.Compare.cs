@@ -1,3 +1,5 @@
+using Vestigium.Helpers;
+
 namespace Vestigium.Helpers.WinReg;
 
 public static partial class RegistryHelper
