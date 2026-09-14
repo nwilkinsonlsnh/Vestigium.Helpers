@@ -40,7 +40,8 @@ public sealed partial class RegistryClient
         RegistrySearchFields fields = RegistrySearchFields.KeyName | RegistrySearchFields.ValueName,
         int maxDepth = 16,
         int maxResults = MaxSearchResults,
-        RegistryViewKind view = RegistryViewKind.Default)
+        RegistryViewKind view = RegistryViewKind.Default,
+        CancellationToken cancel = default)
     {
         var needle = HelperGuard.NotBlank(term, nameof(term));
         HelperGuard.Require(maxDepth >= 0 && maxDepth <= MaxSearchDepth, nameof(maxDepth), $"MaxDepth cap is {MaxSearchDepth}.");
@@ -50,7 +51,7 @@ public sealed partial class RegistryClient
 
         var start = RegistryPath.Normalize(key);
         var hits = new List<RegistryHit>();
-        Walk(hive, start, view, needle, mode, fields, maxDepth, maxResults, 0, hits);
+        Walk(hive, start, view, needle, mode, fields, maxDepth, maxResults, 0, hits, cancel);
         HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Search hive={hive} path={start} n={hits.Count}");
         return hits;
     }
@@ -65,9 +66,10 @@ public sealed partial class RegistryClient
         int maxDepth,
         int maxResults,
         int depth,
-        List<RegistryHit> hits)
+        List<RegistryHit> hits,
+        CancellationToken cancel)
     {
-        if (hits.Count >= maxResults || depth > maxDepth)
+        if (cancel.IsCancellationRequested || hits.Count >= maxResults || depth > maxDepth)
             return;
 
         var snap = GetKey(hive, path, view, fields.HasFlag(RegistrySearchFields.ValueData) || fields.HasFlag(RegistrySearchFields.ValueName)
@@ -87,7 +89,7 @@ public sealed partial class RegistryClient
         {
             foreach (var value in snap.Values)
             {
-                if (hits.Count >= maxResults)
+                if (cancel.IsCancellationRequested || hits.Count >= maxResults)
                     return;
                 if (fields.HasFlag(RegistrySearchFields.ValueName) && Match(value.Name, needle, mode))
                 {
@@ -102,10 +104,10 @@ public sealed partial class RegistryClient
 
         foreach (var child in snap.SubKeyNames)
         {
-            if (hits.Count >= maxResults)
+            if (cancel.IsCancellationRequested || hits.Count >= maxResults)
                 return;
             var next = string.IsNullOrEmpty(path) ? child : path + "\\" + child;
-            Walk(hive, next, view, needle, mode, fields, maxDepth, maxResults, depth + 1, hits);
+            Walk(hive, next, view, needle, mode, fields, maxDepth, maxResults, depth + 1, hits, cancel);
         }
     }
 

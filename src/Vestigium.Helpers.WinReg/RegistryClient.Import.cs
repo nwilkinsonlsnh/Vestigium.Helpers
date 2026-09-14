@@ -10,7 +10,8 @@ public sealed partial class RegistryClient
         RegistryViewKind view = RegistryViewKind.Default,
         bool confirm = false,
         IProgress<RegistryCompareProgress>? progress = null,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default,
+        IReadOnlyList<RegistryHiveKind>? allowedHives = null)
     {
         var file = HelperGuard.FileExists(path, nameof(path));
         if (!confirm)
@@ -44,6 +45,8 @@ public sealed partial class RegistryClient
 
             if (RegistryRegFile.TryParseKeyHeader(line, out var hive, out var keyPath, out var deleteKey))
             {
+                if (allowedHives is { Count: > 0 } && !allowedHives.Contains(hive))
+                    return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, keyPath, null, $"line {lineNo} hive not allowed");
                 currentHive = hive;
                 currentPath = keyPath;
                 var result = deleteKey
