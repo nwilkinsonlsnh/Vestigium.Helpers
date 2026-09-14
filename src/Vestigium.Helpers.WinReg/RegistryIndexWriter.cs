@@ -12,6 +12,7 @@ internal static class RegistryIndexWriter
     public const string Schema = "vest-regidx/1";
     public const int MaxValues = 2_000_000;
     public const int MaxDepth = 64;
+    public const int MaxPayloadChars = 256;
 
     public static RegistryWriteResult Write(
         RegistryClient client,
@@ -20,6 +21,7 @@ internal static class RegistryIndexWriter
         string? key,
         RegistryViewKind view,
         bool confirm,
+        bool includePayload,
         IProgress<RegistryCompareProgress>? progress,
         CancellationToken cancel)
     {
@@ -52,7 +54,7 @@ internal static class RegistryIndexWriter
 
         try
         {
-            Walk(client, hive, root, view, root, 0, writer, ref keys, ref values, started, progress, cancel);
+            Walk(client, hive, root, view, root, 0, includePayload, writer, ref keys, ref values, started, progress, cancel);
         }
         catch (OperationCanceledException)
         {
@@ -73,6 +75,7 @@ internal static class RegistryIndexWriter
         RegistryViewKind view,
         string root,
         int depth,
+        bool includePayload,
         StreamWriter writer,
         ref int keys,
         ref int values,
@@ -99,21 +102,36 @@ internal static class RegistryIndexWriter
             if (values >= MaxValues)
                 throw new ArgumentException($"MaxValues cap is {MaxValues}.", nameof(values));
             values++;
-            WriteLine(writer, new Dictionary<string, object?>
+            var row = new Dictionary<string, object?>
             {
                 ["rec"] = "value",
                 ["path"] = relative,
                 ["name"] = value.Name,
                 ["type"] = value.Type.ToString(),
                 ["hash"] = Hash(value)
-            });
+            };
+            if (includePayload)
+            {
+                var text = SmallText(value);
+                if (text is not null)
+                    row["text"] = text;
+            }
+            WriteLine(writer, row);
         }
 
         foreach (var child in snap.SubKeyNames)
         {
             var next = string.IsNullOrEmpty(path) ? child : path + "\\" + child;
-            Walk(client, hive, next, view, root, depth + 1, writer, ref keys, ref values, started, progress, cancel);
+            Walk(client, hive, next, view, root, depth + 1, includePayload, writer, ref keys, ref values, started, progress, cancel);
         }
+    }
+
+    internal static string? SmallText(RegistryValueInfo value)
+    {
+        if (value.Type is not RegistryValueKind.String and not RegistryValueKind.ExpandString)
+            return null;
+        var text = value.Data as string ?? value.DataText;
+        return text is { Length: <= MaxPayloadChars } ? text : null;
     }
 
     internal static string Relative(string root, string path)
@@ -177,7 +195,5 @@ internal static class RegistryIndexWriter
     }
 
     private static void WriteLine(StreamWriter writer, Dictionary<string, object?> map)
-    {
-        writer.WriteLine(JsonSerializer.Serialize(map));
-    }
+        => writer.WriteLine(JsonSerializer.Serialize(map));
 }
