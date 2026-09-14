@@ -12,7 +12,7 @@ internal static class RegistryComparer
     public const double UnrelatedCeiling = 0.30;
     public const double SubsetCoverage = 0.90;
 
-    public static RegistryWriteResult Compare(
+    public static RegistryCompareSummary Compare(
         string leftIndex,
         string rightIndex,
         string output,
@@ -29,11 +29,11 @@ internal static class RegistryComparer
         }
         catch (OperationCanceledException)
         {
-            return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, output, null, "canceled");
+            return new RegistryCompareSummary { Status = RegistryWriteStatus.Denied, Reason = "canceled", OutputPath = output, Verdict = "canceled" };
         }
     }
 
-    private static RegistryWriteResult CompareCore(
+    private static RegistryCompareSummary CompareCore(
         string leftIndex,
         string rightIndex,
         string output,
@@ -44,12 +44,11 @@ internal static class RegistryComparer
         IProgress<RegistryCompareProgress>? progress,
         CancellationToken cancel)
     {
-        _ = includePayload;
         leftIndex = HelperGuard.FileExists(leftIndex, nameof(leftIndex));
         rightIndex = HelperGuard.FileExists(rightIndex, nameof(rightIndex));
         output = HelperGuard.NotBlank(output, nameof(output));
         if (!confirm)
-            return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, output, null, "confirm=false");
+            return new RegistryCompareSummary { Status = RegistryWriteStatus.Denied, Reason = "confirm=false", OutputPath = output };
         cancel.ThrowIfCancellationRequested();
 
         var left = LoadIndex(leftIndex);
@@ -98,10 +97,11 @@ internal static class RegistryComparer
         var changed = 0;
         var leftOnly = 0;
         var rightOnly = 0;
+        var deltas = new List<RegistryDelta>();
         if (!stop)
         {
             progress?.Report(new RegistryCompareProgress { Phase = "Merge", KeysSeen = union });
-            Merge(left, right, writer, includeSame, ref same, ref changed, ref leftOnly, ref rightOnly, cancel);
+            Merge(left, right, writer, includeSame, includePayload, deltas, ref same, ref changed, ref leftOnly, ref rightOnly, cancel);
         }
 
         Write(writer, new Dictionary<string, object?>
@@ -116,7 +116,21 @@ internal static class RegistryComparer
 
         HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Compare verdict={verdict} changed={changed} left={leftOnly} right={rightOnly}");
         progress?.Report(new RegistryCompareProgress { Phase = "Done", KeysSeen = union, Same = same, Changed = changed, LeftOnly = leftOnly, RightOnly = rightOnly });
-        return new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, output, null, verdict);
+        return new RegistryCompareSummary
+        {
+            Status = RegistryWriteStatus.Ok,
+            Reason = verdict,
+            Verdict = verdict,
+            Relatedness = relatedness,
+            Delta = 1d - relatedness,
+            Stopped = stop,
+            Same = same,
+            Changed = changed,
+            LeftOnly = leftOnly,
+            RightOnly = rightOnly,
+            OutputPath = output,
+            Deltas = deltas.Take(RegistryCompareSummary.MaxDeltas).ToList()
+        };
     }
 
     private static void Merge(
@@ -124,6 +138,8 @@ internal static class RegistryComparer
         IndexFile right,
         StreamWriter writer,
         bool includeSame,
+        bool includePayload,
+        List<RegistryDelta> deltas,
         ref int same,
         ref int changed,
         ref int leftOnly,
@@ -138,13 +154,13 @@ internal static class RegistryComparer
             if (l is null)
             {
                 rightOnly++;
-                WriteDelta(writer, "RightOnly", r!);
+                Add(writer, deltas, "RightOnly", r!, null, includePayload: false);
                 continue;
             }
             if (r is null)
             {
                 leftOnly++;
-                WriteDelta(writer, "LeftOnly", l);
+                Add(writer, deltas, "LeftOnly", l, null, includePayload: false);
                 continue;
             }
 
@@ -153,39 +169,56 @@ internal static class RegistryComparer
             {
                 same++;
                 if (includeSame)
-                    WriteDelta(writer, "Same", l, r);
+                    Add(writer, deltas, "Same", l, r, includePayload: false);
                 continue;
             }
 
             changed++;
-            WriteDelta(writer, "Changed", l, r);
+            Add(writer, deltas, "Changed", l, r, includePayload);
         }
     }
 
-    private static void WriteDelta(StreamWriter writer, string kind, IndexValue left, IndexValue? right = null)
+    private static void Add(StreamWriter writer, List<RegistryDelta> deltas, string kind, IndexValue left, IndexValue? right, bool includePayload)
     {
+        var useRight = kind == "RightOnly" && right is not null;
+        var path = useRight ? right!.Path : left.Path;
+        var name = useRight ? right!.Name : left.Name;
+        var leftText = includePayload ? Small(left.Text) : null;
+        var rightText = includePayload ? Small(right?.Text) : null;
+        var delta = new RegistryDelta
+        {
+            Kind = kind,
+            Path = path,
+            Name = name,
+            LeftType = useRight ? null : left.Type,
+            RightType = right?.Type,
+            LeftHash = useRight ? null : left.Hash,
+            RightHash = right?.Hash,
+            LeftText = leftText,
+            RightText = rightText
+        };
+        deltas.Add(delta);
         var row = new Dictionary<string, object?>
         {
             ["rec"] = "delta",
             ["kind"] = kind,
-            ["path"] = left.Path,
-            ["name"] = left.Name,
-            ["leftType"] = left.Type,
-            ["rightType"] = right?.Type,
-            ["leftHash"] = left.Hash,
-            ["rightHash"] = right?.Hash
+            ["path"] = path,
+            ["name"] = name,
+            ["leftType"] = delta.LeftType,
+            ["rightType"] = delta.RightType,
+            ["leftHash"] = delta.LeftHash,
+            ["rightHash"] = delta.RightHash
         };
-        if (kind == "RightOnly" && right is not null)
+        if (includePayload)
         {
-            row["path"] = right.Path;
-            row["name"] = right.Name;
-            row["leftType"] = null;
-            row["leftHash"] = null;
-            row["rightType"] = right.Type;
-            row["rightHash"] = right.Hash;
+            row["leftText"] = leftText;
+            row["rightText"] = rightText;
         }
         Write(writer, row);
     }
+
+    private static string? Small(string? text)
+        => text is { Length: > 0 and <= 256 } ? text : null;
 
     internal static string Verdict(bool headerMatch, double relatedness, double coverageLeft, double coverageRight)
     {
@@ -231,7 +264,7 @@ internal static class RegistryComparer
             }
             else if (kind == "value")
             {
-                var item = new IndexValue(Str(root, "path"), Str(root, "name"), Str(root, "type"), Str(root, "hash"));
+                var item = new IndexValue(Str(root, "path"), Str(root, "name"), Str(root, "type"), Str(root, "hash"), Str(root, "text"));
                 file.Values[item.Id] = item;
             }
         }
@@ -266,7 +299,7 @@ internal static class RegistryComparer
         public Dictionary<string, IndexValue> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    internal sealed record IndexValue(string Path, string Name, string Type, string Hash)
+    internal sealed record IndexValue(string Path, string Name, string Type, string Hash, string Text)
     {
         public string Id => Path + "\0" + Name;
     }
