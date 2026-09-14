@@ -11,11 +11,27 @@ public static partial class RegistryHelper
         string? key,
         RegistryViewKind view = RegistryViewKind.Default,
         bool confirm = false,
+        bool includePayload = false,
         IProgress<RegistryCompareProgress>? progress = null,
         CancellationToken cancel = default)
-        => Local.WriteIndex(path, hive, key, view, confirm, progress, cancel);
+        => Local.WriteIndex(path, hive, key, view, confirm, includePayload, progress, cancel);
 
     public static RegistryWriteResult Compare(
+        string leftIndex,
+        string rightIndex,
+        string output,
+        bool confirm = false,
+        bool force = false,
+        bool includeSame = false,
+        bool includePayload = false,
+        IProgress<RegistryCompareProgress>? progress = null,
+        CancellationToken cancel = default)
+    {
+        var summary = CompareDetailed(leftIndex, rightIndex, output, confirm, force, includeSame, includePayload, progress, cancel);
+        return new RegistryWriteResult(summary.Status, RegistryHiveKind.CurrentUser, output, null, summary.Reason ?? summary.Verdict);
+    }
+
+    public static RegistryCompareSummary CompareDetailed(
         string leftIndex,
         string rightIndex,
         string output,
