@@ -66,12 +66,12 @@ internal static class ProcessThreadReader
         DateTimeOffset? start = null;
         try { start = new DateTimeOffset(thread.StartTime); } catch { }
 
-        ProcessThreadState state;
+        ThreadState state;
         try { state = MapState(thread.ThreadState); }
-        catch { state = ProcessThreadState.Unknown; }
+        catch { state = ThreadState.Unknown; }
 
         string? wait = null;
-        try { if (state == ProcessThreadState.Waiting) wait = thread.WaitReason.ToString(); } catch { }
+        try { if (state == ThreadState.Waiting) wait = thread.WaitReason.ToString(); } catch { }
 
         TimeSpan? kernel = null, user = null;
         try { kernel = thread.PrivilegedProcessorTime; } catch { }
@@ -134,16 +134,16 @@ internal static class ProcessThreadReader
         };
     }
 
-    private static ProcessThreadState MapState(System.Diagnostics.ThreadState state) => state switch
+    private static ThreadState MapState(System.Diagnostics.ThreadState state) => state switch
     {
-        System.Diagnostics.ThreadState.Initialized => ProcessThreadState.Initialized,
-        System.Diagnostics.ThreadState.Ready => ProcessThreadState.Ready,
-        System.Diagnostics.ThreadState.Running => ProcessThreadState.Running,
-        System.Diagnostics.ThreadState.Standby => ProcessThreadState.Standby,
-        System.Diagnostics.ThreadState.Terminated => ProcessThreadState.Terminated,
-        System.Diagnostics.ThreadState.Wait => ProcessThreadState.Waiting,
-        System.Diagnostics.ThreadState.Transition => ProcessThreadState.Transition,
-        _ => ProcessThreadState.Unknown
+        System.Diagnostics.ThreadState.Initialized => ThreadState.Initialized,
+        System.Diagnostics.ThreadState.Ready => ThreadState.Ready,
+        System.Diagnostics.ThreadState.Running => ThreadState.Running,
+        System.Diagnostics.ThreadState.Standby => ThreadState.Standby,
+        System.Diagnostics.ThreadState.Terminated => ThreadState.Terminated,
+        System.Diagnostics.ThreadState.Wait => ThreadState.Waiting,
+        System.Diagnostics.ThreadState.Transition => ThreadState.Transition,
+        _ => ThreadState.Unknown
     };
 
     private static IReadOnlyList<(string Name, nint Base, int Size)> ReadModules(Process process)
