@@ -100,6 +100,7 @@ public sealed partial class RegistryJournal
 
     internal static (List<JournalMut> Muts, HashSet<string> Undone) ReadMuts(string path)
     {
+        var protect = ReadInfo(path).Protect;
         var muts = new List<JournalMut>();
         var undone = new HashSet<string>(StringComparer.Ordinal);
         foreach (var line in File.ReadLines(path))
@@ -118,7 +119,7 @@ public sealed partial class RegistryJournal
                 continue;
             }
 
-            muts.Add(JournalMut.Parse(doc.RootElement));
+            muts.Add(JournalMut.Parse(doc.RootElement, protect));
         }
         return (muts, undone);
     }
@@ -136,11 +137,12 @@ public sealed partial class RegistryJournal
         public string? AfterHash { get; init; }
         public RegistryValueInfo? Before { get; init; }
 
-        public static JournalMut Parse(JsonElement el)
+        public static JournalMut Parse(JsonElement el, bool protect)
         {
             var typeName = el.TryGetProperty("beforeType", out var t) ? t.GetString() : null;
             var kind = Enum.TryParse<RegistryValueKind>(typeName, out var parsed) ? parsed : RegistryValueKind.String;
-            var payload = el.TryGetProperty("beforePayload", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+            var raw = el.TryGetProperty("beforePayload", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+            var payload = Open(raw, protect);
             var valueName = el.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
             return new JournalMut
             {
