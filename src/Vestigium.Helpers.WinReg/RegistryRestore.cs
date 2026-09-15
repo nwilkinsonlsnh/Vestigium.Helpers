@@ -46,6 +46,8 @@ internal static class RegistryRestore
         var view = RegistryViewKind.Default;
         var applied = 0;
         var skipped = 0;
+        var valueRows = 0;
+        var valueWithText = 0;
 
         foreach (var line in File.ReadLines(snapshot))
         {
@@ -75,6 +77,7 @@ internal static class RegistryRestore
                 }
                 case "value":
                 {
+                    valueRows++;
                     var rel = doc.RootElement.GetProperty("path").GetString() ?? "";
                     var path = Combine(root, rel);
                     var name = doc.RootElement.GetProperty("name").GetString() ?? "";
@@ -84,6 +87,7 @@ internal static class RegistryRestore
                         continue;
                     }
 
+                    valueWithText++;
                     var kind = Enum.TryParse<RegistryValueKind>(doc.RootElement.GetProperty("type").GetString(), out var parsedKind)
                         ? parsedKind
                         : RegistryValueKind.String;
@@ -104,6 +108,9 @@ internal static class RegistryRestore
             if (applied % 25 == 0)
                 progress?.Report(new RegistryCompareProgress { Phase = "Restore", KeysSeen = applied, ValuesSeen = skipped });
         }
+
+        if (valueRows > 0 && valueWithText == 0)
+            return new RegistryWriteResult(RegistryWriteStatus.Unsupported, hive, snapshot, null, "index has no payloads");
 
         return new RegistryWriteResult(RegistryWriteStatus.Ok, hive, snapshot, null, $"applied={applied} skipped={skipped}");
     }
