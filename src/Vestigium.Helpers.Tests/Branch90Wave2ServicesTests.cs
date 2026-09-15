@@ -96,10 +96,15 @@ public sealed class Branch90Wave2ServicesTests
         using var watch = client.Watch("EventLog", TimeSpan.FromMilliseconds(250));
         Assert.Equal(TimeSpan.FromMilliseconds(250), watch.Interval);
 
-        var remote = ServiceHelper.For(Environment.MachineName);
-        Assert.False(string.IsNullOrWhiteSpace(remote.Machine) && remote.IsLocal);
+        Assert.True(ServiceHelper.For(".").IsLocal);
+        Assert.True(ServiceHelper.For("localhost").IsLocal);
+        Assert.True(ServiceHelper.For(Environment.MachineName).IsLocal);
+        var remote = ServiceHelper.For("vest-no-such-host");
+        Assert.False(remote.IsLocal);
+        Assert.Equal("vest-no-such-host", remote.Machine);
         _ = remote.CanConnect(out _);
         Assert.Throws<ArgumentException>(() => ServiceHelper.For("  "));
         _ = ServiceHelper.CanConnect(Environment.MachineName);
+        _ = ServiceHelper.CanConnect("vest-no-such-host");
     }
 }
