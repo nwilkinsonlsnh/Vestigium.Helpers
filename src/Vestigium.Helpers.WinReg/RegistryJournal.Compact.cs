@@ -14,6 +14,8 @@ public sealed partial class RegistryJournal
             return Fail(path, RegistryWriteStatus.Denied, "confirm=false", options.DryRun);
         if (!File.Exists(path))
             return Fail(path, RegistryWriteStatus.NotFound, "journal missing", options.DryRun);
+        if (!options.DryRun && IsOpen(path))
+            return Fail(path, RegistryWriteStatus.InUse, "journal open", false);
 
         var bytesBefore = new FileInfo(path).Length;
         var lines = File.ReadAllLines(path);
