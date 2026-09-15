@@ -52,7 +52,7 @@ public static partial class RegistryHelper
             "SetValue" => Local.SetValue(op.Hive, op.Path, op.Name, Unpack(op), op.Type, op.View, confirm: true, journal),
             "DeleteValue" => Local.DeleteValue(op.Hive, op.Path, op.Name, op.View, confirm: true, journal),
             "RenameValue" => Local.RenameValue(op.Hive, op.Path, op.From ?? "", op.To ?? "", op.View, confirm: true, journal),
-            "RenameKey" => Local.RenameKey(op.Hive, op.Path, op.To, op.View, confirm: true),
+            "RenameKey" => Local.RenameKey(op.Hive, op.Path, op.To, op.View, confirm: true, journal: journal),
             _ => new RegistryWriteResult(RegistryWriteStatus.InvalidPath, op.Hive, op.Path, op.Name, "unknown op " + op.Op)
         };
     }
