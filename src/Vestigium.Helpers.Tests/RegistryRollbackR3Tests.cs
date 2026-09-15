@@ -29,10 +29,13 @@ public sealed class RegistryRollbackR3Tests : IDisposable
         var dest = _root + @"\Imp";
         var reg = Path.Combine(_dir, "in.reg");
         var jnl = Path.Combine(_dir, "in.jnl");
-        File.WriteAllText(reg, "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\" + dest.Replace("\\", "\\") + "]\r\n\"Mark\"=\"one\"\r\n");
-        using var journal = RegistryHelper.CreateJournal(jnl, confirm: true, out _);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Import(reg, journal!, confirm: true).Status);
-        journal!.CommitBatch();
+        File.WriteAllText(reg, "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\" + dest + "]\r\n\"Mark\"=\"one\"\r\n");
+        using (var journal = RegistryHelper.CreateJournal(jnl, confirm: true, out _))
+        {
+            Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Import(reg, journal!, confirm: true).Status);
+            journal!.CommitBatch();
+        }
+
         Assert.Equal("one", RegistryHelper.Local.GetValue(Hive, dest, "Mark")?.DataText);
         Assert.Contains("SetValue", File.ReadAllText(jnl), StringComparison.Ordinal);
     }

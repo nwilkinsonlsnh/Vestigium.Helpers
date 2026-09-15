@@ -32,12 +32,15 @@ public sealed class RegistryRollbackR2Tests : IDisposable
     [Fact]
     public void SetValue_and_DeleteValue_append_muts()
     {
-        using var journal = RegistryHelper.CreateJournal(_journalPath, confirm: true, out _);
-        Assert.NotNull(journal);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(Hive, _root, "A", "1", confirm: true, journal: journal).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(Hive, _root, "A", "2", confirm: true, journal: journal).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.DeleteValue(Hive, _root, "A", confirm: true, journal: journal).Status);
-        journal!.CommitBatch();
+        using (var journal = RegistryHelper.CreateJournal(_journalPath, confirm: true, out _))
+        {
+            Assert.NotNull(journal);
+            Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(Hive, _root, "A", "1", confirm: true, journal: journal).Status);
+            Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(Hive, _root, "A", "2", confirm: true, journal: journal).Status);
+            Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.DeleteValue(Hive, _root, "A", confirm: true, journal: journal).Status);
+            journal!.CommitBatch();
+        }
+
         var info = RegistryHelper.ReadJournal(_journalPath);
         Assert.Equal(3, info.Batches[0].Mutations);
         var text = File.ReadAllText(_journalPath);
