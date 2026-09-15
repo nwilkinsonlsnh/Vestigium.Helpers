@@ -48,8 +48,7 @@ public sealed partial class RegistryJournal : IDisposable
         }
 
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) is { Length: > 0 } dir ? dir : ".");
-        var writer = new StreamWriter(path, false, new UTF8Encoding(false));
-        var journal = new RegistryJournal(path, writer, protect);
+        var journal = new RegistryJournal(path, OpenWriter(path, append: false), protect);
         journal.Write(new Dictionary<string, object?>
         {
             ["rec"] = "header",
@@ -85,8 +84,7 @@ public sealed partial class RegistryJournal : IDisposable
             return null;
         }
 
-        var writer = new StreamWriter(path, true, new UTF8Encoding(false));
-        var journal = new RegistryJournal(path, writer, info.Protect);
+        var journal = new RegistryJournal(path, OpenWriter(path, append: true), info.Protect);
         journal._total = info.Batches.Sum(b => b.Mutations);
         result = new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, path, null, null);
         return journal;
@@ -104,7 +102,7 @@ public sealed partial class RegistryJournal : IDisposable
         var openId = "";
         var openCount = 0;
 
-        foreach (var line in File.ReadLines(path))
+        foreach (var line in ReadSharedLines(path))
         {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
@@ -224,6 +222,25 @@ public sealed partial class RegistryJournal : IDisposable
     {
         _writer.WriteLine(JsonSerializer.Serialize(row));
         _writer.Flush();
+    }
+
+    internal static StreamWriter OpenWriter(string path, bool append)
+    {
+        var stream = new FileStream(
+            path,
+            append ? FileMode.Append : FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite);
+        return new StreamWriter(stream, new UTF8Encoding(false));
+    }
+
+    internal static IEnumerable<string> ReadSharedLines(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+            yield return line;
     }
 
     private static RegistryWriteResult Denied(string path, string reason)
