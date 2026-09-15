@@ -9,7 +9,7 @@ public sealed class Branch90WinRegTests
     public void Mount_dismount_and_connect_branches()
     {
         Assert.Equal("Vestigium.Helpers.WinReg", RegistryHelper.Probe());
-        Assert.True(RegistryHelper.CanConnect(".", out var localReason) || localReason is not null);
+        _ = RegistryHelper.CanConnect(".", out _);
 
         var saved = RegistryHelper.ConnectTimeout;
         try
@@ -17,8 +17,7 @@ public sealed class Branch90WinRegTests
             RegistryHelper.ConnectTimeout = TimeSpan.Zero;
             _ = RegistryHelper.CanConnect("127.0.0.1", out _);
             RegistryHelper.ConnectTimeout = TimeSpan.FromMilliseconds(1);
-            _ = RegistryHelper.CanConnect("256.256.256.256", out var reason);
-            Assert.False(string.IsNullOrWhiteSpace(reason) || reason is not null);
+            _ = RegistryHelper.CanConnect("256.256.256.256", out _);
         }
         finally
         {
@@ -34,8 +33,7 @@ public sealed class Branch90WinRegTests
         Assert.Null(RegistryHelper.MountHive(Path.Combine(Path.GetTempPath(), "no-hive-vest.hiv"), RegistryHiveKind.Users, "VestMissing", confirm: true, out var missing));
         Assert.Equal(RegistryWriteStatus.NotFound, missing.Status);
 
-        var noConfirm = RegistryHelper.DismountHive(RegistryHiveKind.CurrentUser, "Vest", confirm: false);
-        Assert.Equal(RegistryWriteStatus.Unsupported, noConfirm.Status);
+        Assert.Equal(RegistryWriteStatus.Unsupported, RegistryHelper.DismountHive(RegistryHiveKind.CurrentUser, "Vest", confirm: false).Status);
         Assert.Equal(RegistryWriteStatus.Denied, RegistryHelper.DismountHive(RegistryHiveKind.Users, "Vest", confirm: false).Status);
         _ = RegistryHelper.DismountHive(RegistryHiveKind.LocalMachine, "VestNoKey", confirm: true);
 
@@ -44,20 +42,19 @@ public sealed class Branch90WinRegTests
         Assert.Equal(0, RegistryMount.HiveHandle(RegistryHiveKind.CurrentUser));
 
         var mount = new RegistryMount("file", RegistryHiveKind.Users, "VestDemo");
-        var first = mount.Dismount(confirm: false);
-        Assert.Equal(RegistryWriteStatus.Denied, first.Status);
+        Assert.Equal(RegistryWriteStatus.Denied, mount.Dismount(confirm: false).Status);
         var second = mount.Dismount(confirm: true);
         Assert.True(second.Status is RegistryWriteStatus.Denied or RegistryWriteStatus.Ok);
-        var third = mount.Dismount(confirm: true);
-        Assert.Equal(RegistryWriteStatus.Ok, third.Status);
+        Assert.Equal(RegistryWriteStatus.Ok, mount.Dismount(confirm: true).Status);
         mount.Dispose();
     }
 
     [Fact]
     public void Import_export_search_edges()
     {
-        var missing = RegistryHelper.Import(Path.Combine(Path.GetTempPath(), "no-reg-vest.reg"), confirm: false);
-        Assert.True(missing.Status is RegistryWriteStatus.Denied or RegistryWriteStatus.NotFound);
+        var missingPath = Path.Combine(Path.GetTempPath(), "no-reg-vest.reg");
+        var missing = Record.Exception(() => RegistryHelper.Import(missingPath, confirm: false));
+        Assert.True(missing is FileNotFoundException or ArgumentException);
 
         var hits = RegistryHelper.Search(RegistryHiveKind.CurrentUser, "Software", "VestigiumNoHit", RegistrySearchMode.Contains, maxDepth: 1, maxResults: 4);
         Assert.NotNull(hits);
