@@ -2,11 +2,6 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers;
 
-/// <summary>
-/// Shared argument contracts for the Helpers libraries.
-/// Every rejection writes Error / Failed through <see cref="HelperLog"/> (a no-op
-/// until a host initializes) and then throws. Callers never swallow the exception.
-/// </summary>
 public static class HelperGuard
 {
     public static string Identity => "Vestigium.Helpers";
@@ -42,6 +37,14 @@ public static class HelperGuard
             return value;
         HelperLog.Reject($"{name}={value} is below {minInclusive}");
         throw new ArgumentOutOfRangeException(name, $"{name} must be at least {minInclusive}.");
+    }
+
+    public static int AtMost(int value, int maxInclusive, string name)
+    {
+        if (value <= maxInclusive)
+            return value;
+        HelperLog.Reject($"{name}={value} is above {maxInclusive}");
+        throw new ArgumentOutOfRangeException(name, $"{name} must be at most {maxInclusive}.");
     }
 
     public static double Finite(double value, string name)

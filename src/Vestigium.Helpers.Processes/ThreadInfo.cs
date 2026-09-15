@@ -1,5 +1,18 @@
 namespace Vestigium.Helpers.Processes;
 
+public enum ProcessThreadState
+{
+    Unknown = 0,
+    Initialized = 1,
+    Ready = 2,
+    Running = 3,
+    Standby = 4,
+    Terminated = 5,
+    Waiting = 6,
+    Transition = 7
+}
+
+[Obsolete("Use ProcessThreadState.")]
 public enum ThreadState
 {
     Unknown = 0,
@@ -12,13 +25,12 @@ public enum ThreadState
     Transition = 7
 }
 
-/// <summary>One thread snapshot. Stack is omitted unless includeStack is set.</summary>
 public sealed class ThreadInfo
 {
     public int ThreadId { get; init; }
     public int ProcessId { get; init; }
     public DateTimeOffset? StartTime { get; init; }
-    public ThreadState State { get; init; }
+    public ProcessThreadState State { get; init; }
     public string? WaitReason { get; init; }
     public string? StartAddress { get; init; }
     public string? StartModule { get; init; }
