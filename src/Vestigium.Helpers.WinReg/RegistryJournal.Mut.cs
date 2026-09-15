@@ -27,11 +27,19 @@ public sealed partial class RegistryJournal
         string op,
         RegistryHiveKind hive,
         string path,
-        bool existed)
+        bool existed,
+        string? beforeTree = null)
     {
         _ = EnsureBatch();
         var row = Base(op, hive, path, null);
         row["existed"] = existed;
+        if (beforeTree is not null)
+        {
+            if (System.Text.Encoding.UTF8.GetByteCount(beforeTree) <= MaxPayloadBytes * 4)
+                row["beforeTree"] = Seal(beforeTree);
+            else
+                row["beforeOmitted"] = true;
+        }
         return AppendMut(row);
     }
 
