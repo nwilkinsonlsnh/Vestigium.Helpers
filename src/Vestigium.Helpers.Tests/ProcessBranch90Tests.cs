@@ -73,8 +73,8 @@ public sealed class ProcessBranch90Tests
         Assert.False(ProcessHelper.TryGet(int.MaxValue, out _));
         Assert.Throws<InvalidOperationException>(() => ProcessHelper.SetComment(int.MaxValue, "x"));
         Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.Search("x", ProcessSearchMode.Contains, maxResults: 0));
-        Assert.Throws<ArgumentException>(() => ProcessHelper.Search("x", ProcessSearchMode.Contains, maxResults: 5000));
-        Assert.Throws<ArgumentException>(() => ProcessHelper.Search("PID == 1", maxResults: 5000));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.Search("x", ProcessSearchMode.Contains, maxResults: 5000));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.Search("PID == 1", maxResults: 5000));
         Assert.Throws<InvalidOperationException>(() => ProcessHelper.KillSearch(
             new ProcessSearchRequest { Term = "zzzz" }, new KillConfirm { Confirm = false }));
         Assert.Throws<ArgumentException>(() => ProcessHelper.KillSearch(
@@ -180,7 +180,7 @@ public sealed class ProcessBranch90Tests
         using var session = KqlHelper.Create(KqlPack.Process);
         Assert.True(ProcessKqlLevel.NeedsFull(KqlHelper.Parse("PID == 1 AND CommandLine LIKE '%x%'").Expression!, session));
         Assert.False(ProcessKqlLevel.NeedsFull(KqlHelper.Parse("PID == 1 OR Name LIKE 'a%'").Expression!, session));
-        Assert.NotNull(ProcessAutostart.Locate(@"C:\Windows\System32\notepad.exe", "notepad.exe"));
+        Assert.NotNull(ProcessAutostart.Locate(@"C:\\Windows\\System32\\notepad.exe", "notepad.exe"));
         Assert.Equal(ProcessCommentStore.Hash("A"), ProcessCommentStore.Hash("a"));
         Assert.True(ProcessHelper.MatchSystem("CPU.LogicalProcessors GT 0 OR SYS.ProcessCount GT 0"));
         _ = ProcessHelper.DefaultCampaignRoot;
