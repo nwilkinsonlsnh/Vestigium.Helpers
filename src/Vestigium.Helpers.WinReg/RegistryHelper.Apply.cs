@@ -26,7 +26,7 @@ public static partial class RegistryHelper
 
         try
         {
-            journal.EnsureBatch("edits", edits.Label);
+            journal.BeginBatch("edits", edits.Label);
             foreach (var op in edits.Ops)
             {
                 var result = Run(op, journal);
@@ -68,7 +68,7 @@ public static partial class RegistryHelper
             RegistryValueKind.QWord => el.ValueKind == JsonValueKind.Number ? el.GetInt64() : long.Parse(el.GetString() ?? "0"),
             RegistryValueKind.MultiString => el.EnumerateArray().Select(e => e.GetString() ?? "").ToArray(),
             RegistryValueKind.Binary or RegistryValueKind.None => el.ValueKind == JsonValueKind.String ? Convert.FromBase64String(el.GetString() ?? "") : [],
-            _ => el.GetString() ?? el.GetRawText().Trim('"')
+            _ => el.ValueKind == JsonValueKind.String ? el.GetString() : el.GetRawText().Trim('"')
         };
     }
 }
