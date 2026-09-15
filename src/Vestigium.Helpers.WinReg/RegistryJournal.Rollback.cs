@@ -131,6 +131,7 @@ public sealed partial class RegistryJournal
             var typeName = el.TryGetProperty("beforeType", out var t) ? t.GetString() : null;
             var kind = Enum.TryParse<RegistryValueKind>(typeName, out var parsed) ? parsed : RegistryValueKind.String;
             var payload = el.TryGetProperty("beforePayload", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+            var valueName = el.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
             return new JournalMut
             {
                 Batch = el.TryGetProperty("batch", out var b) ? b.GetString() ?? "" : "",
@@ -138,10 +139,10 @@ public sealed partial class RegistryJournal
                 Op = el.TryGetProperty("op", out var o) ? o.GetString() ?? "" : "",
                 Hive = Enum.TryParse<RegistryHiveKind>(el.GetProperty("hive").GetString(), out var hive) ? hive : RegistryHiveKind.CurrentUser,
                 Path = el.TryGetProperty("path", out var path) ? path.GetString() ?? "" : "",
-                Name = el.TryGetProperty("name", out var name) ? name.GetString() : null,
+                Name = valueName,
                 Existed = el.TryGetProperty("existed", out var existed) && existed.ValueKind == JsonValueKind.True,
                 AfterHash = el.TryGetProperty("afterHash", out var ah) ? ah.GetString() : null,
-                Before = payload is null ? null : Unpack(kind, payload, name?.GetString())
+                Before = payload is null ? null : Unpack(kind, payload, valueName)
             };
         }
 
