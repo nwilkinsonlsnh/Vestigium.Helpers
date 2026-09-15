@@ -14,6 +14,9 @@ public static partial class RegistryHelper
     public static RegistryWriteResult PurgeJournal(string path, bool confirm = false)
         => RegistryJournal.Purge(path, confirm);
 
+    public static RegistryPurgeResult PurgeJournal(string path, RegistryPurgeOptions options)
+        => RegistryJournal.Compact(path, options);
+
     public static RegistryWriteResult Import(
         string path,
         RegistryJournal journal,
