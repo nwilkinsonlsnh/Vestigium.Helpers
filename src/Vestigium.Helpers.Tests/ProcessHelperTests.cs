@@ -86,7 +86,6 @@ public sealed class ProcessHelperTests
     public void Search_ends_with_current_name()
     {
         var self = MustSelf();
-        // Full name: a 3-char suffix of testhost.exe is "exe" and hits the 256 cap before this PID.
         var hits = ProcessHelper.Search(self.Name, ProcessSearchMode.EndsWith, ProcessSearchFields.Name);
         Assert.Contains(hits, row => row.Pid == self.Pid);
     }
@@ -110,7 +109,7 @@ public sealed class ProcessHelperTests
     public void Search_rejects_out_of_range_max()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 0));
-        Assert.Throws<ArgumentException>(() => ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 4097));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ProcessHelper.Search("a", ProcessSearchMode.Contains, maxResults: 4097));
     }
 
     private static ProcessInfo MustSelf()
