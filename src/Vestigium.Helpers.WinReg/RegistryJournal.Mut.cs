@@ -35,6 +35,36 @@ public sealed partial class RegistryJournal
         return AppendMut(row);
     }
 
+    public RegistryWriteResult RecordMove(
+        string op,
+        RegistryHiveKind hive,
+        string source,
+        string dest,
+        bool destExisted)
+    {
+        _ = EnsureBatch();
+        var row = Base(op, hive, source, dest);
+        row["to"] = dest;
+        row["existed"] = destExisted;
+        return AppendMut(row);
+    }
+
+    public RegistryWriteResult RecordAcl(
+        string op,
+        RegistryHiveKind hive,
+        string path,
+        string? owner,
+        string? sddl)
+    {
+        _ = EnsureBatch();
+        var row = Base(op, hive, path, owner);
+        if (sddl is not null && System.Text.Encoding.UTF8.GetByteCount(sddl) <= MaxPayloadBytes)
+            row["beforePayload"] = sddl;
+        else if (sddl is not null)
+            row["beforeOmitted"] = true;
+        return AppendMut(row);
+    }
+
     private static Dictionary<string, object?> Base(string op, RegistryHiveKind hive, string path, string? name)
         => new()
         {
