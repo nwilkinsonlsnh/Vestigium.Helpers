@@ -23,14 +23,17 @@ public sealed partial class RegistryClient
         if (GetValue(hive, path, to, view) is not null)
             return new RegistryWriteResult(RegistryWriteStatus.InUse, hive, path, to, "dest exists");
 
-        var set = SetValue(hive, path, to, existing.Data, existing.Type, view, confirm: true, journal);
+        var set = SetValue(hive, path, to, existing.Data, existing.Type, view, confirm: true);
         if (set.Status != RegistryWriteStatus.Ok)
             return set;
-        var deleted = DeleteValue(hive, path, from, view, confirm: true, journal);
-        if (deleted.Status == RegistryWriteStatus.Ok)
-            return new RegistryWriteResult(RegistryWriteStatus.Ok, hive, path, to, from);
+        var deleted = DeleteValue(hive, path, from, view, confirm: true);
+        if (deleted.Status != RegistryWriteStatus.Ok)
+        {
+            _ = DeleteValue(hive, path, to, view, confirm: true);
+            return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, path, from, deleted.Reason ?? "delete source failed");
+        }
 
-        _ = DeleteValue(hive, path, to, view, confirm: true);
-        return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, path, from, deleted.Reason ?? "delete source failed");
+        journal?.RecordRename(hive, path, from, to, existing);
+        return new RegistryWriteResult(RegistryWriteStatus.Ok, hive, path, to, from);
     }
 }

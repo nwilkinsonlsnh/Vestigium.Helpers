@@ -11,6 +11,9 @@ public static partial class RegistryHelper
     public static RegistryJournalInfo ReadJournal(string path)
         => RegistryJournal.ReadInfo(path);
 
+    public static string ReadJournalText(string path)
+        => RegistryJournal.ReadText(path);
+
     public static RegistryWriteResult PurgeJournal(string path, bool confirm = false)
         => RegistryJournal.Purge(path, confirm);
 
@@ -55,6 +58,6 @@ public static partial class RegistryHelper
         }
     }
 
-    public static RegistryWriteResult Rollback(string journalPath, bool confirm = false, bool force = false)
-        => RegistryJournal.Rollback(journalPath, Local, confirm, force);
+    public static RegistryWriteResult Rollback(string journalPath, bool confirm = false, bool force = false, string? batchId = null)
+        => RegistryJournal.Rollback(journalPath, Local, confirm, force, batchId);
 }

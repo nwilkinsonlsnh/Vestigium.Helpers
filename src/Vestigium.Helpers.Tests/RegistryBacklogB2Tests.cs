@@ -11,48 +11,63 @@ public sealed class RegistryBacklogB2Tests : IDisposable
 
     public RegistryBacklogB2Tests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "vest-regb2-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
         _root = @"Software\Vestigium\Helpers.Tests\" + Guid.NewGuid().ToString("N");
+        _dir = Path.Combine(Path.GetTempPath(), "vest-b2-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_dir);
         RegistryHelper.Local.CreateKey(Hive, _root, confirm: true);
-        RegistryHelper.Local.SetValue(Hive, _root, "Mark", "b2", confirm: true);
+        RegistryHelper.Local.SetValue(Hive, _root, "From", "data", confirm: true);
     }
 
     public void Dispose()
     {
         RegistryHelper.Local.DeleteKey(Hive, _root, recursive: true, confirm: true);
-        try { Directory.Delete(_dir, true); } catch { }
+        try { Directory.Delete(_dir, true); } catch { /* best effort */ }
     }
 
     [Fact]
-    public void Client_write_index_matches_helper()
+    public void ReadText_works_while_journal_open()
     {
-        var a = Path.Combine(_dir, "a.jsonl");
-        var b = Path.Combine(_dir, "b.jsonl");
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.WriteIndex(a, Hive, _root, confirm: true).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.For(".").WriteIndex(b, Hive, _root, confirm: true).Status);
-        Assert.Contains("vest-regidx/1", File.ReadAllText(a));
-        Assert.Contains("vest-regidx/1", File.ReadAllText(b));
+        var path = Path.Combine(_dir, "t.jnl");
+        using var journal = RegistryHelper.CreateJournal(path, confirm: true, out _);
+        Assert.Contains("vest-regjnl/1", RegistryHelper.ReadJournalText(path), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Canceled_export_is_denied()
+    public void RenameValue_is_one_mut_and_rolls_back()
     {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-        var result = RegistryHelper.Export(Path.Combine(_dir, "x.reg"), Hive, _root, confirm: true, cancel: cts.Token);
-        Assert.Equal(RegistryWriteStatus.Denied, result.Status);
-        Assert.Equal("canceled", result.Reason);
+        var path = Path.Combine(_dir, "r.jnl");
+        using (var journal = RegistryHelper.CreateJournal(path, confirm: true, out _))
+        {
+            Assert.Equal(RegistryWriteStatus.Ok,
+                RegistryHelper.Local.RenameValue(Hive, _root, "From", "To", confirm: true, journal: journal).Status);
+            journal!.CommitBatch();
+        }
+
+        var text = File.ReadAllText(path);
+        Assert.Contains("RenameValue", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"op\":\"SetValue\"", text, StringComparison.Ordinal);
+        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Rollback(path, confirm: true).Status);
+        Assert.Equal("data", RegistryHelper.Local.GetValue(Hive, _root, "From")?.DataText);
+        Assert.Null(RegistryHelper.Local.GetValue(Hive, _root, "To"));
     }
 
     [Fact]
-    public void Canceled_import_is_denied()
+    public void Rollback_by_batch_id_leaves_later_batch()
     {
-        var file = Path.Combine(_dir, "t.reg");
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Export(file, Hive, _root, confirm: true).Status);
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-        var result = RegistryHelper.Import(file, confirm: true, cancel: cts.Token);
-        Assert.Equal(RegistryWriteStatus.Denied, result.Status);
+        var path = Path.Combine(_dir, "b.jnl");
+        string first;
+        using (var journal = RegistryHelper.CreateJournal(path, confirm: true, out _))
+        {
+            first = journal!.BeginBatch("edits", "one").Reason!;
+            RegistryHelper.Local.SetValue(Hive, _root, "A", "1", confirm: true, journal: journal);
+            journal.CommitBatch();
+            journal.BeginBatch("edits", "two");
+            RegistryHelper.Local.SetValue(Hive, _root, "B", "2", confirm: true, journal: journal);
+            journal.CommitBatch();
+        }
+
+        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Rollback(path, confirm: true, batchId: first).Status);
+        Assert.Null(RegistryHelper.Local.GetValue(Hive, _root, "A"));
+        Assert.Equal("2", RegistryHelper.Local.GetValue(Hive, _root, "B")?.DataText);
     }
 }
