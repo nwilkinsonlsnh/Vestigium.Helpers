@@ -64,13 +64,14 @@ public sealed partial class RegistryJournal
 
     private static RegistryWriteResult ApplyInverse(RegistryClient client, JournalMut mut, bool force)
     {
-        if (!force && mut.AfterHash is not null && mut.Name is not null)
+        if (!force && mut.AfterHash is not null && mut.Name is not null && mut.Op is "SetValue" or "DeleteValue")
         {
             var live = client.GetValue(mut.Hive, mut.Path, mut.Name);
             if (live is not null && RegistryIndexWriter.Hash(live) != mut.AfterHash)
                 return new RegistryWriteResult(RegistryWriteStatus.Unsupported, mut.Hive, mut.Path, mut.Name, "collision");
         }
 
+        var dest = mut.To ?? mut.Name;
         return mut.Op switch
         {
             "SetValue" when mut.Existed && mut.Before is not null
@@ -83,7 +84,15 @@ public sealed partial class RegistryJournal
                 => client.DeleteKey(mut.Hive, mut.Path, recursive: true, confirm: true),
             "DeleteKey"
                 => new RegistryWriteResult(RegistryWriteStatus.Unsupported, mut.Hive, mut.Path, null, "no key snapshot"),
-            "RenameValue" or "RenameKey" or "CopyKey" or "mut-undo"
+            "CopyKey" when dest is not null && !mut.Existed
+                => client.DeleteKey(mut.Hive, dest, recursive: true, confirm: true),
+            "RenameKey" when dest is not null
+                => client.RenameKey(mut.Hive, dest, mut.Path, confirm: true),
+            "SetSddl" when mut.Before?.DataText is { Length: > 0 } sddl
+                => client.SetSddl(mut.Hive, mut.Path, sddl, confirm: true),
+            "SetOwner" or "TakeOwnership" when mut.Name is { Length: > 0 } owner
+                => client.SetOwner(mut.Hive, mut.Path, owner, confirm: true),
+            "mut-undo"
                 => new RegistryWriteResult(RegistryWriteStatus.Unsupported, mut.Hive, mut.Path, mut.Name, mut.Op),
             _ => new RegistryWriteResult(RegistryWriteStatus.Ok, mut.Hive, mut.Path, mut.Name, "noop")
         };
@@ -122,6 +131,7 @@ public sealed partial class RegistryJournal
         public RegistryHiveKind Hive { get; init; }
         public string Path { get; init; } = "";
         public string? Name { get; init; }
+        public string? To { get; init; }
         public bool Existed { get; init; }
         public string? AfterHash { get; init; }
         public RegistryValueInfo? Before { get; init; }
@@ -140,6 +150,7 @@ public sealed partial class RegistryJournal
                 Hive = Enum.TryParse<RegistryHiveKind>(el.GetProperty("hive").GetString(), out var hive) ? hive : RegistryHiveKind.CurrentUser,
                 Path = el.TryGetProperty("path", out var path) ? path.GetString() ?? "" : "",
                 Name = valueName,
+                To = el.TryGetProperty("to", out var to) ? to.GetString() : null,
                 Existed = el.TryGetProperty("existed", out var existed) && existed.ValueKind == JsonValueKind.True,
                 AfterHash = el.TryGetProperty("afterHash", out var ah) ? ah.GetString() : null,
                 Before = payload is null ? null : Unpack(kind, payload, valueName)
