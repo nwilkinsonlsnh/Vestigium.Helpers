@@ -10,7 +10,8 @@ public sealed partial class RegistryClient
         RegistryHiveKind hive,
         string? key,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         var path = RegistryPath.Normalize(key);
         if (string.IsNullOrEmpty(path))
@@ -20,11 +21,13 @@ public sealed partial class RegistryClient
         if (IsForbidden(hive, path))
             return Fail(hive, path, null, RegistryWriteStatus.Denied, "forbidden key");
 
+        var existed = GetKey(hive, path, view, RegistryDetailLevel.Identity) is not null;
         try
         {
             using var created = OpenOrCreate(hive, path, view);
             if (created is null)
                 return Fail(hive, path, null, RegistryWriteStatus.Denied, "CreateSubKey");
+            journal?.RecordKey("CreateKey", hive, path, existed);
             Log("CreateKey", hive, path, null);
             return Ok(hive, path, null);
         }
@@ -37,7 +40,8 @@ public sealed partial class RegistryClient
         string? key,
         bool recursive = false,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         var path = RegistryPath.Normalize(key);
         if (string.IsNullOrEmpty(path))
@@ -65,6 +69,7 @@ public sealed partial class RegistryClient
             var leaf = RegistryPath.Leaf(path);
             if (recursive) parent.DeleteSubKeyTree(leaf, throwOnMissingSubKey: false);
             else parent.DeleteSubKey(leaf, throwOnMissingSubKey: false);
+            journal?.RecordKey("DeleteKey", hive, path, existed: true);
             Log("DeleteKey", hive, path, null);
             return Ok(hive, path, null);
         }
@@ -79,7 +84,8 @@ public sealed partial class RegistryClient
         object? data,
         RegistryValueKind kind = RegistryValueKind.String,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         var path = RegistryPath.Normalize(key);
         var name = valueName ?? string.Empty;
@@ -92,12 +98,15 @@ public sealed partial class RegistryClient
         if (!TypesMatch(kind, data))
             return Fail(hive, path, name, RegistryWriteStatus.TypeMismatch, $"{kind} vs {data?.GetType().Name ?? "null"}");
 
+        var before = GetValue(hive, path, name, view);
         try
         {
             using var opened = OpenOrCreate(hive, path, view);
             if (opened is null)
                 return Fail(hive, path, name, RegistryWriteStatus.Denied, "CreateSubKey");
             opened.SetValue(name, Coerce(kind, data)!, MapKind(kind));
+            var after = GetValue(hive, path, name, view);
+            journal?.RecordValue("SetValue", hive, path, name, before, after);
             Log("SetValue", hive, path, name);
             return Ok(hive, path, name);
         }
@@ -110,7 +119,8 @@ public sealed partial class RegistryClient
         string? key,
         string? valueName,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         var path = RegistryPath.Normalize(key);
         var name = valueName ?? string.Empty;
@@ -119,12 +129,14 @@ public sealed partial class RegistryClient
         if (IsForbidden(hive, path))
             return Fail(hive, path, name, RegistryWriteStatus.Denied, "forbidden key");
 
+        var before = GetValue(hive, path, name, view);
         try
         {
             using var opened = Open(hive, path, view, writable: true);
             if (opened is null)
                 return Fail(hive, path, name, RegistryWriteStatus.NotFound, "key gone");
             opened.DeleteValue(name, throwOnMissingValue: false);
+            journal?.RecordValue("DeleteValue", hive, path, name, before, after: null);
             Log("DeleteValue", hive, path, name);
             return Ok(hive, path, name);
         }
