@@ -82,6 +82,8 @@ public sealed partial class RegistryJournal
                 => client.SetValue(mut.Hive, mut.Path, mut.Name, mut.Before.Data, mut.Before.Type, confirm: true),
             "CreateKey" when !mut.Existed
                 => client.DeleteKey(mut.Hive, mut.Path, recursive: true, confirm: true),
+            "DeleteKey" when mut.BeforeTree is not null
+                => client.RestoreTree(mut.BeforeTree, mut.Hive),
             "DeleteKey"
                 => new RegistryWriteResult(RegistryWriteStatus.Unsupported, mut.Hive, mut.Path, null, "no key snapshot"),
             "CopyKey" when dest is not null && !mut.Existed
@@ -135,6 +137,7 @@ public sealed partial class RegistryJournal
         public string? To { get; init; }
         public bool Existed { get; init; }
         public string? AfterHash { get; init; }
+        public string? BeforeTree { get; init; }
         public RegistryValueInfo? Before { get; init; }
 
         public static JournalMut Parse(JsonElement el, bool protect)
@@ -143,6 +146,7 @@ public sealed partial class RegistryJournal
             var kind = Enum.TryParse<RegistryValueKind>(typeName, out var parsed) ? parsed : RegistryValueKind.String;
             var raw = el.TryGetProperty("beforePayload", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
             var payload = Open(raw, protect);
+            var treeRaw = el.TryGetProperty("beforeTree", out var tr) && tr.ValueKind == JsonValueKind.String ? tr.GetString() : null;
             var valueName = el.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
             return new JournalMut
             {
@@ -155,6 +159,7 @@ public sealed partial class RegistryJournal
                 To = el.TryGetProperty("to", out var to) ? to.GetString() : null,
                 Existed = el.TryGetProperty("existed", out var existed) && existed.ValueKind == JsonValueKind.True,
                 AfterHash = el.TryGetProperty("afterHash", out var ah) ? ah.GetString() : null,
+                BeforeTree = Open(treeRaw, protect),
                 Before = payload is null ? null : Unpack(kind, payload, valueName)
             };
         }
