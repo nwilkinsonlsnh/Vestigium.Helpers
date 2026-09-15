@@ -3,6 +3,7 @@ namespace Vestigium.Helpers.Services;
 internal static class ServiceTreeWalker
 {
     public const int MaxDepth = 16;
+    /// <summary>Unique service names visited in one walk (both directions share this set).</summary>
     public const int MaxNodes = 256;
 
     public static ServiceTree? Build(string name, ServiceTreeDirection direction, ServiceDetailLevel level)
