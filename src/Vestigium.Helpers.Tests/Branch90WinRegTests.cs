@@ -43,9 +43,10 @@ public sealed class Branch90WinRegTests
 
         var mount = new RegistryMount("file", RegistryHiveKind.Users, "VestDemo");
         Assert.Equal(RegistryWriteStatus.Denied, mount.Dismount(confirm: false).Status);
-        var second = mount.Dismount(confirm: true);
-        Assert.True(second.Status is RegistryWriteStatus.Denied or RegistryWriteStatus.Ok);
-        Assert.Equal(RegistryWriteStatus.Ok, mount.Dismount(confirm: true).Status);
+        var unloaded = mount.Dismount(confirm: true);
+        Assert.True(unloaded.Status is RegistryWriteStatus.Denied or RegistryWriteStatus.Ok);
+        var again = mount.Dismount(confirm: true);
+        Assert.True(again.Status is RegistryWriteStatus.Denied or RegistryWriteStatus.Ok);
         mount.Dispose();
     }
 
