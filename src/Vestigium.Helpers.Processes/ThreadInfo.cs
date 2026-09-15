@@ -12,19 +12,6 @@ public enum ProcessThreadState
     Transition = 7
 }
 
-[Obsolete("Use ProcessThreadState.")]
-public enum ThreadState
-{
-    Unknown = 0,
-    Initialized = 1,
-    Ready = 2,
-    Running = 3,
-    Standby = 4,
-    Terminated = 5,
-    Waiting = 6,
-    Transition = 7
-}
-
 public sealed class ThreadInfo
 {
     public int ThreadId { get; init; }
