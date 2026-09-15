@@ -5,7 +5,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.WinReg;
 
-public sealed class RegistryJournal : IDisposable
+public sealed partial class RegistryJournal : IDisposable
 {
     public const string Schema = "vest-regjnl/1";
     public const int MaxMutations = 100_000;
@@ -86,10 +86,8 @@ public sealed class RegistryJournal : IDisposable
         }
 
         var writer = new StreamWriter(path, true, new UTF8Encoding(false));
-        var journal = new RegistryJournal(path, writer, info.Protect)
-        {
-            _total = info.Batches.Sum(b => b.Mutations)
-        };
+        var journal = new RegistryJournal(path, writer, info.Protect);
+        journal._total = info.Batches.Sum(b => b.Mutations);
         result = new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, path, null, null);
         return journal;
     }
