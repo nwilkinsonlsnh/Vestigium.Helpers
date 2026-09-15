@@ -1,25 +1,19 @@
 # Vestigium.Helpers.WinReg — Rollback Journal Plan
 
 **Document ID:** VEST-HLP-WINREG-PLAN-RB-000  
-**Version:** 1.0  
-**Status:** Paper. R1–R6 planned.  
+**Version:** 1.1  
+**Status:** Paper. R1–R7 planned.  
 **Date:** 14 September 2026
 
-ACL slice A0–A7 stays closed.
+See also `Requirements_Rollback_v1.1.md` (import undo, export restore, edit list).
 
 | Phase | Covers | Status |
 |---|---|---|
-| **R0 Paper** | This SRS + design. Journal ≠ RAM buffer. DPAPI. Collision skip. | **Ready** |
-| **R1 Types + file** | `RegistryJournal`, header/batch/mut JSONL, Create/Load, confirm, cap. | Planned |
-| **R2 Capture** | Before-image helper. Optional `journal` on SetValue / DeleteValue / CreateKey / DeleteKey. | Planned |
-| **R3 Import + copy/rename** | Import lines and Copy/Rename append muts. | Planned |
-| **R4 RollbackLast / Batch** | Inverse apply, collision skip, `force`, append `mut-undo`. | Planned |
-| **R5 ACL muts** | SetOwner / SetSddl / TakeOwnership journal + restore SDDL. | Planned |
-| **R6 Harden** | DPAPI round-trip, purge, max payload, tests `RegistryRollbackR*`. | Planned |
-
-## Gates
-
-- HelperLog never prints journal payload or SDDL.
-- Writes without `journal:` unchanged.
-- HKCU sandbox tests only.
-- Rollback of a value > 64 KiB is `Unsupported` on that row, not a throw.
+| **R0 Paper** | Journal + edit list + export-as-restore. | **Ready** |
+| **R1 Types + file** | `RegistryJournal` JSONL Create/Load. | Planned |
+| **R2 Capture on CRUD** | Optional `journalPath` on Set/Delete/Create/DeleteKey. | Planned |
+| **R3 Import + RestoreFromExport** | Import writes journal. RestoreFromExport = Import + journal. | Planned |
+| **R4 Edit list + RenameValue** | `RegistryEditList` / `Apply`. RenameValue = set new + delete old inside one mut pair. | Planned |
+| **R5 Rollback** | Rollback(path). Collision skip. `force`. | Planned |
+| **R6 Copy/RenameKey + ACL muts** | Same journal rows. | Planned |
+| **R7 Harden** | DPAPI, purge, 64 KiB cap, tests `RegistryRollbackR*`. | Planned |
