@@ -13,7 +13,7 @@ public static partial class ProcessHelper
     {
         HelperGuard.NotBlank(query, nameof(query));
         HelperGuard.InRange(maxResults, 1, nameof(maxResults));
-        HelperGuard.Require(maxResults <= MaxSearchResultsCap, nameof(maxResults), "maxResults must be at most 4096.");
+        HelperGuard.AtMost(maxResults, MaxSearchResultsCap, nameof(maxResults));
 
         using var session = KqlHelper.Create(KqlPack.Process);
         var compiled = KqlHelper.Compile(query, session);
