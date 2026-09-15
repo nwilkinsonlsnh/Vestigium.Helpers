@@ -60,8 +60,10 @@ public sealed class Branch90FullSnapshotTests
             var journal = Path.Combine(dir, "edits.jnl");
             var applied = RegistryHelper.Apply(edits, journal, confirm: true);
             Assert.True(applied.Status is RegistryWriteStatus.Ok or RegistryWriteStatus.Denied or RegistryWriteStatus.NotFound);
-            loaded.Ops.Add(new RegistryEditOp { Op = "Nope", Hive = hive, Path = root });
-            var bad = RegistryHelper.Apply(loaded, Path.Combine(dir, "bad.jnl"), confirm: true);
+
+            var unknown = new RegistryEditList { Label = "bad" };
+            unknown.Ops.Add(new RegistryEditOp { Op = "Nope", Hive = hive, Path = root });
+            var bad = RegistryHelper.Apply(unknown, Path.Combine(dir, "bad.jnl"), confirm: true);
             Assert.Equal(RegistryWriteStatus.InvalidPath, bad.Status);
             RegistryHelper.Local.DeleteKey(hive, root, recursive: true, confirm: true);
         }
