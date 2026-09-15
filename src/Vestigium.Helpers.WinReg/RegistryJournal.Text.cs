@@ -1,3 +1,5 @@
+using Vestigium.Helpers;
+
 namespace Vestigium.Helpers.WinReg;
 
 public sealed partial class RegistryJournal
