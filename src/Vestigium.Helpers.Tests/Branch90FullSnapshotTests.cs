@@ -19,7 +19,8 @@ public sealed class Branch90FullSnapshotTests
         _ = ProcessHelper.List(ProcessDetailLevel.Full);
         _ = ProcessHelper.GetThreads(Environment.ProcessId, includeStack: true);
         _ = ProcessHelper.Search("PID == " + Environment.ProcessId, ProcessDetailLevel.Full);
-        _ = ProcessHelper.Search(Process.GetCurrentProcess().ProcessName, ProcessSearchMode.Contains, ProcessSearchFields.Name, ProcessDetailLevel.Slim);
+        if (!string.IsNullOrWhiteSpace(me!.Name))
+            _ = ProcessHelper.Search(me.Name, ProcessSearchMode.Contains, ProcessSearchFields.Name, ProcessDetailLevel.Slim);
         _ = ProcessHelper.GetTree(Environment.ProcessId);
 
         _ = ServiceHelper.List(ServiceDetailLevel.Identity, ServiceKind.All, ServiceListScope.All);
