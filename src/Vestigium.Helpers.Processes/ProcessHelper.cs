@@ -4,7 +4,6 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
-/// <summary>Process table helpers. Phase 7: campaigns.</summary>
 public static partial class ProcessHelper
 {
     public const int DefaultMaxSearchResults = 256;
@@ -63,7 +62,7 @@ public static partial class ProcessHelper
     {
         var needle = HelperGuard.NotBlank(term, nameof(term)).Trim();
         HelperGuard.InRange(maxResults, 1, nameof(maxResults));
-        HelperGuard.Require(maxResults <= MaxSearchResultsCap, nameof(maxResults), "maxResults must be at most 4096.");
+        HelperGuard.AtMost(maxResults, MaxSearchResultsCap, nameof(maxResults));
         if (fields == 0)
             fields = ProcessSearchFields.Default;
 
