@@ -41,7 +41,7 @@ public sealed class RegistryRollbackR3Tests : IDisposable
     }
 
     [Fact]
-    public void Restore_index_without_payload_skips_values()
+    public void Restore_index_without_payload_is_unsupported()
     {
         var src = _root + @"\Idx";
         RegistryHelper.Local.SetValue(Hive, src, "Mark", "keep", confirm: true);
@@ -49,7 +49,7 @@ public sealed class RegistryRollbackR3Tests : IDisposable
         var jnl = Path.Combine(_dir, "idx.jnl");
         Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.WriteIndex(index, Hive, src, confirm: true).Status);
         var result = RegistryHelper.Restore(index, confirm: true, journalPath: jnl);
-        Assert.Equal(RegistryWriteStatus.Ok, result.Status);
-        Assert.Contains("skipped=", result.Reason, StringComparison.Ordinal);
+        Assert.Equal(RegistryWriteStatus.Unsupported, result.Status);
+        Assert.Contains("no payloads", result.Reason, StringComparison.OrdinalIgnoreCase);
     }
 }
