@@ -39,4 +39,37 @@
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="ChartViewTests.cs" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="Documents\Xml\DevicePreparationDDF.xml" />
+    <None Remove="Documents\Xml\diagwrn.xml" />
+    <None Remove="Documents\Xml\DMClient_DDF.xml" />
+    <None Remove="Documents\Xml\ipcfg.xml" />
+    <None Remove="Documents\Xml\osinfo.xml" />
+    <None Remove="Documents\Xml\ReAgent.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Documents\Xml\DevicePreparationDDF.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Documents\Xml\diagwrn.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Documents\Xml\DMClient_DDF.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Documents\Xml\ipcfg.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Documents\Xml\osinfo.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Documents\Xml\ReAgent.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Branch90CrapLinuxTablesTests.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Compile>
+  </ItemGroup>
 </Project>
