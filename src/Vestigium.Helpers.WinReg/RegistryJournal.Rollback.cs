@@ -8,7 +8,8 @@ public sealed partial class RegistryJournal
         string path,
         RegistryClient client,
         bool confirm,
-        bool force = false)
+        bool force = false,
+        string? batchId = null)
     {
         path = Vestigium.Helpers.HelperGuard.NotBlank(path, nameof(path));
         if (!confirm)
@@ -17,9 +18,11 @@ public sealed partial class RegistryJournal
             return new RegistryWriteResult(RegistryWriteStatus.NotFound, RegistryHiveKind.CurrentUser, path, null, "journal missing");
 
         var (muts, undone) = ReadMuts(path);
-        var last = muts.Select(m => m.Batch).LastOrDefault();
+        var last = batchId ?? muts.Select(m => m.Batch).LastOrDefault();
         if (string.IsNullOrEmpty(last))
             return new RegistryWriteResult(RegistryWriteStatus.NotFound, RegistryHiveKind.CurrentUser, path, null, "no batch");
+        if (batchId is not null && muts.All(m => m.Batch != batchId))
+            return new RegistryWriteResult(RegistryWriteStatus.NotFound, RegistryHiveKind.CurrentUser, path, null, "batch missing");
 
         var pending = muts.Where(m => m.Batch == last && !undone.Contains(m.Batch + ":" + m.Seq)).OrderByDescending(m => m.Seq).ToList();
         using var journal = Load(path, confirm: true, out var loaded);
@@ -86,6 +89,8 @@ public sealed partial class RegistryJournal
                 => client.RestoreTree(mut.BeforeTree, mut.Hive),
             "DeleteKey"
                 => new RegistryWriteResult(RegistryWriteStatus.Unsupported, mut.Hive, mut.Path, null, "no key snapshot"),
+            "RenameValue" when dest is not null && mut.Before is not null
+                => RenameBack(client, mut, dest),
             "CopyKey" when dest is not null && !mut.Existed
                 => client.DeleteKey(mut.Hive, dest, recursive: true, confirm: true),
             "RenameKey" when dest is not null
@@ -98,6 +103,12 @@ public sealed partial class RegistryJournal
                 => new RegistryWriteResult(RegistryWriteStatus.Unsupported, mut.Hive, mut.Path, mut.Name, mut.Op),
             _ => new RegistryWriteResult(RegistryWriteStatus.Ok, mut.Hive, mut.Path, mut.Name, "noop")
         };
+    }
+
+    private static RegistryWriteResult RenameBack(RegistryClient client, JournalMut mut, string dest)
+    {
+        _ = client.DeleteValue(mut.Hive, mut.Path, dest, confirm: true);
+        return client.SetValue(mut.Hive, mut.Path, mut.Name, mut.Before!.Data, mut.Before.Type, confirm: true);
     }
 
     internal static (List<JournalMut> Muts, HashSet<string> Undone) ReadMuts(string path)
