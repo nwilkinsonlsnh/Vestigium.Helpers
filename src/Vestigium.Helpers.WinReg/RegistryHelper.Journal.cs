@@ -11,6 +11,9 @@ public static partial class RegistryHelper
     public static RegistryJournalInfo ReadJournal(string path)
         => RegistryJournal.ReadInfo(path);
 
+    public static RegistryWriteResult PurgeJournal(string path, bool confirm = false)
+        => RegistryJournal.Purge(path, confirm);
+
     public static RegistryWriteResult Import(
         string path,
         RegistryJournal journal,
