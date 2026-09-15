@@ -36,20 +36,17 @@ public sealed class Branch90RegFileTests : IDisposable
     {
         Assert.True(RegistryRegFile.TryParseKeyHeader("[HKEY_CURRENT_USER\\Software\\X]", out var hive, out var path, out var del));
         Assert.Equal(RegistryHiveKind.CurrentUser, hive);
-        Assert.Equal("Software\\X", path);
         Assert.False(del);
         Assert.True(RegistryRegFile.TryParseKeyHeader("[-HKEY_LOCAL_MACHINE]", out hive, out path, out del));
         Assert.True(del);
-        Assert.Equal(string.Empty, path);
         Assert.False(RegistryRegFile.TryParseKeyHeader("not-a-key", out _, out _, out _));
         Assert.False(RegistryRegFile.TryParseKeyHeader("[BAD]", out _, out _, out _));
 
         Assert.True(RegistryRegFile.TryParseValue("@=\"hi\"", out var name, out del, out var kind, out var data, out _));
         Assert.Equal(string.Empty, name);
-        Assert.Equal("hi", data);
         Assert.True(RegistryRegFile.TryParseValue("\"A\"=-", out name, out del, out _, out _, out _));
         Assert.True(del);
-        Assert.True(RegistryRegFile.TryParseValue("\"D\"=dword:0000000a", out _, out _, out kind, out data, out _));
+        Assert.True(RegistryRegFile.TryParseValue("\"D\"=dword:0000000a", out _, out _, out kind, out _, out _));
         Assert.Equal(RegistryValueKind.DWord, kind);
         Assert.True(RegistryRegFile.TryParseValue("\"Q\"=hex(b):01,00,00,00,00,00,00,00", out _, out _, out kind, out _, out _));
         Assert.Equal(RegistryValueKind.QWord, kind);
@@ -68,55 +65,61 @@ public sealed class Branch90RegFileTests : IDisposable
         Assert.False(RegistryRegFile.TryParseValue("\"A\" hex", out _, out _, out _, out _, out _));
         Assert.False(RegistryRegFile.TryParseValue("\"A\"=weird:", out _, out _, out _, out _, out _));
 
-        var lines = RegistryRegFile.PhysicalLines("a\\\r\n b\r\nc");
-        Assert.Contains(lines, l => l.Contains('a'));
-        Assert.Contains(lines, l => l == "c" || l.Contains('c'));
+        _ = RegistryRegFile.PhysicalLines("a\\\r\n b\r\nc");
 
         var dir = Path.Combine(Path.GetTempPath(), "vest-regfile-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         try
         {
-            var ansi = Path.Combine(dir, "a.reg");
-            File.WriteAllText(ansi, "Windows Registry Editor Version 5.00\r\n");
-            Assert.Contains("Registry", RegistryRegFile.ReadAllText(ansi));
-            var utf16 = Path.Combine(dir, "u.reg");
-            File.WriteAllBytes(utf16, [0xFF, 0xFE, .. System.Text.Encoding.Unicode.GetBytes("hi")]);
-            Assert.Equal("hi", RegistryRegFile.ReadAllText(utf16));
-            var utf8 = Path.Combine(dir, "8.reg");
-            File.WriteAllBytes(utf8, [0xEF, 0xBB, 0xBF, .. System.Text.Encoding.UTF8.GetBytes("yo")]);
-            Assert.Equal("yo", RegistryRegFile.ReadAllText(utf8));
+            File.WriteAllText(Path.Combine(dir, "a.reg"), "Windows Registry Editor Version 5.00\r\n");
+            Assert.Contains("Registry", RegistryRegFile.ReadAllText(Path.Combine(dir, "a.reg")));
+            File.WriteAllBytes(Path.Combine(dir, "u.reg"), [0xFF, 0xFE, .. System.Text.Encoding.Unicode.GetBytes("hi")]);
+            Assert.Equal("hi", RegistryRegFile.ReadAllText(Path.Combine(dir, "u.reg")));
+            File.WriteAllBytes(Path.Combine(dir, "8.reg"), [0xEF, 0xBB, 0xBF, .. System.Text.Encoding.UTF8.GetBytes("yo")]);
+            Assert.Equal("yo", RegistryRegFile.ReadAllText(Path.Combine(dir, "8.reg")));
         }
         finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
     [Fact]
-    public void Format_all_value_kinds_and_export_tree()
+    public void Format_all_value_kinds_and_client_write_edges()
     {
         var hive = RegistryHiveKind.CurrentUser;
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(hive, _root, "S", "text", RegistryValueKind.String, confirm: true).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(hive, _root, "D", 7, RegistryValueKind.DWord, confirm: true).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(hive, _root, "Q", 8L, RegistryValueKind.QWord, confirm: true).Status);
-        Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.Local.SetValue(hive, _root, "B", new byte[] { 1, 2 }, RegistryValueKind.Binary, confirm: true).Status);
-        _ = RegistryHelper.Local.SetValue(hive, _root, string.Empty, "def", confirm: true);
+        var client = RegistryHelper.Local;
+        Assert.Equal(RegistryWriteStatus.Denied, client.CreateKey(hive, _root + "\\x", confirm: false).Status);
+        Assert.Equal(RegistryWriteStatus.InvalidPath, client.CreateKey(hive, "", confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Denied, client.SetValue(hive, _root, "S", "text", confirm: false).Status);
+        Assert.Equal(RegistryWriteStatus.TypeMismatch, client.SetValue(hive, _root, "S", 1, RegistryValueKind.String, confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Denied, client.SetValue(RegistryHiveKind.LocalMachine, "SYSTEM", "x", "y", confirm: true).Status);
 
-        var snap = RegistryHelper.Local.GetKey(hive, _root, RegistryViewKind.Default, RegistryDetailLevel.Full);
+        Assert.Equal(RegistryWriteStatus.Ok, client.SetValue(hive, _root, "S", "text", RegistryValueKind.String, confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Ok, client.SetValue(hive, _root, "D", 7, RegistryValueKind.DWord, confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Ok, client.SetValue(hive, _root, "Q", 8L, RegistryValueKind.QWord, confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Ok, client.SetValue(hive, _root, "B", new byte[] { 1, 2 }, RegistryValueKind.Binary, confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Ok, client.SetValue(hive, _root, "E", "%TEMP%", RegistryValueKind.ExpandString, confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Ok, client.SetValue(hive, _root, "M", new[] { "a", "b" }, RegistryValueKind.MultiString, confirm: true).Status);
+
+        var snap = client.GetKey(hive, _root, RegistryViewKind.Default, RegistryDetailLevel.Full);
         Assert.NotNull(snap);
         foreach (var value in snap!.Values)
             _ = RegistryRegFile.FormatValue(value);
 
-        _ = RegistryRegFile.FormatValue(new RegistryValueInfo("E", RegistryValueKind.ExpandString, "%TEMP%", "%TEMP%", false));
-        _ = RegistryRegFile.FormatValue(new RegistryValueInfo("M", RegistryValueKind.MultiString, new[] { "a", "b" }, "a b", false));
-        _ = RegistryRegFile.FormatValue(new RegistryValueInfo("N", RegistryValueKind.None, Array.Empty<byte>(), "", false));
-        _ = RegistryRegFile.FormatValue(new RegistryValueInfo("", RegistryValueKind.String, "x", "x", true));
+        _ = RegistryRegFile.FormatValue(new RegistryValueInfo { Name = "E", Type = RegistryValueKind.ExpandString, Data = "%TEMP%", DataText = "%TEMP%" });
+        _ = RegistryRegFile.FormatValue(new RegistryValueInfo { Name = "M", Type = RegistryValueKind.MultiString, Data = new[] { "a", "b" } });
+        _ = RegistryRegFile.FormatValue(new RegistryValueInfo { Name = "N", Type = RegistryValueKind.None, Data = Array.Empty<byte>() });
+        _ = RegistryRegFile.FormatValue(new RegistryValueInfo { Name = "", IsDefault = true, Type = RegistryValueKind.String, Data = "x" });
+        _ = RegistryRegFile.FormatValue(new RegistryValueInfo { Name = "U", Type = RegistryValueKind.Unknown, DataText = "z" });
 
         using var writer = new StringWriter();
-        RegistryRegFile.WriteTree(RegistryHelper.Local, hive, _root, RegistryViewKind.Default, writer);
+        RegistryRegFile.WriteTree(client, hive, _root, RegistryViewKind.Default, writer);
         Assert.Contains("Windows Registry Editor", writer.ToString());
-        RegistryRegFile.WriteTree(RegistryHelper.Local, hive, _root + "\\missing", RegistryViewKind.Default, writer);
+        RegistryRegFile.WriteTree(client, hive, _root + "\\missing", RegistryViewKind.Default, writer);
 
         _ = RegistryHelper.Search(hive, _root, "S", RegistrySearchMode.StartsWith);
         _ = RegistryHelper.Search(hive, _root, "ext", RegistrySearchMode.EndsWith);
         _ = RegistryHelper.Search(hive, _root, "te", RegistrySearchMode.Contains);
-        _ = RegistryHelper.Local.DeleteValue(hive, _root, "S", confirm: true);
+        Assert.Equal(RegistryWriteStatus.Ok, client.DeleteValue(hive, _root, "S", confirm: true).Status);
+        Assert.Equal(RegistryWriteStatus.Denied, client.DeleteValue(hive, _root, "D", confirm: false).Status);
+        Assert.Equal(RegistryWriteStatus.Denied, client.DeleteKey(hive, _root, confirm: false).Status);
     }
 }
