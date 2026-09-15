@@ -31,8 +31,8 @@ public sealed partial class RegistryJournal : IDisposable
     public static RegistryJournal? Create(
         string path,
         bool confirm,
-        bool protect = false,
-        out RegistryWriteResult result)
+        out RegistryWriteResult result,
+        bool protect = false)
     {
         path = HelperGuard.NotBlank(path, nameof(path));
         if (!confirm)
