@@ -11,7 +11,8 @@ public sealed partial class RegistryClient
         bool confirm = false,
         IProgress<RegistryCompareProgress>? progress = null,
         CancellationToken cancel = default,
-        IReadOnlyList<RegistryHiveKind>? allowedHives = null)
+        IReadOnlyList<RegistryHiveKind>? allowedHives = null,
+        RegistryJournal? journal = null)
     {
         var file = HelperGuard.FileExists(path, nameof(path));
         if (!confirm)
@@ -19,6 +20,7 @@ public sealed partial class RegistryClient
         if (cancel.IsCancellationRequested)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, file, null, "canceled");
 
+        journal?.EnsureBatch("import");
         var text = RegistryRegFile.ReadAllText(file);
         var lines = RegistryRegFile.PhysicalLines(text);
         if (lines.Count == 0)
@@ -50,8 +52,8 @@ public sealed partial class RegistryClient
                 currentHive = hive;
                 currentPath = keyPath;
                 var result = deleteKey
-                    ? DeleteKey(hive, keyPath, recursive: true, view, confirm: true)
-                    : CreateKey(hive, keyPath, view, confirm: true);
+                    ? DeleteKey(hive, keyPath, recursive: true, view, confirm: true, journal)
+                    : CreateKey(hive, keyPath, view, confirm: true, journal);
                 if (result.Status is not RegistryWriteStatus.Ok and not RegistryWriteStatus.NotFound)
                     return FailLine(hive, keyPath, lineNo, result);
                 applied++;
@@ -67,8 +69,8 @@ public sealed partial class RegistryClient
                 return new RegistryWriteResult(RegistryWriteStatus.InvalidPath, currentHive.Value, currentPath, name, $"line {lineNo} {error}");
 
             var write = deleteValue
-                ? DeleteValue(currentHive.Value, currentPath, name, view, confirm: true)
-                : SetValue(currentHive.Value, currentPath, name, data, kind, view, confirm: true);
+                ? DeleteValue(currentHive.Value, currentPath, name, view, confirm: true, journal)
+                : SetValue(currentHive.Value, currentPath, name, data, kind, view, confirm: true, journal);
             if (write.Status is not RegistryWriteStatus.Ok and not RegistryWriteStatus.NotFound)
                 return FailLine(currentHive.Value, currentPath, lineNo, write);
             applied++;
