@@ -48,4 +48,7 @@ public static partial class RegistryHelper
             journal?.Dispose();
         }
     }
+
+    public static RegistryWriteResult Rollback(string journalPath, bool confirm = false, bool force = false)
+        => RegistryJournal.Rollback(journalPath, Local, confirm, force);
 }
