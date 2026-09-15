@@ -20,7 +20,7 @@ public static partial class RegistryHelper
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, journalPath, null, "confirm=false");
 
-        var journal = CreateJournal(journalPath, confirm: true, protect, out var created);
+        var journal = CreateJournal(journalPath, confirm: true, out var created, protect);
         if (journal is null)
             return created;
 
