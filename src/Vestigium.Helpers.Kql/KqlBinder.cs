@@ -8,11 +8,13 @@ public sealed class KqlCompileResult
     public bool Ok => Error is null && Query is not null;
     public KqlBoundQuery? Query { get; init; }
     public KqlError? Error { get; init; }
+    public IReadOnlyList<string> Diagnostics { get; init; } = [];
 
-    public static KqlCompileResult Success(KqlBoundQuery query) => new() { Query = query };
+    public static KqlCompileResult Success(KqlBoundQuery query, IReadOnlyList<string>? diagnostics = null)
+        => new() { Query = query, Diagnostics = diagnostics ?? [] };
 
-    public static KqlCompileResult Fail(int line, int column, string message)
-        => new() { Error = new KqlError { Line = line, Column = column, Message = message } };
+    public static KqlCompileResult Fail(int line, int column, string message, IReadOnlyList<string>? diagnostics = null)
+        => new() { Error = new KqlError { Line = line, Column = column, Message = message }, Diagnostics = diagnostics ?? [] };
 }
 
 public sealed class KqlBoundQuery
@@ -40,10 +42,11 @@ internal static class KqlBinder
         if (!parsed.Ok)
             return KqlCompileResult.Fail(parsed.Error!.Line, parsed.Error.Column, parsed.Error.Message);
 
+        var diagnostics = new List<string>();
         try
         {
-            Bind(parsed.Expression!, session);
-            return KqlCompileResult.Success(new KqlBoundQuery(parsed.Expression!, session));
+            Bind(parsed.Expression!, session, diagnostics);
+            return KqlCompileResult.Success(new KqlBoundQuery(parsed.Expression!, session), diagnostics);
         }
         catch (KqlParseException ex)
         {
@@ -52,27 +55,27 @@ internal static class KqlBinder
                 VestigiumStatus.Failed,
                 HelperLog.Subcategories.Query,
                 $"compile failed line={ex.Line} col={ex.Column}");
-            return KqlCompileResult.Fail(ex.Line, ex.Column, ex.Message);
+            return KqlCompileResult.Fail(ex.Line, ex.Column, ex.Message, diagnostics);
         }
     }
 
-    private static void Bind(KqlExpression expr, KqlSession session)
+    private static void Bind(KqlExpression expr, KqlSession session, List<string> diagnostics)
     {
         switch (expr)
         {
             case KqlLogicalExpression logical:
-                Bind(logical.Left, session);
-                Bind(logical.Right, session);
+                Bind(logical.Left, session, diagnostics);
+                Bind(logical.Right, session, diagnostics);
                 break;
             case KqlNotExpression not:
-                Bind(not.Operand, session);
+                Bind(not.Operand, session, diagnostics);
                 break;
             case KqlComparisonExpression cmp:
             {
                 var field = RequireField(cmp.Field, cmp.Line, cmp.Column, session);
                 cmp.BoundField = field;
                 CheckTypes(field, cmp.Op.ToString(), cmp.Value.Type, cmp.Line, cmp.Column, like: cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike);
-                WarnExactWildcard(cmp, field);
+                WarnExactWildcard(cmp, field, diagnostics);
                 break;
             }
             case KqlInExpression inn:
@@ -109,7 +112,10 @@ internal static class KqlBinder
     {
         var packs = string.Join(',', session.Packs);
         var groups = session.Groups.ToString().Replace(" ", "", StringComparison.Ordinal);
-        var names = session.Fields.Select(f => f.Canonical).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var names = session.Fields
+            .SelectMany(f => f.Aliases.Prepend(f.Canonical))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         const int take = 12;
         var head = string.Join(", ", names.Take(take));
         var rest = names.Length > take ? $" +{names.Length - take}" : "";
@@ -134,7 +140,7 @@ internal static class KqlBinder
         }
     }
 
-    private static void WarnExactWildcard(KqlComparisonExpression cmp, KqlField field)
+    private static void WarnExactWildcard(KqlComparisonExpression cmp, KqlField field, List<string> diagnostics)
     {
         if (cmp.Op is not (KqlCompareOp.Eq or KqlCompareOp.Ne))
             return;
@@ -149,11 +155,13 @@ internal static class KqlBinder
             return;
 
         var op = cmp.Op == KqlCompareOp.Eq ? "==" : "!=";
+        var line = $"exact compare treats wildcard chars as literals field={field.Canonical} op={op} chars={chars}";
+        diagnostics.Add(line);
         HelperLog.Warning(
             HelperLog.AppIds.Kql,
             VestigiumStatus.Warning,
             HelperLog.Subcategories.Query,
-            $"exact compare treats wildcard chars as literals field={field.Canonical} op={op} chars={chars}");
+            line);
     }
 
     private static bool TypesCompatible(KqlType field, KqlType literal)
