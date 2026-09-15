@@ -4,62 +4,62 @@ namespace Vestigium.Helpers.Processes;
 
 internal sealed class SystemKqlRow : IKqlRow
 {
+    private static readonly Dictionary<string, Func<SystemCounters, KqlValue>> Fields =
+        new(StringComparer.Ordinal)
+        {
+            ["SYS.ProcessCount"] = r => Maybe(r.ProcessCount),
+            ["SYS.ThreadCount"] = r => Maybe(r.ThreadCount),
+            ["SYS.HandleCount"] = r => Maybe(r.HandleCount),
+            ["CPU.Usage"] = r => Maybe(r.CpuPercent),
+            ["CPU.ContextSwitchDelta"] = r => Maybe(r.ContextSwitchDelta),
+            ["CPU.InterruptDelta"] = r => Maybe(r.InterruptDelta),
+            ["CPU.DpcDelta"] = r => Maybe(r.DpcDelta),
+            ["CPU.Cores"] = r => Maybe(r.Cores),
+            ["CPU.Sockets"] = r => Maybe(r.Sockets),
+            ["CPU.LogicalProcessors"] = r => Maybe(r.LogicalProcessors),
+            ["MEM.PhysicalTotal"] = r => Maybe(r.PhysicalTotal),
+            ["MEM.PhysicalAvailable"] = r => Maybe(r.PhysicalAvailable),
+            ["MEM.PhysicalPercent"] = r => Maybe(r.PhysicalMemoryPercent),
+            ["MEM.CommitCurrent"] = r => Maybe(r.CommitCurrent),
+            ["MEM.CommitLimit"] = r => Maybe(r.CommitLimit),
+            ["MEM.CommitPeak"] = r => Maybe(r.CommitPeak),
+            ["MEM.CommitPercent"] = r => Maybe(r.SystemCommitPercent),
+            ["MEM.CommitChange"] = r => Maybe(r.CommitChange),
+            ["MEM.CacheWS"] = r => Maybe(r.CacheWorkingSet),
+            ["MEM.KernelWS"] = r => Maybe(r.KernelWorkingSet),
+            ["MEM.DriverWS"] = r => Maybe(r.DriverWorkingSet),
+            ["MEM.Paged"] = r => Maybe(r.PagedWorkingSet),
+            ["MEM.Nonpaged"] = r => Maybe(r.Nonpaged),
+            ["MEM.PagedLimit"] = r => Maybe(r.PagedLimit),
+            ["MEM.NonpagedLimit"] = r => Maybe(r.NonpagedLimit),
+            ["MEM.Zeroed"] = r => Maybe(r.Zeroed),
+            ["MEM.Free"] = r => Maybe(r.Free),
+            ["MEM.Modified"] = r => Maybe(r.Modified),
+            ["MEM.Standby"] = r => Maybe(r.Standby),
+            ["MEM.PageFaultDelta"] = r => Maybe(r.PageFaultDelta),
+            ["IO.ReadDelta"] = r => Maybe(r.ReadDelta),
+            ["IO.WriteDelta"] = r => Maybe(r.WriteDelta),
+            ["IO.OtherDelta"] = r => Maybe(r.OtherDelta),
+            ["IO.ReadBytesDelta"] = r => Maybe(r.ReadBytesDelta),
+            ["IO.WriteBytesDelta"] = r => Maybe(r.WriteBytesDelta),
+            ["IO.OtherBytesDelta"] = r => Maybe(r.OtherBytesDelta),
+            ["IO.BytesPerSec"] = r => Maybe(r.IoThroughputBytesPerSec),
+            ["GPU.Usage"] = r => Maybe(r.GpuUsagePercent),
+            ["GPU.DedicatedMemory"] = r => Maybe(r.GpuDedicatedBytes),
+            ["GPU.SystemMemory"] = r => Maybe(r.GpuSystemBytes),
+            ["DISK.ReadDelta"] = r => Maybe(r.PageReadDelta),
+            ["DISK.WriteDelta"] = r => Maybe(r.PagingFileWriteDelta),
+            ["DISK.PagingFileWriteDelta"] = r => Maybe(r.PagingFileWriteDelta),
+            ["DISK.PageReadDelta"] = r => Maybe(r.PageReadDelta),
+            ["DISK.MappedFileWriteDelta"] = r => Maybe(r.MappedFileWriteDelta)
+        };
+
     private readonly SystemCounters _row;
 
     public SystemKqlRow(SystemCounters row) => _row = row;
 
     public KqlValue Get(string canonical)
-    {
-        return canonical switch
-        {
-            "SYS.ProcessCount" => Maybe(_row.ProcessCount),
-            "SYS.ThreadCount" => Maybe(_row.ThreadCount),
-            "SYS.HandleCount" => Maybe(_row.HandleCount),
-            "CPU.Usage" => Maybe(_row.CpuPercent),
-            "CPU.ContextSwitchDelta" => Maybe(_row.ContextSwitchDelta),
-            "CPU.InterruptDelta" => Maybe(_row.InterruptDelta),
-            "CPU.DpcDelta" => Maybe(_row.DpcDelta),
-            "CPU.Cores" => Maybe(_row.Cores),
-            "CPU.Sockets" => Maybe(_row.Sockets),
-            "CPU.LogicalProcessors" => Maybe(_row.LogicalProcessors),
-            "MEM.PhysicalTotal" => Maybe(_row.PhysicalTotal),
-            "MEM.PhysicalAvailable" => Maybe(_row.PhysicalAvailable),
-            "MEM.PhysicalPercent" => Maybe(_row.PhysicalMemoryPercent),
-            "MEM.CommitCurrent" => Maybe(_row.CommitCurrent),
-            "MEM.CommitLimit" => Maybe(_row.CommitLimit),
-            "MEM.CommitPeak" => Maybe(_row.CommitPeak),
-            "MEM.CommitPercent" => Maybe(_row.SystemCommitPercent),
-            "MEM.CommitChange" => Maybe(_row.CommitChange),
-            "MEM.CacheWS" => Maybe(_row.CacheWorkingSet),
-            "MEM.KernelWS" => Maybe(_row.KernelWorkingSet),
-            "MEM.DriverWS" => Maybe(_row.DriverWorkingSet),
-            "MEM.Paged" => Maybe(_row.PagedWorkingSet),
-            "MEM.Nonpaged" => Maybe(_row.Nonpaged),
-            "MEM.PagedLimit" => Maybe(_row.PagedLimit),
-            "MEM.NonpagedLimit" => Maybe(_row.NonpagedLimit),
-            "MEM.Zeroed" => Maybe(_row.Zeroed),
-            "MEM.Free" => Maybe(_row.Free),
-            "MEM.Modified" => Maybe(_row.Modified),
-            "MEM.Standby" => Maybe(_row.Standby),
-            "MEM.PageFaultDelta" => Maybe(_row.PageFaultDelta),
-            "IO.ReadDelta" => Maybe(_row.ReadDelta),
-            "IO.WriteDelta" => Maybe(_row.WriteDelta),
-            "IO.OtherDelta" => Maybe(_row.OtherDelta),
-            "IO.ReadBytesDelta" => Maybe(_row.ReadBytesDelta),
-            "IO.WriteBytesDelta" => Maybe(_row.WriteBytesDelta),
-            "IO.OtherBytesDelta" => Maybe(_row.OtherBytesDelta),
-            "IO.BytesPerSec" => Maybe(_row.IoThroughputBytesPerSec),
-            "GPU.Usage" => Maybe(_row.GpuUsagePercent),
-            "GPU.DedicatedMemory" => Maybe(_row.GpuDedicatedBytes),
-            "GPU.SystemMemory" => Maybe(_row.GpuSystemBytes),
-            "DISK.ReadDelta" => Maybe(_row.PageReadDelta),
-            "DISK.WriteDelta" => Maybe(_row.PagingFileWriteDelta),
-            "DISK.PagingFileWriteDelta" => Maybe(_row.PagingFileWriteDelta),
-            "DISK.PageReadDelta" => Maybe(_row.PageReadDelta),
-            "DISK.MappedFileWriteDelta" => Maybe(_row.MappedFileWriteDelta),
-            _ => KqlValue.Unknown
-        };
-    }
+        => Fields.TryGetValue(canonical, out var read) ? read(_row) : KqlValue.Unknown;
 
     private static KqlValue Maybe<T>(T? value) where T : struct
         => value is { } present ? KqlValue.From(present) : KqlValue.Unknown;

@@ -118,10 +118,15 @@ internal static class NetworkLinuxTables
     {
         if (!uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value))
             return "0.0.0.0";
+        return new IPAddress(Ipv4Bytes(value, BitConverter.IsLittleEndian)).ToString();
+    }
+
+    internal static byte[] Ipv4Bytes(uint value, bool littleEndian)
+    {
         var bytes = BitConverter.GetBytes(value);
-        if (!BitConverter.IsLittleEndian)
+        if (!littleEndian)
             Array.Reverse(bytes);
-        return new IPAddress(bytes).ToString();
+        return bytes;
     }
 
     internal static string FormatIpv6Hex(string hex)
@@ -136,10 +141,6 @@ internal static class NetworkLinuxTables
             return new IPAddress(bytes).ToString();
         }
         catch (FormatException)
-        {
-            return hex;
-        }
-        catch (OverflowException)
         {
             return hex;
         }

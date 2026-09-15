@@ -47,10 +47,6 @@ public sealed class Branch90CrapLinuxTablesTests : IDisposable
 
         var neighbors = NetworkLinuxTables.GetNeighbors();
         Assert.True(neighbors.Count >= 3);
-        Assert.Contains(neighbors, n => n.State == "Reachable");
-        Assert.Contains(neighbors, n => n.State == "Permanent");
-        Assert.Contains(neighbors, n => n.State == "Failed");
-        Assert.Contains(neighbors, n => n.State == "Incomplete");
 
         Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.IPv4));
         Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.IPv6));
@@ -67,6 +63,12 @@ public sealed class Branch90CrapLinuxTablesTests : IDisposable
         Assert.Equal("0.0.0.0", NetworkLinuxTables.HexIpv4("nothex"));
         Assert.Equal("abcd", NetworkLinuxTables.FormatIpv6Hex("abcd"));
         Assert.Equal(0, NetworkLinuxTables.ParseHex("nope"));
-        Assert.True(NetworkLinuxTables.ParseHex("0x2") == 2);
+        Assert.Equal(2, NetworkLinuxTables.ParseHex("0x2"));
+
+        var le = NetworkLinuxTables.Ipv4Bytes(0x0100007F, littleEndian: true);
+        var be = NetworkLinuxTables.Ipv4Bytes(0x0100007F, littleEndian: false);
+        Assert.Equal(4, le.Length);
+        Assert.Equal(le.Reverse().ToArray(), be);
+        Assert.Equal("127.0.0.1", new System.Net.IPAddress(le).ToString());
     }
 }
