@@ -35,6 +35,8 @@ public sealed partial class RegistryJournal
         path = Vestigium.Helpers.HelperGuard.NotBlank(path, nameof(path));
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, path, null, "confirm=false");
+        if (IsOpen(path))
+            return new RegistryWriteResult(RegistryWriteStatus.InUse, RegistryHiveKind.CurrentUser, path, null, "journal open");
         if (!File.Exists(path))
             return new RegistryWriteResult(RegistryWriteStatus.NotFound, RegistryHiveKind.CurrentUser, path, null, "journal missing");
         File.Delete(path);
