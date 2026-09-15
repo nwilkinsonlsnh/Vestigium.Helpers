@@ -12,12 +12,24 @@ public enum ProcessThreadState
     Transition = 7
 }
 
+public enum ThreadState
+{
+    Unknown = 0,
+    Initialized = 1,
+    Ready = 2,
+    Running = 3,
+    Standby = 4,
+    Terminated = 5,
+    Waiting = 6,
+    Transition = 7
+}
+
 public sealed class ThreadInfo
 {
     public int ThreadId { get; init; }
     public int ProcessId { get; init; }
     public DateTimeOffset? StartTime { get; init; }
-    public ProcessThreadState State { get; init; }
+    public ThreadState State { get; init; }
     public string? WaitReason { get; init; }
     public string? StartAddress { get; init; }
     public string? StartModule { get; init; }

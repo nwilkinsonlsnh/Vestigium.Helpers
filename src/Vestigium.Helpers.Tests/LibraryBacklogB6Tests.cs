@@ -20,10 +20,10 @@ public sealed class LibraryBacklogB6Tests
         => Assert.True(Enum.IsDefined(VestigiumStatus.Warning));
 
     [Fact]
-    public void Thread_state_is_process_thread_state()
+    public void Thread_state_is_defined()
     {
         var threads = ProcessHelper.GetThreads(Environment.ProcessId);
         Assert.NotEmpty(threads);
-        Assert.IsType<ProcessThreadState>(threads[0].State);
+        Assert.True(Enum.IsDefined(threads[0].State));
     }
 }
