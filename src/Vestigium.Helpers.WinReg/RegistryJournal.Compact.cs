@@ -24,7 +24,8 @@ public sealed partial class RegistryJournal
         var batches = ParseBatches(lines);
         var keep = Decide(batches, options);
         var kept = batches.Where(b => keep.Contains(b.Id)).ToList();
-        var removed = batches.Count - kept.Count;
+        var dropped = batches.Where(b => !keep.Contains(b.Id)).ToList();
+        var removed = dropped.Count;
         var mutsKept = kept.Sum(b => b.MutLines.Count);
 
         if (options.DryRun)
@@ -42,6 +43,9 @@ public sealed partial class RegistryJournal
             };
         }
 
+        if (!string.IsNullOrWhiteSpace(options.ArchivePath) && dropped.Count > 0)
+            WriteLines(options.ArchivePath, header, dropped);
+
         if (kept.Count == 0)
         {
             File.Delete(path);
@@ -55,19 +59,9 @@ public sealed partial class RegistryJournal
             };
         }
 
-        var tmp = path + ".tmp";
-        using (var writer = new StreamWriter(tmp, false, new UTF8Encoding(false)))
-        {
-            writer.WriteLine(header);
-            foreach (var batch in kept)
-            {
-                foreach (var line in batch.AllLines)
-                    writer.WriteLine(line);
-            }
-        }
-
-        File.Copy(tmp, path, overwrite: true);
-        File.Delete(tmp);
+        WriteLines(path + ".tmp", header, kept);
+        File.Copy(path + ".tmp", path, overwrite: true);
+        File.Delete(path + ".tmp");
         var bytesAfter = new FileInfo(path).Length;
         HelperLog.Information(HelperLog.AppIds.WinReg, VestigiumStatus.Success, HelperLog.Subcategories.Inventory,
             $"Purge path={path} kept={kept.Count} removed={removed} muts={mutsKept}");
@@ -81,6 +75,20 @@ public sealed partial class RegistryJournal
             BytesBefore = bytesBefore,
             BytesAfter = bytesAfter
         };
+    }
+
+    private static void WriteLines(string path, string header, List<BatchBlock> batches)
+    {
+        var dir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path));
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+        using var writer = new StreamWriter(path, false, new UTF8Encoding(false));
+        writer.WriteLine(header);
+        foreach (var batch in batches)
+        {
+            foreach (var line in batch.AllLines)
+                writer.WriteLine(line);
+        }
     }
 
     private static HashSet<string> Decide(List<BatchBlock> batches, RegistryPurgeOptions options)
