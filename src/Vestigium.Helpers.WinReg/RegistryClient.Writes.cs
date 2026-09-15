@@ -61,6 +61,7 @@ public sealed partial class RegistryClient
         }
         catch (UnauthorizedAccessException ex) { return Fail(hive, path, null, RegistryWriteStatus.Denied, ex.Message); }
 
+        var tree = journal is null ? null : SnapshotTree(hive, path, view);
         try
         {
             using var parent = OpenParent(hive, path, view, writable: true);
@@ -69,7 +70,7 @@ public sealed partial class RegistryClient
             var leaf = RegistryPath.Leaf(path);
             if (recursive) parent.DeleteSubKeyTree(leaf, throwOnMissingSubKey: false);
             else parent.DeleteSubKey(leaf, throwOnMissingSubKey: false);
-            journal?.RecordKey("DeleteKey", hive, path, existed: true);
+            journal?.RecordKey("DeleteKey", hive, path, existed: true, tree);
             Log("DeleteKey", hive, path, null);
             return Ok(hive, path, null);
         }
