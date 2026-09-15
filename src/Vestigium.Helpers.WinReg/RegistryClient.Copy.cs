@@ -10,7 +10,8 @@ public sealed partial class RegistryClient
         RegistryViewKind view = RegistryViewKind.Default,
         bool confirm = false,
         IProgress<RegistryCompareProgress>? progress = null,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default,
+        RegistryJournal? journal = null)
     {
         var src = RegistryPath.Normalize(sourceKey);
         var dest = RegistryPath.Normalize(destKey);
@@ -19,7 +20,11 @@ public sealed partial class RegistryClient
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, destHive, dest, null, "confirm=false");
 
-        return CopyCore(sourceHive, src, destHive, dest, view, dest, progress, cancel, keys: 0);
+        var existed = GetKey(destHive, dest, view, RegistryDetailLevel.Identity) is not null;
+        var result = CopyCore(sourceHive, src, destHive, dest, view, dest, progress, cancel, keys: 0);
+        if (result.Status == RegistryWriteStatus.Ok)
+            journal?.RecordMove("CopyKey", destHive, src, dest, existed);
+        return result;
     }
 
     private RegistryWriteResult CopyCore(
@@ -81,7 +86,8 @@ public sealed partial class RegistryClient
         RegistryViewKind view = RegistryViewKind.Default,
         bool confirm = false,
         IProgress<RegistryCompareProgress>? progress = null,
-        CancellationToken cancel = default)
+        CancellationToken cancel = default,
+        RegistryJournal? journal = null)
     {
         var src = RegistryPath.Normalize(sourceKey);
         var dest = RegistryPath.Normalize(destKey);
@@ -94,19 +100,26 @@ public sealed partial class RegistryClient
         if (GetKey(hive, dest, view, RegistryDetailLevel.Identity) is not null)
             return new RegistryWriteResult(RegistryWriteStatus.InUse, hive, dest, null, "dest exists");
 
+        RegistryWriteResult result;
         if (SameParent(src, dest) && TryAtomicRename(hive, src, dest, view) is { } atomic)
-            return atomic;
+            result = atomic;
+        else
+        {
+            var copy = CopyKey(hive, src, hive, dest, view, confirm: true, progress, cancel);
+            if (copy.Status != RegistryWriteStatus.Ok)
+                return copy;
+            var deleted = DeleteKey(hive, src, recursive: true, view, confirm: true);
+            if (deleted.Status != RegistryWriteStatus.Ok)
+            {
+                _ = DeleteKey(hive, dest, recursive: true, view, confirm: true);
+                return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, src, null, deleted.Reason ?? "delete source failed");
+            }
+            result = new RegistryWriteResult(RegistryWriteStatus.Ok, hive, dest, null, src);
+        }
 
-        var copy = CopyKey(hive, src, hive, dest, view, confirm: true, progress, cancel);
-        if (copy.Status != RegistryWriteStatus.Ok)
-            return copy;
-
-        var deleted = DeleteKey(hive, src, recursive: true, view, confirm: true);
-        if (deleted.Status == RegistryWriteStatus.Ok)
-            return new RegistryWriteResult(RegistryWriteStatus.Ok, hive, dest, null, src);
-
-        _ = DeleteKey(hive, dest, recursive: true, view, confirm: true);
-        return new RegistryWriteResult(RegistryWriteStatus.Denied, hive, src, null, deleted.Reason ?? "delete source failed");
+        if (result.Status == RegistryWriteStatus.Ok)
+            journal?.RecordMove("RenameKey", hive, src, dest, destExisted: false);
+        return result;
     }
 
     private RegistryWriteResult? TryAtomicRename(RegistryHiveKind hive, string src, string dest, RegistryViewKind view)
