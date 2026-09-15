@@ -2,8 +2,8 @@ namespace Vestigium.Helpers.WinReg;
 
 public static partial class RegistryHelper
 {
-    public static RegistryJournal? CreateJournal(string path, bool confirm, bool protect = false, out RegistryWriteResult result)
-        => RegistryJournal.Create(path, confirm, protect, out result);
+    public static RegistryJournal? CreateJournal(string path, bool confirm, out RegistryWriteResult result, bool protect = false)
+        => RegistryJournal.Create(path, confirm, out result, protect);
 
     public static RegistryJournal? LoadJournal(string path, bool confirm, out RegistryWriteResult result)
         => RegistryJournal.Load(path, confirm, out result);
@@ -38,7 +38,7 @@ public static partial class RegistryHelper
         RegistryJournal? journal = null;
         if (journalPath is not null)
         {
-            journal = CreateJournal(journalPath, confirm, protect, out var created);
+            journal = CreateJournal(journalPath, confirm, out var created, protect);
             if (journal is null)
                 return created;
         }
