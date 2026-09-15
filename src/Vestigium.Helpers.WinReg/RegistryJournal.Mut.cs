@@ -59,7 +59,7 @@ public sealed partial class RegistryJournal
         _ = EnsureBatch();
         var row = Base(op, hive, path, owner);
         if (sddl is not null && System.Text.Encoding.UTF8.GetByteCount(sddl) <= MaxPayloadBytes)
-            row["beforePayload"] = sddl;
+            row["beforePayload"] = Seal(sddl);
         else if (sddl is not null)
             row["beforeOmitted"] = true;
         return AppendMut(row);
@@ -74,7 +74,7 @@ public sealed partial class RegistryJournal
             ["name"] = name
         };
 
-    private static void PutPayload(Dictionary<string, object?> row, string prefix, RegistryValueInfo? value)
+    private void PutPayload(Dictionary<string, object?> row, string prefix, RegistryValueInfo? value)
     {
         if (value is null)
             return;
@@ -86,7 +86,7 @@ public sealed partial class RegistryJournal
             row[prefix + "Omitted"] = true;
             return;
         }
-        row[prefix + "Payload"] = packed;
+        row[prefix + "Payload"] = Seal(packed);
     }
 
     private static string? Pack(RegistryValueInfo value)
