@@ -9,7 +9,8 @@ public sealed partial class RegistryClient
         string? key,
         string account,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         _ = view;
         var path = RegistryPath.Normalize(key);
@@ -19,14 +20,19 @@ public sealed partial class RegistryClient
             return Fail(hive, path, null, RegistryWriteStatus.Denied, "forbidden key");
         if (!RegistryAcl.TryResolveAccount(HelperGuard.NotBlank(account, nameof(account)), out var sid, out var resolve))
             return Fail(hive, path, null, RegistryWriteStatus.InvalidPath, resolve ?? "account");
-        return ApplyOwner(hive, path, sid);
+        var before = GetKey(hive, path, view, RegistryDetailLevel.Full);
+        var result = ApplyOwner(hive, path, sid);
+        if (result.Status == RegistryWriteStatus.Ok)
+            journal?.RecordAcl("SetOwner", hive, path, before?.Owner, before?.Sddl);
+        return result;
     }
 
     public RegistryWriteResult TakeOwnership(
         RegistryHiveKind hive,
         string? key,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         _ = view;
         var path = RegistryPath.Normalize(key);
@@ -34,7 +40,11 @@ public sealed partial class RegistryClient
             return Fail(hive, path, null, RegistryWriteStatus.Denied, "confirm=false");
         if (IsForbidden(hive, path))
             return Fail(hive, path, null, RegistryWriteStatus.Denied, "forbidden key");
-        return ApplyOwner(hive, path, RegistryAcl.CurrentUser());
+        var before = GetKey(hive, path, view, RegistryDetailLevel.Full);
+        var result = ApplyOwner(hive, path, RegistryAcl.CurrentUser());
+        if (result.Status == RegistryWriteStatus.Ok)
+            journal?.RecordAcl("TakeOwnership", hive, path, before?.Owner, before?.Sddl);
+        return result;
     }
 
     public RegistryWriteResult SetSddl(
@@ -42,7 +52,8 @@ public sealed partial class RegistryClient
         string? key,
         string sddl,
         RegistryViewKind view = RegistryViewKind.Default,
-        bool confirm = false)
+        bool confirm = false,
+        RegistryJournal? journal = null)
     {
         _ = view;
         var path = RegistryPath.Normalize(key);
@@ -54,12 +65,14 @@ public sealed partial class RegistryClient
         if (!sddl.Contains("D:", StringComparison.OrdinalIgnoreCase))
             return Fail(hive, path, null, RegistryWriteStatus.InvalidPath, "SDDL missing DACL");
 
+        var before = GetKey(hive, path, view, RegistryDetailLevel.Full);
         using var handle = RegistryAcl.OpenWriteAcl(hive, path, out var open);
         if (handle is null)
             return Fail(hive, path, null, open == 2 ? RegistryWriteStatus.NotFound : RegistryWriteStatus.Denied, "RegOpenKeyEx=" + open);
         var status = RegistryAcl.TrySetSddl(handle, sddl);
         if (status != 0)
             return Fail(hive, path, null, RegistryWriteStatus.Denied, "SetSecurityInfo=" + status);
+        journal?.RecordAcl("SetSddl", hive, path, before?.Owner, before?.Sddl);
         Log("SetSddl", hive, path, null);
         return Ok(hive, path, null);
     }
