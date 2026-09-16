@@ -68,6 +68,26 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Documents\Xml\DevicePreparationDDF.xml">
+      <LogicalName>Vestigium.Helpers.Xml.Tests.Content.Xml.DevicePreparationDDF.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Xml\DMClient_DDF.xml">
+      <LogicalName>Vestigium.Helpers.Xml.Tests.Content.Xml.DMClient_DDF.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Xml\diagwrn.xml">
+      <LogicalName>Vestigium.Helpers.Xml.Tests.Content.Xml.diagwrn.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Xml\ipcfg.xml">
+      <LogicalName>Vestigium.Helpers.Xml.Tests.Content.Xml.ipcfg.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Xml\osinfo.xml">
+      <LogicalName>Vestigium.Helpers.Xml.Tests.Content.Xml.osinfo.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Xml\ReAgent.xml">
+      <LogicalName>Vestigium.Helpers.Xml.Tests.Content.Xml.ReAgent.xml</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="Branch90CrapLinuxTablesTests.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>

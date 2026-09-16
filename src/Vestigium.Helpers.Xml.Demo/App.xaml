@@ -5,6 +5,8 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/Vestigium.Helpers.Gallery;component/GalleryStyles.xaml"/>
+        <ResourceDictionary Source="pack://application:,,,/Vestigium.Helpers.Gallery;component/JsonlTab.xaml"/>
+        <ResourceDictionary Source="Gallery/Tabs.xaml"/>
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>
