@@ -16,4 +16,9 @@
     <ProjectReference Include="..\Vestigium.Helpers.Gallery\Vestigium.Helpers.Gallery.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Xml\Vestigium.Helpers.Xml.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\Vestigium.Helpers.Tests\Documents\Xml\*.xml" Link="Xml\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

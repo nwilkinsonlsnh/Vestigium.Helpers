@@ -31,9 +31,7 @@ public static class XmlHelper
 }
 ```
 
-`Vestigium.Helpers.Xml.Demo` hosts APPID Xml through `HelperWpfHost` + `SkeletonWindow`. Leave that gallery on the skeleton until the SRS is Accepted and Phase 4 starts.
-
-Do not add Open / Search / Save to `XmlHelper` until Status on the SRS is Accepted.
+`Vestigium.Helpers.Xml.Demo` is the WPF gallery (`net10.0-windows`). It hosts APPID Xml through `HelperWpfHost` and `MainWindow` — same chrome as Json.Demo.
 
 ## Host a document (target shape after Phase 3)
 
@@ -171,7 +169,7 @@ Do **not** log a quiet First / Count of a settings node. Never element text, att
 
 ## Gallery
 
-`Vestigium.Helpers.Xml.Demo` hosts APPID Xml. Stay on `SkeletonWindow` until Phase 4. Planned tabs: Overview, Open, Search, Edit (Set/Diff/Commit/Save/Cancel), Multi, Export, JSONL audit pane. Demo files come from Content through the seeder, not from a hand-copied backup folder.
+`Vestigium.Helpers.Xml.Demo` hosts APPID Xml. Tabs: Overview, Document (Set/Diff/Commit/Save/Cancel), Search, Multi, Safety, Export, JSONL audit pane. Demo files come from Tests `Documents\Xml` as Content (copied to output `Xml\` and seeded to `%USERPROFILE%\Documents\Xml`).
 
 ## Locked (do not reopen in build mode)
 
@@ -182,7 +180,7 @@ Do **not** log a quiet First / Count of a settings node. Never element text, att
 - Multi-document is Read/Search only in v1.
 - HelperLog: paths and counts, never bodies. Quiet Get/First.
 - Identity stays `Vestigium.Helpers.Xml`. APPID stays `Xml`.
-- Do not grow past Identity + Probe until the SRS Status is Accepted.
+- Identity stays `Vestigium.Helpers.Xml`. Grow the gallery against the v1.0 SRS surface; Status on the SRS is still Draft until you Accept it.
 
 ## Sibling fences
 
