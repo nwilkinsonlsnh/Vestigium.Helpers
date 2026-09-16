@@ -25,7 +25,7 @@ public sealed class XmlSearch
     internal string? AttributeName { get; private init; }
     internal string? AttributeValue { get; private init; }
     internal string? Text { get; private init; }
-    internal string? XPath { get; private init; }
+    internal string? XPathText { get; private init; }
     internal string? Ancestor { get; private init; }
     internal XmlMatch Match { get; private init; }
     internal bool CaseInsensitive { get; private init; }
@@ -57,7 +57,7 @@ public sealed class XmlSearch
     public static XmlSearch XPath(string xpath, params XmlNs[] ns)
         => new("xpath")
         {
-            XPath = HelperGuard.NotBlank(xpath, nameof(xpath)),
+            XPathText = HelperGuard.NotBlank(xpath, nameof(xpath)),
             Namespaces = ns ?? []
         };
 
@@ -69,7 +69,7 @@ public sealed class XmlSearch
             AttributeName = AttributeName,
             AttributeValue = AttributeValue,
             Text = HelperGuard.NotBlank(text, nameof(text)),
-            XPath = XPath,
+            XPathText = XPathText,
             Ancestor = Ancestor,
             Match = match,
             CaseInsensitive = CaseInsensitive,
@@ -84,14 +84,14 @@ public sealed class XmlSearch
             AttributeName = AttributeName,
             AttributeValue = AttributeValue,
             Text = Text,
-            XPath = XPath,
+            XPathText = XPathText,
             Ancestor = HelperGuard.NotBlank(localName, nameof(localName)),
             Match = Match,
             CaseInsensitive = CaseInsensitive,
             Namespaces = Namespaces
         };
 
-    internal string Spelling => XPath ?? LocalName ?? AttributeName ?? (Text is null ? Kind : "(text)");
+    internal string Spelling => XPathText ?? LocalName ?? AttributeName ?? (Text is null ? Kind : "(text)");
 
     internal static bool Matches(string haystack, string needle, XmlMatch match, bool caseInsensitive)
     {

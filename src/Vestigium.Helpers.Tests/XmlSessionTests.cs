@@ -121,7 +121,7 @@ public sealed class XmlSessionTests
         doc.Commit();
         var saved = doc.SaveAs(dest);
         Assert.True(File.Exists(saved));
-        Assert.Throws<IOException>(() => doc.SaveAs(dest));
+        Assert.Throws<IOException>(() => { doc.SaveAs(dest); });
         doc.SaveAs(dest, XmlCollision.Overwrite);
     }
 
@@ -129,7 +129,7 @@ public sealed class XmlSessionTests
     public void Delete_root_is_refused()
     {
         using var doc = XmlHelper.Open(XmlContentSeeder.GetPath("osinfo.xml"));
-        Assert.Throws<InvalidOperationException>(() => doc.Delete("/u:scpd"));
+        Assert.Throws<InvalidOperationException>(() => { doc.Delete("/u:scpd"); });
     }
 
     [Fact]

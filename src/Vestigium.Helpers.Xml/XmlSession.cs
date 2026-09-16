@@ -301,8 +301,11 @@ public sealed class XmlSession : IDisposable
         HelperLog.Information(App, VestigiumStatus.Success, HelperLog.Subcategories.Session, $"disposed session={SessionId}");
     }
 
-    internal string WorkingXml(bool indent = false)
-        => XmlIO.Serialize(_working, _doctype, indent);
+    public string WorkingXml(bool indent = false)
+    {
+        ThrowIfDisposed();
+        return XmlIO.Serialize(_working, _doctype, indent);
+    }
 
     private string WriteTree(XDocument tree, string path, bool replaceInPlace, XmlCollision collision, bool working, string method)
     {
@@ -358,7 +361,7 @@ public sealed class XmlSession : IDisposable
 
         if (q.Kind == "xpath")
         {
-            var xpath = q.XPath!;
+            var xpath = q.XPathText!;
             try
             {
                 var nsm = CreateNs(q.Namespaces);

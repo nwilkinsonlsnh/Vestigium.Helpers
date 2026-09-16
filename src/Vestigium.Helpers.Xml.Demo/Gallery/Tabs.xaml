@@ -5,6 +5,7 @@
       <StackPanel>
         <TextBlock Style="{StaticResource Id}" Text="VEST-HLP-XML  ·  SRS v1.0"/>
         <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+        <TextBlock FontFamily="Cascadia Mono, Consolas" Opacity="0.7" Text="{Binding Identity}"/>
         <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16"
                    Text="Payload XML: settings, OMA DDF, UPnP SCPD, Windows RE, diagnostic dumps you need to query. Platform parser only (XmlReader + XDocument). RFC 7303 encoding. XPath 1.0 plus local-name search. An edit session so you can see the change list before disk changes. Not FileIo. Not Json. Not a DDF SDK."/>
         <WrapPanel>
@@ -76,13 +77,27 @@
         </WrapPanel>
         <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding DocumentCaption}"/>
       </StackPanel>
-      <Border Grid.Column="1" Style="{StaticResource Panel}">
-        <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="DIFF (ops, never values in HelperLog)"/>
-          <TextBox IsReadOnly="True" Text="{Binding DiffText}" FontFamily="Cascadia Mono, Consolas"
-                   FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"/>
-        </DockPanel>
-      </Border>
+      <Grid Grid.Column="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Border Style="{StaticResource Panel}">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="DIFF (ops, never values in HelperLog)"/>
+            <TextBox IsReadOnly="True" Text="{Binding DiffText}" FontFamily="Cascadia Mono, Consolas"
+                     FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"/>
+          </DockPanel>
+        </Border>
+        <Border Grid.Row="1" Style="{StaticResource Panel}" Margin="0,8,0,0">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Text="WORKING XML (memory · Save writes committed)"/>
+            <TextBox IsReadOnly="True" Text="{Binding WorkingXml}" FontFamily="Cascadia Mono, Consolas"
+                     FontSize="12" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto" AcceptsReturn="True"/>
+          </DockPanel>
+        </Border>
+      </Grid>
     </Grid>
   </DataTemplate>
 

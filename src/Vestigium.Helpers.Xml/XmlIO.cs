@@ -36,8 +36,8 @@ internal static class XmlIO
 
     internal static (XDocument Document, string? Doctype) LoadDocument(string text, XmlReadOptions options)
     {
-        var (doctype, rest) = CaptureDoctype(text);
-        rest = NeutralizeUndeclaredEntities(rest);
+        var (doctype, remainder) = CaptureDoctype(text);
+        remainder = NeutralizeUndeclaredEntities(remainder);
         if (doctype is not null)
         {
             HelperLog.Warning(
@@ -47,7 +47,7 @@ internal static class XmlIO
                 "dtd ignored resolver=0");
         }
 
-        using var reader = XmlReader.Create(new StringReader(rest), SafeReaderSettings(options));
+        using var reader = XmlReader.Create(new StringReader(remainder), SafeReaderSettings(options));
         var load = LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo;
         var document = XDocument.Load(reader, load);
         if (document.Root is null)
@@ -117,7 +117,7 @@ internal static class XmlIO
         return docs;
     }
 
-    internal static (string? Doctype, string Rest) CaptureDoctype(string text)
+    internal static (string? Doctype, string Remainder) CaptureDoctype(string text)
     {
         var start = text.IndexOf("<!DOCTYPE", StringComparison.OrdinalIgnoreCase);
         if (start < 0)
@@ -325,8 +325,8 @@ internal static class XmlIO
         }
         if (text.AsSpan(i).StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
         {
-            var (_, rest) = CaptureDoctype(text[i..]);
-            i = text.Length - rest.Length;
+            var (_, remainder) = CaptureDoctype(text[i..]);
+            i = text.Length - remainder.Length;
             while (i < text.Length && char.IsWhiteSpace(text[i]))
                 i++;
         }

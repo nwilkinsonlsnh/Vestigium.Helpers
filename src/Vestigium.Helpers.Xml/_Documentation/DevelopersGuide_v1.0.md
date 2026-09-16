@@ -169,7 +169,7 @@ Do **not** log a quiet First / Count of a settings node. Never element text, att
 
 ## Gallery
 
-`Vestigium.Helpers.Xml.Demo` hosts APPID Xml. Tabs: Overview, Document (Set/Diff/Commit/Save/Cancel), Search, Multi, Safety, Export, JSONL audit pane. Demo files come from Tests `Documents\Xml` as Content (copied to output `Xml\` and seeded to `%USERPROFILE%\Documents\Xml`).
+`Vestigium.Helpers.Xml.Demo` hosts APPID Xml. Tabs: Overview, Document (Set/Diff/Commit/Save/Cancel plus the working tree), Search, Multi, Safety, Export, JSONL audit pane. Demo files come from Tests `Documents\Xml` as Content (copied to output `Xml\` and seeded to `%USERPROFILE%\Documents\Xml`). Command failures stay in the status line. The gallery calls the public session surface (`XmlHelper.Open` / `OpenMulti` / `XmlSearch` / `XmlSession.WorkingXml`); it does not reimplement parse.
 
 ## Locked (do not reopen in build mode)
 
