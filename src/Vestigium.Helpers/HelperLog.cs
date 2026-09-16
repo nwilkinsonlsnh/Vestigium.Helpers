@@ -82,6 +82,8 @@ public static class HelperLog
         public const string Start = "Start";
         public const string Kill = "Kill";
         public const string System = "System";
+        public const string Multi = "Multi";
+        public const string Safety = "Safety";
     }
 
     public static IReadOnlyList<string> AllAppIds { get; } =
@@ -327,7 +329,9 @@ public static class HelperLog
             Subcategories.Watch,
             Subcategories.Start,
             Subcategories.Kill,
-            Subcategories.System);
+            Subcategories.System,
+            Subcategories.Multi,
+            Subcategories.Safety);
         return t;
     }
 
