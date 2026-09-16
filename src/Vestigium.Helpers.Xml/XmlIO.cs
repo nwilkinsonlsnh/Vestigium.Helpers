@@ -69,8 +69,31 @@ internal static class XmlIO
         }
 
         var list = new List<(XDocument, string?)>(parts.Count);
+        var skipped = 0;
         foreach (var part in parts)
-            list.Add(LoadDocument(part, options));
+        {
+            try
+            {
+                list.Add(LoadDocument(part, options));
+            }
+            catch (XmlException)
+            {
+                skipped++;
+            }
+        }
+        if (skipped > 0)
+        {
+            HelperLog.Warning(
+                App,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Multi,
+                $"skipped unparseable documents={skipped}");
+        }
+        if (list.Count == 0)
+        {
+            HelperLog.Reject("stream has no xml documents");
+            throw new XmlException("XML stream has no documents.");
+        }
         return list;
     }
 
@@ -389,7 +412,11 @@ internal static class XmlIO
             if (IsNamedOpen(rest, rootName, out var empty, out var tagLen))
             {
                 if (!empty)
+                {
+                    if (depth >= 1 && p > start && p > 0 && text[p - 1] == '\n')
+                        return p;
                     depth++;
+                }
                 else if (depth == 0)
                     return p + tagLen;
                 p += tagLen - 1;
