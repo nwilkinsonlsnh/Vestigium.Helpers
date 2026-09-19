@@ -51,7 +51,7 @@ public sealed class NumericSeries
         SeriesId = AnalyticsLog.NewId();
         Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
         Values = values;
-        Sorted = values.OrderBy(v => v).ToArray();
+        Sorted = [.. values.OrderBy(v => v)];
         Times = times;
         HasTimestamps = times.Count == values.Count && times.Any(t => t.HasValue);
 
@@ -84,11 +84,11 @@ public sealed class NumericSeries
         var median = Full.Median!.Value;
         var q3 = Full.Q3!.Value;
 
-        Q1 = new SeriesSlice(SliceKind.Q1, values.Where(v => v <= q1).ToArray());
-        Q2 = new SeriesSlice(SliceKind.Q2, values.Where(v => v > q1 && v <= median).ToArray());
-        Q3 = new SeriesSlice(SliceKind.Q3, values.Where(v => v > median && v <= q3).ToArray());
-        Q4 = new SeriesSlice(SliceKind.Q4, values.Where(v => v > q3).ToArray());
-        Iqr = new SeriesSlice(SliceKind.Iqr, values.Where(v => v >= q1 && v <= q3).ToArray());
+        Q1 = new SeriesSlice(SliceKind.Q1, [.. values.Where(v => v <= q1)]);
+        Q2 = new SeriesSlice(SliceKind.Q2, [.. values.Where(v => v > q1 && v <= median)]);
+        Q3 = new SeriesSlice(SliceKind.Q3, [.. values.Where(v => v > median && v <= q3)]);
+        Q4 = new SeriesSlice(SliceKind.Q4, [.. values.Where(v => v > q3)]);
+        Iqr = new SeriesSlice(SliceKind.Iqr, [.. values.Where(v => v >= q1 && v <= q3)]);
 
         AnalyticsLog.Information(
             AnalyticsEvents.SeriesConstructed,

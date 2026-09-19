@@ -31,7 +31,7 @@ public static class AnalyticsHelper
             AnalyticsCatalog.Subcategories.Probe,
             "enter Probe");
 
-        var series = From(new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 40.2, 12.1 }, "rtt-ms");
+        var series = From([12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 40.2, 12.1], "rtt-ms");
         var ci = series.Confidence(0.95);
         var p95 = series.Full.Percentile(0.95);
         var limits = series.ControlLimits();

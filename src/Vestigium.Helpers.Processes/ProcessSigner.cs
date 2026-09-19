@@ -37,11 +37,12 @@ internal static class ProcessSigner
             var issuer = cert.GetNameInfo(X509NameType.SimpleName, true);
             if (DateTime.UtcNow > cert.NotAfter.ToUniversalTime())
                 return new SignerInfo(SignerTrust.Expired, publisher, issuer, cert.NotBefore, cert.NotAfter);
-            if (trust == 0)
-                return new SignerInfo(SignerTrust.Verified, publisher, issuer, cert.NotBefore, cert.NotAfter);
-            if (trust == TrustENoSignature)
-                return new SignerInfo(SignerTrust.NotSigned, null, null, null, null);
-            return new SignerInfo(SignerTrust.Untrusted, publisher, issuer, cert.NotBefore, cert.NotAfter);
+            if (trust != 0)
+            {
+                return trust == TrustENoSignature ? new SignerInfo(SignerTrust.NotSigned, null, null, null, null) : new SignerInfo(SignerTrust.Untrusted, publisher, issuer, cert.NotBefore, cert.NotAfter);
+            }
+
+            return new SignerInfo(SignerTrust.Verified, publisher, issuer, cert.NotBefore, cert.NotAfter);
         }
     }
 

@@ -890,13 +890,10 @@ public static class EncryptionHelper
 
     private static string ResolveSealDestination(string destinationPath, string originalName, EncryptionSecret secret)
     {
-        if (IsDirectoryPath(destinationPath))
-        {
-            Directory.CreateDirectory(destinationPath);
-            return Path.Combine(destinationPath, SealedFileName(originalName, secret));
-        }
+        if (!IsDirectoryPath(destinationPath)) return destinationPath;
+        Directory.CreateDirectory(destinationPath);
+        return Path.Combine(destinationPath, SealedFileName(originalName, secret));
 
-        return destinationPath;
     }
 
     private static string ResolveOpenDestination(string destinationPath, string? originalName)
@@ -904,9 +901,7 @@ public static class EncryptionHelper
         if (!IsDirectoryPath(destinationPath))
             return destinationPath;
         Directory.CreateDirectory(destinationPath);
-        if (string.IsNullOrWhiteSpace(originalName))
-            throw new CryptographicException("The envelope is corrupt.");
-        return Path.Combine(destinationPath, originalName);
+        return string.IsNullOrWhiteSpace(originalName) ? throw new CryptographicException("The envelope is corrupt.") : Path.Combine(destinationPath, originalName);
     }
 
     private static bool IsDirectoryPath(string path)
