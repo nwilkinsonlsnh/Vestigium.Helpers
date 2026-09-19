@@ -1,52 +1,55 @@
 # Vestigium.Helpers.Analytics — PR02 implementation plan
 
 **Document ID:** VEST-HLP-ANALYTICS-PLAN-PR02  
-**Version:** 1.0  
-**Status:** Open — stabilize-then-expand still holds; this is tighten, not new features  
+**Version:** 1.1  
+**Status:** Closed 19 September 2026  
 **Date:** 19 September 2026  
 **Scope:** Review findings after S5. Library-only. No host adapters. No L4–L7.
 
-PR02 is the next push-release. Each row is one implementable step. Do them in number order. Stop after PR02.007 unless we reopen L4–L7.
+PR02 was tighten-only. Features stay parked.
 
 ## Steps
 
-| Step | Priority | Recommendation | Why | Files |
-|---|---|---|---|---|
-| **PR02.001** | P0 | Freeze `OutOfControlIndexes` and `MovingRanges` | Same hole W4 closed on `Values`. Hosts can cast `List<int>` / `double[]` and rewrite the painted points. | `ControlLimits.cs` (`Compute`, `Against`) |
-| **PR02.002** | P0 | Cap out-of-control index lists in log properties | `string.Join` of every index can write a six-figure log line. Count always; indexes only when count ≤ 32. | `ControlLimits.cs` |
-| **PR02.003** | P0 | One empty-percentile exception | `Percentile`, `Quantiles.Inclusive`, and `PercentileRank` disagree on type and wording. Hosts catching one miss the others. Use `InvalidOperationException` and one sentence. | `Quantiles.cs`, `DescriptiveStatistics.cs`, `SeriesSlice.cs`, `SeriesSlice.Rank.cs` |
-| **PR02.004** | P1 | Treat descriptor overflow as reject, not unexpected | `sum`, midrange, Tukey fences can overflow legal decimals. Today that is `OverflowException` + unexpected log. Map to overflow event + `ArgumentOutOfRangeException`. | `DescriptiveStatistics.cs`, `NumberConvert.cs` |
-| **PR02.005** | P1 | Stop forcing APPID `"Analytics"` on every write | Host initialized as another APPID still gets Analytics-tagged rows. Let Logging use the process APPID. | `AnalyticsLog.cs` |
-| **PR02.006** | P2 | Sanitize `Name` in log properties | Hostile or huge `Name` can split a text log. Truncate and strip CR/LF. Values themselves stay off the log. | `NumericSeries.cs`, `AnalyticsLog.cs` |
-| **PR02.007** | P2 | Tests + close PR02 | Fixtures for freeze, log cap contract (count only — do not assert log sink), empty-percentile type, overflow reject. Mark this plan closed. No new features. | `AnalyticsS5Tests.cs` or `AnalyticsPR02Tests.cs`, this file |
+| Step | Priority | Recommendation | Status |
+|---|---|---|---|
+| **PR02.001** | P0 | Freeze `OutOfControlIndexes` and `MovingRanges` | Done |
+| **PR02.002** | P0 | Cap OOC indexes in log properties (≤ 32) | Done |
+| **PR02.003** | P0 | One empty-percentile exception | Done |
+| **PR02.004** | P1 | Descriptor overflow → reject, not unexpected | Done |
+| **PR02.005** | P1 | Stop forcing APPID `"Analytics"` | **Withdrawn.** Row `appId` is the library identity. Folder follows the host. Reverted to match Json / Encryption / FileIo / Network and the suite Developers Guide. |
+| **PR02.006** | P2 | Sanitize `Name` in log properties | Done. `AnalyticsLog.SanitizeName` + `Props` key `name`. |
+| **PR02.007** | P2 | Tests + close | Done. Fixtures in `AnalyticsPR02Tests.cs`. |
 
-## Priority key
+## Tests that close this plan
 
-| Priority | Meaning |
+| Fixture | Covers |
 |---|---|
-| P0 | Functional lie or mutable snapshot. Patch before any other work. |
-| P1 | Fail-fast / logging correctness. Patch in the same release. |
-| P2 | Hygiene. Same release if cheap; do not block 001–005. |
-
-## Out of PR02
-
-| Item | Why it stays out |
-|---|---|
-| Soft cap on `n` | Document later. Silent truncate is a lie. |
-| Moments as `decimal` | Design choice, not a hole. |
-| L4 Western Electric / L5 percentile interval / L6 `PdfPoints` / L7 two-series | Features. Re-evaluate after PR02. |
-| Host / PingIQ adapters | Different project. |
-
-## Close rule
-
-PR02 is closed when 001–006 are in source, 007 tests pass, and this document says Closed.
+| `PR02_001_computed_limit_lists_are_frozen` | Frozen MR indexes / ranges |
+| `PR02_001_against_lists_are_frozen` | Frozen `Against` lists |
+| `PR02_002_log_indexes_join_when_at_most_32` | Log join |
+| `PR02_002_log_indexes_truncate_past_32` | Log cap |
+| `PR02_003_empty_percentile_is_one_invalid_operation` | One exception, one sentence |
+| `PR02_004_descriptor_overflow_is_argument_out_of_range` | Overflow reject |
+| `PR02_006_sanitize_name_strips_controls_and_truncates` | Name hygiene |
+| `PR02_006_name_log_property_is_sanitized` | `Props["name"]` |
 
 ```text
-dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Analytics
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR02_
 ```
+
+## Out of PR02 (still parked)
+
+| Item | Why |
+|---|---|
+| Soft cap on `n` | Silent truncate is a lie. |
+| Moments as `decimal` | Design choice. |
+| L4 run rules / L5 percentile interval / L6 `PdfPoints` / L7 two-series | Features. Re-evaluate after this close. |
+| Host / PingIQ adapters | Different project. |
+| `NumericSeries.Name` store vs log | Logs are sanitized. Snapshot `Name` is still `Trim()` only. |
 
 ## Document control
 
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 19 Sep 2026 | PR02.001–007 from the post-S5 review. |
+| 1.1 | 19 Sep 2026 | Closed. 001–004 and 006 shipped. 005 withdrawn. |
