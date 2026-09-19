@@ -1,37 +1,66 @@
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Hashing;
 
 /// <summary>
-/// ALCOA+ logs for Hashing. Attributable (APPID Hashing), contemporaneous (logger timestamp),
-/// complete (Pending then Success/Failed). Never original input, HMAC keys, passwords, salts,
+/// ALCOA+ logs for Hashing. Never original input, HMAC keys, passwords, salts,
 /// or PHC verifiers — even at Debug. File digests may be logged; they are the audit record.
+/// Failed never attaches Exception.ToString().
 /// </summary>
 internal static class HashingLog
 {
-    private const string App = HelperLog.AppIds.Hashing;
-    private const string Sub = "Hashing";
+    public static IReadOnlyDictionary<string, string?> Props(params (string Key, string? Value)[] pairs)
+    {
+        var map = new Dictionary<string, string?>(pairs.Length, StringComparer.Ordinal);
+        foreach (var (key, value) in pairs)
+            map[key] = Safe(value);
+        return map;
+    }
 
     public static void Pending(string verb, string detail)
-        => HelperLog.Information(App, VestigiumStatus.Pending, Sub, Safe($"{verb}: {detail}"));
+    {
+        if (string.Equals(verb, "Probe", StringComparison.Ordinal))
+        {
+            Write(HashingEvents.ProbeEnter, VestigiumLogLevel.Debug, VestigiumStatus.Pending, "enter Probe", verb, detail);
+            return;
+        }
+
+        Write(HashingEvents.OperationEnter, VestigiumLogLevel.Debug, VestigiumStatus.Pending, "enter operation", verb, detail);
+    }
 
     public static void Success(string verb, string detail)
-        => HelperLog.Information(App, VestigiumStatus.Success, Sub, Safe($"{verb}: {detail}"));
+    {
+        if (string.Equals(verb, "Probe", StringComparison.Ordinal))
+        {
+            Write(HashingEvents.ProbeComplete, VestigiumLogLevel.Information, VestigiumStatus.Success, "probe complete", verb, detail);
+            return;
+        }
+
+        Write(HashingEvents.OperationComplete, VestigiumLogLevel.Information, VestigiumStatus.Success, "operation complete", verb, detail);
+    }
 
     public static void Failed(string message)
-        => HelperLog.Error(App, VestigiumStatus.Failed, Sub, Safe(message));
+        => Write(HashingEvents.OperationFailed, VestigiumLogLevel.Error, VestigiumStatus.Failed, "operation failed", "Failed", message);
 
     public static IDisposable Begin(string method, string detail)
-        => HelperLog.Begin(App, Sub, method, Safe(detail));
+    {
+        Pending(method, detail);
+        return NullScope.Instance;
+    }
 
-    public static string Safe(string message)
+    public static string RequireNotBlank(string? value, string paramName)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            return value.Trim();
+        Write(HashingEvents.OperationFailed, VestigiumLogLevel.Error, VestigiumStatus.Failed, "operation failed", "Rejected", paramName);
+        throw new ArgumentException("Value is required.", paramName);
+    }
+
+    public static string Safe(string? message)
     {
         if (string.IsNullOrEmpty(message))
-            return message;
-        if (LooksLikeSecret(message))
-            return "[redacted]";
-        return message;
+            return message ?? string.Empty;
+        return LooksLikeSecret(message) ? "[redacted]" : message;
     }
 
     public static bool LooksLikeSecret(string value)
@@ -50,5 +79,34 @@ internal static class HashingLog
             || value.Contains("salt=", StringComparison.OrdinalIgnoreCase))
             return true;
         return false;
+    }
+
+    private static void Write(
+        int eventId,
+        VestigiumLogLevel level,
+        VestigiumStatus status,
+        string message,
+        string verb,
+        string detail)
+    {
+        if (!VestigiumLogger.IsInitialized)
+            return;
+        VestigiumLog.Write(
+            eventId,
+            level,
+            status,
+            HashingCatalog.Category,
+            HashingCatalog.Subcategory,
+            message,
+            exception: null,
+            correlationId: null,
+            properties: Props(("verb", verb), ("detail", detail)),
+            appId: HashingCatalog.AppId);
+    }
+
+    private sealed class NullScope : IDisposable
+    {
+        public static readonly NullScope Instance = new();
+        public void Dispose() { }
     }
 }
