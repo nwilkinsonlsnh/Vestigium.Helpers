@@ -1,6 +1,4 @@
-using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
-using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Csv;
 
@@ -8,7 +6,7 @@ internal static class SeriesCsv
 {
     public static CsvTable Sample(NumericSeries series)
     {
-        HelperGuard.NotNull(series, nameof(series));
+        ArgumentNullException.ThrowIfNull(series);
         var rows = new List<IReadOnlyList<object?>>(series.Count);
         for (var i = 0; i < series.Count; i++)
         {
@@ -23,23 +21,22 @@ internal static class SeriesCsv
 
     public static void Write(CsvSession file, NumericSeries series)
     {
-        HelperGuard.NotNull(file, nameof(file));
-        HelperGuard.NotNull(series, nameof(series));
-        using var scope = file.Trace(
-            "WriteSeries",
-            $"series={series.SeriesId} n={series.Count} name={series.Name ?? "(none)"}");
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(series);
         try
         {
             file.WriteTable(Sample(series));
-            HelperLog.Information(
-                file.AppId,
-                VestigiumStatus.Success,
-                HelperLog.Subcategories.Series,
-                $"WriteSeries series={series.SeriesId} n={series.Count} session={file.SessionId}");
+            CsvLog.Information(
+                CsvEvents.WriteSeriesComplete,
+                CsvCatalog.Subcategories.Series,
+                "series csv written",
+                file.SessionId,
+                CsvLog.Props(("series", series.SeriesId), ("n", series.Count.ToString())),
+                file.AppId);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            CsvLog.Unexpected(CsvEvents.SessionThrown, CsvCatalog.Subcategories.Series, ex, file.SessionId, file.AppId);
             throw;
         }
     }
