@@ -35,6 +35,9 @@ public sealed class ControlLimits
     /// <summary>E2 = 3 / d2 for moving range of span 2.</summary>
     public const double E2Span2 = 3d / D2Span2;
 
+    /// <summary>Index list written to the log only when the breach count is at most this.</summary>
+    internal const int MaxLoggedOutOfControlIndexes = 32;
+
     internal const string MovingRangeRequiresFull =
         "Moving-range limits require SliceKind.Full (encounter order of the process). Value bands are not a Shewhart individuals chart.";
 
@@ -164,10 +167,19 @@ public sealed class ControlLimits
                     ("via", "Against"),
                     ("method", Method.ToString()),
                     ("count", outside.Count.ToString()),
-                    ("indexes", string.Join(",", outside))));
+                    ("indexes", FormatOutOfControlIndexes(outside))));
         }
 
         return scored;
+    }
+
+    internal static string FormatOutOfControlIndexes(IReadOnlyList<int> indexes)
+    {
+        if (indexes.Count == 0)
+            return string.Empty;
+        if (indexes.Count <= MaxLoggedOutOfControlIndexes)
+            return string.Join(",", indexes);
+        return $"n={indexes.Count} (truncated)";
     }
 
     internal static bool IsInsufficient(
@@ -367,7 +379,7 @@ public sealed class ControlLimits
                 properties: AnalyticsLog.Props(
                     ("method", method.ToString()),
                     ("count", outside.Count.ToString()),
-                    ("indexes", string.Join(",", outside))));
+                    ("indexes", FormatOutOfControlIndexes(outside))));
         }
 
         return limits;
