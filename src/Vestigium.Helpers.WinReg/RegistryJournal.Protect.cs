@@ -32,7 +32,7 @@ public sealed partial class RegistryJournal
 
     public static RegistryWriteResult Purge(string path, bool confirm)
     {
-        path = Vestigium.Helpers.HelperGuard.NotBlank(path, nameof(path));
+        path = HelperGuard.NotBlank(path, nameof(path));
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, path, null, "confirm=false");
         if (IsOpen(path))
