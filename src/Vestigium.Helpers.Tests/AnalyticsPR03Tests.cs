@@ -125,4 +125,34 @@ public sealed class AnalyticsPR03Tests
         Assert.Null(q4.MovingRangeBar);
         Assert.Null(q4.WithinSigma);
     }
+
+    [Fact]
+    public void PR03_004_one_sided_cp_matches_the_present_side()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var sigmaW = 1d / ControlLimits.D2Span2;
+
+        var usl = series.Capability(SpecLimits.From(upper: 15));
+        Assert.Null(usl.Cp);
+        Assert.Null(usl.Cpl);
+        Assert.Equal(10d / (3d * sigmaW), usl.Cpu!.Value, 10);
+        Assert.Equal(usl.Cpu, usl.Cpk);
+
+        var lsl = series.Capability(SpecLimits.From(lower: 0));
+        Assert.Null(lsl.Cp);
+        Assert.Null(lsl.Cpu);
+        Assert.Equal(5d / (3d * sigmaW), lsl.Cpl!.Value, 10);
+        Assert.Equal(lsl.Cpl, lsl.Cpk);
+    }
+
+    [Fact]
+    public void PR03_004_capability_carries_frozen_outside_spec_indexes()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 40 });
+        var cap = series.Capability(SpecLimits.From(0, 15));
+        Assert.Equal(new[] { 8 }, cap.Spec.OutsideIndexes);
+        Assert.Equal(1, cap.Spec.OutsideCount);
+        Assert.True(((IList<int>)cap.Spec.OutsideIndexes).IsReadOnly);
+        Assert.Throws<ArgumentNullException>(() => series.Capability(null!));
+    }
 }
