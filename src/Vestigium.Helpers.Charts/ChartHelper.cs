@@ -1,5 +1,4 @@
 using System.IO;
-using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
 using Vestigium.Logging;
 
@@ -8,6 +7,8 @@ namespace Vestigium.Helpers.Charts;
 /// <summary>
 /// Façade. Identity + Probe keep the suite smoke contract.
 /// Real widgets live on <see cref="ChartView"/>.
+/// Logging goes through Vestigium.Logging (APPID Charts, EVENTID 16500+).
+/// This library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class ChartHelper
 {
@@ -15,9 +16,11 @@ public static class ChartHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.Charts;
-        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
-        HelperLog.Information(app, VestigiumStatus.Pending, app, "Building a demo chart from an Analytics series.");
+        ChartsLog.Debug(
+            ChartsEvents.ProbeEnter,
+            VestigiumStatus.Pending,
+            ChartsCatalog.Subcategories.Probe,
+            "enter Probe");
 
         var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, "probe");
         var limits = series.ControlLimits();
@@ -30,11 +33,17 @@ public static class ChartHelper
         if (File.Exists(path))
             File.Delete(path);
 
-        HelperLog.Information(
-            app,
+        ChartsLog.Information(
+            ChartsEvents.ProbeComplete,
             VestigiumStatus.Success,
-            app,
-            $"Chart probe complete. Identity={Identity} CL={limits.Center:G4} UCL={limits.Upper:G4} LCL={limits.Lower:G4}");
+            ChartsCatalog.Subcategories.Probe,
+            "probe complete",
+            series.SeriesId,
+            ChartsLog.Props(
+                ("identity", Identity),
+                ("cl", limits.Center.ToString("G6")),
+                ("ucl", limits.Upper.ToString("G6")),
+                ("lcl", limits.Lower.ToString("G6"))));
         return Identity;
     }
 }
