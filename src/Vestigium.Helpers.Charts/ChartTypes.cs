@@ -38,6 +38,7 @@ public sealed record ChartOptions
     public bool ShowLegend { get; init; } = true;
     public bool ShowGrid { get; init; } = true;
     public bool ShowBellCurve { get; init; }
+    public bool ShowKde { get; init; }
     public TrendKind Trend { get; init; } = TrendKind.None;
     public bool ShowParetoLine { get; init; } = true;
     public BoxWhiskerKind BoxWhisker { get; init; } = BoxWhiskerKind.FiveNumber;
@@ -47,8 +48,6 @@ public sealed record ChartOptions
     public string? Color { get; init; }
     public double? IntervalLevel { get; init; }
     public RunRuleReport? RunRules { get; init; }
-
-    /// <summary>Host LSL/USL. Not control fences.</summary>
     public SpecLimits? Spec { get; init; }
 }
 
@@ -62,8 +61,6 @@ public sealed class ChartSpec
     public NumericSeries? Source { get; init; }
     public IReadOnlyList<ChartSlice>? Slices { get; init; }
     public RunRuleReport? RunRules { get; init; }
-
-    /// <summary>Host LSL/USL. Wins over <see cref="ChartOptions.Spec"/>.</summary>
     public SpecLimits? Spec { get; init; }
 }
 
@@ -140,6 +137,7 @@ internal static class Palette
     public const string Secondary = "#C47B4A";
     public const string Trend = "#2F4F4F";
     public const string Bell = "#8B3A3A";
+    public const string Kde = "#C47B4A";
     public const string Outlier = "#A33B3B";
     public const string Rule = "#C47B4A";
     public const string Cl = "#2F4F4F";
