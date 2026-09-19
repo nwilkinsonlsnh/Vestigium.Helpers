@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text;
-using Vestigium.Helpers;
-using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Csv;
 
@@ -25,10 +23,14 @@ internal static class CsvCodec
 
     public static string WriteText(CsvTable table, CsvOptions options)
     {
-        HelperGuard.NotNull(table, nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         var width = table.Headers.Count;
         if (options.HasHeaderRow && width == 0)
+        {
+            CsvLog.Error(CsvEvents.WriteRejected, CsvCatalog.Subcategories.Session, "rejected write",
+                properties: CsvLog.Props(("reason", "empty-header")));
             throw new ArgumentException("A header row needs at least one column.", nameof(table));
+        }
 
         var sb = new StringBuilder();
         if (options.HasHeaderRow)
@@ -37,10 +39,11 @@ internal static class CsvCodec
         var i = 0;
         foreach (var row in table.Rows)
         {
-            HelperGuard.NotNull(row, nameof(table.Rows));
+            ArgumentNullException.ThrowIfNull(row);
             if (row.Count > width && width > 0)
             {
-                HelperLog.Reject($"row {i} has {row.Count} cells; header has {width}");
+                CsvLog.Error(CsvEvents.WriteRejected, CsvCatalog.Subcategories.Session, "rejected write",
+                    properties: CsvLog.Props(("reason", "row-width"), ("row", i.ToString()), ("cells", row.Count.ToString()), ("header", width.ToString())));
                 throw new ArgumentException($"Row {i} has {row.Count} cells; the header has {width}.", nameof(table));
             }
 
@@ -66,7 +69,7 @@ internal static class CsvCodec
         if (records.Count == 0)
         {
             if (options.HasHeaderRow)
-                throw new CsvFormatException(1, "The file is empty and a header row was required.");
+                throw Fail(1, "The file is empty and a header row was required.");
             return CsvTable.Empty();
         }
 
@@ -89,7 +92,7 @@ internal static class CsvCodec
             var record = records[r];
             var line = r + 1;
             if (record.Count > width)
-                throw new CsvFormatException(line, $"Record has {record.Count} fields; expected {width}.");
+                throw Fail(line, $"Record has {record.Count} fields; expected {width}.");
 
             var cells = new object?[width];
             for (var c = 0; c < width; c++)
@@ -144,10 +147,18 @@ internal static class CsvCodec
             case decimal m:
                 return m.ToString(CultureInfo.InvariantCulture);
             case float f:
-                HelperGuard.Finite(f, nameof(value));
+                if (!float.IsFinite(f))
+                {
+                    CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
+                }
                 return f.ToString("G9", CultureInfo.InvariantCulture);
             case double d:
-                HelperGuard.Finite(d, nameof(value));
+                if (!double.IsFinite(d))
+                {
+                    CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
+                }
                 return d.ToString("G17", CultureInfo.InvariantCulture);
             default:
                 return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
@@ -215,11 +226,11 @@ internal static class CsvCodec
             var text = FormatCell(raw, options.NeutralizeInjection && IsTextual(raw));
             if (options.NeutralizeInjection && IsTextual(raw) && text.Length > 0 && text[0] == '\'')
             {
-                HelperLog.Verbose(
-                    HelperLog.CurrentAppId,
-                    VestigiumStatus.Success,
-                    HelperLog.Subcategories.Session,
-                    $"Neutralized a formula-like text cell row={rowIndex} col={c}");
+                CsvLog.Warning(
+                    CsvEvents.CellNeutralized,
+                    CsvCatalog.Subcategories.Session,
+                    "neutralized formula-like text",
+                    properties: CsvLog.Props(("row", rowIndex.ToString()), ("col", c.ToString())));
             }
 
             sb.Append(Quote(text, options.Delimiter));
@@ -245,6 +256,16 @@ internal static class CsvCodec
         if (!options.TrimFields)
             return fields;
         return fields.Select(f => f.Trim()).ToList();
+    }
+
+    private static CsvFormatException Fail(int line, string message)
+    {
+        CsvLog.Error(
+            CsvEvents.ParseRejected,
+            CsvCatalog.Subcategories.Parse,
+            "rejected parse",
+            properties: CsvLog.Props(("line", line.ToString()), ("reason", message)));
+        return new CsvFormatException(line, message);
     }
 
     private static List<List<string>> ParseRecords(string text, char delimiter)
@@ -311,7 +332,7 @@ internal static class CsvCodec
             }
 
             if (c == CsvOptions.Quote)
-                throw new CsvFormatException(line, "A quote appeared in the middle of an unquoted field.");
+                throw Fail(line, "A quote appeared in the middle of an unquoted field.");
 
             if (c == delimiter)
             {
@@ -337,7 +358,7 @@ internal static class CsvCodec
         }
 
         if (inQuotes)
-            throw new CsvFormatException(line, "Unclosed quoted field at end of file.");
+            throw Fail(line, "Unclosed quoted field at end of file.");
 
         if (field.Length > 0 || record.Count > 0)
             EndRecord();
