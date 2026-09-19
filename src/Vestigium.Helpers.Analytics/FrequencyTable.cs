@@ -1,9 +1,20 @@
 namespace Vestigium.Helpers.Analytics;
 
+/// <summary>Exact multiplicity of one stored decimal value.</summary>
+/// <param name="Value">The value.</param>
+/// <param name="Count">How many times it appears.</param>
+/// <param name="RelativeFrequency">Count / n.</param>
 public sealed record FrequencyBin(decimal Value, int Count, double RelativeFrequency);
 
+/// <summary>One Freedman–Diaconis bin on the value axis. Last bin is closed on the upper edge.</summary>
+/// <param name="LowerInclusive">Left edge, inclusive.</param>
+/// <param name="UpperInclusive">Right edge. Inclusive only when <paramref name="UpperIsClosed"/> is true.</param>
+/// <param name="UpperIsClosed">True on the last bin so Max is included.</param>
+/// <param name="Count">Observations in this bin.</param>
+/// <param name="RelativeFrequency">Count / n.</param>
 public sealed record HistogramBin(decimal LowerInclusive, decimal UpperInclusive, bool UpperIsClosed, int Count, double RelativeFrequency);
 
+/// <summary>Exact frequencies, modes, entropy, and the value histogram of one slice.</summary>
 public sealed class FrequencyTable
 {
     internal FrequencyTable(
@@ -22,14 +33,22 @@ public sealed class FrequencyTable
         DistinctCount = frequencies.Count;
     }
 
+    /// <summary>Empty table for an empty slice.</summary>
     public static FrequencyTable Empty { get; } = new([], [], false, null, []);
 
+    /// <summary>Distinct values ordered by count descending, then value ascending.</summary>
     public IReadOnlyList<FrequencyBin> Frequencies { get; }
+    /// <summary>Number of distinct values.</summary>
     public int DistinctCount { get; }
+    /// <summary>Every value whose count equals the maximum count.</summary>
     public IReadOnlyList<decimal> Modes { get; }
+    /// <summary>The unique mode when <see cref="HasUniqueMode"/> is true; otherwise null.</summary>
     public decimal? Mode { get; }
+    /// <summary>True when the maximum count is at least 2 and exactly one value has that count.</summary>
     public bool HasUniqueMode { get; }
+    /// <summary>−Σ pᵢ ln pᵢ over relative frequencies.</summary>
     public double? EntropyNats { get; }
+    /// <summary>Freedman–Diaconis bins on the value axis. Not a time histogram.</summary>
     public IReadOnlyList<HistogramBin> Histogram { get; }
 
     internal static FrequencyTable Build(IReadOnlyList<decimal> values, decimal? iqr, decimal? min, decimal? max)
