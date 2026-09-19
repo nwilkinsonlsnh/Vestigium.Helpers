@@ -1,13 +1,13 @@
 # Vestigium.Helpers.Analytics — Developers Guide
 
 **Document ID:** VEST-HLP-ANALYTICS-DEV-000  
-**Version:** 1.6  
-**Status:** Design companion to SRS v1.5 + Logging catalog 10500+  
-**Date:** 18 September 2026
+**Version:** 1.7  
+**Status:** Design companion to SRS v1.6 + Logging catalog 10500+  
+**Date:** 19 September 2026
 
 Open `Vestigium.Helpers.slnx` → `src/Vestigium.Helpers.Analytics/`.
 
-The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.5**). This page is why it looks like this, and how to call it.
+The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.6**). This page is why it looks like this, and how to call it. Stabilization work is `_Documentation/StabilizationPlan_v1.0.md`.
 
 ## Logging
 
@@ -33,10 +33,14 @@ EventIds **10500–10615** (block reserved through 10999). Constants live on `An
 |---|---|
 | Instance `NumericSeries`, not a static math bag | A series is a snapshot with identity (`SeriesId`) for the log. |
 | Values stored as `decimal` | Rank statistics and Excel PERCENTILE.INC cross-check without binary float noise. |
+| Snapshot lists are frozen | `Values` / `Sorted` / `Times` are copies. A host cannot mutate them behind the snapshot. |
 | Six slices from full-series fences | Q4 is “the slow group” without a second type. |
 | P95 is a rank cut, γ is an input | Those words are not interchangeable. SRS §3 is binding language. |
 | ControlLimits live here | Charts must not invent UCL/LCL. Mean ± kσ swallows a lone spike on small n; MovingRange exists because of that. |
-| Time is optional metadata | Histogram, P95, and confidence sit on the value axis. |
+| Moving range is Full only | MR needs encounter neighbors. Q1–Q4 / IQR are value filters, not a process. |
+| `TryControlLimits` for band loops | Empty Q4 must not throw. The throwing API stays for “I know this is a process.” |
+| Time is optional metadata | Histogram, P95, and confidence sit on the value axis. `TimeSeriesPoints()` follows the clock. |
+| MathNet behind `QuantileFunctions` | The package stays. `Confidence.cs` does not name it. |
 | No charting NuGet | Sibling `Vestigium.Helpers.Charts` consumes the numbers. This project stays `net10.0`. |
 
 **Shape.**
@@ -46,8 +50,8 @@ host buffer  →  NumericSeries.From / FromObservations
                      ├─ SeriesSlice × 6   (Full, Q1–Q4, IQR)
                      ├─ FrequencyTable    (exact + FD histogram)
                      ├─ Confidence(γ)
-                     ├─ ControlLimits(method)
-                     └─ ChartPoint views  (ECDF, hist, Pareto, …)
+                     ├─ ControlLimits / TryControlLimits
+                     └─ ChartPoint views  (ECDF, hist, Pareto, clock-ordered time)
 Charts / ClosedXml / PingIQ bind those numbers. This DLL does not reference them.
 ```
 
@@ -63,6 +67,7 @@ decimal min = full.Min!.Value;
 decimal p95 = full.Percentile(0.95);          // tail cut — not a confidence level
 var slow = series.Q4;                         // right tail as a group
 var high = full.HighOutliers;
+var highAt = full.HighOutlierIndexes;         // encounter indexes into Full.Values
 
 ConfidenceReport ci = series.Confidence(0.95);
 double? meanLo = ci.Mean.Lower;
@@ -70,12 +75,20 @@ double? meanHi = ci.Mean.Upper;
 
 double? justContains = series.MeanConfidenceLevelContaining(12.0); // 1 − p, not “sample confidence”
 
-var sigma = series.ControlLimits();                                  // mean ± 3s
-var mr = series.ControlLimits(ControlLimitMethod.MovingRange);       // Shewhart individuals
-var sla = ControlLimits.FromCaller(center: 12, upper: 30, lower: 0); // host / SLA fences
+if (series.TryControlLimits(out var sigma))           // false when n < 2 or s = 0
+    _ = sigma;
+var thrown = series.ControlLimits();                  // mean ± 3s; throws if undefined
+var mr = series.ControlLimits(ControlLimitMethod.MovingRange); // Full only
+var sla = ControlLimits.FromCaller(center: 12, upper: 30, lower: 0);
+
+foreach (var band in series.Bands)
+{
+    if (band.TryControlLimits(out var bandLimits))
+        _ = bandLimits;                               // empty Q4 returns false
+}
 ```
 
-Pass `sigma`, `mr`, or `sla` to `Vestigium.Helpers.Charts`. This library does not draw.
+Pass `sigma`, `mr`, or `sla` to `Vestigium.Helpers.Charts`. This library does not draw. Do not call `Q4.ControlLimits(MovingRange)` — that is not a Shewhart individuals chart.
 
 ## Use (optional timestamps)
 
@@ -89,6 +102,7 @@ var observations = new[]
 
 var timed = NumericSeries.FromObservations(observations, name: "rtt-ms");
 var lastTwoSeconds = timed.Slice(DateTimeOffset.UtcNow.AddSeconds(-2), DateTimeOffset.UtcNow);
+var line = timed.TimeSeriesPoints(); // sorted by At.UtcTicks, then encounter index
 
 foreach (var point in timed.EcdfPoints())
 {
@@ -97,7 +111,7 @@ foreach (var point in timed.EcdfPoints())
 }
 ```
 
-`From(double[])` stays legal. Time is never required.
+`From(double[])` stays legal. Time is never required. Encounter order remains `SampleOrderPoints()` plus `Times`.
 
 ## Demo
 
@@ -105,7 +119,7 @@ foreach (var point in timed.EcdfPoints())
 
 ## Roadmap
 
-Shipped surface is SRS v1.4. Next work is SRS §16, not a rewrite:
+Shipped surface is SRS v1.6 (stabilize pass). Next work is SRS §16.2, not a rewrite:
 
 1. **Run rules** (Nelson / Western Electric) as indexes — Charts paints, Analytics computes.
 2. **Confidence interval for a percentile** (fence on P95, not “95 % confidence”).
@@ -121,6 +135,8 @@ Never: charting, streaming sketches, time-bucket histograms, Bayesian, OTel.
 - Call `Initialize` on `Vestigium.Logging` from this library.
 - Bin the value histogram by clock time.
 - Recompute UCL/LCL in a host “to make the spike show”. Pass `MovingRange` or `FromCaller` instead.
+- Run moving-range or future run-rules on Q1–Q4 / IQR.
+- Cast `Values` to `List<decimal>` and mutate it. The snapshot is frozen.
 
 ## Files
 

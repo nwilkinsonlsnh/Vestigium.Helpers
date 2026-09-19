@@ -12,18 +12,26 @@ namespace Vestigium.Helpers.Analytics;
 /// </summary>
 public static class AnalyticsHelper
 {
+    /// <summary>Stable package identity used by suite smoke tests.</summary>
     public static string Identity => "Vestigium.Helpers.Analytics";
 
+    /// <summary>Build a snapshot from any <see cref="INumber{T}"/> sequence.</summary>
     public static NumericSeries From<T>(IEnumerable<T> values, string? name = null)
         where T : INumber<T>
         => NumericSeries.From(values, name);
 
+    /// <summary>Build a snapshot from decimals already in hand.</summary>
     public static NumericSeries FromDecimal(IEnumerable<decimal> values, string? name = null)
         => NumericSeries.FromDecimal(values, name);
 
+    /// <summary>Build a snapshot from values plus optional timestamps.</summary>
     public static NumericSeries FromObservations(IEnumerable<Observation> observations, string? name = null)
         => NumericSeries.FromObservations(observations, name);
 
+    /// <summary>
+    /// Smoke the public surface and return <see cref="Identity"/>.
+    /// Hosts do not need this; tests and the gallery do.
+    /// </summary>
     public static string Probe()
     {
         AnalyticsLog.Debug(
