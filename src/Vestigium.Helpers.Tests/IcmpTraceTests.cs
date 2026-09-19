@@ -33,7 +33,7 @@ public sealed class IcmpTraceTests
         });
         Assert.Equal("icmpTrace", job.Kind);
         var result = await job.RunAsync();
-        Assert.Equal(1, result.Hops.Count);
+        Assert.Single(result.Hops);
     }
 
     [Fact]
