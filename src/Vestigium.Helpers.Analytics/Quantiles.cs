@@ -8,17 +8,22 @@ namespace Vestigium.Helpers.Analytics;
 /// </summary>
 internal static class Quantiles
 {
+    internal const string EmptySliceMessage = "Cannot compute a percentile of an empty slice.";
+
+    internal static void RejectEmpty()
+    {
+        AnalyticsLog.Error(
+            AnalyticsEvents.PercentileRejectedEmpty,
+            VestigiumStatus.Failed,
+            AnalyticsCatalog.Subcategories.Series,
+            "rejected empty percentile");
+        throw new InvalidOperationException(EmptySliceMessage);
+    }
+
     public static decimal Inclusive(IReadOnlyList<decimal> sorted, double p)
     {
         if (sorted.Count == 0)
-        {
-            AnalyticsLog.Error(
-                AnalyticsEvents.PercentileRejectedEmpty,
-                VestigiumStatus.Failed,
-                AnalyticsCatalog.Subcategories.Series,
-                "rejected empty percentile");
-            throw new ArgumentException("Cannot compute a percentile of an empty sample.", nameof(sorted));
-        }
+            RejectEmpty();
         if (p is < 0 or > 1)
         {
             AnalyticsLog.Error(

@@ -1,5 +1,3 @@
-using Vestigium.Logging;
-
 namespace Vestigium.Helpers.Analytics;
 
 /// <summary>Rank helpers for <see cref="SeriesSlice"/>.</summary>
@@ -15,14 +13,7 @@ public static class SeriesSliceRanks
     {
         ArgumentNullException.ThrowIfNull(slice);
         if (slice.IsEmpty)
-        {
-            AnalyticsLog.Error(
-                AnalyticsEvents.PercentileRejectedEmpty,
-                VestigiumStatus.Failed,
-                AnalyticsCatalog.Subcategories.Series,
-                "rejected empty percentile");
-            throw new InvalidOperationException("Cannot compute percentiles of an empty slice.");
-        }
+            Quantiles.RejectEmpty();
 
         var n = slice.Count;
         var hits = 0;
