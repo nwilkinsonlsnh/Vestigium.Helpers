@@ -24,4 +24,18 @@ public sealed class AnalyticsPR02Tests
         Assert.True(((IList<double>)scored.MovingRanges).IsReadOnly);
         Assert.Throws<NotSupportedException>(() => ((IList<int>)scored.OutOfControlIndexes)[0] = 99);
     }
+
+    [Fact]
+    public void PR02_002_log_indexes_join_when_at_most_32()
+    {
+        Assert.Equal("0,1,2", ControlLimits.FormatOutOfControlIndexes(Enumerable.Range(0, 3).ToArray()));
+        Assert.Equal(string.Join(",", Enumerable.Range(0, 32)), ControlLimits.FormatOutOfControlIndexes(Enumerable.Range(0, 32).ToArray()));
+    }
+
+    [Fact]
+    public void PR02_002_log_indexes_truncate_past_32()
+    {
+        Assert.Equal("n=33 (truncated)", ControlLimits.FormatOutOfControlIndexes(Enumerable.Range(0, 33).ToArray()));
+        Assert.Equal("", ControlLimits.FormatOutOfControlIndexes([]));
+    }
 }
