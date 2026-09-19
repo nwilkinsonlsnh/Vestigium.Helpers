@@ -110,8 +110,8 @@ internal sealed class DescriptiveStatistics
         return new DescriptiveStatistics
         {
             Count = n,
-            Values = values,
-            Sorted = sorted,
+            Values = NumberConvert.Freeze(values),
+            Sorted = NumberConvert.Freeze(sorted),
             Min = min,
             Q1 = q1,
             Median = median,
@@ -124,9 +124,9 @@ internal sealed class DescriptiveStatistics
             Trimean = trimean,
             TukeyLowerFence = lowerFence,
             TukeyUpperFence = upperFence,
-            LowOutliers = lowOutliers,
-            HighOutliers = highOutliers,
-            Outliers = outliers,
+            LowOutliers = NumberConvert.Freeze(lowOutliers),
+            HighOutliers = NumberConvert.Freeze(highOutliers),
+            Outliers = NumberConvert.Freeze(outliers),
             Sum = sum,
             Mean = mean,
             SumOfSquaredDeviations = ssd,

@@ -50,9 +50,9 @@ public sealed class NumericSeries
     {
         SeriesId = AnalyticsLog.NewId();
         Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
-        Values = values;
-        Sorted = [.. values.OrderBy(v => v)];
-        Times = times;
+        Values = NumberConvert.Freeze(values);
+        Sorted = NumberConvert.Freeze(values.OrderBy(v => v));
+        Times = NumberConvert.Freeze(times);
         HasTimestamps = times.Count == values.Count && times.Any(t => t.HasValue);
 
         DateTimeOffset? first = null;
