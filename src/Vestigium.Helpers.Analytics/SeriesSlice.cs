@@ -46,6 +46,9 @@ public sealed class SeriesSlice
     public IReadOnlyList<decimal> LowOutliers => _stats.LowOutliers;
     public IReadOnlyList<decimal> HighOutliers => _stats.HighOutliers;
     public IReadOnlyList<decimal> Outliers => _stats.Outliers;
+    public IReadOnlyList<int> LowOutlierIndexes => _stats.LowOutlierIndexes;
+    public IReadOnlyList<int> HighOutlierIndexes => _stats.HighOutlierIndexes;
+    public IReadOnlyList<int> OutlierIndexes => _stats.OutlierIndexes;
 
     public decimal? Sum => _stats.Sum;
     public double? Mean => _stats.Mean;
@@ -102,14 +105,14 @@ public sealed class SeriesSlice
 
     public ConfidenceInterval ProportionAbove(decimal threshold, double level = ConfidenceLevel.DefaultValue)
     {
-        var k = Values.Count(v => v > threshold);
-        return ConfidenceReport.Wilson(k, Count, ConfidenceLevel.Of(level));
+        var successes = Values.Count(v => v > threshold);
+        return ConfidenceReport.Wilson(successes, Count, ConfidenceLevel.Of(level));
     }
 
     public ConfidenceInterval ProportionAtLeast(decimal threshold, double level = ConfidenceLevel.DefaultValue)
     {
-        var k = Values.Count(v => v >= threshold);
-        return ConfidenceReport.Wilson(k, Count, ConfidenceLevel.Of(level));
+        var successes = Values.Count(v => v >= threshold);
+        return ConfidenceReport.Wilson(successes, Count, ConfidenceLevel.Of(level));
     }
 
     public ControlLimits ControlLimits(
@@ -125,6 +128,7 @@ public sealed class SeriesSlice
             properties: AnalyticsLog.Props(("band", Kind.ToString()), ("method", method.ToString()), ("n", Count.ToString())));
         try
         {
+            RejectMovingRangeOnBand(method, throwing: true);
             return Analytics.ControlLimits.Compute(Values, Mean, StdDev, method, k, floor);
         }
         catch (Exception ex)
@@ -132,6 +136,57 @@ public sealed class SeriesSlice
             AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex);
             throw;
         }
+    }
+
+    public bool TryControlLimits(
+        out ControlLimits? limits,
+        ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
+        double k = 3,
+        double? floor = null)
+    {
+        limits = null;
+        AnalyticsLog.Debug(
+            AnalyticsEvents.LimitsEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Limits,
+            "enter limits",
+            properties: AnalyticsLog.Props(
+                ("band", Kind.ToString()),
+                ("method", method.ToString()),
+                ("n", Count.ToString()),
+                ("via", "Try")));
+        try
+        {
+            if (!RejectMovingRangeOnBand(method, throwing: false))
+                return false;
+
+            if (Analytics.ControlLimits.IsInsufficient(Values, Mean, StdDev, method, out var reason))
+            {
+                Analytics.ControlLimits.RejectLimits(reason, ("n", Count.ToString()), ("band", Kind.ToString()));
+                return false;
+            }
+
+            limits = Analytics.ControlLimits.Compute(Values, Mean, StdDev, method, k, floor);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex);
+            throw;
+        }
+    }
+
+    private bool RejectMovingRangeOnBand(ControlLimitMethod method, bool throwing)
+    {
+        if (method != ControlLimitMethod.MovingRange || Kind == SliceKind.Full)
+            return true;
+
+        Analytics.ControlLimits.RejectLimits(
+            "moving-range-band",
+            ("band", Kind.ToString()));
+        if (throwing)
+            throw new ArgumentException(Analytics.ControlLimits.MovingRangeRequiresFull, nameof(method));
+        return false;
     }
 
     internal DescriptiveStatistics Statistics => _stats;
