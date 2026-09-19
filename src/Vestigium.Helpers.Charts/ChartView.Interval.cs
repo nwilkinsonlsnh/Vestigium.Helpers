@@ -1,3 +1,4 @@
+using System.Windows;
 using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Charts;
