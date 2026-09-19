@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.FileIo;
 
@@ -7,7 +6,7 @@ internal static class FileIoProbeEngine
 {
     public static FileIoProbeResult Write(string directory, FileIoSize size, FileIoProbeOptions? options)
     {
-        var dir = HelperGuard.NotBlank(directory, nameof(directory));
+        var dir = FileIoLog.RequireNotBlank(directory, nameof(directory));
         Directory.CreateDirectory(dir);
         if (size.Bytes < 0)
             throw new ArgumentOutOfRangeException(nameof(size));
@@ -65,7 +64,7 @@ internal static class FileIoProbeEngine
 
     public static FileIoProbeResult Read(string path)
     {
-        var file = HelperGuard.FileExists(path, nameof(path));
+        var file = FileIoLog.FileExists(path, nameof(path));
         var length = new FileInfo(file).Length;
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(FileIoJob.StreamBufferSize);
         var sw = Stopwatch.StartNew();
