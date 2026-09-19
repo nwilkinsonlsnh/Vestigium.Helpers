@@ -1,5 +1,4 @@
 using ClosedXML.Excel;
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.ClosedXml;
@@ -20,35 +19,31 @@ public sealed class SheetSession
     public void WriteTable(SheetTable table, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        HelperGuard.NotNull(table, nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         ClearContent();
         WriteAt(1, 1, table, options ?? SheetWriteOptions.Default);
     }
 
-    /// <summary>
-    /// Write a table starting at a cell without clearing the rest of the sheet.
-    /// Letterhead chrome above or beside the origin stays put.
-    /// </summary>
     public void WriteAt(int row, int column, SheetTable table, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        HelperGuard.NotNull(table, nameof(table));
-        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "WriteAt", $"sheet={Name} origin={ExcelNames.ColumnLetter(Math.Max(1, column))}{Math.Max(1, row)} rows={table.Rows.Count}");
+        ArgumentNullException.ThrowIfNull(table);
+        _book.Enter(ClosedXmlCatalog.Subcategories.Sheet, "WriteAt", Name);
         try
         {
             WriteAtCore(row, column, table, options);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Sheet, ex, _book.SessionId, _book.AppId);
             throw;
         }
     }
 
     private void WriteAtCore(int row, int column, SheetTable table, SheetWriteOptions? options)
     {
-        HelperGuard.InRange(row, 1, nameof(row));
-        HelperGuard.InRange(column, 1, nameof(column));
+        ArgumentOutOfRangeException.ThrowIfLessThan(row, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
 
         var opts = options ?? SheetWriteOptions.Default;
         var headers = table.Headers;
@@ -56,7 +51,12 @@ public sealed class SheetSession
         foreach (var dataRow in table.Rows)
             colCount = Math.Max(colCount, dataRow.Count);
 
-        HelperGuard.Require(colCount > 0, nameof(table), "A table needs at least one column.");
+        if (colCount <= 0)
+        {
+            ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("reason", "no-columns")), appId: _book.AppId);
+            throw new ArgumentException("A table needs at least one column.", nameof(table));
+        }
 
         var neutralized = 0;
         if (opts.HasHeaderRow)
@@ -89,46 +89,40 @@ public sealed class SheetSession
             ApplyOperatorPrint();
         if (!string.IsNullOrWhiteSpace(opts.HighlightColumn) && opts.HighlightGreaterThan is { } threshold)
             HighlightGreaterThan(opts.HighlightColumn, threshold, row, column, lastRow, lastCol);
-        HelperLog.Information(
-            _book.AppId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Sheet,
-            $"Wrote sheet={Name} origin={ExcelNames.ColumnLetter(column)}{row} rows={table.Rows.Count} cols={colCount} neutralized={neutralized} session={_book.SessionId}");
+        ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
+            _book.SessionId, ClosedXmlLog.Props(("sheet", Name), ("rows", table.Rows.Count.ToString()), ("cols", colCount.ToString()), ("neutralized", neutralized.ToString())), _book.AppId);
     }
 
     public void AppendRows(IEnumerable<IReadOnlyList<object?>> rows, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AppendRows", $"sheet={Name}");
-        HelperGuard.NotNull(rows, nameof(rows));
+        _book.Enter(ClosedXmlCatalog.Subcategories.Sheet, "AppendRows", Name);
+        ArgumentNullException.ThrowIfNull(rows);
         try
         {
-        var opts = options ?? SheetWriteOptions.Default;
-        var last = _sheet.LastRowUsed()?.RowNumber() ?? 0;
-        var colCount = _sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
-        var r = last + 1;
-        if (r < 1)
-            r = 1;
+            var opts = options ?? SheetWriteOptions.Default;
+            var last = _sheet.LastRowUsed()?.RowNumber() ?? 0;
+            var colCount = _sheet.LastColumnUsed()?.ColumnNumber() ?? 0;
+            var r = last + 1;
+            if (r < 1)
+                r = 1;
 
-        var count = 0;
-        foreach (var row in rows)
-        {
-            colCount = Math.Max(colCount, row.Count);
-            for (var c = 0; c < row.Count; c++)
-                CellWriter.Write(_sheet.Cell(r, c + 1), row[c], opts);
-            r++;
-            count++;
-        }
+            var count = 0;
+            foreach (var row in rows)
+            {
+                colCount = Math.Max(colCount, row.Count);
+                for (var c = 0; c < row.Count; c++)
+                    CellWriter.Write(_sheet.Cell(r, c + 1), row[c], opts);
+                r++;
+                count++;
+            }
 
-        HelperLog.Information(
-            _book.AppId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Sheet,
-            $"Appended sheet={Name} rows={count} session={_book.SessionId}");
+            ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
+                _book.SessionId, ClosedXmlLog.Props(("via", "AppendRows"), ("sheet", Name), ("rows", count.ToString())), _book.AppId);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Sheet, ex, _book.SessionId, _book.AppId);
             throw;
         }
     }
@@ -136,65 +130,59 @@ public sealed class SheetSession
     public SheetTable ReadUsedRange(SheetReadOptions? options = null)
     {
         _book.ThrowIfDisposed();
-        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "ReadUsedRange", $"sheet={Name}");
+        _book.Enter(ClosedXmlCatalog.Subcategories.Sheet, "ReadUsedRange", Name);
         try
         {
-        var opts = options ?? SheetReadOptions.Default;
-        var used = _sheet.RangeUsed();
-        if (used is null)
-        {
-            HelperLog.Information(
-                _book.AppId,
-                VestigiumStatus.Success,
-                HelperLog.Subcategories.Sheet,
-                $"Read sheet={Name} rows=0 cols=0 session={_book.SessionId}");
-            return new SheetTable { Headers = [], Rows = [], Name = Name };
-        }
-
-        var firstRow = used.FirstRow().RowNumber();
-        var lastRow = used.LastRow().RowNumber();
-        var firstCol = used.FirstColumn().ColumnNumber();
-        var lastCol = used.LastColumn().ColumnNumber();
-        var colCount = lastCol - firstCol + 1;
-
-        var headers = new string[colCount];
-        var dataStart = firstRow;
-        if (opts.HasHeaderRow)
-        {
-            for (var i = 0; i < colCount; i++)
+            var opts = options ?? SheetReadOptions.Default;
+            var used = _sheet.RangeUsed();
+            if (used is null)
             {
-                var text = _sheet.Cell(firstRow, firstCol + i).GetString();
-                headers[i] = string.IsNullOrWhiteSpace(text) ? $"Column{i + 1}" : text;
+                ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
+                    _book.SessionId, ClosedXmlLog.Props(("via", "Read"), ("sheet", Name), ("rows", "0")), _book.AppId);
+                return new SheetTable { Headers = [], Rows = [], Name = Name };
             }
 
-            dataStart = firstRow + 1;
-        }
-        else
-        {
-            for (var i = 0; i < colCount; i++)
-                headers[i] = $"Column{i + 1}";
-        }
+            var firstRow = used.FirstRow().RowNumber();
+            var lastRow = used.LastRow().RowNumber();
+            var firstCol = used.FirstColumn().ColumnNumber();
+            var lastCol = used.LastColumn().ColumnNumber();
+            var colCount = lastCol - firstCol + 1;
 
-        var rows = new List<IReadOnlyList<object?>>();
-        for (var r = dataStart; r <= lastRow; r++)
-        {
-            var row = new object?[colCount];
-            for (var i = 0; i < colCount; i++)
-                row[i] = CellReader.Read(_sheet.Cell(r, firstCol + i));
-            rows.Add(row);
-        }
+            var headers = new string[colCount];
+            var dataStart = firstRow;
+            if (opts.HasHeaderRow)
+            {
+                for (var i = 0; i < colCount; i++)
+                {
+                    var text = _sheet.Cell(firstRow, firstCol + i).GetString();
+                    headers[i] = string.IsNullOrWhiteSpace(text) ? $"Column{i + 1}" : text;
+                }
 
-        var tableName = _sheet.Tables.FirstOrDefault()?.Name ?? Name;
-        HelperLog.Information(
-            _book.AppId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Sheet,
-            $"Read sheet={Name} rows={rows.Count} cols={colCount} session={_book.SessionId}");
-        return new SheetTable { Headers = headers, Rows = rows, Name = tableName };
+                dataStart = firstRow + 1;
+            }
+            else
+            {
+                for (var i = 0; i < colCount; i++)
+                    headers[i] = $"Column{i + 1}";
+            }
+
+            var rows = new List<IReadOnlyList<object?>>();
+            for (var r = dataStart; r <= lastRow; r++)
+            {
+                var row = new object?[colCount];
+                for (var i = 0; i < colCount; i++)
+                    row[i] = CellReader.Read(_sheet.Cell(r, firstCol + i));
+                rows.Add(row);
+            }
+
+            var tableName = _sheet.Tables.FirstOrDefault()?.Name ?? Name;
+            ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
+                _book.SessionId, ClosedXmlLog.Props(("via", "Read"), ("sheet", Name), ("rows", rows.Count.ToString()), ("cols", colCount.ToString())), _book.AppId);
+            return new SheetTable { Headers = headers, Rows = rows, Name = tableName };
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Sheet, ex, _book.SessionId, _book.AppId);
             throw;
         }
     }
@@ -245,7 +233,8 @@ public sealed class SheetSession
         var used = _sheet.RangeUsed();
         if (used is null)
         {
-            HelperLog.Reject("Sheet has no used range to highlight.");
+            ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("reason", "no-used-range")), appId: _book.AppId);
             throw new InvalidOperationException("Sheet has no used range to highlight.");
         }
         HighlightGreaterThan(
@@ -257,12 +246,11 @@ public sealed class SheetSession
             used.LastColumn().ColumnNumber());
     }
 
-    /// <summary>Embed an image whose top-left sits on this cell. Size is pixels.</summary>
     public void AddPicture(string imagePath, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
     {
         _book.ThrowIfDisposed();
-        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AddPicture", $"sheet={Name} path={imagePath}");
-        var path = HelperGuard.FileExists(imagePath, nameof(imagePath));
+        _book.Enter(ClosedXmlCatalog.Subcategories.Sheet, "AddPicture", imagePath);
+        var path = ClosedXmlLog.RequireFile(imagePath, nameof(imagePath));
         using var stream = File.OpenRead(path);
         AddPicture(stream, row, column, widthPx, heightPx, name);
     }
@@ -270,10 +258,10 @@ public sealed class SheetSession
     public void AddPicture(Stream image, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
     {
         _book.ThrowIfDisposed();
-        using var scope = _book.Trace(HelperLog.Subcategories.Sheet, "AddPicture", $"sheet={Name} cell={ExcelNames.ColumnLetter(Math.Max(1, column))}{Math.Max(1, row)}");
-        HelperGuard.NotNull(image, nameof(image));
-        HelperGuard.InRange(row, 1, nameof(row));
-        HelperGuard.InRange(column, 1, nameof(column));
+        _book.Enter(ClosedXmlCatalog.Subcategories.Sheet, "AddPicture", Name);
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentOutOfRangeException.ThrowIfLessThan(row, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
 
         using var copy = new MemoryStream();
         image.CopyTo(copy);
@@ -286,22 +274,22 @@ public sealed class SheetSession
             pic.Height = heightPx;
         if (!string.IsNullOrWhiteSpace(name))
             pic.Name = name.Trim();
-        HelperLog.Information(
-            _book.AppId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Sheet,
-            $"Picture sheet={Name} cell={ExcelNames.ColumnLetter(column)}{row} {widthPx}x{heightPx} session={_book.SessionId}");
+        ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
+            _book.SessionId, ClosedXmlLog.Props(("via", "AddPicture"), ("sheet", Name)), _book.AppId);
     }
 
     internal IXLWorksheet Worksheet => _sheet;
 
     private void HighlightGreaterThan(string header, double threshold, int headerRow, int firstCol, int lastRow, int lastCol)
     {
-        var name = HelperGuard.NotBlank(header, nameof(header));
+        if (string.IsNullOrWhiteSpace(header))
+            throw new ArgumentException("Header is required.", nameof(header));
+        var name = header.Trim();
         var col = FindHeaderColumn(name, headerRow, firstCol, lastCol);
         if (col is not int column)
         {
-            HelperLog.Reject($"{name}: Header '{name}' was not on this sheet.");
+            ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("header", name), ("reason", "missing-header")), appId: _book.AppId);
             throw new ArgumentException($"Header '{name}' was not on this sheet.", nameof(header));
         }
 
