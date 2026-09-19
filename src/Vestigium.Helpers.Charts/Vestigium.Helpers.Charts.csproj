@@ -18,7 +18,7 @@
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="ScottPlot.WPF" Version="5.1.57" />
+    <PackageReference Include="ScottPlot.WPF" Version="5.1.59" />
     <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup>
