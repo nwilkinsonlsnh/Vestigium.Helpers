@@ -337,7 +337,8 @@ internal static class PlotBuilder
     private static void FillMeanInterval(Plot plot, ChartSpec spec, ChartOptions options)
     {
         var series = RequireSeries(spec);
-        var report = series.Confidence(0.95);
+        var gamma = options.IntervalLevel ?? ConfidenceLevel.DefaultValue;
+        var report = series.Confidence(gamma);
         if (!report.Mean.IsDefined || report.Mean.Estimate is null)
             throw new InvalidOperationException("Mean interval is undefined for this series.");
         var y = report.Mean.Estimate.Value;
@@ -348,7 +349,7 @@ internal static class PlotBuilder
         sc.LegendText = "mean";
         var err = plot.Add.Scatter(new[] { 1d, 1d }, new[] { lo, hi });
         err.Color = Color.FromHex(Palette.Trend);
-        err.LegendText = "95% CI";
+        err.LegendText = $"{gamma:P0} CI";
         plot.Axes.SetLimitsX(0, 2);
     }
 
