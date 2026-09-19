@@ -138,8 +138,6 @@ public sealed class WorkbookSession : IDisposable
         var range = ws.Range(firstRow, firstColumn, lastRow, lastColumn);
         DropDefinedName(safe);
         _workbook.DefinedNames.Add(safe, range);
-        ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
-            SessionId, ClosedXmlLog.Props(("via", "DefineName"), ("name", safe), ("sheet", ws.Name)), _appId);
     }
 
     public void WriteNamedRange(string name, SheetTable table, SheetWriteOptions? options = null)
@@ -279,20 +277,32 @@ public sealed class WorkbookSession : IDisposable
             var dir = System.IO.Path.GetDirectoryName(target);
             if (!string.IsNullOrWhiteSpace(dir))
                 Directory.CreateDirectory(dir);
+            long bytes;
             if (IncludeCharts && _charts.Count > 0)
             {
                 using var ms = new MemoryStream();
                 _workbook.SaveAs(ms);
-                var bytes = ChartPacker.Embed(ms.ToArray(), _charts);
-                File.WriteAllBytes(target, bytes);
+                var packed = PackCharts(ms.ToArray());
+                File.WriteAllBytes(target, packed);
+                bytes = packed.Length;
             }
             else
             {
                 _workbook.SaveAs(target);
+                bytes = new FileInfo(target).Length;
             }
             _path = target;
-            ClosedXmlLog.Information(ClosedXmlEvents.SessionSaved, ClosedXmlCatalog.Subcategories.Session, "session saved",
-                SessionId, ClosedXmlLog.Props(("path", target), ("sheets", _workbook.Worksheets.Count.ToString()), ("charts", (IncludeCharts ? _charts.Count : 0).ToString())), _appId);
+            ClosedXmlLog.Information(
+                ClosedXmlEvents.SessionSaved,
+                ClosedXmlCatalog.Subcategories.Session,
+                "session saved",
+                SessionId,
+                ClosedXmlLog.Props(
+                    ("path", target),
+                    ("sheets", _workbook.Worksheets.Count.ToString()),
+                    ("charts", (IncludeCharts ? _charts.Count : 0).ToString()),
+                    ("bytes", bytes.ToString())),
+                _appId);
             return target;
         }
         catch (Exception ex)
@@ -311,8 +321,8 @@ public sealed class WorkbookSession : IDisposable
         {
             using var ms = new MemoryStream();
             _workbook.SaveAs(ms);
-            var bytes = ChartPacker.Embed(ms.ToArray(), _charts);
-            stream.Write(bytes, 0, bytes.Length);
+            var packed = PackCharts(ms.ToArray());
+            stream.Write(packed, 0, packed.Length);
             return;
         }
         _workbook.SaveAs(stream);
@@ -331,6 +341,35 @@ public sealed class WorkbookSession : IDisposable
     }
 
     internal void ThrowIfDisposed() => ClosedXmlLog.ThrowIfDisposed(_disposed, this);
+
+    private byte[] PackCharts(byte[] xlsx)
+    {
+        var sheets = string.Join(",", _charts.Select(c => c.Sheet).Distinct(StringComparer.OrdinalIgnoreCase));
+        try
+        {
+            var bytes = ChartPacker.Embed(xlsx, _charts);
+            ClosedXmlLog.Information(
+                ClosedXmlEvents.ChartsEmbedded,
+                ClosedXmlCatalog.Subcategories.Chart,
+                "charts embedded",
+                SessionId,
+                ClosedXmlLog.Props(("count", _charts.Count.ToString()), ("sheets", sheets), ("bytes", bytes.Length.ToString())),
+                _appId);
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            ClosedXmlLog.Error(
+                ClosedXmlEvents.ChartPackFailed,
+                ClosedXmlCatalog.Subcategories.Chart,
+                "chart pack failed",
+                ex,
+                SessionId,
+                ClosedXmlLog.Props(("count", _charts.Count.ToString()), ("sheets", sheets)),
+                _appId);
+            throw;
+        }
+    }
 
     private IXLDefinedName ResolveName(string name)
     {
