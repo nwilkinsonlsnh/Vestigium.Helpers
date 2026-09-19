@@ -38,4 +38,17 @@ public sealed class AnalyticsPR02Tests
         Assert.Equal("n=33 (truncated)", ControlLimits.FormatOutOfControlIndexes(Enumerable.Range(0, 33).ToArray()));
         Assert.Equal("", ControlLimits.FormatOutOfControlIndexes([]));
     }
+
+    [Fact]
+    public void PR02_003_empty_percentile_is_one_invalid_operation()
+    {
+        var q4 = NumericSeries.From(new[] { 5, 5, 5 }).Q4;
+        var percentile = Assert.Throws<InvalidOperationException>(() => q4.Percentile(0.95));
+        var named = Assert.Throws<InvalidOperationException>(() => q4.NamedPercentiles());
+        var rank = Assert.Throws<InvalidOperationException>(() => q4.PercentileRank(5m));
+
+        Assert.Equal(Quantiles.EmptySliceMessage, percentile.Message);
+        Assert.Equal(Quantiles.EmptySliceMessage, named.Message);
+        Assert.Equal(Quantiles.EmptySliceMessage, rank.Message);
+    }
 }
