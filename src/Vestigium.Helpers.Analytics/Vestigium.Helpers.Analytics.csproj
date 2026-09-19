@@ -9,7 +9,6 @@
     <Company>Wilkinson Business</Company>
     <PackageTags>analytics;statistics;quartile;confidence-interval;control-chart;shewhart;vestigium</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
