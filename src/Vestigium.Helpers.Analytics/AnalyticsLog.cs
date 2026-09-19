@@ -62,7 +62,7 @@ internal static class AnalyticsLog
             message,
             exception,
             correlationId,
-            properties,
-            AnalyticsCatalog.AppId);
+            AnalyticsCatalog.AppId,
+            properties);
     }
 }
