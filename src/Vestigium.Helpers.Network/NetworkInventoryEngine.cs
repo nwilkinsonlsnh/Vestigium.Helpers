@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Win32;
 using Vestigium.Helpers;
 
@@ -135,12 +136,15 @@ internal static class NetworkInventoryEngine
     {
         var family = addr.Address.AddressFamily;
         var isDhcp = false;
-        try
+        if (OperatingSystem.IsWindows())
         {
-            isDhcp = addr.PrefixOrigin == PrefixOrigin.Dhcp;
-        }
-        catch (PlatformNotSupportedException)
-        {
+            try
+            {
+                isDhcp = addr.PrefixOrigin == PrefixOrigin.Dhcp;
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
         }
 
         if (family == AddressFamily.InterNetwork)
@@ -185,7 +189,7 @@ internal static class NetworkInventoryEngine
     {
         bool? enabled = null;
         string? server = null;
-        if (props is not null)
+        if (OperatingSystem.IsWindows() && props is not null)
         {
             try
             {
@@ -214,9 +218,10 @@ internal static class NetworkInventoryEngine
         return new DhcpInfo(enabled, server, null, null);
     }
 
+    [SupportedOSPlatform("windows")]
     private static NetbiosOverTcp ReadNetbios(NetworkInterface nic)
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (!OperatingSystem.IsWindows())
             return NetbiosOverTcp.Unknown;
 
         try
