@@ -1,5 +1,3 @@
-using Vestigium.Helpers;
-
 namespace Vestigium.Helpers.FileIo;
 
 public sealed class FileIoAnalyzeOptions
@@ -65,10 +63,10 @@ internal static class FileIoAnalyzeEngine
 {
     public static FileIoDirectoryAnalysis Analyze(string path, FileIoAnalyzeOptions? options)
     {
-        var root = HelperGuard.NotBlank(path, nameof(path));
+        var root = FileIoLog.RequireNotBlank(path, nameof(path));
         if (!Directory.Exists(root))
         {
-            HelperLog.Reject(HelperLog.AppIds.FileIo, "Analyze", nameof(Analyze), "missing");
+            FileIoLog.Failed(FileIoLog.Subcategories.Analyze, "missing");
             throw new DirectoryNotFoundException("Directory was not found: " + root);
         }
 
