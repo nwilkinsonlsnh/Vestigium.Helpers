@@ -235,4 +235,23 @@ public sealed class NumericSeriesTests
         Assert.Contains(40m, series.Full.HighOutliers);
         Assert.True(series.Full.Percentile(0.95) > series.Full.Median);
     }
+
+    [Fact]
+    public void Snapshot_lists_are_frozen()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3 });
+
+        Assert.True(((IList<decimal>)series.Values).IsReadOnly);
+        Assert.True(((IList<decimal>)series.Sorted).IsReadOnly);
+        Assert.True(((IList<decimal>)series.Full.Values).IsReadOnly);
+        Assert.True(((IList<decimal>)series.Full.Sorted).IsReadOnly);
+        Assert.True(((IList<decimal>)series.Full.HighOutliers).IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => ((IList<decimal>)series.Values)[0] = 99m);
+        Assert.Throws<NotSupportedException>(() => ((IList<decimal>)series.Full.Values)[0] = 99m);
+
+        var t0 = new DateTimeOffset(2026, 9, 19, 14, 0, 0, TimeSpan.Zero);
+        var timed = NumericSeries.FromObservations([new Observation(1m, t0)]);
+        Assert.True(((IList<DateTimeOffset?>)timed.Times).IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => ((IList<DateTimeOffset?>)timed.Times)[0] = null);
+    }
 }
