@@ -5,7 +5,8 @@ namespace Vestigium.Helpers.Analytics;
 /// <summary>
 /// Package-local writes into Vestigium.Logging. No-ops when the host has not
 /// initialized. This is not HelperLog and is not part of the public API.
-/// Writes inherit the host process APPID. Do not pass <see cref="AnalyticsCatalog.AppId"/>.
+/// <see cref="AnalyticsCatalog.AppId"/> stamps the JSON APPID field (library identity).
+/// The log folder follows the host process APPID.
 /// </summary>
 internal static class AnalyticsLog
 {
@@ -62,6 +63,7 @@ internal static class AnalyticsLog
             subcategory,
             message,
             exception: exception,
+            appId: AnalyticsCatalog.AppId,
             correlationId: correlationId,
             properties: properties);
     }
