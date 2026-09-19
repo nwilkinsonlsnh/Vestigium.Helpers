@@ -1,0 +1,13 @@
+{
+  "app": "Network",
+  "category": "Helpers",
+  "block": { "start": 14500, "end": 14999 },
+  "events": [
+    { "eventId": 14500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Network", "message": "enter Probe" },
+    { "eventId": 14505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Network", "message": "probe complete" },
+    { "eventId": 14510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Network", "message": "enter operation" },
+    { "eventId": 14515, "name": "OperationComplete", "severity": "Information", "subcategory": "Network", "message": "operation complete" },
+    { "eventId": 14520, "name": "OperationFailed", "severity": "Error", "subcategory": "Network", "message": "operation failed" },
+    { "eventId": 14525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Network", "message": "operation warning" }
+  ]
+}
