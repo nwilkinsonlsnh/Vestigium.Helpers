@@ -50,4 +50,45 @@ public sealed class AnalyticsPR04Tests
         Assert.Equal(9m, hi.Upper);
         Assert.True(hi.ReachedCoverage);
     }
+
+    [Fact]
+    public void PR04_003_n9_p50_is_x2_to_x7()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var mid = series.PercentileInterval(0.5, 0.95);
+        Assert.Equal(2, mid.LowerRank);
+        Assert.Equal(7, mid.UpperRank);
+        Assert.Equal(2m, mid.Lower);
+        Assert.Equal(7m, mid.Upper);
+        Assert.Equal(0.9609375, mid.Coverage, 12);
+        Assert.True(mid.ReachedCoverage);
+        Assert.Contains(mid.Lower, series.Sorted);
+        Assert.Contains(mid.Upper, series.Sorted);
+    }
+
+    [Fact]
+    public void PR04_003_n9_p95_is_x7_to_x9()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var tail = series.PercentileInterval(0.95, 0.95);
+        Assert.Equal(7, tail.LowerRank);
+        Assert.Equal(9, tail.UpperRank);
+        Assert.Equal(7m, tail.Lower);
+        Assert.Equal(9m, tail.Upper);
+        Assert.True(tail.ReachedCoverage);
+        Assert.True(tail.Coverage + 1e-12 >= 0.95);
+    }
+
+    [Fact]
+    public void PR04_003_when_gamma_cannot_be_met_range_is_the_sample()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var low = series.PercentileInterval(0.25, 0.95);
+        Assert.False(low.ReachedCoverage);
+        Assert.Equal(PercentileInterval.SampleRangeMethod, low.Method);
+        Assert.Equal(1, low.LowerRank);
+        Assert.Equal(9, low.UpperRank);
+        Assert.Equal(1m, low.Lower);
+        Assert.Equal(9m, low.Upper);
+    }
 }
