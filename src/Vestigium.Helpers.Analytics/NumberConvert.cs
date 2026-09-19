@@ -73,7 +73,7 @@ internal static class NumberConvert
         }
         catch (OverflowException ex)
         {
-            HelperLog.Reject($"Values[{index}] cannot be stored as decimal");
+            HelperLog.Reject($"Values[{index}] cannot be stored as decimal", ex);
             throw new ArgumentOutOfRangeException(nameof(value), ex, $"Values[{index}] cannot be stored as decimal.");
         }
     }
