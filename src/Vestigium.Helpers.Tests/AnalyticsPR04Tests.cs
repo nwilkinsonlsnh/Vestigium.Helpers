@@ -91,4 +91,34 @@ public sealed class AnalyticsPR04Tests
         Assert.Equal(1m, low.Lower);
         Assert.Equal(9m, low.Upper);
     }
+
+    [Fact]
+    public void PR04_005_one_to_nine_is_a_finite_density()
+    {
+        var pts = NumericSeries.From(Enumerable.Range(1, 9)).PdfPoints();
+        Assert.Equal(KernelDensity.DefaultCount, pts.Count);
+        Assert.True(((IList<DensityPoint>)pts).IsReadOnly);
+        Assert.All(pts, p =>
+        {
+            Assert.True(double.IsFinite(p.X));
+            Assert.True(double.IsFinite(p.Y));
+            Assert.True(p.Y >= 0);
+        });
+
+        double area = 0;
+        for (var i = 1; i < pts.Count; i++)
+            area += 0.5 * (pts[i].Y + pts[i - 1].Y) * (pts[i].X - pts[i - 1].X);
+        Assert.InRange(area, 0.85, 1.05);
+    }
+
+    [Fact]
+    public void PR04_005_constant_is_empty_and_count_is_guarded()
+    {
+        var empty = NumericSeries.From(new[] { 5, 5, 5 }).PdfPoints();
+        Assert.Empty(empty);
+
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.PdfPoints(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.PdfPoints(KernelDensity.MaxCount + 1));
+    }
 }
