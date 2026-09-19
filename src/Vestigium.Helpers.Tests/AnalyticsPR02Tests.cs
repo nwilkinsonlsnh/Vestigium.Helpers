@@ -60,4 +60,23 @@ public sealed class AnalyticsPR02Tests
         Assert.Contains("overflowed", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.IsType<OverflowException>(ex.InnerException);
     }
+
+    [Fact]
+    public void PR02_006_sanitize_name_strips_controls_and_truncates()
+    {
+        Assert.Null(AnalyticsLog.SanitizeName(null));
+        Assert.Null(AnalyticsLog.SanitizeName("   "));
+        Assert.Null(AnalyticsLog.SanitizeName("\r\n\t"));
+        Assert.Equal("rtt ms", AnalyticsLog.SanitizeName("rtt\r\nms"));
+        Assert.Equal("ok", AnalyticsLog.SanitizeName("  ok  "));
+        Assert.Equal(AnalyticsLog.MaxNameLength, AnalyticsLog.SanitizeName(new string('a', 200))!.Length);
+    }
+
+    [Fact]
+    public void PR02_006_name_log_property_is_sanitized()
+    {
+        var props = AnalyticsLog.Props(("name", "rtt\nms"), ("n", "3"));
+        Assert.Equal("rtt ms", props["name"]);
+        Assert.Equal("3", props["n"]);
+    }
 }
