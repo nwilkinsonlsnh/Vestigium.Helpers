@@ -124,14 +124,7 @@ public sealed class SeriesSlice
     public IReadOnlyDictionary<double, decimal> NamedPercentiles()
     {
         if (IsEmpty)
-        {
-            AnalyticsLog.Error(
-                AnalyticsEvents.PercentileRejectedEmpty,
-                VestigiumStatus.Failed,
-                AnalyticsCatalog.Subcategories.Series,
-                "rejected empty percentile");
-            throw new InvalidOperationException("Cannot compute percentiles of an empty slice.");
-        }
+            Quantiles.RejectEmpty();
 
         return new Dictionary<double, decimal>
         {
