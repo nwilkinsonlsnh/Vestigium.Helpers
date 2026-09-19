@@ -1,7 +1,8 @@
 namespace Vestigium.Helpers.Hashing;
 
 /// <summary>
-/// Unkeyed digest. HMAC is a different method family (<see cref="HashingHelper.HmacString"/>).
+/// Unkeyed digest. HMAC is a different method family
+/// (<see cref="HashingHelper.HmacString(string, HmacKey, HashingTextFormat)"/>).
 /// SHA-256 is the default. MD5 and SHA-1 are interop only.
 /// </summary>
 public enum HashingAlgorithm
