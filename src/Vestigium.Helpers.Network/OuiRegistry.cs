@@ -4,6 +4,9 @@ namespace Vestigium.Helpers.Network;
 
 internal static class OuiRegistry
 {
+    internal const long MaxFileBytes = 8L * 1024 * 1024;
+    internal const int MaxRows = 200_000;
+
     public static IReadOnlyDictionary<string, string> Load(string path)
     {
         var file = HelperGuard.NotBlank(path, nameof(path));
@@ -13,9 +16,14 @@ internal static class OuiRegistry
             throw new FileNotFoundException("OUI registry file was not found.", file);
         }
 
+        GuardFile(new FileInfo(file));
+
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var rows = 0;
         foreach (var raw in File.ReadLines(file))
         {
+            rows++;
+            GuardRow(rows);
             var line = raw.Trim();
             if (line.Length == 0 || line[0] is '#' or ';')
                 continue;
@@ -28,7 +36,7 @@ internal static class OuiRegistry
                 continue;
             }
 
-            var parts = line.Split(new[] { ',', '	', '|', ';' }, 2, StringSplitOptions.TrimEntries);
+            var parts = line.Split(new[] { ',', '\t', '|', ';' }, 2, StringSplitOptions.TrimEntries);
             if (parts.Length < 2)
                 continue;
             map[Normalize(parts[0])] = parts[1];
@@ -36,6 +44,24 @@ internal static class OuiRegistry
 
         NetworkLog.Success("Address", $"oui file rows={map.Count}");
         return map;
+    }
+
+    internal static void GuardFile(FileInfo info)
+    {
+        if (info.Length <= MaxFileBytes)
+            return;
+
+        HelperLog.Reject(HelperLog.AppIds.Network, "Address", nameof(Load), "oui file too large");
+        throw new ArgumentException($"OUI registry file exceeds {MaxFileBytes} bytes.", nameof(info));
+    }
+
+    internal static void GuardRow(int rows)
+    {
+        if (rows <= MaxRows)
+            return;
+
+        HelperLog.Reject(HelperLog.AppIds.Network, "Address", nameof(Load), "oui file too many rows");
+        throw new ArgumentException($"OUI registry file exceeds {MaxRows} rows.", nameof(rows));
     }
 
     public static OuiLookupResult Lookup(string macOrOui, IReadOnlyDictionary<string, string> map)
