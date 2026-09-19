@@ -1,17 +1,12 @@
 using ClosedXML.Excel;
-using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.ClosedXml;
 
 /// <summary>
-/// ClosedXML wrappers. Every public call writes through <see cref="HelperLog"/>,
-/// which is a thin door into <c>Vestigium.Logging</c> (<see cref="VestigiumLog.Write"/>).
-/// This library never calls <see cref="VestigiumLogger.Initialize"/> — the gallery
-/// or a later host does that. Until then writes are silent.
-/// JSONL folder: <c>%ProgramData%\Vestigium\Logs\{APPID}\</c> with APPID ClosedXml
-/// unless the caller passed a different appId.
+/// ClosedXML wrappers. Logging goes through Vestigium.Logging (APPID ClosedXml, EVENTID 11000+).
+/// This library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class WorkbookHelper
 {
@@ -21,21 +16,23 @@ public static class WorkbookHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.ClosedXml;
-        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
-        HelperLog.Information(app, VestigiumStatus.Pending, app, "Creating a demo workbook session.");
-        using var book = Create("Probe", app);
+        ClosedXmlLog.Debug(ClosedXmlEvents.ProbeEnter, ClosedXmlCatalog.Subcategories.Probe, "enter Probe");
+        using var book = Create("Probe");
         book.Sheet("Probe").WriteTable(
             SheetTable.Create(["Metric", "Value"], [["Identity", Identity]]),
             new SheetWriteOptions { CreateExcelTable = false, Autosize = false });
-        HelperLog.Information(app, VestigiumStatus.Success, app, "Workbook session ready. Identity=" + Identity);
-        HelperLog.Exit(app, HelperLog.Subcategories.Probe, "Probe", $"session={book.SessionId}");
+        ClosedXmlLog.Information(
+            ClosedXmlEvents.ProbeComplete,
+            ClosedXmlCatalog.Subcategories.Probe,
+            "probe complete",
+            book.SessionId,
+            ClosedXmlLog.Props(("identity", Identity)));
         return Identity;
     }
 
     public static string DefaultExportDirectory(string appId)
     {
-        var id = HelperGuard.NotBlank(appId, nameof(appId));
+        var id = ClosedXmlLog.RequireNotBlank(appId, nameof(appId), ClosedXmlEvents.SessionRejected, ClosedXmlCatalog.Subcategories.Session);
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         if (string.IsNullOrWhiteSpace(desktop))
             desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
@@ -50,7 +47,7 @@ public static class WorkbookHelper
 
     public static string NewExportPath(string appId, string? stem = null)
     {
-        var id = HelperGuard.NotBlank(appId, nameof(appId));
+        var id = ClosedXmlLog.RequireNotBlank(appId, nameof(appId), ClosedXmlEvents.SessionRejected, ClosedXmlCatalog.Subcategories.Session);
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
         var file = string.IsNullOrWhiteSpace(stem)
             ? $"vestigium-{id}-{stamp}.xlsx"
@@ -62,64 +59,74 @@ public static class WorkbookHelper
 
     public static WorkbookSession Create(string? firstSheetName = null, string? appId = null)
     {
-        var app = string.IsNullOrWhiteSpace(appId) ? HelperLog.AppIds.ClosedXml : appId.Trim();
-        var sessionId = HelperLog.NewId();
-        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Create", $"firstSheet={firstSheetName ?? "(default)"} session={sessionId}", sessionId);
+        var app = string.IsNullOrWhiteSpace(appId) ? ClosedXmlCatalog.AppId : appId.Trim();
+        var sessionId = ClosedXmlLog.NewId();
+        ClosedXmlLog.Debug(
+            ClosedXmlEvents.SessionEnter,
+            ClosedXmlCatalog.Subcategories.Session,
+            "enter session",
+            sessionId,
+            ClosedXmlLog.Props(("via", "Create"), ("firstSheet", firstSheetName)),
+            app);
         try
         {
-            HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Creating a blank workbook session={sessionId}");
             var wb = new XLWorkbook();
             var session = new WorkbookSession(wb, path: null, app, sessionId);
             if (!string.IsNullOrWhiteSpace(firstSheetName))
             {
                 var safe = ExcelNames.Sanitize(firstSheetName);
                 if (session.SheetNames.Count == 1 && session.SheetNames[0] != safe)
-                {
                     wb.Worksheet(1).Name = safe;
-                }
                 else
-                {
                     session.Sheet(safe);
-                }
             }
 
             return session;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Session, ex, sessionId, app);
             throw;
         }
     }
 
     public static WorkbookSession Open(string path, string? appId = null)
     {
-        var app = string.IsNullOrWhiteSpace(appId) ? HelperLog.AppIds.ClosedXml : appId.Trim();
-        var sessionId = HelperLog.NewId();
-        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={path} session={sessionId}", sessionId);
-        var target = HelperGuard.FileExists(path, nameof(path));
-        HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Session, $"Opening workbook path={target} session={sessionId}");
+        var app = string.IsNullOrWhiteSpace(appId) ? ClosedXmlCatalog.AppId : appId.Trim();
+        var sessionId = ClosedXmlLog.NewId();
+        var target = ClosedXmlLog.RequireFile(path, nameof(path));
+        ClosedXmlLog.Debug(
+            ClosedXmlEvents.SessionEnter,
+            ClosedXmlCatalog.Subcategories.Session,
+            "enter session",
+            sessionId,
+            ClosedXmlLog.Props(("via", "Open"), ("path", target)),
+            app);
         try
         {
-            return new WorkbookSession(new XLWorkbook(target), target, app, sessionId);
+            var session = new WorkbookSession(new XLWorkbook(target), target, app, sessionId);
+            ClosedXmlLog.Information(
+                ClosedXmlEvents.SessionOpened,
+                ClosedXmlCatalog.Subcategories.Session,
+                "session opened",
+                sessionId,
+                ClosedXmlLog.Props(("path", target)),
+                app);
+            return session;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Session, ex, sessionId, app);
             throw;
         }
     }
 
-    /// <summary>
-    /// Open a caller-supplied letterhead. Same as <see cref="Open"/> — this is not a token
-    /// template engine. Fill with <see cref="WorkbookSession.WriteNamedRange"/> or a reserved sheet.
-    /// </summary>
     public static WorkbookSession OpenTemplate(string path, string? appId = null)
         => Open(path, appId);
 
     public static WorkbookSession OpenOrCreate(string path, string? firstSheetName = null, string? appId = null)
     {
-        var target = HelperGuard.NotBlank(path, nameof(path));
+        var target = ClosedXmlLog.RequireNotBlank(path, nameof(path), ClosedXmlEvents.SessionRejected, ClosedXmlCatalog.Subcategories.Session);
         if (File.Exists(target))
             return Open(target, appId);
 
@@ -135,33 +142,38 @@ public static class WorkbookHelper
         int? populationSize = null,
         string? tableStyle = null)
     {
-        HelperGuard.NotNull(book, nameof(book));
-        HelperGuard.NotNull(series, nameof(series));
-        using var scope = book.Trace(
-            HelperLog.Subcategories.Session,
-            "WriteSeries",
-            $"series={series.SeriesId} n={series.Count} name={series.Name ?? "(none)"} prefix={prefix ?? "(none)"}");
+        ArgumentNullException.ThrowIfNull(book);
+        ArgumentNullException.ThrowIfNull(series);
+        ClosedXmlLog.Debug(
+            ClosedXmlEvents.SessionEnter,
+            ClosedXmlCatalog.Subcategories.Session,
+            "enter session",
+            book.SessionId,
+            ClosedXmlLog.Props(("via", "WriteSeries"), ("series", series.SeriesId), ("n", series.Count.ToString())),
+            book.AppId);
         try
         {
             if (tableStyle is not null)
                 book.TableStyle = tableStyle;
             SeriesWorkbook.Write(book, series, prefix, populationSize);
-            HelperLog.Information(
-                book.AppId,
-                VestigiumStatus.Success,
-                HelperLog.Subcategories.Session,
-                $"WriteSeries series={series.SeriesId} n={series.Count} sheets={book.SheetNames.Count} session={book.SessionId}");
+            ClosedXmlLog.Information(
+                ClosedXmlEvents.WriteSeriesComplete,
+                ClosedXmlCatalog.Subcategories.Session,
+                "series workbook written",
+                book.SessionId,
+                ClosedXmlLog.Props(("series", series.SeriesId), ("n", series.Count.ToString()), ("sheets", book.SheetNames.Count.ToString())),
+                book.AppId);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Session, ex, book.SessionId, book.AppId);
             throw;
         }
     }
 
     public static void Merge(WorkbookSession target, WorkbookSession source)
     {
-        HelperGuard.NotNull(target, nameof(target));
+        ArgumentNullException.ThrowIfNull(target);
         target.Merge(source);
     }
 }
