@@ -54,11 +54,10 @@ public sealed class SheetSession
         if (colCount <= 0)
         {
             ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
-                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("reason", "no-columns")), appId: _book.AppId);
+                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("reason", "no-columns"), ("sheet", Name)), appId: _book.AppId);
             throw new ArgumentException("A table needs at least one column.", nameof(table));
         }
 
-        var neutralized = 0;
         if (opts.HasHeaderRow)
         {
             for (var c = 0; c < headers.Count; c++)
@@ -72,8 +71,7 @@ public sealed class SheetSession
             for (var c = 0; c < colCount; c++)
             {
                 var value = c < dataRow.Count ? dataRow[c] : null;
-                if (CellWriter.Write(_sheet.Cell(r, column + c), value, opts))
-                    neutralized++;
+                CellWriter.Write(_sheet.Cell(r, column + c), value, opts);
             }
 
             r++;
@@ -89,8 +87,6 @@ public sealed class SheetSession
             ApplyOperatorPrint();
         if (!string.IsNullOrWhiteSpace(opts.HighlightColumn) && opts.HighlightGreaterThan is { } threshold)
             HighlightGreaterThan(opts.HighlightColumn, threshold, row, column, lastRow, lastCol);
-        ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
-            _book.SessionId, ClosedXmlLog.Props(("sheet", Name), ("rows", table.Rows.Count.ToString()), ("cols", colCount.ToString()), ("neutralized", neutralized.ToString())), _book.AppId);
     }
 
     public void AppendRows(IEnumerable<IReadOnlyList<object?>> rows, SheetWriteOptions? options = null)
@@ -107,18 +103,13 @@ public sealed class SheetSession
             if (r < 1)
                 r = 1;
 
-            var count = 0;
             foreach (var row in rows)
             {
                 colCount = Math.Max(colCount, row.Count);
                 for (var c = 0; c < row.Count; c++)
                     CellWriter.Write(_sheet.Cell(r, c + 1), row[c], opts);
                 r++;
-                count++;
             }
-
-            ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
-                _book.SessionId, ClosedXmlLog.Props(("via", "AppendRows"), ("sheet", Name), ("rows", count.ToString())), _book.AppId);
         }
         catch (Exception ex)
         {
@@ -136,11 +127,7 @@ public sealed class SheetSession
             var opts = options ?? SheetReadOptions.Default;
             var used = _sheet.RangeUsed();
             if (used is null)
-            {
-                ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
-                    _book.SessionId, ClosedXmlLog.Props(("via", "Read"), ("sheet", Name), ("rows", "0")), _book.AppId);
                 return new SheetTable { Headers = [], Rows = [], Name = Name };
-            }
 
             var firstRow = used.FirstRow().RowNumber();
             var lastRow = used.LastRow().RowNumber();
@@ -176,8 +163,6 @@ public sealed class SheetSession
             }
 
             var tableName = _sheet.Tables.FirstOrDefault()?.Name ?? Name;
-            ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
-                _book.SessionId, ClosedXmlLog.Props(("via", "Read"), ("sheet", Name), ("rows", rows.Count.ToString()), ("cols", colCount.ToString())), _book.AppId);
             return new SheetTable { Headers = headers, Rows = rows, Name = tableName };
         }
         catch (Exception ex)
@@ -234,7 +219,7 @@ public sealed class SheetSession
         if (used is null)
         {
             ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
-                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("reason", "no-used-range")), appId: _book.AppId);
+                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("reason", "no-used-range"), ("sheet", Name)), appId: _book.AppId);
             throw new InvalidOperationException("Sheet has no used range to highlight.");
         }
         HighlightGreaterThan(
@@ -274,8 +259,6 @@ public sealed class SheetSession
             pic.Height = heightPx;
         if (!string.IsNullOrWhiteSpace(name))
             pic.Name = name.Trim();
-        ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
-            _book.SessionId, ClosedXmlLog.Props(("via", "AddPicture"), ("sheet", Name)), _book.AppId);
     }
 
     internal IXLWorksheet Worksheet => _sheet;
@@ -289,7 +272,7 @@ public sealed class SheetSession
         if (col is not int column)
         {
             ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
-                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("header", name), ("reason", "missing-header")), appId: _book.AppId);
+                correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("header", name), ("reason", "missing-header"), ("sheet", Name)), appId: _book.AppId);
             throw new ArgumentException($"Header '{name}' was not on this sheet.", nameof(header));
         }
 
