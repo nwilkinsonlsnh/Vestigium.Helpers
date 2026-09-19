@@ -49,6 +49,9 @@ public sealed record ChartOptions
     public double? Width { get; init; }
     public double? Height { get; init; }
     public string? Color { get; init; }
+
+    /// <summary>γ for <see cref="ChartKind.MeanInterval"/>. Null means <see cref="ConfidenceLevel.DefaultValue"/>.</summary>
+    public double? IntervalLevel { get; init; }
 }
 
 public sealed class ChartSpec
