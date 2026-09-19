@@ -11,15 +11,37 @@ namespace Vestigium.Helpers.Analytics;
 public sealed class NumericSeries
 {
     public NumericSeries(IEnumerable<decimal> values, string? name = null)
-        : this(
-            NumberConvert.ToDecimalList(HelperGuard.NotNull(values, nameof(values))),
-            times: [],
-            name,
-            SeriesWindow.None)
     {
+        using var scope = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Series,
+            "ctor",
+            $"name={name ?? "(none)"}");
+        try
+        {
+            Bind(
+                NumberConvert.ToDecimalList(HelperGuard.NotNull(values, nameof(values))),
+                times: [],
+                name,
+                SeriesWindow.None);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     private NumericSeries(
+        List<decimal> values,
+        IReadOnlyList<DateTimeOffset?> times,
+        string? name,
+        SeriesWindow window)
+    {
+        Bind(values, times, name, window);
+    }
+
+    private void Bind(
         List<decimal> values,
         IReadOnlyList<DateTimeOffset?> times,
         string? name,
@@ -100,7 +122,15 @@ public sealed class NumericSeries
             HelperLog.Subcategories.Series,
             "FromDecimal",
             $"name={name ?? "(none)"}");
-        return new NumericSeries(values, name);
+        try
+        {
+            return new NumericSeries(values, name);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public static NumericSeries FromObservations(IEnumerable<Observation> observations, string? name = null)
@@ -110,9 +140,17 @@ public sealed class NumericSeries
             HelperLog.Subcategories.Series,
             "FromObservations",
             $"name={name ?? "(none)"}");
-        HelperGuard.NotNull(observations, nameof(observations));
-        var (values, times) = Unpack(observations);
-        return new NumericSeries(values, times, name, SeriesWindow.None);
+        try
+        {
+            HelperGuard.NotNull(observations, nameof(observations));
+            var (values, times) = Unpack(observations);
+            return new NumericSeries(values, times, name, SeriesWindow.None);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     public static NumericSeries FromObservations(
@@ -126,39 +164,47 @@ public sealed class NumericSeries
             HelperLog.Subcategories.Series,
             "FromObservations",
             $"name={name ?? "(none)"} window=[{startInclusive:o},{endExclusive:o})");
-        HelperGuard.NotNull(observations, nameof(observations));
-        HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
+        try
+        {
+            HelperGuard.NotNull(observations, nameof(observations));
+            HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
 
-        var filtered = observations.Where(o =>
-            o.At is { } at &&
-            at.UtcTicks >= startInclusive.UtcTicks &&
-            at.UtcTicks < endExclusive.UtcTicks);
+            var filtered = observations.Where(o =>
+                o.At is { } at &&
+                at.UtcTicks >= startInclusive.UtcTicks &&
+                at.UtcTicks < endExclusive.UtcTicks);
 
-        var (values, times) = Unpack(filtered);
-        return new NumericSeries(
-            values,
-            times,
-            name,
-            new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
+            var (values, times) = Unpack(filtered);
+            return new NumericSeries(
+                values,
+                times,
+                name,
+                new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
-    public string SeriesId { get; }
-    public string? Name { get; }
+    public string SeriesId { get; private set; } = "";
+    public string? Name { get; private set; }
     public int Count => Values.Count;
-    public IReadOnlyList<decimal> Values { get; }
-    public IReadOnlyList<decimal> Sorted { get; }
-    public IReadOnlyList<DateTimeOffset?> Times { get; }
-    public bool HasTimestamps { get; }
-    public DateTimeOffset? FirstAt { get; }
-    public DateTimeOffset? LastAt { get; }
-    public SeriesWindow Window { get; }
+    public IReadOnlyList<decimal> Values { get; private set; } = [];
+    public IReadOnlyList<decimal> Sorted { get; private set; } = [];
+    public IReadOnlyList<DateTimeOffset?> Times { get; private set; } = [];
+    public bool HasTimestamps { get; private set; }
+    public DateTimeOffset? FirstAt { get; private set; }
+    public DateTimeOffset? LastAt { get; private set; }
+    public SeriesWindow Window { get; private set; }
 
-    public SeriesSlice Full { get; }
-    public SeriesSlice Q1 { get; }
-    public SeriesSlice Q2 { get; }
-    public SeriesSlice Q3 { get; }
-    public SeriesSlice Q4 { get; }
-    public SeriesSlice Iqr { get; }
+    public SeriesSlice Full { get; private set; } = null!;
+    public SeriesSlice Q1 { get; private set; } = null!;
+    public SeriesSlice Q2 { get; private set; } = null!;
+    public SeriesSlice Q3 { get; private set; } = null!;
+    public SeriesSlice Q4 { get; private set; } = null!;
+    public SeriesSlice Iqr { get; private set; } = null!;
 
     public IReadOnlyList<SeriesSlice> Bands => [Full, Q1, Q2, Q3, Q4, Iqr];
 
@@ -170,33 +216,41 @@ public sealed class NumericSeries
             "Slice",
             $"series={SeriesId} window=[{startInclusive:o},{endExclusive:o})",
             SeriesId);
-        HelperGuard.RequireState(HasTimestamps, "Slice requires at least one timestamped observation.");
-        HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
-
-        var values = new List<decimal>();
-        var times = new List<DateTimeOffset?>();
-        for (var i = 0; i < Values.Count; i++)
+        try
         {
-            if (Times[i] is not { } at)
-                continue;
-            if (at.UtcTicks >= startInclusive.UtcTicks && at.UtcTicks < endExclusive.UtcTicks)
+            HelperGuard.RequireState(HasTimestamps, "Slice requires at least one timestamped observation.");
+            HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
+
+            var values = new List<decimal>();
+            var times = new List<DateTimeOffset?>();
+            for (var i = 0; i < Values.Count; i++)
             {
-                values.Add(Values[i]);
-                times.Add(at);
+                if (Times[i] is not { } at)
+                    continue;
+                if (at.UtcTicks >= startInclusive.UtcTicks && at.UtcTicks < endExclusive.UtcTicks)
+                {
+                    values.Add(Values[i]);
+                    times.Add(at);
+                }
             }
-        }
 
-        if (values.Count == 0)
+            if (values.Count == 0)
+            {
+                HelperLog.Reject($"slice produced an empty series series={SeriesId}");
+                throw new ArgumentException("Slice produced an empty series.");
+            }
+
+            return new NumericSeries(
+                values,
+                times,
+                name ?? Name,
+                new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
+        }
+        catch (Exception ex)
         {
-            HelperLog.Reject($"slice produced an empty series series={SeriesId}");
-            throw new ArgumentException("Slice produced an empty series.");
+            HelperLog.Trap(ex);
+            throw;
         }
-
-        return new NumericSeries(
-            values,
-            times,
-            name ?? Name,
-            new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
     }
 
     public ConfidenceReport Confidence(double level = ConfidenceLevel.DefaultValue)
@@ -232,18 +286,26 @@ public sealed class NumericSeries
             "Confidence",
             $"γ={level} N={populationSize} n={Count} series={SeriesId}",
             SeriesId);
-        HelperGuard.InRange(populationSize, 1, nameof(populationSize));
-        HelperGuard.Require(
-            Count <= populationSize,
-            nameof(populationSize),
-            "Sample count cannot exceed population size.");
-        var report = Full.Confidence(level, populationSize);
-        HelperLog.Information(
-            HelperLog.AppIds.Analytics,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Confidence,
-            $"confidence series={SeriesId} γ={level} N={populationSize} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
-        return report;
+        try
+        {
+            HelperGuard.InRange(populationSize, 1, nameof(populationSize));
+            HelperGuard.Require(
+                Count <= populationSize,
+                nameof(populationSize),
+                "Sample count cannot exceed population size.");
+            var report = Full.Confidence(level, populationSize);
+            HelperLog.Information(
+                HelperLog.AppIds.Analytics,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Confidence,
+                $"confidence series={SeriesId} γ={level} N={populationSize} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
+            return report;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     /// <summary>
@@ -264,7 +326,23 @@ public sealed class NumericSeries
     }
 
     public int? SampleSizeForMeanMargin(double targetMargin, double level = ConfidenceLevel.DefaultValue)
-        => ConfidenceReport.PlanSampleSize(Full.Statistics, targetMargin, ConfidenceLevel.Of(level));
+    {
+        using var _ = HelperLog.Begin(
+            HelperLog.AppIds.Analytics,
+            HelperLog.Subcategories.Confidence,
+            "SampleSizeForMeanMargin",
+            $"margin={targetMargin} γ={level} series={SeriesId}",
+            SeriesId);
+        try
+        {
+            return ConfidenceReport.PlanSampleSize(Full.Statistics, targetMargin, ConfidenceLevel.Of(level));
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
 
     public ConfidenceInterval ProportionAbove(decimal threshold, double level = ConfidenceLevel.DefaultValue)
         => Full.ProportionAbove(threshold, level);
