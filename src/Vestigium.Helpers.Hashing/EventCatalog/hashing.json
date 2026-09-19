@@ -1,0 +1,12 @@
+{
+  "app": "Hashing",
+  "category": "Helpers",
+  "block": { "start": 13000, "end": 13499 },
+  "events": [
+    { "eventId": 13000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Hashing", "message": "enter Probe" },
+    { "eventId": 13005, "name": "ProbeComplete", "severity": "Information", "subcategory": "Hashing", "message": "probe complete" },
+    { "eventId": 13010, "name": "OperationEnter", "severity": "Debug", "subcategory": "Hashing", "message": "enter operation" },
+    { "eventId": 13015, "name": "OperationComplete", "severity": "Information", "subcategory": "Hashing", "message": "operation complete" },
+    { "eventId": 13020, "name": "OperationFailed", "severity": "Error", "subcategory": "Hashing", "message": "operation failed" }
+  ]
+}
