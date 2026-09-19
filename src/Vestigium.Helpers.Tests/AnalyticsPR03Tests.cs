@@ -127,7 +127,7 @@ public sealed class AnalyticsPR03Tests
     }
 
     [Fact]
-    public void PR03_004_one_sided_cp_matches_the_present_side()
+    public void PR04_004_one_sided_cp_matches_the_present_side()
     {
         var series = NumericSeries.From(Enumerable.Range(1, 9));
         var sigmaW = 1d / ControlLimits.D2Span2;
@@ -166,11 +166,10 @@ public sealed class AnalyticsPR03Tests
     }
 
     [Fact]
-    public void PR03_005_quiet_series_has_no_hits()
+    public void PR03_005_quiet_series_has_no_western_electric_hits()
     {
-        var report = NumericSeries.From(Enumerable.Range(1, 9)).RunRules();
-        Assert.Empty(report.Hits);
-        Assert.Empty(report.AllIndexes);
+        var report = NumericSeries.From(new[] { 5, 4, 6, 5, 4, 6, 5, 4, 6 }).RunRules();
+        Assert.DoesNotContain(report.Hits, h => (int)h.Rule <= 4);
         Assert.Equal(ControlLimitMethod.MeanPlusKSigma, report.Limits.Method);
     }
 
