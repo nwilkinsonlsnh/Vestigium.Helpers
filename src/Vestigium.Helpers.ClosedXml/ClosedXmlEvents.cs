@@ -23,4 +23,6 @@ public static class ClosedXmlEvents
     public const int CellNeutralized = 11070;
     public const int CellRejectedNonFinite = 11075;
     public const int WriteSeriesComplete = 11080;
+    public const int ChartsEmbedded = 11085;
+    public const int ChartPackFailed = 11090;
 }
