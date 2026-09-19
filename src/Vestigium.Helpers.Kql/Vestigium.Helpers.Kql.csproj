@@ -16,9 +16,6 @@
     <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
 </Project>
