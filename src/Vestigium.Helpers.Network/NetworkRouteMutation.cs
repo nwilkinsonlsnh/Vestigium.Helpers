@@ -15,7 +15,7 @@ internal static class NetworkRouteMutation
     const uint ErrorNotFound = 1168;
     const int ProtoNetMgmt = 3;
     const int TypeIndirect = 4;
-    const string PersistentKey = @"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes";
+    const string PersistentKey = @"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\PersistentRoutes";
 
     public static void Add(NetworkRouteChange change)
     {
@@ -147,6 +147,9 @@ internal static class NetworkRouteMutation
 
         return null;
     }
+
+    internal static int FirstIpv4Index()
+        => ResolveInterfaceIndex(null, TryFirstIpv4Index());
 
     static uint ToUint(IPAddress ip)
         => BitConverter.ToUInt32(ip.GetAddressBytes(), 0);
