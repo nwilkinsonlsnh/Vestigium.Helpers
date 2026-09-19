@@ -1,0 +1,13 @@
+{
+  "app": "Processes",
+  "category": "Helpers",
+  "block": { "start": 15000, "end": 15499 },
+  "events": [
+    { "eventId": 15000, "name": "ProbeEnter", "severity": "Information", "subcategory": "Processes", "message": "enter Probe" },
+    { "eventId": 15005, "name": "ProbeComplete", "severity": "Information", "subcategory": "Processes", "message": "probe complete" },
+    { "eventId": 15010, "name": "OperationEnter", "severity": "Debug", "subcategory": "Processes", "message": "enter operation" },
+    { "eventId": 15015, "name": "OperationComplete", "severity": "Information", "subcategory": "Processes", "message": "operation complete" },
+    { "eventId": 15020, "name": "OperationFailed", "severity": "Error", "subcategory": "Processes", "message": "operation failed" },
+    { "eventId": 15025, "name": "OperationWarning", "severity": "Warning", "subcategory": "Processes", "message": "operation warning" }
+  ]
+}
