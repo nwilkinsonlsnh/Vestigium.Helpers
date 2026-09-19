@@ -121,7 +121,15 @@ public sealed class SeriesSlice
             HelperLog.Subcategories.Limits,
             "ControlLimits",
             $"band={Kind} method={method} k={k} n={Count}");
-        return Analytics.ControlLimits.Compute(Values, Mean, StdDev, method, k, floor);
+        try
+        {
+            return Analytics.ControlLimits.Compute(Values, Mean, StdDev, method, k, floor);
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     internal DescriptiveStatistics Statistics => _stats;
