@@ -141,6 +141,17 @@ public sealed class NumericSeriesTests
         Assert.Contains(100m, series.Full.HighOutliers);
         Assert.Empty(series.Full.LowOutliers);
         Assert.DoesNotContain(1m, series.Full.Outliers);
+        Assert.Equal(new[] { 5 }, series.Full.HighOutlierIndexes);
+        Assert.Empty(series.Full.LowOutlierIndexes);
+        Assert.Equal(new[] { 5 }, series.Full.OutlierIndexes);
+    }
+
+    [Fact]
+    public void Right_skew_outlier_index_is_the_last_encounter()
+    {
+        var series = NumericSeries.From(new[] { 10, 11, 11, 12, 12, 12, 13, 13, 14, 40 });
+        Assert.Equal(new[] { 9 }, series.Full.HighOutlierIndexes);
+        Assert.Empty(series.Q4.HighOutlierIndexes);
     }
 
     [Fact]
@@ -155,6 +166,15 @@ public sealed class NumericSeriesTests
     }
 
     [Fact]
+    public void Proportion_above_seven_on_one_to_nine_is_two_ninths()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var interval = series.ProportionAbove(7m);
+        Assert.True(interval.IsDefined);
+        Assert.Equal(2d / 9d, interval.Estimate);
+    }
+
+    [Fact]
     public void Census_collapses_the_mean_interval()
     {
         var series = NumericSeries.From(Enumerable.Range(1, 9));
@@ -162,6 +182,43 @@ public sealed class NumericSeriesTests
         Assert.True(ci.Mean.IsDefined);
         Assert.Equal(5d, ci.Mean.Lower);
         Assert.Equal(5d, ci.Mean.Upper);
+    }
+
+    [Fact]
+    public void Named_percentiles_match_percentile()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var named = series.Full.NamedPercentiles();
+        foreach (var p in new[] { 0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99 })
+        {
+            Assert.True(named.ContainsKey(p));
+            Assert.Equal(series.Full.Percentile(p), named[p]);
+        }
+    }
+
+    [Fact]
+    public void Empty_band_confidence_is_undefined_and_percentiles_throw()
+    {
+        var series = NumericSeries.From(new[] { 5, 5, 5 });
+        var ci = series.Q4.Confidence();
+        Assert.False(ci.Mean.IsDefined);
+        Assert.False(ci.Median.IsDefined);
+        Assert.False(ci.Variance.IsDefined);
+        Assert.False(ci.StdDev.IsDefined);
+        Assert.Empty(series.Q4.OutlierIndexes);
+        Assert.Throws<InvalidOperationException>(() => series.Q4.Percentile(0.95));
+        Assert.Throws<InvalidOperationException>(() => series.Q4.NamedPercentiles());
+    }
+
+    [Fact]
+    public void Sample_size_planner_uses_current_s()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var n = series.SampleSizeForMeanMargin(0.5);
+        Assert.NotNull(n);
+        Assert.True(n >= 2);
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.SampleSizeForMeanMargin(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.SampleSizeForMeanMargin(-1));
     }
 
     [Fact]
@@ -224,6 +281,28 @@ public sealed class NumericSeriesTests
         Assert.Equal(new[] { 20m }, sliced.Values);
         Assert.Equal(SeriesWindowKind.CallerSupplied, sliced.Window.Kind);
         Assert.Equal(3, series.TimeSeriesPoints().Count);
+    }
+
+    [Fact]
+    public void Time_series_points_follow_the_clock()
+    {
+        var t0 = new DateTimeOffset(2026, 9, 19, 14, 0, 0, TimeSpan.Zero);
+        var series = NumericSeries.FromObservations(
+        [
+            new Observation(30m, t0.AddSeconds(2)),
+            new Observation(10m, t0),
+            new Observation(20m, t0.AddSeconds(1)),
+            new Observation(99m, At: null),
+            new Observation(11m, t0)
+        ]);
+
+        var points = series.TimeSeriesPoints();
+        Assert.Equal(4, points.Count);
+        Assert.Equal(new[] { 10m, 11m, 20m, 30m }, points.Select(p => p.Value).ToArray());
+        Assert.Equal(t0, points[0].At);
+        Assert.Equal(t0, points[1].At);
+        Assert.Equal(t0.AddSeconds(1), points[2].At);
+        Assert.Equal(t0.AddSeconds(2), points[3].At);
     }
 
     [Fact]
