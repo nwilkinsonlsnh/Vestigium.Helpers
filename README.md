@@ -7,7 +7,7 @@ Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, 
 **Target:** .NET 10 LTS / Visual Studio 2026  
 **Shape:** class libraries + one WPF gallery per library (same chrome as Vestigium.Logging)  
 **Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`  
-**Logging:** [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) JSON Lines (sibling repo, solution folder `/Logging/`)
+**Logging:** [Vestigium.Logging](https://www.nuget.org/packages/Vestigium.Logging) 1.7.0 (NuGet). Libraries write through `HelperLog`.
 
 Umbrella requirements: [`_Documentation/Requirements_v1.0.md`](_Documentation/Requirements_v1.0.md)  
 Umbrella developer notes: [`_Documentation/DevelopersGuide_v1.0.md`](_Documentation/DevelopersGuide_v1.0.md)
@@ -26,16 +26,9 @@ Each WPF gallery is a host. It initializes with that helper's APPID. JSONL lands
 %ProgramData%\Vestigium\Logs\{APPID}\vestigium-{APPID}-*.json
 ```
 
-Clone [Vestigium.Logging](https://github.com/nwilkinsonlsnh/Vestigium.Logging) as a **sibling** of this repo. The solution already references it:
+`Vestigium.Helpers` takes a `PackageReference` to `Vestigium.Logging`. Child libraries go through `HelperLog` and do not reference Logging themselves. Restore from nuget.org; do not vendor Logging source into this repo.
 
-```
-Vestigium.Helpers/
-Vestigium.Logging/
-```
-
-`Vestigium.Helpers.slnx` loads `../Vestigium.Logging/src/Vestigium.Logging/Vestigium.Logging.csproj` under the **Logging** folder. The padlock in Solution Explorer is expected — the project lives outside this repo.
-
-CI checks both repositories out as siblings so the same slnx path restores.
+`HelperLog.Write` maps onto the 1.7 API (`EVENTID` first). Phase 1 uses the general catalog (0 Debug, 1 Information, 2 Warning, 3 Error, 4 Fatal). Custom Helpers ids start at 10000 later.
 
 ## Libraries
 
@@ -61,9 +54,9 @@ Each library has a matching `*.Demo` WPF gallery under the **Demo** solution fol
 
 ## Open in Visual Studio
 
-1. Clone this repository **and** `Vestigium.Logging` next to it.
+1. Clone this repository.
 2. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
-3. Restore NuGet.
+3. Restore NuGet (`Vestigium.Logging` 1.7.0 comes from nuget.org).
 4. Set any `*.Demo` project as startup, F5. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, FileIo, Json, and Network open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
 5. Run `Vestigium.Helpers.Tests` for the contract.
 
@@ -88,5 +81,5 @@ dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network
 - `WinReg` stays on `net10.0-windows`.
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory`.
 - Network campaign tests inject `NetworkTestHooks.CampaignRoot`. They never write `%ProgramData%\Vestigium\Network` or `/var/lib/vestigium`.
-- `Vestigium.Logging` stays a sibling repo. Do not vendor its source into Helpers.
+- `Vestigium.Logging` is a NuGet package. Do not vendor its source into Helpers.
 - Linux CI for `--filter FullyQualifiedName~Network` is waived as of 10 September 2026 because the test project is `net10.0-windows`. Windows-latest remains the gate.

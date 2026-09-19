@@ -13,9 +13,7 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="$(VestigiumLoggingProject)">
-      <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
-    </ProjectReference>
+    <PackageReference Include="Vestigium.Logging" Version="1.7.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="_Documentation\Reports\" />

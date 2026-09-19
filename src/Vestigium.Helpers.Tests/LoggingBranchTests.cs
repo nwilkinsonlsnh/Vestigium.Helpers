@@ -64,12 +64,12 @@ public sealed class LoggingBranchTests
             sub = VestigiumLogger.Events.Subscribe(new LogCollector(seen));
             _ = VestigiumLogger.EventReader;
 
-            VestigiumLog.Verbose(VestigiumStatus.Success, "System", "IO", "verbose");
-            VestigiumLog.Debug(VestigiumStatus.Success, "System", "IO", "debug");
-            VestigiumLog.Information(VestigiumStatus.Success, "System", "IO", "info");
-            VestigiumLog.Warning(VestigiumStatus.Pending, "System", "IO", "warn");
-            VestigiumLog.Error(VestigiumStatus.Failed, "System", "IO", "error", new InvalidOperationException("boom"));
-            VestigiumLog.Fatal(VestigiumStatus.Failed, "System", "IO", "fatal");
+            VestigiumLog.Verbose(0, VestigiumStatus.Success, "System", "IO", "verbose");
+            VestigiumLog.Debug(0, VestigiumStatus.Success, "System", "IO", "debug");
+            VestigiumLog.Information(1, VestigiumStatus.Success, "System", "IO", "info");
+            VestigiumLog.Warning(2, VestigiumStatus.Pending, "System", "IO", "warn");
+            VestigiumLog.Error(3, VestigiumStatus.Failed, "System", "IO", "error", new InvalidOperationException("boom"));
+            VestigiumLog.Fatal(4, VestigiumStatus.Failed, "System", "IO", "fatal");
             VestigiumLogger.Flush();
             Assert.True(seen.Count >= 1 || VestigiumLogger.WrittenCount >= 1);
 
@@ -83,7 +83,7 @@ public sealed class LoggingBranchTests
             for (var i = 0; i < 12; i++)
             {
                 VestigiumLog.Information(
-                    VestigiumStatus.Timeout, "Network", "ICMP",
+                    8, VestigiumStatus.Timeout, "Network", "ICMP",
                     "Echo request to 8.8.8.8 timed out after 1000 ms");
             }
 
@@ -126,7 +126,7 @@ public sealed class LoggingBranchTests
 
         HelperLog.Shutdown();
         Assert.Throws<InvalidOperationException>(() =>
-            VestigiumLog.Information(VestigiumStatus.Success, "Network", "ICMP", "hello"));
+            VestigiumLog.Information(1, VestigiumStatus.Success, "Network", "ICMP", "hello"));
         Assert.Throws<ArgumentException>(() => VestigiumLogger.Initialize(cfg => cfg.AppId = " "));
 
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumLogBranch", Guid.NewGuid().ToString("N"));

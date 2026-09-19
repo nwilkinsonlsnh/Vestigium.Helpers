@@ -6,8 +6,8 @@ namespace Vestigium.Helpers;
 /// Only door from helper libraries into Vestigium.Logging.
 /// ClosedXml and Analytics call this type. They never call
 /// <see cref="VestigiumLogger.Initialize"/> and they never write files themselves.
-/// The padlock <c>Vestigium.Logging</c> project in Solution Explorer is the engine
-/// that formats JSONL under <c>%ProgramData%\Vestigium\Logs\{APPID}\</c>.
+/// Writes go through the Vestigium.Logging NuGet package as JSONL under
+/// <c>%ProgramData%\Vestigium\Logs\{APPID}\</c>.
 /// Writes are no-ops until a host (WPF gallery, later a product process) initializes.
 /// <see cref="Flush"/> is process-exit only — it stops further writes.
 /// </summary>
@@ -251,13 +251,15 @@ public static class HelperLog
             return;
 
         VestigiumLog.Write(
+            EventIdFor(level),
             level,
             status,
             Category,
             subcategory,
             message,
             exception,
-            helperAppId);
+            helperAppId,
+            CorrelationId);
     }
 
     public static void Verbose(string appId, VestigiumStatus status, string subcategory, string message, Exception? exception = null)
@@ -277,6 +279,20 @@ public static class HelperLog
 
     public static void Fatal(string appId, VestigiumStatus status, string subcategory, string message, Exception? exception = null)
         => Write(appId, VestigiumLogLevel.Fatal, status, subcategory, message, exception);
+
+    /// <summary>
+    /// Maps a helper write onto the Vestigium.Logging 1.7 general catalog (EVENTID 0–4).
+    /// Custom Helpers ids (10000+) come later; this keeps the public HelperLog surface unchanged.
+    /// </summary>
+    private static int EventIdFor(VestigiumLogLevel level) => level switch
+    {
+        VestigiumLogLevel.Verbose or VestigiumLogLevel.Debug => 0,
+        VestigiumLogLevel.Information => 1,
+        VestigiumLogLevel.Warning => 2,
+        VestigiumLogLevel.Error => 3,
+        VestigiumLogLevel.Fatal => 4,
+        _ => 1
+    };
 
     private static VestigiumTaxonomy CreateTaxonomy()
     {
