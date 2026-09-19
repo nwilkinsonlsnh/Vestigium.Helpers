@@ -155,4 +155,22 @@ public sealed class AnalyticsPR03Tests
         Assert.True(((IList<int>)cap.Spec.OutsideIndexes).IsReadOnly);
         Assert.Throws<ArgumentNullException>(() => series.Capability(null!));
     }
+
+    [Fact]
+    public void PR03_005_value_band_and_caller_supplied_are_rejected()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var band = Assert.Throws<InvalidOperationException>(() => series.Q4.RunRules());
+        Assert.Equal(RunRuleReport.RequiresFull, band.Message);
+        Assert.Throws<ArgumentException>(() => series.RunRules(ControlLimitMethod.CallerSupplied));
+    }
+
+    [Fact]
+    public void PR03_005_quiet_series_has_no_hits()
+    {
+        var report = NumericSeries.From(Enumerable.Range(1, 9)).RunRules();
+        Assert.Empty(report.Hits);
+        Assert.Empty(report.AllIndexes);
+        Assert.Equal(ControlLimitMethod.MeanPlusKSigma, report.Limits.Method);
+    }
 }
