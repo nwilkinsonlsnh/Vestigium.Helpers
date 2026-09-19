@@ -29,7 +29,7 @@ public sealed class KqlCoverageBoostTests
 
         using var system = KqlHelper.Create(KqlPack.System);
         Assert.True(system.TryGetField("SYS.ProcessCount", out _));
-        Assert.True(system.Fields.Any(f => f.WatchOnly));
+        Assert.Contains(system.Fields, f => f.WatchOnly);
     }
 
     [Fact]
