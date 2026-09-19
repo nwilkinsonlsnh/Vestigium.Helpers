@@ -24,10 +24,6 @@ public enum TrendKind
     Linear
 }
 
-/// <summary>
-/// Whiskers on <see cref="ChartKind.Box"/>. Five-number is min / Q1 / median / Q3 / max.
-/// Tukey stops at the last in-fence point and plots outliers.
-/// </summary>
 public enum BoxWhiskerKind
 {
     FiveNumber = 0,
@@ -50,9 +46,10 @@ public sealed record ChartOptions
     public double? Height { get; init; }
     public string? Color { get; init; }
     public double? IntervalLevel { get; init; }
-
-    /// <summary>Host-computed run rules. Charts only paints <see cref="RunRuleReport.AllIndexes"/>.</summary>
     public RunRuleReport? RunRules { get; init; }
+
+    /// <summary>Host LSL/USL. Not control fences.</summary>
+    public SpecLimits? Spec { get; init; }
 }
 
 public sealed class ChartSpec
@@ -64,9 +61,10 @@ public sealed class ChartSpec
     public ControlLimits? Limits { get; init; }
     public NumericSeries? Source { get; init; }
     public IReadOnlyList<ChartSlice>? Slices { get; init; }
-
-    /// <summary>Host-computed run rules. Wins over <see cref="ChartOptions.RunRules"/>.</summary>
     public RunRuleReport? RunRules { get; init; }
+
+    /// <summary>Host LSL/USL. Wins over <see cref="ChartOptions.Spec"/>.</summary>
+    public SpecLimits? Spec { get; init; }
 }
 
 public sealed class ChartSeries
@@ -147,5 +145,7 @@ internal static class Palette
     public const string Cl = "#2F4F4F";
     public const string Ucl = "#A33B3B";
     public const string Lcl = "#3B6EA3";
+    public const string Lsl = "#5B8C5A";
+    public const string Usl = "#8C5A7A";
     public const string Grid = "#D9DEE4";
 }
