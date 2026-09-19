@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using Microsoft.Win32;
 using Vestigium.Helpers;
 
@@ -129,7 +128,7 @@ internal static class NetworkInventoryEngine
             gateways,
             dns,
             ReadDhcp(nic, props),
-            ReadNetbios(nic));
+            OperatingSystem.IsWindows() ? ReadNetbios(nic) : NetbiosOverTcp.Unknown);
     }
 
     private static UnicastAddress MapUnicast(UnicastIPAddressInformation addr)
@@ -218,12 +217,8 @@ internal static class NetworkInventoryEngine
         return new DhcpInfo(enabled, server, null, null);
     }
 
-    [SupportedOSPlatform("windows")]
     private static NetbiosOverTcp ReadNetbios(NetworkInterface nic)
     {
-        if (!OperatingSystem.IsWindows())
-            return NetbiosOverTcp.Unknown;
-
         try
         {
             var id = nic.Id.Trim('{', '}');
