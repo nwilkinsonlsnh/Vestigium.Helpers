@@ -52,7 +52,47 @@ internal static class IcmpEchoEngine
         if (o.Ttl is < 1 or > 255)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"Ttl={o.Ttl}");
-            throw new ArgumentOutOfRangeException(nameof(o.Ttl), "Ttl={o.Ttl}");
+            throw new ArgumentOutOfRangeException(nameof(o.Ttl), $"Ttl={o.Ttl}");
+        }
+
+        if (o.MaxDuration is { } explicitDuration
+            && (explicitDuration <= TimeSpan.Zero || explicitDuration > IcmpEchoOptions.MaxJobDuration))
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"MaxDuration={explicitDuration}");
+            throw new ArgumentOutOfRangeException(nameof(o.MaxDuration), "MaxDuration must be greater than 0 and at most 24 hours.");
+        }
+
+        if (o.Count != 0)
+            return;
+
+        o.MaxDuration ??= IcmpEchoOptions.DefaultContinuousDuration;
+        var duration = o.MaxDuration.Value;
+
+        if (duration > IcmpEchoOptions.ShortContinuousLimit)
+        {
+            if (o.AllowBurst)
+            {
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "burst past one minute");
+                throw new ArgumentException("AllowBurst is limited to continuous jobs of one minute or less.", nameof(o.AllowBurst));
+            }
+
+            if (o.Interval < IcmpEchoOptions.MinLongContinuousInterval)
+            {
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "long interval below 1s");
+                throw new ArgumentOutOfRangeException(
+                    nameof(o.Interval),
+                    "Continuous jobs longer than one minute require an Interval of at least 1 second.");
+            }
+
+            return;
+        }
+
+        if (!o.AllowBurst && o.Interval < IcmpEchoOptions.MinContinuousInterval)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "interval below 200ms");
+            throw new ArgumentOutOfRangeException(
+                nameof(o.Interval),
+                "Continuous jobs require an Interval of at least 200 ms unless AllowBurst is set.");
         }
     }
 

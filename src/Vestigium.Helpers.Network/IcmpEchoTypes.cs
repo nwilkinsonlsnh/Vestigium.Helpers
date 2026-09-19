@@ -15,6 +15,11 @@ public sealed class IcmpEchoOptions
     public const int DefaultCount = 4;
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(4);
     public static readonly TimeSpan DefaultInterval = TimeSpan.FromSeconds(1);
+    public static readonly TimeSpan DefaultContinuousDuration = TimeSpan.FromSeconds(60);
+    public static readonly TimeSpan MaxJobDuration = TimeSpan.FromHours(24);
+    public static readonly TimeSpan ShortContinuousLimit = TimeSpan.FromMinutes(1);
+    public static readonly TimeSpan MinContinuousInterval = TimeSpan.FromMilliseconds(200);
+    public static readonly TimeSpan MinLongContinuousInterval = TimeSpan.FromSeconds(1);
     public const int DefaultBufferSize = 32;
     public const int MinTimeoutMs = 10;
     public const int MaxTimeoutMs = 60_000;
@@ -28,6 +33,7 @@ public sealed class IcmpEchoOptions
     public int Ttl { get; set; } = 128;
     public bool DontFragment { get; set; }
     public TimeSpan? MaxDuration { get; set; }
+    public bool AllowBurst { get; set; }
     public string? StatsPath { get; set; }
 }
 
