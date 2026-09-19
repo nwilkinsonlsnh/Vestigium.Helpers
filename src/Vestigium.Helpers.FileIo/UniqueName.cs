@@ -6,19 +6,25 @@ namespace Vestigium.Helpers.FileIo;
 /// UniqueName mint. Numeric <c>.##</c> → report.01.txt. Alpha <c>A##</c> → report.A01.txt then A02 … A99 then B01.
 /// Width never shrinks. Cap returns null (NameCap) and never overwrites.
 /// </summary>
-public static class UniqueName
+public static partial class UniqueName
 {
     public const string DefaultPattern = ".##";
 
     public readonly record struct Spec(bool Alpha, int Width);
 
+    [GeneratedRegex(@"^\.(#{1,5})$", RegexOptions.CultureInvariant)]
+    private static partial Regex NumericPattern();
+
+    [GeneratedRegex(@"^A(#{1,5})$", RegexOptions.CultureInvariant)]
+    private static partial Regex AlphaPattern();
+
     public static Spec Parse(string pattern)
     {
         var p = FileIoLog.RequireNotBlank(pattern, nameof(pattern));
-        var num = Regex.Match(p, @"^\.(#{1,5})$");
+        var num = NumericPattern().Match(p);
         if (num.Success)
             return new Spec(false, num.Groups[1].Length);
-        var alpha = Regex.Match(p, @"^A(#{1,5})$");
+        var alpha = AlphaPattern().Match(p);
         if (alpha.Success)
             return new Spec(true, alpha.Groups[1].Length);
         throw new ArgumentException("UniqueNamePattern must be .#…##### or A#…A#####.", nameof(pattern));
