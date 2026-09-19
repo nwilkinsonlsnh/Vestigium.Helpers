@@ -19,6 +19,6 @@
     <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
+    <None Include="EventCatalog\xml.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
