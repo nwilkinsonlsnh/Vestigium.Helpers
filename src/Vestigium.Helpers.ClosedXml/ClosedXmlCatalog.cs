@@ -40,13 +40,15 @@ public static class ClosedXmlCatalog
         Row(ClosedXmlEvents.SessionRejected, "SessionRejected", Subcategories.Session, "Error", "rejected session"),
         Row(ClosedXmlEvents.SessionThrown, "SessionThrown", Subcategories.Session, "Error", "unexpected failure"),
         Row(ClosedXmlEvents.SheetEnter, "SheetEnter", Subcategories.Sheet, "Debug", "enter sheet"),
-        Row(ClosedXmlEvents.SheetWrote, "SheetWrote", Subcategories.Sheet, "Information", "sheet wrote"),
+        Row(ClosedXmlEvents.SheetWrote, "SheetWrote", Subcategories.Sheet, "Debug", "sheet wrote"),
         Row(ClosedXmlEvents.SheetRejected, "SheetRejected", Subcategories.Sheet, "Error", "rejected sheet"),
         Row(ClosedXmlEvents.ChartQueued, "ChartQueued", Subcategories.Chart, "Information", "chart queued"),
         Row(ClosedXmlEvents.ChartRejected, "ChartRejected", Subcategories.Chart, "Error", "rejected chart"),
         Row(ClosedXmlEvents.CellNeutralized, "CellNeutralized", Subcategories.Sheet, "Warning", "neutralized formula-like text"),
         Row(ClosedXmlEvents.CellRejectedNonFinite, "CellRejectedNonFinite", Subcategories.Sheet, "Error", "rejected non-finite number"),
         Row(ClosedXmlEvents.WriteSeriesComplete, "WriteSeriesComplete", Subcategories.Session, "Information", "series workbook written"),
+        Row(ClosedXmlEvents.ChartsEmbedded, "ChartsEmbedded", Subcategories.Chart, "Information", "charts embedded"),
+        Row(ClosedXmlEvents.ChartPackFailed, "ChartPackFailed", Subcategories.Chart, "Error", "chart pack failed"),
     ];
 
     private static CatalogRow Row(int eventId, string name, string subcategory, string severity, string description)
