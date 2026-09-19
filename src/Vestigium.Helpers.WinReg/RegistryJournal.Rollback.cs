@@ -11,7 +11,7 @@ public sealed partial class RegistryJournal
         bool force = false,
         string? batchId = null)
     {
-        path = Vestigium.Helpers.HelperGuard.NotBlank(path, nameof(path));
+        path = HelperGuard.NotBlank(path, nameof(path));
         if (!confirm)
             return new RegistryWriteResult(RegistryWriteStatus.Denied, RegistryHiveKind.CurrentUser, path, null, "confirm=false");
         if (!File.Exists(path))
