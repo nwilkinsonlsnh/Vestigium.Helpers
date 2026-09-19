@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.FileIo;
 
@@ -15,7 +14,7 @@ public static class UniqueName
 
     public static Spec Parse(string pattern)
     {
-        var p = HelperGuard.NotBlank(pattern, nameof(pattern)).Trim();
+        var p = FileIoLog.RequireNotBlank(pattern, nameof(pattern));
         var num = Regex.Match(p, @"^\.(#{1,5})$");
         if (num.Success)
             return new Spec(false, num.Groups[1].Length);
@@ -28,7 +27,7 @@ public static class UniqueName
     public static string? Next(IReadOnlyList<string> existing, string originalName, string pattern)
     {
         ArgumentNullException.ThrowIfNull(existing);
-        var name = HelperGuard.NotBlank(originalName, nameof(originalName));
+        var name = FileIoLog.RequireNotBlank(originalName, nameof(originalName));
         var spec = Parse(pattern);
         var dot = name.LastIndexOf('.');
         var stem = dot > 0 ? name[..dot] : name;
