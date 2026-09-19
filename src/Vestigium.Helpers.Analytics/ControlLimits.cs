@@ -203,7 +203,7 @@ public sealed class ControlLimits
         {
             HelperLog.Warning(
                 HelperLog.AppIds.Analytics,
-                VestigiumStatus.Degraded,
+                VestigiumStatus.Warning,
                 HelperLog.Subcategories.Limits,
                 $"out-of-control points method={method} count={outside.Count} indexes={string.Join(",", outside)}");
         }
