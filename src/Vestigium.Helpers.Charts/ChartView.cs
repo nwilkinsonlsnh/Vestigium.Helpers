@@ -181,6 +181,13 @@ public static class ChartView
     }
 
     public static FrameworkElement Control(NumericSeries series, ControlLimits limits, ChartOptions? options = null)
+        => Control(series, limits, runRules: options?.RunRules, options);
+
+    public static FrameworkElement Control(
+        NumericSeries series,
+        ControlLimits limits,
+        RunRuleReport? runRules,
+        ChartOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(series);
         ArgumentNullException.ThrowIfNull(limits);
@@ -190,6 +197,7 @@ public static class ChartView
             Kind = ChartKind.Control,
             Source = series,
             Limits = limits,
+            RunRules = runRules ?? options?.RunRules,
             Options = options,
             Title = options?.Title ?? $"CL={limits.Center:G4}  UCL={limits.Upper:G4}  LCL={limits.Lower:G4}"
         });
@@ -206,6 +214,7 @@ public static class ChartView
         {
             Kind = ChartKind.Control,
             Limits = limits,
+            RunRules = options?.RunRules,
             Series = [new ChartSeries { Y = values.ToArray() }],
             Options = options
         });
