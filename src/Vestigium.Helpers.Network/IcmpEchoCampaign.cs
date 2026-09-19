@@ -272,7 +272,8 @@ public sealed class IcmpEchoCampaign
             BufferSize = source.BufferSize,
             Ttl = source.Ttl,
             DontFragment = source.DontFragment,
-            MaxDuration = source.MaxDuration
+            MaxDuration = source.MaxDuration,
+            AllowBurst = source.AllowBurst
         };
 
     sealed class CampaignRecipe
