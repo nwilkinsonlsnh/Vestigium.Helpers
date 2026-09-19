@@ -139,6 +139,102 @@ public sealed class NetworkPR01Tests : IDisposable
         Assert.Null(NetworkTestHooks.ProcRoot);
     }
 
+    [Fact]
+    public void PR01_003_continuous_without_duration_gets_default_cap()
+    {
+        var options = new IcmpEchoOptions { Count = 0 };
+        _ = NetworkHelper.IcmpEcho("127.0.0.1", options);
+        Assert.Equal(IcmpEchoOptions.DefaultContinuousDuration, options.MaxDuration);
+    }
+
+    [Fact]
+    public void PR01_003_zero_interval_rejected_without_burst()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+            {
+                Count = 0,
+                Interval = TimeSpan.Zero,
+                MaxDuration = TimeSpan.FromSeconds(30)
+            }));
+        Assert.Contains("200 ms", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PR01_003_finite_count_may_use_zero_interval()
+    {
+        var job = NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+        {
+            Count = 4,
+            Interval = TimeSpan.Zero
+        });
+        Assert.NotNull(job);
+    }
+
+    [Fact]
+    public void PR01_003_long_job_requires_one_second_interval()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+            {
+                Count = 0,
+                Interval = TimeSpan.FromMilliseconds(200),
+                MaxDuration = TimeSpan.FromHours(1)
+            }));
+        Assert.Contains("1 second", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PR01_003_burst_past_one_minute_is_rejected()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+            {
+                Count = 0,
+                AllowBurst = true,
+                Interval = TimeSpan.FromMilliseconds(20),
+                MaxDuration = TimeSpan.FromHours(1)
+            }));
+        Assert.Contains("one minute", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PR01_003_duration_over_24h_is_rejected()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+            {
+                Count = 0,
+                MaxDuration = TimeSpan.FromHours(25),
+                Interval = TimeSpan.FromSeconds(1)
+            }));
+    }
+
+    [Fact]
+    public void PR01_003_short_burst_is_allowed()
+    {
+        var job = NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+        {
+            Count = 0,
+            AllowBurst = true,
+            Interval = TimeSpan.Zero,
+            MaxDuration = TimeSpan.FromSeconds(30)
+        });
+        Assert.NotNull(job);
+    }
+
+    [Fact]
+    public void PR01_003_one_hour_at_one_second_is_allowed()
+    {
+        var job = NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions
+        {
+            Count = 0,
+            Interval = TimeSpan.FromSeconds(1),
+            MaxDuration = TimeSpan.FromHours(1)
+        });
+        Assert.NotNull(job);
+    }
+
     sealed class StubOuiHandler : HttpMessageHandler
     {
         readonly HttpStatusCode _status;
