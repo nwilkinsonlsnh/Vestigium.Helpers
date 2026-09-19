@@ -15,6 +15,7 @@ public enum ControlLimitMethod
     /// Some individuals using the average moving range of span 2.
     /// CL = mean, UCL/LCL = mean ± E2 × MR̄, E2 = 3 / d2, d2(n=2) = 1.1283791670955126.
     /// Moving ranges use encounter order, not the sorted copy.
+    /// Legal only on <see cref="SliceKind.Full"/>.
     /// </summary>
     MovingRange = 1,
 
@@ -30,6 +31,9 @@ public sealed class ControlLimits
 {
     public const double D2Span2 = 1.1283791670955126;
     public const double E2Span2 = 3d / D2Span2;
+
+    internal const string MovingRangeRequiresFull =
+        "Moving-range limits require SliceKind.Full (encounter order of the process). Value bands are not a Shewhart individuals chart.";
 
     public double Center { get; init; }
     public double Upper { get; init; }
@@ -79,6 +83,66 @@ public sealed class ControlLimits
             AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex);
             throw;
         }
+    }
+
+    internal static bool IsInsufficient(
+        IReadOnlyList<decimal> encounterOrder,
+        double? mean,
+        double? stdDev,
+        ControlLimitMethod method,
+        out string reason)
+    {
+        if (encounterOrder.Count < 2)
+        {
+            reason = "n";
+            return true;
+        }
+
+        if (mean is null)
+        {
+            reason = "mean";
+            return true;
+        }
+
+        if (method == ControlLimitMethod.MeanPlusKSigma)
+        {
+            if (stdDev is null or 0)
+            {
+                reason = "stddev";
+                return true;
+            }
+
+            reason = "";
+            return false;
+        }
+
+        if (method == ControlLimitMethod.MovingRange)
+        {
+            double sum = 0;
+            for (var i = 1; i < encounterOrder.Count; i++)
+                sum += (double)Math.Abs(encounterOrder[i] - encounterOrder[i - 1]);
+            if (sum / (encounterOrder.Count - 1) == 0)
+            {
+                reason = "mr";
+                return true;
+            }
+        }
+
+        reason = "";
+        return false;
+    }
+
+    internal static void RejectLimits(string reason, params (string Key, string? Value)[] extra)
+    {
+        var pairs = new (string Key, string? Value)[extra.Length + 1];
+        pairs[0] = ("reason", reason);
+        extra.CopyTo(pairs, 1);
+        AnalyticsLog.Error(
+            AnalyticsEvents.LimitsRejected,
+            VestigiumStatus.Failed,
+            AnalyticsCatalog.Subcategories.Limits,
+            "rejected limits",
+            properties: AnalyticsLog.Props(pairs));
     }
 
     internal static ControlLimits Compute(
@@ -231,18 +295,5 @@ public sealed class ControlLimits
             RejectLimits("band", ("ucl", upper.ToString("G6")), ("cl", center.ToString("G6")), ("lcl", lower.ToString("G6")));
             throw new ArgumentException("UCL must be greater than CL and CL must be greater than LCL.");
         }
-    }
-
-    private static void RejectLimits(string reason, params (string Key, string? Value)[] extra)
-    {
-        var pairs = new (string Key, string? Value)[extra.Length + 1];
-        pairs[0] = ("reason", reason);
-        extra.CopyTo(pairs, 1);
-        AnalyticsLog.Error(
-            AnalyticsEvents.LimitsRejected,
-            VestigiumStatus.Failed,
-            AnalyticsCatalog.Subcategories.Limits,
-            "rejected limits",
-            properties: AnalyticsLog.Props(pairs));
     }
 }
