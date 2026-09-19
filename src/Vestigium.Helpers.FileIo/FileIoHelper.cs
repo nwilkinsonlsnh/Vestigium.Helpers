@@ -1,6 +1,4 @@
-using Vestigium.Helpers;
 using Vestigium.Helpers.Hashing;
-using Vestigium.Logging;
 
 namespace Vestigium.Helpers.FileIo;
 
@@ -15,9 +13,8 @@ public static class FileIoHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.FileIo;
-        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
-        HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Probe, "Resolving a demo path under %TEMP%.");
+        using var scope = FileIoLog.Begin(FileIoLog.Subcategories.Probe, "Probe");
+        FileIoLog.Pending(FileIoLog.Subcategories.Probe, "Resolving a demo path under %TEMP%.");
         var root = Path.Combine(Path.GetTempPath(), "Vestigium.Helpers.FileIo.Probe", Guid.NewGuid().ToString("N"));
         try
         {
@@ -38,7 +35,7 @@ public static class FileIoHelper
         {
             try { Directory.Delete(root, true); } catch (IOException) { }
         }
-        HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Probe, "FileIo probe complete. Identity=" + Identity);
+        FileIoLog.Success(FileIoLog.Subcategories.Probe, "FileIo probe complete. Identity=" + Identity);
         return Identity;
     }
 
@@ -72,7 +69,7 @@ public static class FileIoHelper
         var rightMissing = !File.Exists(right);
         if (leftMissing || rightMissing)
         {
-            FileIoLog.Failed(HelperLog.Subcategories.Compare, $"Compare missing left={leftMissing} right={rightMissing}");
+            FileIoLog.Failed(FileIoLog.Subcategories.Compare, $"Compare missing left={leftMissing} right={rightMissing}");
             return new FileIoCompareResult
             {
                 Equal = false,
@@ -85,26 +82,26 @@ public static class FileIoHelper
         var l = HashingHelper.HashFile(left, algorithm);
         var r = HashingHelper.HashFile(right, algorithm);
         var equal = string.Equals(l, r, StringComparison.Ordinal);
-        FileIoLog.Success(HelperLog.Subcategories.Compare, $"Compare equal={equal} left={l[..Math.Min(12, l.Length)]}…");
+        FileIoLog.Success(FileIoLog.Subcategories.Compare, $"Compare equal={equal} left={l[..Math.Min(12, l.Length)]}…");
         return new FileIoCompareResult { Equal = equal, LeftDigest = l, RightDigest = r };
     }
 
     public static int PruneEmptyDirectories(string root)
     {
-        var path = HelperGuard.NotBlank(root, nameof(root));
+        var path = FileIoLog.RequireNotBlank(root, nameof(root));
         if (!Directory.Exists(path))
             return 0;
         var n = Prune(path, isRoot: true);
         if (n > 0)
-            FileIoLog.Success(HelperLog.Subcategories.Prune, $"Prune empty dirs={n} root={path}");
+            FileIoLog.Success(FileIoLog.Subcategories.Prune, $"Prune empty dirs={n} root={path}");
         return n;
     }
 
     public static void SecureDelete(string path, FileIoShredRecipe recipe)
     {
-        var file = HelperGuard.FileExists(path, nameof(path));
+        var file = FileIoLog.FileExists(path, nameof(path));
         ArgumentNullException.ThrowIfNull(recipe);
-        FileIoLog.Pending(HelperLog.Subcategories.SecureDelete, $"Shred path={file} passes={recipe}");
+        FileIoLog.Pending(FileIoLog.Subcategories.SecureDelete, $"Shred path={file} passes={recipe}");
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(FileIoJob.StreamBufferSize);
         try
         {
@@ -128,16 +125,16 @@ public static class FileIoHelper
             System.Buffers.ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
             File.Delete(file);
         }
-        FileIoLog.Success(HelperLog.Subcategories.SecureDelete, $"Shred path={file}");
+        FileIoLog.Success(FileIoLog.Subcategories.SecureDelete, $"Shred path={file}");
     }
 
     public static void CleanIndex(string destinationRoot)
     {
-        var dest = HelperGuard.NotBlank(destinationRoot, nameof(destinationRoot));
+        var dest = FileIoLog.RequireNotBlank(destinationRoot, nameof(destinationRoot));
         var file = IndexPath(dest);
         if (File.Exists(file))
             File.Delete(file);
-        FileIoLog.Success(HelperLog.Subcategories.Index, $"CleanIndex dest={dest}");
+        FileIoLog.Success(FileIoLog.Subcategories.Index, $"CleanIndex dest={dest}");
     }
 
     public static void CleanIndexesOlderThan(TimeSpan age)
@@ -151,10 +148,10 @@ public static class FileIoHelper
             if (File.GetLastWriteTimeUtc(file) < cutoff)
                 File.Delete(file);
         }
-        FileIoLog.Success(HelperLog.Subcategories.Index, $"CleanIndexesOlderThan age={age}");
+        FileIoLog.Success(FileIoLog.Subcategories.Index, $"CleanIndexesOlderThan age={age}");
     }
 
-    /// <summary>Tests inject a temp folder. Production uses %ProgramData%\Vestigium\FileIo\Indexes\.</summary>
+    /// <summary>Tests inject a temp folder. Production uses %ProgramData%\\Vestigium\\FileIo\\Indexes\\.</summary>
     internal static string? IndexRootOverride { get; set; }
 
     internal static string IndexRoot() =>
