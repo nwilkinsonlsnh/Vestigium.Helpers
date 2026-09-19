@@ -15,7 +15,7 @@ public static class KernelDensity
     public const int MaxCount = 512;
     public const double Silverman = 1.06;
 
-    public static IReadOnlyList<DensityPoint> PdfPoints(SeriesSlice slice, int count = DefaultCount)
+    public static IReadOnlyList<DensityPoint> PdfPoints(this SeriesSlice slice, int count = DefaultCount)
     {
         ArgumentNullException.ThrowIfNull(slice);
         if (count < 1 || count > MaxCount)
@@ -75,6 +75,6 @@ public static class KernelDensity
     public static IReadOnlyList<DensityPoint> PdfPoints(this NumericSeries series, int count = DefaultCount)
     {
         ArgumentNullException.ThrowIfNull(series);
-        return PdfPoints(series.Full, count);
+        return series.Full.PdfPoints(count);
     }
 }
