@@ -173,4 +173,31 @@ public sealed class AnalyticsPR03Tests
         Assert.Empty(report.AllIndexes);
         Assert.Equal(ControlLimitMethod.MeanPlusKSigma, report.Limits.Method);
     }
+
+    [Fact]
+    public void PR03_006_spike_fires_rule_one()
+    {
+        var report = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 1000 }).RunRules();
+        var rule1 = Assert.Single(report.Hits.Where(h => h.Rule == WesternElectricRule.PointBeyondThreeSigma));
+        Assert.Contains(8, rule1.Indexes);
+        Assert.True(((IList<int>)rule1.Indexes).IsReadOnly);
+        Assert.True(((IList<int>)report.AllIndexes).IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => ((IList<int>)report.AllIndexes)[0] = 99);
+    }
+
+    [Fact]
+    public void PR03_006_eight_on_one_side()
+    {
+        var report = NumericSeries.From(new[] { 10, 10, 10, 10, 10, 10, 10, 10, 0 }).RunRules();
+        var rule4 = Assert.Single(report.Hits.Where(h => h.Rule == WesternElectricRule.EightOnOneSideOfCenter));
+        Assert.Equal(Enumerable.Range(0, 8), rule4.Indexes);
+    }
+
+    [Fact]
+    public void PR03_006_constant_series_refuses_like_limits()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            NumericSeries.From(new[] { 5, 5, 5 }).RunRules());
+        Assert.Contains("standard deviation", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }
