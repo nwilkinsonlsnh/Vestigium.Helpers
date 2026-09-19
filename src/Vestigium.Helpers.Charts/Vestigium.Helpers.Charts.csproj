@@ -24,4 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="EventCatalog\charts.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
