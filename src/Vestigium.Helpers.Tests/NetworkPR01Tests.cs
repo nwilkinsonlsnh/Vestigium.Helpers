@@ -235,6 +235,18 @@ public sealed class NetworkPR01Tests : IDisposable
         Assert.NotNull(job);
     }
 
+    [Fact]
+    public void PR01_004_udp_foreign_source_discarded()
+    {
+        var server = IPAddress.Parse("1.1.1.1");
+        Assert.True(DnsClient.IsExpectedDnsPeer(new IPEndPoint(server, 53), server, 53));
+        Assert.True(DnsClient.IsExpectedDnsPeer(new IPEndPoint(IPAddress.Parse("::ffff:1.1.1.1"), 53), server, 53));
+        Assert.False(DnsClient.IsExpectedDnsPeer(new IPEndPoint(IPAddress.Parse("8.8.8.8"), 53), server, 53));
+        Assert.False(DnsClient.IsExpectedDnsPeer(new IPEndPoint(server, 5353), server, 53));
+        Assert.False(DnsClient.IsExpectedDnsPeer(new DnsEndPoint("1.1.1.1", 53), server, 53));
+        Assert.False(DnsClient.IsExpectedDnsPeer(null, server, 53));
+    }
+
     sealed class StubOuiHandler : HttpMessageHandler
     {
         readonly HttpStatusCode _status;
