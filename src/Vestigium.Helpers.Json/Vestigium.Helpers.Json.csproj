@@ -16,9 +16,6 @@
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="EventCatalog\json.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
