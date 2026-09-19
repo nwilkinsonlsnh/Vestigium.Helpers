@@ -1,4 +1,4 @@
-using Vestigium.Helpers;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -72,7 +72,11 @@ public sealed class SeriesSlice
     {
         if (IsEmpty)
         {
-            HelperLog.Reject("cannot compute percentiles of an empty slice");
+            AnalyticsLog.Error(
+                AnalyticsEvents.PercentileRejectedEmpty,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Series,
+                "rejected empty percentile");
             throw new InvalidOperationException("Cannot compute percentiles of an empty slice.");
         }
 
@@ -108,26 +112,24 @@ public sealed class SeriesSlice
         return ConfidenceReport.Wilson(k, Count, ConfidenceLevel.Of(level));
     }
 
-    /// <summary>
-    /// Process-control fences for this band. Charts draws the result; it does not compute it.
-    /// </summary>
     public ControlLimits ControlLimits(
         ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
         double k = 3,
         double? floor = null)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Limits,
-            "ControlLimits",
-            $"band={Kind} method={method} k={k} n={Count}");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.LimitsEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Limits,
+            "enter limits",
+            properties: AnalyticsLog.Props(("band", Kind.ToString()), ("method", method.ToString()), ("n", Count.ToString())));
         try
         {
             return Analytics.ControlLimits.Compute(Values, Mean, StdDev, method, k, floor);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex);
             throw;
         }
     }
