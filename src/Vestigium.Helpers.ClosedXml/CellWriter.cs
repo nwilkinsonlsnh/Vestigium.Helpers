@@ -68,7 +68,8 @@ internal static class CellWriter
                     ClosedXmlLog.Error(
                         ClosedXmlEvents.CellRejectedNonFinite,
                         ClosedXmlCatalog.Subcategories.Sheet,
-                        "rejected non-finite number");
+                        "rejected non-finite number",
+                        properties: CellProps(cell, ("reason", "non-finite")));
                     throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
                 }
                 cell.Value = number;
@@ -106,10 +107,22 @@ internal static class CellWriter
             ClosedXmlLog.Warning(
                 ClosedXmlEvents.CellNeutralized,
                 ClosedXmlCatalog.Subcategories.Sheet,
-                "neutralized formula-like text");
+                "neutralized formula-like text",
+                properties: CellProps(cell, ("lead", text.Length == 0 ? null : text[0].ToString())));
         }
 
         return neutralized.Changed;
+    }
+
+    private static IReadOnlyDictionary<string, string?> CellProps(IXLCell cell, params (string Key, string? Value)[] extra)
+    {
+        var pairs = new List<(string, string?)>
+        {
+            ("sheet", cell.Worksheet.Name),
+            ("cell", cell.Address.ToString())
+        };
+        pairs.AddRange(extra);
+        return ClosedXmlLog.Props(pairs.ToArray());
     }
 
     private static void ApplyNumber(IXLCell cell, SheetWriteOptions options)
