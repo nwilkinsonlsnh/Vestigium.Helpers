@@ -1,13 +1,15 @@
 # Vestigium.Helpers.Analytics — Developers Guide
 
 **Document ID:** VEST-HLP-ANALYTICS-DEV-000  
-**Version:** 1.7  
+**Version:** 1.8  
 **Status:** Design companion to SRS v1.6 + Logging catalog 10500+  
 **Date:** 19 September 2026
 
 Open `Vestigium.Helpers.slnx` → `src/Vestigium.Helpers.Analytics/`.
 
-The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.6**). This page is why it looks like this, and how to call it. Stabilization work is `_Documentation/StabilizationPlan_v1.0.md`.
+The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.6**). This page is why it looks like this, and how to call it.
+
+Shipped surface is SRS v1.6. The stabilize plan is **closed**. Next *library* work is `_Documentation/HygieneAndFeaturesPlan_v1.0.md` (S5 = `ControlLimits.Against` and `PercentileRank`). That work stays on `NumericSeries` / `SeriesSlice` / `ControlLimits`. Do not add a host adapter or orchestration type in this project.
 
 ## Logging
 
@@ -16,7 +18,7 @@ This library talks to **Vestigium.Logging** directly. It does not use `HelperLog
 ```csharp
 VestigiumLogger.Initialize(cfg =>
 {
-    cfg.AppId = "Analytics"; // or the product APPID
+    cfg.AppId = "Analytics"; // or the host APPID
     AnalyticsCatalog.Register(cfg);
 });
 ```
@@ -25,7 +27,7 @@ EventIds **10500–10615** (block reserved through 10999). Constants live on `An
 
 ## Design
 
-**Intent.** One in-process snapshot type for a finite batch of numbers. Hosts (PingIQ, galleries, later services) accumulate observations, then construct a `NumericSeries`. The library answers “what does this batch look like?”, “where is the slow tail?”, and “how uncertain is the mean?”. It does not draw and it does not persist.
+**Intent.** One in-process snapshot type for a finite batch of numbers. Hosts accumulate observations, then construct a `NumericSeries`. The library answers “what does this batch look like?”, “where is the slow tail?”, and “how uncertain is the mean?”. It does not draw and it does not persist.
 
 **Locked decisions.**
 
@@ -52,7 +54,7 @@ host buffer  →  NumericSeries.From / FromObservations
                      ├─ Confidence(γ)
                      ├─ ControlLimits / TryControlLimits
                      └─ ChartPoint views  (ECDF, hist, Pareto, clock-ordered time)
-Charts / ClosedXml / PingIQ bind those numbers. This DLL does not reference them.
+Callers bind those numbers. This DLL does not reference a host or a drawing library.
 ```
 
 ## Use (values only)
@@ -106,7 +108,7 @@ var line = timed.TimeSeriesPoints(); // sorted by At.UtcTicks, then encounter in
 
 foreach (var point in timed.EcdfPoints())
 {
-    // point.X = ms, point.Y = fraction finished — bind in Charts
+    // point.X = value, point.Y = fraction finished — bind in a drawing surface
     _ = point;
 }
 ```
@@ -119,14 +121,9 @@ foreach (var point in timed.EcdfPoints())
 
 ## Roadmap
 
-Shipped surface is SRS v1.6 (stabilize pass). Next work is SRS §16.2, not a rewrite:
+Shipped surface is SRS v1.6. Stabilize is closed. Next library slice is S5 in `HygieneAndFeaturesPlan_v1.0.md`. Larger items (run rules, percentile interval, `PdfPoints`, two-series) stay parked until S5 is done and we look again.
 
-1. **Run rules** (Nelson / Western Electric) as indexes — Charts paints, Analytics computes.
-2. **Confidence interval for a percentile** (fence on P95, not “95 % confidence”).
-3. **`PdfPoints()`** so the bell overlay is an Analytics number.
-4. **Two-series compare** (difference of means).
-
-Never: charting, streaming sketches, time-bucket histograms, Bayesian, OTel.
+Never: a host adapter in this project, charting, streaming sketches, time-bucket histograms, Bayesian, OTel.
 
 ## Do not
 
