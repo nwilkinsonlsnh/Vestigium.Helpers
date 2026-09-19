@@ -10,13 +10,51 @@ namespace Vestigium.Helpers.Analytics;
 /// </summary>
 internal static class AnalyticsLog
 {
+    internal const int MaxNameLength = 64;
+
     public static string NewId() => Guid.NewGuid().ToString("N")[..8];
+
+    /// <summary>
+    /// Label safe for a log property and for <see cref="NumericSeries.Name"/>.
+    /// Strips C0 controls (including CR/LF/TAB), trims, truncates to <see cref="MaxNameLength"/>.
+    /// </summary>
+    public static string? SanitizeName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        var chars = new char[name.Length];
+        var n = 0;
+        var lastSpace = false;
+        foreach (var c in name)
+        {
+            if (c <= 32)
+            {
+                if (n == 0 || lastSpace)
+                    continue;
+                chars[n++] = ' ';
+                lastSpace = true;
+                continue;
+            }
+
+            chars[n++] = c;
+            lastSpace = false;
+        }
+
+        while (n > 0 && chars[n - 1] == ' ')
+            n--;
+        if (n == 0)
+            return null;
+        if (n > MaxNameLength)
+            n = MaxNameLength;
+        return new string(chars, 0, n).TrimEnd();
+    }
 
     public static IReadOnlyDictionary<string, string?> Props(params (string Key, string? Value)[] pairs)
     {
         var map = new Dictionary<string, string?>(pairs.Length, StringComparer.Ordinal);
         foreach (var (key, value) in pairs)
-            map[key] = value;
+            map[key] = string.Equals(key, "name", StringComparison.Ordinal) ? SanitizeName(value) : value;
         return map;
     }
 
