@@ -32,11 +32,9 @@ public static class EncryptionHelper
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         if (string.IsNullOrWhiteSpace(desktop))
             desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        if (string.IsNullOrWhiteSpace(desktop))
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
-        }
+        if (!string.IsNullOrWhiteSpace(desktop)) return Path.Combine(desktop, "Vestigium", "Exports", id);
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
 
         return Path.Combine(desktop, "Vestigium", "Exports", id);
     }
