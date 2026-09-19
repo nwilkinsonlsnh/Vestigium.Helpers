@@ -19,4 +19,7 @@
     <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
     <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="EventCatalog\encryption.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
