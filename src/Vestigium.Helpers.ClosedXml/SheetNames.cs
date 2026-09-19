@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using ClosedXML.Excel;
-using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.ClosedXml;
 
@@ -48,7 +47,9 @@ internal static class ExcelNames
 
     public static string SanitizeDefinedName(string? name, string fallback = "Data")
     {
-        var raw = HelperGuard.NotBlank(string.IsNullOrWhiteSpace(name) ? fallback : name.Trim(), nameof(name));
+        var raw = string.IsNullOrWhiteSpace(name) ? fallback : name.Trim();
+        if (string.IsNullOrWhiteSpace(raw))
+            raw = fallback;
         var builder = new StringBuilder(raw.Length);
         foreach (var ch in raw)
         {
