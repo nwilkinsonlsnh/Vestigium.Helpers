@@ -1,5 +1,6 @@
 using System.Numerics;
 using Vestigium.Helpers;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -20,7 +21,11 @@ internal static class NumberConvert
 
         if (list.Count == 0)
         {
-            HelperLog.Reject("values is empty");
+            AnalyticsLog.Error(
+                AnalyticsEvents.SeriesRejectedEmpty,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Series,
+                "rejected empty series");
             throw new ArgumentException("A numeric series must contain at least one value.", nameof(values));
         }
 
@@ -38,7 +43,7 @@ internal static class NumberConvert
             var d = (double)(object)value!;
             if (!double.IsFinite(d))
             {
-                HelperLog.Reject($"Values[{index}] is not finite");
+                RejectNonFinite(index);
                 throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
             }
             return (decimal)d;
@@ -49,7 +54,7 @@ internal static class NumberConvert
             var f = (float)(object)value!;
             if (!float.IsFinite(f))
             {
-                HelperLog.Reject($"Values[{index}] is not finite");
+                RejectNonFinite(index);
                 throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
             }
             return (decimal)f;
@@ -61,7 +66,7 @@ internal static class NumberConvert
             var d = (double)h;
             if (!double.IsFinite(d))
             {
-                HelperLog.Reject($"Values[{index}] is not finite");
+                RejectNonFinite(index);
                 throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
             }
             return (decimal)d;
@@ -73,8 +78,22 @@ internal static class NumberConvert
         }
         catch (OverflowException ex)
         {
-            HelperLog.Reject($"Values[{index}] cannot be stored as decimal", ex);
+            AnalyticsLog.Error(
+                AnalyticsEvents.SeriesRejectedOverflow,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Series,
+                "rejected overflow",
+                ex,
+                properties: AnalyticsLog.Props(("index", index.ToString())));
             throw new ArgumentOutOfRangeException(nameof(value), ex, $"Values[{index}] cannot be stored as decimal.");
         }
     }
+
+    private static void RejectNonFinite(int index)
+        => AnalyticsLog.Error(
+            AnalyticsEvents.SeriesRejectedNonFinite,
+            VestigiumStatus.Failed,
+            AnalyticsCatalog.Subcategories.Series,
+            "rejected non-finite value",
+            properties: AnalyticsLog.Props(("index", index.ToString())));
 }
