@@ -1,6 +1,3 @@
-using Vestigium.Helpers;
-using Vestigium.Logging;
-
 namespace Vestigium.Helpers.Csv;
 
 /// <summary>
@@ -13,7 +10,6 @@ public sealed record CsvOptions
 
     private char _delimiter = ',';
 
-    /// <summary>Field separator. Default comma. Tab, semicolon, and pipe have presets.</summary>
     public char Delimiter
     {
         get => _delimiter;
@@ -21,21 +17,13 @@ public sealed record CsvOptions
     }
 
     public bool HasHeaderRow { get; init; } = true;
-
-    /// <summary>Write a UTF-8 BOM so Excel on Windows picks Unicode. Default on.</summary>
     public bool Utf8Bom { get; init; } = true;
-
     public bool NeutralizeInjection { get; init; } = true;
-
-    /// <summary>Read only. Write never trims.</summary>
     public bool TrimFields { get; init; }
 
     public static CsvOptions Rfc4180 { get; } = new();
-
     public static CsvOptions Tab { get; } = new() { Delimiter = '\t' };
-
     public static CsvOptions Semicolon { get; } = new() { Delimiter = ';' };
-
     public static CsvOptions Pipe { get; } = new() { Delimiter = '|' };
 
     public static CsvOptions WithDelimiter(char delimiter) => new() { Delimiter = delimiter };
@@ -60,11 +48,11 @@ public sealed record CsvOptions
     {
         if (delimiter is Quote or '\r' or '\n' or '\0' || char.IsSurrogate(delimiter))
         {
-            HelperLog.Error(
-                HelperLog.CurrentAppId,
-                VestigiumStatus.Failed,
-                HelperLog.Subcategories.Session,
-                $"Illegal CSV delimiter U+{((int)delimiter):X4}");
+            CsvLog.Error(
+                CsvEvents.WriteRejected,
+                CsvCatalog.Subcategories.Session,
+                "rejected write",
+                properties: CsvLog.Props(("reason", "illegal-delimiter"), ("delimiter", $"U+{((int)delimiter):X4}")));
             throw new ArgumentOutOfRangeException(
                 nameof(delimiter),
                 delimiter,
