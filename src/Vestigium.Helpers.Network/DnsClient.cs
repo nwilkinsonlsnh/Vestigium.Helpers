@@ -219,6 +219,24 @@ internal static class DnsClient
         ms.WriteByte(0);
     }
 
+    internal static bool IsExpectedDnsPeer(EndPoint? remote, IPAddress server, int port)
+    {
+        if (remote is not IPEndPoint ip || ip.Port != port)
+            return false;
+        return AddressesEqual(ip.Address, server);
+    }
+
+    static bool AddressesEqual(IPAddress left, IPAddress right)
+    {
+        if (left.Equals(right))
+            return true;
+        if (left.IsIPv4MappedToIPv6)
+            return AddressesEqual(left.MapToIPv4(), right);
+        if (right.IsIPv4MappedToIPv6)
+            return AddressesEqual(left, right.MapToIPv4());
+        return false;
+    }
+
     static async Task<(byte[] Data, bool Truncated)> UdpExchangeAsync(
         IPAddress server,
         int port,
@@ -228,13 +246,32 @@ internal static class DnsClient
     {
         using var udp = new UdpClient(server.AddressFamily);
         udp.Client.ReceiveTimeout = (int)timeout.TotalMilliseconds;
-        await udp.SendAsync(query, new IPEndPoint(server, port), token).ConfigureAwait(false);
-        var receive = udp.ReceiveAsync(token).AsTask();
-        var winner = await Task.WhenAny(receive, Task.Delay(timeout, token)).ConfigureAwait(false);
-        if (winner != receive)
-            throw new TimeoutException();
-        var result = await receive.ConfigureAwait(false);
-        return (result.Buffer, result.Buffer.Length >= 4 && (result.Buffer[2] & 0x02) != 0);
+        var expected = new IPEndPoint(server, port);
+        await udp.SendAsync(query, expected, token).ConfigureAwait(false);
+
+        var clock = Stopwatch.StartNew();
+        while (true)
+        {
+            var remaining = timeout - clock.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+                throw new TimeoutException();
+
+            var receive = udp.ReceiveAsync(token).AsTask();
+            var winner = await Task.WhenAny(receive, Task.Delay(remaining, token)).ConfigureAwait(false);
+            if (winner != receive)
+                throw new TimeoutException();
+
+            var result = await receive.ConfigureAwait(false);
+            if (!IsExpectedDnsPeer(result.RemoteEndPoint, server, port))
+            {
+                NetworkLog.Warning(
+                    HelperLog.Subcategories.Dns,
+                    $"udp discarded foreign source={result.RemoteEndPoint}");
+                continue;
+            }
+
+            return (result.Buffer, result.Buffer.Length >= 4 && (result.Buffer[2] & 0x02) != 0);
+        }
     }
 
     static async Task<byte[]> TcpExchangeAsync(
@@ -248,6 +285,12 @@ internal static class DnsClient
         using var timed = CancellationTokenSource.CreateLinkedTokenSource(token);
         timed.CancelAfter(timeout);
         await tcp.ConnectAsync(server, port, timed.Token).ConfigureAwait(false);
+        if (!IsExpectedDnsPeer(tcp.Client.RemoteEndPoint, server, port))
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Dns, nameof(TcpExchangeAsync), "tcp peer mismatch");
+            throw new SocketException((int)SocketError.HostUnreachable);
+        }
+
         var stream = tcp.GetStream();
         var prefix = new byte[2 + query.Length];
         BinaryPrimitives.WriteUInt16BigEndian(prefix, (ushort)query.Length);
