@@ -58,7 +58,9 @@ internal static partial class PlotBuilder
                 FillControl(plot, spec, options);
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(spec), spec.Kind, "Unknown chart kind.");
+                if (!TryFillExtra(plot, spec, options))
+                    throw new ArgumentOutOfRangeException(nameof(spec), spec.Kind, "Unknown chart kind.");
+                break;
         }
 
         var title = options.Title ?? spec.Title;
@@ -313,7 +315,7 @@ internal static partial class PlotBuilder
             q3,
             [],
             BoxWhiskerKind.FiveNumber);
-        }
+    }
 
     private static void LabelFive(Plot plot, BoxLayout layout)
     {
