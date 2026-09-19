@@ -1,1 +1,327 @@
-SEE_FILE
+using Vestigium.Helpers;
+using Vestigium.Logging;
+
+namespace Vestigium.Helpers.Analytics;
+
+/// <summary>
+/// A chosen coverage target. Frequentist confidence level is an input, never an estimate.
+/// </summary>
+public readonly record struct ConfidenceLevel
+{
+    /// <summary>Default γ used when a caller omits the level. Equal to 0.95.</summary>
+    public const double DefaultValue = 0.95;
+
+    /// <summary>γ = 0.95.</summary>
+    public static ConfidenceLevel Default { get; } = new(DefaultValue);
+
+    /// <summary>Validates <paramref name="value"/> is in (0, 1).</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not in (0, 1).</exception>
+    public ConfidenceLevel(double value)
+    {
+        if (value is <= 0d or >= 1d)
+        {
+            AnalyticsLog.Error(
+                AnalyticsEvents.ConfidenceRejectedLevel,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Confidence,
+                "rejected confidence level",
+                properties: AnalyticsLog.Props(("gamma", value.ToString("G6"))));
+            throw new ArgumentOutOfRangeException(nameof(value), "Confidence level must be in (0, 1).");
+        }
+        Value = value;
+    }
+
+    /// <summary>γ in (0, 1).</summary>
+    public double Value { get; }
+
+    /// <summary>1 − γ.</summary>
+    public double Alpha => 1d - Value;
+
+    /// <summary>Same as the constructor.</summary>
+    public static ConfidenceLevel Of(double value) => new(value);
+
+    /// <summary>Returns <see cref="Value"/>.</summary>
+    public static implicit operator double(ConfidenceLevel level) => level.Value;
+
+    /// <summary>Validates and wraps a raw γ.</summary>
+    public static implicit operator ConfidenceLevel(double value) => new(value);
+
+    /// <inheritdoc />
+    public override string ToString() => Value.ToString("P2");
+}
+
+/// <summary>
+/// One two-sided fence for a named parameter. When <see cref="IsDefined"/> is false,
+/// bounds are omitted; the estimate may still be present.
+/// </summary>
+public readonly record struct ConfidenceInterval
+{
+    /// <summary>Parameter this fence describes (Mean, Median, Variance, StdDev, Proportion).</summary>
+    public required string Parameter { get; init; }
+
+    /// <summary>Point estimate from this snapshot, if one exists.</summary>
+    public double? Estimate { get; init; }
+
+    /// <summary>Lower bound, or null when undefined.</summary>
+    public double? Lower { get; init; }
+
+    /// <summary>Upper bound, or null when undefined.</summary>
+    public double? Upper { get; init; }
+
+    /// <summary>Coverage target γ that produced this fence.</summary>
+    public double Level { get; init; }
+
+    /// <summary>Short method name (Student t, Chi-square, Wilson score, …).</summary>
+    public required string Method { get; init; }
+
+    /// <summary>False when n is too small or a required moment is missing.</summary>
+    public bool IsDefined { get; init; }
+
+    /// <summary>Upper − Lower when both bounds exist; otherwise null.</summary>
+    public double? Width => Lower is { } lo && Upper is { } hi ? hi - lo : null;
+
+    /// <summary>Undefined fence. Estimate may still be supplied.</summary>
+    public static ConfidenceInterval Undefined(string parameter, double level, string method, double? estimate = null)
+        => new()
+        {
+            Parameter = parameter,
+            Estimate = estimate,
+            Level = level,
+            Method = method,
+            IsDefined = false
+        };
+
+    /// <summary>Defined fence. Bounds are ordered so Lower ≤ Upper.</summary>
+    public static ConfidenceInterval Defined(
+        string parameter,
+        double estimate,
+        double lower,
+        double upper,
+        double level,
+        string method)
+        => new()
+        {
+            Parameter = parameter,
+            Estimate = estimate,
+            Lower = Math.Min(lower, upper),
+            Upper = Math.Max(lower, upper),
+            Level = level,
+            Method = method,
+            IsDefined = true
+        };
+}
+
+/// <summary>
+/// Mean, median, variance, and standard-deviation intervals at one <see cref="ConfidenceLevel"/>.
+/// </summary>
+public sealed class ConfidenceReport
+{
+    internal ConfidenceReport(
+        ConfidenceLevel level,
+        ConfidenceInterval mean,
+        ConfidenceInterval median,
+        ConfidenceInterval variance,
+        ConfidenceInterval stdDev)
+    {
+        Level = level;
+        Mean = mean;
+        Median = median;
+        Variance = variance;
+        StdDev = stdDev;
+    }
+
+    /// <summary>γ used for every interval in this report.</summary>
+    public ConfidenceLevel Level { get; }
+
+    /// <summary>Student-t interval for the mean. May be undefined when n &lt; 2.</summary>
+    public ConfidenceInterval Mean { get; }
+
+    /// <summary>Order-statistic interval for the median.</summary>
+    public ConfidenceInterval Median { get; }
+
+    /// <summary>Chi-square interval for the variance.</summary>
+    public ConfidenceInterval Variance { get; }
+
+    /// <summary>Square-root of the variance interval. Same definition status as <see cref="Variance"/>.</summary>
+    public ConfidenceInterval StdDev { get; }
+
+    internal static ConfidenceReport For(DescriptiveStatistics stats, ConfidenceLevel level, int? populationSize)
+    {
+        var mean = MeanInterval(stats, level, populationSize);
+        var median = MedianInterval(stats, level);
+        var variance = VarianceInterval(stats, level);
+        var stdDev = variance.IsDefined
+            ? ConfidenceInterval.Defined(
+                "StdDev",
+                stats.StdDev!.Value,
+                Math.Sqrt(variance.Lower!.Value),
+                Math.Sqrt(variance.Upper!.Value),
+                level.Value,
+                "Chi-square (sqrt of variance interval)")
+            : ConfidenceInterval.Undefined("StdDev", level.Value, "Chi-square (sqrt of variance interval)", stats.StdDev);
+
+        return new ConfidenceReport(level, mean, median, variance, stdDev);
+    }
+
+    internal static ConfidenceInterval MeanInterval(DescriptiveStatistics stats, ConfidenceLevel level, int? populationSize)
+    {
+        if (stats.Count < 2 || stats.Mean is null || stats.StdDev is null)
+            return ConfidenceInterval.Undefined("Mean", level.Value, "Student t", stats.Mean);
+
+        var n = stats.Count;
+        if (populationSize is { } N)
+        {
+            if (N < 1)
+            {
+                AnalyticsLog.Error(
+                    AnalyticsEvents.ConfidenceRejectedPopulation,
+                    VestigiumStatus.Failed,
+                    AnalyticsCatalog.Subcategories.Confidence,
+                    "rejected population size",
+                    properties: AnalyticsLog.Props(("reason", "N<1"), ("N", N.ToString())));
+                throw new ArgumentOutOfRangeException(nameof(populationSize), "Population size must be at least 1.");
+            }
+            if (n > N)
+            {
+                AnalyticsLog.Error(
+                    AnalyticsEvents.ConfidenceRejectedPopulation,
+                    VestigiumStatus.Failed,
+                    AnalyticsCatalog.Subcategories.Confidence,
+                    "rejected population size",
+                    properties: AnalyticsLog.Props(("reason", "n>N"), ("n", n.ToString()), ("N", N.ToString())));
+                throw new ArgumentOutOfRangeException(nameof(populationSize), "Sample count cannot exceed population size.");
+            }
+        }
+
+        var mean = stats.Mean.Value;
+        var method = populationSize is null ? "Student t" : "Student t with finite-population correction";
+
+        double se;
+        if (populationSize is { } pop)
+        {
+            if (n == pop || pop == 1)
+            {
+                return ConfidenceInterval.Defined( "Mean", mean, mean, mean, level.Value, method);
+            }
+
+            var fpc = Math.Sqrt((pop - n) / (double)(pop - 1));
+            se = stats.StdDev.Value / Math.Sqrt(n) * fpc;
+        }
+        else
+        {
+            se = stats.StandardErrorOfMean!.Value;
+        }
+
+        var df = n - 1;
+        var t = QuantileFunctions.StudentTInv(df, 1d - level.Alpha / 2d);
+        var half = t * se;
+        return ConfidenceInterval.Defined("Mean", mean, mean - half, mean + half, level.Value, method);
+    }
+
+    internal static ConfidenceInterval MedianInterval(DescriptiveStatistics stats, ConfidenceLevel level)
+    {
+        if (stats.Count == 0 || stats.Median is null)
+            return ConfidenceInterval.Undefined("Median", level.Value, "Order-statistic normal approximation");
+
+        if (stats.Count == 1)
+        {
+            var v = (double)stats.Sorted[0];
+            return ConfidenceInterval.Defined("Median", v, v, v, level.Value, "Order-statistic (n = 1)");
+        }
+
+        var z = QuantileFunctions.NormalInv(1d - level.Alpha / 2d);
+        var n = stats.Count;
+        var root = Math.Sqrt(n);
+        var j = (int)Math.Floor((n - z * root) / 2d);
+        var k = (int)Math.Ceiling(1d + (n + z * root) / 2d);
+        j = Math.Clamp(j, 1, n);
+        k = Math.Clamp(k, 1, n);
+        if (j > k)
+            (j, k) = (k, j);
+
+        return ConfidenceInterval.Defined(
+            "Median",
+            (double)stats.Median.Value,
+            (double)stats.Sorted[j - 1],
+            (double)stats.Sorted[k - 1],
+            level.Value,
+            "Order-statistic normal approximation");
+    }
+
+    internal static ConfidenceInterval VarianceInterval(DescriptiveStatistics stats, ConfidenceLevel level)
+    {
+        if (stats.Count < 2 || stats.Variance is null)
+            return ConfidenceInterval.Undefined("Variance", level.Value, "Chi-square", stats.Variance);
+
+        var df = stats.Count - 1;
+        var ss = stats.Variance.Value * df;
+        var loChi = QuantileFunctions.ChiSquaredInv(df, level.Alpha / 2d);
+        var hiChi = QuantileFunctions.ChiSquaredInv(df, 1d - level.Alpha / 2d);
+        if (loChi <= 0 || hiChi <= 0)
+            return ConfidenceInterval.Undefined("Variance", level.Value, "Chi-square", stats.Variance);
+
+        return ConfidenceInterval.Defined(
+            "Variance",
+            stats.Variance.Value,
+            ss / hiChi,
+            ss / loChi,
+            level.Value,
+            "Chi-square");
+    }
+
+    internal static ConfidenceInterval Wilson(int successes, int n, ConfidenceLevel level)
+    {
+        if (n <= 0)
+            return ConfidenceInterval.Undefined("Proportion", level.Value, "Wilson score");
+
+        var z = QuantileFunctions.NormalInv(1d - level.Alpha / 2d);
+        var z2 = z * z;
+        var p = successes / (double)n;
+        var denom = 1d + z2 / n;
+        var center = (p + z2 / (2d * n)) / denom;
+        var half = z * Math.Sqrt((p * (1d - p) + z2 / (4d * n)) / n) / denom;
+        return ConfidenceInterval.Defined("Proportion", p, center - half, center + half, level.Value, "Wilson score");
+    }
+
+    internal static double? TwoSidedMeanPValue(DescriptiveStatistics stats, double hypothesizedMean)
+    {
+        if (stats.Count < 2 || stats.StandardErrorOfMean is not > 0 || stats.Mean is null)
+            return null;
+
+        var t = (stats.Mean.Value - hypothesizedMean) / stats.StandardErrorOfMean.Value;
+        var df = stats.Count - 1;
+        var cdf = QuantileFunctions.StudentTCdf(df, t);
+        var p = 2d * Math.Min(cdf, 1d - cdf);
+        return Math.Clamp(p, 0d, 1d);
+    }
+
+    internal static int? PlanSampleSize(DescriptiveStatistics stats, double targetMargin, ConfidenceLevel level)
+    {
+        if (targetMargin <= 0)
+        {
+            AnalyticsLog.Error(
+                AnalyticsEvents.ConfidenceRejectedMargin,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Confidence,
+                "rejected target margin",
+                properties: AnalyticsLog.Props(("margin", targetMargin.ToString("G6"))));
+            throw new ArgumentOutOfRangeException(nameof(targetMargin), "Target margin must be positive.");
+        }
+        if (stats.StdDev is not > 0)
+            return null;
+
+        var s = stats.StdDev.Value;
+        var n = Math.Max(2, stats.Count);
+        for (var i = 0; i < 40; i++)
+        {
+            var t = QuantileFunctions.StudentTInv(n - 1, 1d - level.Alpha / 2d);
+            var needed = (int)Math.Ceiling(Math.Pow(t * s / targetMargin, 2d));
+            needed = Math.Max(2, needed);
+            if (needed == n)
+                return needed;
+            n = needed;
+        }
+
+        return n;
+    }
+}
