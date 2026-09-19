@@ -127,7 +127,7 @@ public sealed class AnalyticsPR03Tests
     }
 
     [Fact]
-    public void PR04_004_one_sided_cp_matches_the_present_side()
+    public void PR03_004_one_sided_cp_matches_the_present_side()
     {
         var series = NumericSeries.From(Enumerable.Range(1, 9));
         var sigmaW = 1d / ControlLimits.D2Span2;
@@ -176,9 +176,10 @@ public sealed class AnalyticsPR03Tests
     [Fact]
     public void PR03_006_spike_fires_rule_one()
     {
-        var report = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 1000 }).RunRules();
+        var values = Enumerable.Repeat(5, 30).Append(1000).ToArray();
+        var report = NumericSeries.From(values).RunRules();
         var rule1 = Assert.Single(report.Hits.Where(h => h.Rule == WesternElectricRule.PointBeyondThreeSigma));
-        Assert.Contains(8, rule1.Indexes);
+        Assert.Contains(30, rule1.Indexes);
         Assert.True(((IList<int>)rule1.Indexes).IsReadOnly);
         Assert.True(((IList<int>)report.AllIndexes).IsReadOnly);
         Assert.Throws<NotSupportedException>(() => ((IList<int>)report.AllIndexes)[0] = 99);
