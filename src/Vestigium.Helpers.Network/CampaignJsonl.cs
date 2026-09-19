@@ -7,11 +7,23 @@ internal static class CampaignJsonl
 {
     static readonly JsonWriteOptions Compact = new() { WriteIndented = false };
 
+    public static void AppendCampaign(string path, object record)
+    {
+        var full = CampaignPaths.Confine(path, nameof(path));
+        CampaignPaths.EnsureDirectoryUnderRoot(full);
+        WriteLine(full, record);
+    }
+
     public static void Append(string path, object record)
     {
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrWhiteSpace(dir))
             Directory.CreateDirectory(dir);
+        WriteLine(path, record);
+    }
+
+    static void WriteLine(string path, object record)
+    {
         var line = JsonHelper.ToJson(record, Compact);
         if (line.IndexOfAny(['\r', '\n']) >= 0)
             line = string.Join(' ', line.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
