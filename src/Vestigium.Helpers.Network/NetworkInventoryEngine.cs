@@ -128,7 +128,7 @@ internal static class NetworkInventoryEngine
             gateways,
             dns,
             ReadDhcp(nic, props),
-            OperatingSystem.IsWindows() ? ReadNetbios(nic) : NetbiosOverTcp.Unknown);
+            ReadNetbios(nic));
     }
 
     private static UnicastAddress MapUnicast(UnicastIPAddressInformation addr)
@@ -219,6 +219,9 @@ internal static class NetworkInventoryEngine
 
     private static NetbiosOverTcp ReadNetbios(NetworkInterface nic)
     {
+        if (!OperatingSystem.IsWindows())
+            return NetbiosOverTcp.Unknown;
+
         try
         {
             var id = nic.Id.Trim('{', '}');
