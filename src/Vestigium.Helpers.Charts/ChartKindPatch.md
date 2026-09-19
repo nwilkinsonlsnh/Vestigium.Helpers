@@ -1,1 +1,0 @@
-see ChartTypes enum PercentileInterval
