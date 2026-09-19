@@ -34,7 +34,8 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void Quantiles_reject_empty_and_p_outside_unit_interval()
     {
-        Assert.Throws<ArgumentException>(() => Quantiles.Inclusive(Array.Empty<decimal>(), 0.5));
+        var empty = Assert.Throws<InvalidOperationException>(() => Quantiles.Inclusive(Array.Empty<decimal>(), 0.5));
+        Assert.Equal(Quantiles.EmptySliceMessage, empty.Message);
         Assert.Throws<ArgumentOutOfRangeException>(() => Quantiles.Inclusive([1m, 2m], -0.01));
         Assert.Throws<ArgumentOutOfRangeException>(() => Quantiles.Inclusive([1m, 2m], 1.01));
         Assert.Equal(9m, Quantiles.Inclusive([9m], 0.37));
@@ -236,5 +237,4 @@ public sealed class AnalyticsCoverageTests
         Assert.True(unique.Full.Frequency.HasUniqueMode);
         Assert.Equal(0, FrequencyTable.Empty.DistinctCount);
     }
-
 }
