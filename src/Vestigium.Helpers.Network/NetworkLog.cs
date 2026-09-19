@@ -1,14 +1,10 @@
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Network;
 
 /// <summary>
-/// Only logging door for this library. Category <c>Helpers</c>, APPID <c>Network</c>.
-/// Writes go through <see cref="HelperLog"/> into the sibling
-/// <c>Vestigium.Logging</c> project (JSON Lines). The library never calls
-/// <c>VestigiumLogger.Initialize</c>. Hosts (Network.Demo, PingIQ, ProbeHost) initialize.
-/// Never packet payloads, WLAN keys, or <see cref="Exception"/> objects.
+/// Only logging door for this library. Category Helpers, APPID Network.
+/// Hosts initialize VestigiumLogger. Never packet payloads, WLAN keys, or Exception objects.
 /// </summary>
 internal static class NetworkLog
 {
@@ -24,7 +20,7 @@ internal static class NetworkLog
         => HelperLog.Information(App, VestigiumStatus.Success, subcategory, message);
 
     public static void Warning(string subcategory, string message)
-        => HelperLog.Warning(App, VestigiumStatus.None, subcategory, message);
+        => HelperLog.Warning(App, VestigiumStatus.Warning, subcategory, message);
 
     public static void Failed(string subcategory, string message)
         => HelperLog.Error(App, VestigiumStatus.Failed, subcategory, message);
