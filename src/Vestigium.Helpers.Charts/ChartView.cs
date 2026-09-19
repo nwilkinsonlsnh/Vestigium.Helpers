@@ -170,11 +170,14 @@ public static class ChartView
     public static FrameworkElement Bands(NumericSeries series, ChartOptions? options = null)
         => From(Spec(ChartKind.Bands, series, options));
 
-    public static FrameworkElement MeanInterval(NumericSeries series, double level = 0.95, ChartOptions? options = null)
+    public static FrameworkElement MeanInterval(
+        NumericSeries series,
+        double level = ConfidenceLevel.DefaultValue,
+        ChartOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(series);
         _ = series.Confidence(level);
-        return From(Spec(ChartKind.MeanInterval, series, options));
+        return From(Spec(ChartKind.MeanInterval, series, With(options, level: level)));
     }
 
     public static FrameworkElement Control(NumericSeries series, ControlLimits limits, ChartOptions? options = null)
@@ -218,7 +221,8 @@ public static class ChartView
         ChartOptions? options,
         bool? showBell = null,
         TrendKind? trend = null,
-        BoxWhiskerKind? whisker = null)
+        BoxWhiskerKind? whisker = null,
+        double? level = null)
     {
         var o = options ?? new ChartOptions();
         if (showBell is { } bell)
@@ -227,6 +231,8 @@ public static class ChartView
             o = o with { Trend = t };
         if (whisker is { } w)
             o = o with { BoxWhisker = w };
+        if (level is { } g)
+            o = o with { IntervalLevel = g };
         return o;
     }
 
