@@ -60,9 +60,9 @@ internal static class AnalyticsLog
             AnalyticsCatalog.Category,
             subcategory,
             message,
-            exception,
-            correlationId,
-            AnalyticsCatalog.AppId,
-            properties);
+            exception: exception,
+            appId: AnalyticsCatalog.AppId,
+            correlationId: correlationId,
+            properties: properties);
     }
 }
