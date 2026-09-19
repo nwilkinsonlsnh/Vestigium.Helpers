@@ -1,5 +1,4 @@
 using ClosedXML.Excel;
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.ClosedXml;
@@ -64,7 +63,14 @@ internal static class CellWriter
                 return false;
             case float or double:
                 var number = Convert.ToDouble(value);
-                HelperGuard.Finite(number, nameof(value));
+                if (!double.IsFinite(number))
+                {
+                    ClosedXmlLog.Error(
+                        ClosedXmlEvents.CellRejectedNonFinite,
+                        ClosedXmlCatalog.Subcategories.Sheet,
+                        "rejected non-finite number");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
+                }
                 cell.Value = number;
                 ApplyNumber(cell, options);
                 return false;
@@ -93,18 +99,14 @@ internal static class CellWriter
     private static bool WriteString(IXLCell cell, string text)
     {
         var neutralized = Neutralize(text);
-        // ClosedXML treats a single leading apostrophe as Excel's quote-prefix
-        // and strips it from the stored text. Prefix once more so GetString()
-        // still starts with "'" after save/reopen.
         var stored = neutralized.Changed ? "'" + neutralized.Text : neutralized.Text;
         cell.SetValue(stored);
         if (neutralized.Changed)
         {
-            HelperLog.Warning(
-                HelperLog.AppIds.ClosedXml,
-                VestigiumStatus.Success,
-                HelperLog.Subcategories.Sheet,
-                "Neutralized a formula-like text cell.");
+            ClosedXmlLog.Warning(
+                ClosedXmlEvents.CellNeutralized,
+                ClosedXmlCatalog.Subcategories.Sheet,
+                "neutralized formula-like text");
         }
 
         return neutralized.Changed;
