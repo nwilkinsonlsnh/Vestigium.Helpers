@@ -2,7 +2,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using ScottPlot.WPF;
-using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
 using Vestigium.Logging;
 
@@ -16,48 +15,72 @@ public static class ChartView
 {
     public static FrameworkElement From(ChartSpec spec)
     {
-        HelperGuard.NotNull(spec, nameof(spec));
-        using var scope = HelperLog.Begin(
-            HelperLog.AppIds.Charts,
-            HelperLog.Subcategories.Chart,
-            "From",
-            $"kind={spec.Kind}");
+        ArgumentNullException.ThrowIfNull(spec);
+        ChartsLog.Debug(
+            ChartsEvents.ChartEnter,
+            VestigiumStatus.Pending,
+            ChartsCatalog.Subcategories.Chart,
+            "enter chart",
+            properties: ChartsLog.Props(("kind", spec.Kind.ToString()), ("via", "From")));
         try
         {
             var view = Host(spec);
-            HelperLog.Information(
-                HelperLog.AppIds.Charts,
+            ChartsLog.Information(
+                ChartsEvents.ChartBuilt,
                 VestigiumStatus.Success,
-                HelperLog.Subcategories.Chart,
-                $"built kind={spec.Kind} series={spec.Source?.SeriesId ?? "-"}");
+                ChartsCatalog.Subcategories.Chart,
+                "chart built",
+                spec.Source?.SeriesId,
+                ChartsLog.Props(("kind", spec.Kind.ToString())));
             return view;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ChartsLog.Unexpected(ex, spec.Source?.SeriesId);
             throw;
         }
     }
 
     public static void SavePng(ChartSpec spec, string path, int width = 800, int height = 400)
     {
-        HelperGuard.NotNull(spec, nameof(spec));
-        var target = HelperGuard.NotBlank(path, nameof(path));
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Charts,
-            HelperLog.Subcategories.Chart,
-            "SavePng",
-            $"kind={spec.Kind} path={target}");
-        var plot = PlotBuilder.Create(spec);
-        var dir = Path.GetDirectoryName(target);
-        if (!string.IsNullOrWhiteSpace(dir))
-            Directory.CreateDirectory(dir);
-        plot.SavePng(target, width, height);
-        HelperLog.Information(
-            HelperLog.AppIds.Charts,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Chart,
-            $"saved kind={spec.Kind} path={target}");
+        ArgumentNullException.ThrowIfNull(spec);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            ChartsLog.Error(
+                ChartsEvents.ChartRejectedBlankPath,
+                VestigiumStatus.Failed,
+                ChartsCatalog.Subcategories.Chart,
+                "rejected blank path");
+            throw new ArgumentException("Path is required.", nameof(path));
+        }
+
+        var target = path.Trim();
+        ChartsLog.Debug(
+            ChartsEvents.ChartEnter,
+            VestigiumStatus.Pending,
+            ChartsCatalog.Subcategories.Chart,
+            "enter chart",
+            properties: ChartsLog.Props(("kind", spec.Kind.ToString()), ("via", "SavePng"), ("path", target)));
+        try
+        {
+            var plot = PlotBuilder.Create(spec);
+            var dir = Path.GetDirectoryName(target);
+            if (!string.IsNullOrWhiteSpace(dir))
+                Directory.CreateDirectory(dir);
+            plot.SavePng(target, width, height);
+            ChartsLog.Information(
+                ChartsEvents.ChartSaved,
+                VestigiumStatus.Success,
+                ChartsCatalog.Subcategories.Chart,
+                "chart saved",
+                spec.Source?.SeriesId,
+                ChartsLog.Props(("kind", spec.Kind.ToString()), ("path", target)));
+        }
+        catch (Exception ex)
+        {
+            ChartsLog.Unexpected(ex, spec.Source?.SeriesId);
+            throw;
+        }
     }
 
     public static FrameworkElement Histogram(NumericSeries series, ChartOptions? options = null)
@@ -93,11 +116,16 @@ public static class ChartView
         TrendKind trend = TrendKind.None,
         ChartOptions? options = null)
     {
-        HelperGuard.NotNull(x, nameof(x));
-        HelperGuard.NotNull(y, nameof(y));
+        ArgumentNullException.ThrowIfNull(x);
+        ArgumentNullException.ThrowIfNull(y);
         if (x.Count != y.Count)
         {
-            HelperLog.Reject("X and Y lengths must match");
+            ChartsLog.Error(
+                ChartsEvents.ChartRejectedXy,
+                VestigiumStatus.Failed,
+                ChartsCatalog.Subcategories.Chart,
+                "rejected x/y length mismatch",
+                properties: ChartsLog.Props(("nx", x.Count.ToString()), ("ny", y.Count.ToString())));
             throw new ArgumentException("X and Y lengths must match.");
         }
 
@@ -120,7 +148,7 @@ public static class ChartView
 
     public static FrameworkElement Pie(IReadOnlyList<ChartSlice> slices, ChartOptions? options = null)
     {
-        HelperGuard.NotEmpty(slices, nameof(slices));
+        RequireNotEmpty(slices, nameof(slices));
         return From(new ChartSpec { Kind = ChartKind.Pie, Slices = slices, Options = options });
     }
 
@@ -129,7 +157,7 @@ public static class ChartView
 
     public static FrameworkElement Pareto(IReadOnlyList<ChartSlice> slices, ChartOptions? options = null)
     {
-        HelperGuard.NotEmpty(slices, nameof(slices));
+        RequireNotEmpty(slices, nameof(slices));
         return From(new ChartSpec { Kind = ChartKind.Pareto, Slices = slices, Options = options });
     }
 
@@ -144,21 +172,16 @@ public static class ChartView
 
     public static FrameworkElement MeanInterval(NumericSeries series, double level = 0.95, ChartOptions? options = null)
     {
-        HelperGuard.NotNull(series, nameof(series));
+        ArgumentNullException.ThrowIfNull(series);
         _ = series.Confidence(level);
         return From(Spec(ChartKind.MeanInterval, series, options));
     }
 
     public static FrameworkElement Control(NumericSeries series, ControlLimits limits, ChartOptions? options = null)
     {
-        HelperGuard.NotNull(series, nameof(series));
-        HelperGuard.NotNull(limits, nameof(limits));
-        if (limits.Upper <= limits.Center || limits.Center <= limits.Lower)
-        {
-            HelperLog.Reject($"malformed limits UCL={limits.Upper} CL={limits.Center} LCL={limits.Lower}");
-            throw new ArgumentException("UCL must be greater than CL and CL must be greater than LCL.");
-        }
-
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(limits);
+        RequireLimits(limits);
         return From(new ChartSpec
         {
             Kind = ChartKind.Control,
@@ -174,8 +197,8 @@ public static class ChartView
         ControlLimits limits,
         ChartOptions? options = null)
     {
-        HelperGuard.NotEmpty(values, nameof(values));
-        HelperGuard.NotNull(limits, nameof(limits));
+        RequireNotEmpty(values, nameof(values));
+        ArgumentNullException.ThrowIfNull(limits);
         return From(new ChartSpec
         {
             Kind = ChartKind.Control,
@@ -187,7 +210,7 @@ public static class ChartView
 
     private static ChartSpec Spec(ChartKind kind, NumericSeries series, ChartOptions? options)
     {
-        HelperGuard.NotNull(series, nameof(series));
+        ArgumentNullException.ThrowIfNull(series);
         return new ChartSpec { Kind = kind, Source = series, Options = options, Title = options?.Title ?? series.Name };
     }
 
@@ -214,6 +237,36 @@ public static class ChartView
         var y = series.Values.Select(v => (double)v).ToArray();
         var x = Enumerable.Range(0, y.Length).Select(i => (double)i).ToArray();
         return TrendFit.Linear(x, y);
+    }
+
+    private static void RequireNotEmpty<T>(IReadOnlyList<T> items, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        if (items.Count > 0)
+            return;
+        ChartsLog.Error(
+            ChartsEvents.ChartRejectedEmpty,
+            VestigiumStatus.Failed,
+            ChartsCatalog.Subcategories.Chart,
+            "rejected empty chart input",
+            properties: ChartsLog.Props(("param", paramName)));
+        throw new ArgumentException("At least one value is required.", paramName);
+    }
+
+    private static void RequireLimits(ControlLimits limits)
+    {
+        if (limits.Upper > limits.Center && limits.Center > limits.Lower)
+            return;
+        ChartsLog.Error(
+            ChartsEvents.ChartRejectedLimits,
+            VestigiumStatus.Failed,
+            ChartsCatalog.Subcategories.Chart,
+            "rejected malformed limits",
+            properties: ChartsLog.Props(
+                ("ucl", limits.Upper.ToString("G6")),
+                ("cl", limits.Center.ToString("G6")),
+                ("lcl", limits.Lower.ToString("G6"))));
+        throw new ArgumentException("UCL must be greater than CL and CL must be greater than LCL.");
     }
 
     private static FrameworkElement Host(ChartSpec spec)
