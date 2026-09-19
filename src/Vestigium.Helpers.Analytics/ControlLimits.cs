@@ -81,8 +81,8 @@ public sealed class ControlLimits
     public bool IsOutOfControl(double y) => y > Upper || y < Lower;
 
     /// <summary>
-    /// Caller-supplied band. Out-of-control indexes stay empty until a later scoring API
-    /// walks a value list. Does not compute Center / Upper / Lower from a sample.
+    /// Caller-supplied band. Out-of-control indexes start empty; call <see cref="Against"/>
+    /// to score a value list. Does not compute Center / Upper / Lower from a sample.
     /// </summary>
     /// <exception cref="ArgumentException">The band does not satisfy UCL &gt; CL &gt; LCL.</exception>
     public static ControlLimits FromCaller(double center, double upper, double lower)
@@ -119,6 +119,55 @@ public sealed class ControlLimits
             AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Scores this finished band against encounter-order values.
+    /// Copies the fences and recomputes <see cref="OutOfControlIndexes"/>.
+    /// Does not recompute Center / Upper / Lower.
+    /// </summary>
+    /// <param name="encounterOrder">Values in process order. Null or empty yields count 0.</param>
+    public ControlLimits Against(IReadOnlyList<decimal>? encounterOrder)
+    {
+        var values = encounterOrder ?? Array.Empty<decimal>();
+        var outside = new List<int>();
+        for (var i = 0; i < values.Count; i++)
+        {
+            var y = (double)values[i];
+            if (y > Upper || y < Lower)
+                outside.Add(i);
+        }
+
+        var scored = new ControlLimits
+        {
+            Center = Center,
+            Upper = Upper,
+            Lower = Lower,
+            K = K,
+            Method = Method,
+            MovingRangeBar = MovingRangeBar,
+            E2 = E2,
+            Floor = Floor,
+            OutOfControlCount = outside.Count,
+            OutOfControlIndexes = outside,
+            MovingRanges = MovingRanges
+        };
+
+        if (outside.Count > 0)
+        {
+            AnalyticsLog.Warning(
+                AnalyticsEvents.LimitsOutOfControl,
+                VestigiumStatus.Warning,
+                AnalyticsCatalog.Subcategories.Limits,
+                "out-of-control points",
+                properties: AnalyticsLog.Props(
+                    ("via", "Against"),
+                    ("method", Method.ToString()),
+                    ("count", outside.Count.ToString()),
+                    ("indexes", string.Join(",", outside))));
+        }
+
+        return scored;
     }
 
     internal static bool IsInsufficient(
