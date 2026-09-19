@@ -47,6 +47,8 @@ public static class AnalyticsHelper
                 ("n", series.Count.ToString()),
                 ("mean", series.Full.Mean?.ToString("G6")),
                 ("p95", p95.ToString()),
+                ("ciLow", ci.Mean.Lower?.ToString("G6")),
+                ("ciHigh", ci.Mean.Upper?.ToString("G6")),
                 ("ucl", limits.Upper.ToString("G6")),
                 ("mrUcl", mr.Upper.ToString("G6")),
                 ("identity", Identity)));
