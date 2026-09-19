@@ -82,7 +82,14 @@ internal static class NetworkRouteMutation
         if (!IPAddress.TryParse(gw, out var gwIp) || gwIp.AddressFamily != AddressFamily.InterNetwork)
             throw new ArgumentException("Gateway must be IPv4.", nameof(change.Gateway));
 
-        var ifIndex = ResolveInterfaceIndex(change.InterfaceIndex, OperatingSystem.IsWindows() ? TryFirstIpv4Index() : 0);
+        int ifIndex;
+        if (change.InterfaceIndex is { } specified)
+            ifIndex = ResolveInterfaceIndex(specified, specified);
+        else if (OperatingSystem.IsWindows())
+            ifIndex = ResolveInterfaceIndex(null, TryFirstIpv4Index());
+        else
+            ifIndex = 0;
+
         return new MibIpForwardRow
         {
             dwForwardDest = ToUint(destIp),
