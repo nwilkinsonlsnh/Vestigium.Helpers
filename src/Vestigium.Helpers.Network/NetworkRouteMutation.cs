@@ -82,7 +82,7 @@ internal static class NetworkRouteMutation
         if (!IPAddress.TryParse(gw, out var gwIp) || gwIp.AddressFamily != AddressFamily.InterNetwork)
             throw new ArgumentException("Gateway must be IPv4.", nameof(change.Gateway));
 
-        var ifIndex = change.InterfaceIndex ?? FirstIpv4Index();
+        var ifIndex = ResolveInterfaceIndex(change.InterfaceIndex, OperatingSystem.IsWindows() ? TryFirstIpv4Index() : 0);
         return new MibIpForwardRow
         {
             dwForwardDest = ToUint(destIp),
@@ -95,7 +95,27 @@ internal static class NetworkRouteMutation
         };
     }
 
-    internal static int FirstIpv4Index()
+    internal static int ResolveInterfaceIndex(int? callerIndex, int? discoveredIndex)
+    {
+        if (callerIndex is { } specified)
+        {
+            if (specified < 1)
+            {
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(ResolveInterfaceIndex), $"ifIndex={specified}");
+                throw new ArgumentOutOfRangeException(nameof(NetworkRouteChange.InterfaceIndex), "InterfaceIndex must be 1 or greater.");
+            }
+
+            return specified;
+        }
+
+        if (discoveredIndex is { } found && found >= 1)
+            return found;
+
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(ResolveInterfaceIndex), "interface required");
+        throw new ArgumentException("Route mutation requires InterfaceIndex when no up IPv4 interface is present.", nameof(NetworkRouteChange.InterfaceIndex));
+    }
+
+    internal static int? TryFirstIpv4Index()
     {
         try
         {
@@ -105,7 +125,9 @@ internal static class NetworkRouteMutation
                     continue;
                 try
                 {
-                    return nic.GetIPProperties().GetIPv4Properties().Index;
+                    var index = nic.GetIPProperties().GetIPv4Properties().Index;
+                    if (index >= 1)
+                        return index;
                 }
                 catch (NetworkInformationException)
                 {
@@ -116,7 +138,7 @@ internal static class NetworkRouteMutation
         {
         }
 
-        return 1;
+        return null;
     }
 
     static uint ToUint(IPAddress ip)
