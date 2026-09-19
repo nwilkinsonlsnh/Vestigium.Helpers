@@ -57,20 +57,28 @@ public sealed class ControlLimits
             HelperLog.Subcategories.Limits,
             "FromCaller",
             $"CL={center} UCL={upper} LCL={lower}");
-        ValidateBand(center, upper, lower);
-        var limits = new ControlLimits
+        try
         {
-            Center = center,
-            Upper = upper,
-            Lower = lower,
-            Method = ControlLimitMethod.CallerSupplied
-        };
-        HelperLog.Information(
-            HelperLog.AppIds.Analytics,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Limits,
-            $"caller-supplied CL={center} UCL={upper} LCL={lower}");
-        return limits;
+            ValidateBand(center, upper, lower);
+            var limits = new ControlLimits
+            {
+                Center = center,
+                Upper = upper,
+                Lower = lower,
+                Method = ControlLimitMethod.CallerSupplied
+            };
+            HelperLog.Information(
+                HelperLog.AppIds.Analytics,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Limits,
+                $"caller-supplied CL={center} UCL={upper} LCL={lower}");
+            return limits;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
     }
 
     internal static ControlLimits Compute(
@@ -190,6 +198,16 @@ public sealed class ControlLimits
             VestigiumStatus.Success,
             HelperLog.Subcategories.Limits,
             $"computed method={method} CL={center:G6} UCL={upper:G6} LCL={lower:G6} k={k} outside={outside.Count} clamped={clamped}");
+
+        if (outside.Count > 0)
+        {
+            HelperLog.Warning(
+                HelperLog.AppIds.Analytics,
+                VestigiumStatus.Degraded,
+                HelperLog.Subcategories.Limits,
+                $"out-of-control points method={method} count={outside.Count} indexes={string.Join(",", outside)}");
+        }
+
         return limits;
     }
 
