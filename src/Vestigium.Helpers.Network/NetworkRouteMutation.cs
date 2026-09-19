@@ -3,6 +3,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Security;
 using Microsoft.Win32;
 using Vestigium.Helpers;
 
@@ -15,7 +16,7 @@ internal static class NetworkRouteMutation
     const uint ErrorNotFound = 1168;
     const int ProtoNetMgmt = 3;
     const int TypeIndirect = 4;
-    const string PersistentKey = @"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\PersistentRoutes";
+    const string PersistentKey = @"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes";
 
     public static void Add(NetworkRouteChange change)
     {
@@ -166,6 +167,12 @@ internal static class NetworkRouteMutation
         return new NetworkRouteDenied(message);
     }
 
+    internal static NetworkRouteDenied PersistentAccessDenied(Exception ex)
+    {
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(DeletePersistent), "persistent route access denied");
+        return new NetworkRouteDenied("Persistent route requires write access to HKLM PersistentRoutes.", ex);
+    }
+
     [SupportedOSPlatform("windows")]
     static void WritePersistent(NetworkRouteChange change)
     {
@@ -176,9 +183,9 @@ internal static class NetworkRouteMutation
                 throw new NetworkRouteDenied("Persistent route registry key is not writable.");
             key.SetValue(PersistentName(change), "", RegistryValueKind.String);
         }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
         {
-            throw new NetworkRouteDenied("Persistent route requires write access to HKLM PersistentRoutes.", ex);
+            throw PersistentAccessDenied(ex);
         }
     }
 
@@ -190,8 +197,9 @@ internal static class NetworkRouteMutation
             using var key = Registry.LocalMachine.OpenSubKey(PersistentKey, writable: true);
             key?.DeleteValue(PersistentName(change), throwOnMissingValue: false);
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
         {
+            throw PersistentAccessDenied(ex);
         }
     }
 
