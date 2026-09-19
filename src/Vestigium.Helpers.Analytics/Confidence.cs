@@ -1,4 +1,3 @@
-using MathNet.Numerics.Distributions;
 using Vestigium.Helpers;
 using Vestigium.Logging;
 
@@ -171,7 +170,7 @@ public sealed class ConfidenceReport
         }
 
         var df = n - 1;
-        var t = StudentT.InvCDF(0d, 1d, df, 1d - level.Alpha / 2d);
+        var t = QuantileFunctions.StudentTInv(df, 1d - level.Alpha / 2d);
         var half = t * se;
         return ConfidenceInterval.Defined("Mean", mean, mean - half, mean + half, level.Value, method);
     }
@@ -187,7 +186,7 @@ public sealed class ConfidenceReport
             return ConfidenceInterval.Defined("Median", v, v, v, level.Value, "Order-statistic (n = 1)");
         }
 
-        var z = Normal.InvCDF(0d, 1d, 1d - level.Alpha / 2d);
+        var z = QuantileFunctions.NormalInv(1d - level.Alpha / 2d);
         var n = stats.Count;
         var root = Math.Sqrt(n);
         var j = (int)Math.Floor((n - z * root) / 2d);
@@ -213,8 +212,8 @@ public sealed class ConfidenceReport
 
         var df = stats.Count - 1;
         var ss = stats.Variance.Value * df;
-        var loChi = ChiSquared.InvCDF(df, level.Alpha / 2d);
-        var hiChi = ChiSquared.InvCDF(df, 1d - level.Alpha / 2d);
+        var loChi = QuantileFunctions.ChiSquaredInv(df, level.Alpha / 2d);
+        var hiChi = QuantileFunctions.ChiSquaredInv(df, 1d - level.Alpha / 2d);
         if (loChi <= 0 || hiChi <= 0)
             return ConfidenceInterval.Undefined("Variance", level.Value, "Chi-square", stats.Variance);
 
@@ -232,7 +231,7 @@ public sealed class ConfidenceReport
         if (n <= 0)
             return ConfidenceInterval.Undefined("Proportion", level.Value, "Wilson score");
 
-        var z = Normal.InvCDF(0d, 1d, 1d - level.Alpha / 2d);
+        var z = QuantileFunctions.NormalInv(1d - level.Alpha / 2d);
         var z2 = z * z;
         var p = successes / (double)n;
         var denom = 1d + z2 / n;
@@ -248,7 +247,7 @@ public sealed class ConfidenceReport
 
         var t = (stats.Mean.Value - hypothesizedMean) / stats.StandardErrorOfMean.Value;
         var df = stats.Count - 1;
-        var cdf = StudentT.CDF(0d, 1d, df, t);
+        var cdf = QuantileFunctions.StudentTCdf(df, t);
         var p = 2d * Math.Min(cdf, 1d - cdf);
         return Math.Clamp(p, 0d, 1d);
     }
@@ -272,7 +271,7 @@ public sealed class ConfidenceReport
         var n = Math.Max(2, stats.Count);
         for (var i = 0; i < 40; i++)
         {
-            var t = StudentT.InvCDF(0d, 1d, n - 1, 1d - level.Alpha / 2d);
+            var t = QuantileFunctions.StudentTInv(n - 1, 1d - level.Alpha / 2d);
             var needed = (int)Math.Ceiling(Math.Pow(t * s / targetMargin, 2d));
             needed = Math.Max(2, needed);
             if (needed == n)

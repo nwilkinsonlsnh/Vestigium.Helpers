@@ -31,6 +31,12 @@ internal static class NumberConvert
         return list;
     }
 
+    public static IReadOnlyList<T> Freeze<T>(IEnumerable<T> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        return Array.AsReadOnly(items.ToArray());
+    }
+
     public static decimal ToDecimal<T>(T value, int index)
         where T : INumber<T>
     {
