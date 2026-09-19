@@ -12,7 +12,7 @@ public enum ControlLimitMethod
     MeanPlusKSigma = 0,
 
     /// <summary>
-    /// Shewhart individuals using the average moving range of span 2.
+    /// Some individuals using the average moving range of span 2.
     /// CL = mean, UCL/LCL = mean ± E2 × MR̄, E2 = 3 / d2, d2(n=2) = 1.1283791670955126.
     /// Moving ranges use encounter order, not the sorted copy.
     /// </summary>

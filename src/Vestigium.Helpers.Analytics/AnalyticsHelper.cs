@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using Vestigium.Logging;
 
@@ -46,7 +47,7 @@ public static class AnalyticsHelper
             AnalyticsLog.Props(
                 ("n", series.Count.ToString()),
                 ("mean", series.Full.Mean?.ToString("G6")),
-                ("p95", p95.ToString()),
+                ("p95", p95.ToString(CultureInfo.InvariantCulture)),
                 ("ciLow", ci.Mean.Lower?.ToString("G6")),
                 ("ciHigh", ci.Mean.Upper?.ToString("G6")),
                 ("ucl", limits.Upper.ToString("G6")),

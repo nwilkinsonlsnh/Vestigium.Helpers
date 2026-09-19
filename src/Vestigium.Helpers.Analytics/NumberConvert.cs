@@ -40,12 +40,9 @@ internal static class NumberConvert
         if (typeof(T) == typeof(double))
         {
             var d = (double)(object)value!;
-            if (!double.IsFinite(d))
-            {
-                RejectNonFinite(index);
-                throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
-            }
-            return (decimal)d;
+            if (double.IsFinite(d)) return (decimal)d;
+            RejectNonFinite(index);
+            throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
         }
 
         if (typeof(T) == typeof(float))
@@ -63,12 +60,9 @@ internal static class NumberConvert
         {
             var h = (Half)(object)value!;
             var d = (double)h;
-            if (!double.IsFinite(d))
-            {
-                RejectNonFinite(index);
-                throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
-            }
-            return (decimal)d;
+            if (double.IsFinite(d)) return (decimal)d;
+            RejectNonFinite(index);
+            throw new ArgumentOutOfRangeException(nameof(value), $"Values[{index}] is not finite.");
         }
 
         try

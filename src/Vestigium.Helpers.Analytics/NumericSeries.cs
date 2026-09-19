@@ -229,22 +229,23 @@ public sealed class NumericSeries
                 }
             }
 
-            if (values.Count == 0)
+            switch (values.Count)
             {
-                AnalyticsLog.Error(
-                    AnalyticsEvents.SeriesRejectedEmptySlice,
-                    VestigiumStatus.Failed,
-                    AnalyticsCatalog.Subcategories.Series,
-                    "rejected empty slice",
-                    correlationId: SeriesId);
-                throw new ArgumentException("Slice produced an empty series.");
+                case 0:
+                    AnalyticsLog.Error(
+                        AnalyticsEvents.SeriesRejectedEmptySlice,
+                        VestigiumStatus.Failed,
+                        AnalyticsCatalog.Subcategories.Series,
+                        "rejected empty slice",
+                        correlationId: SeriesId);
+                    throw new ArgumentException("Slice produced an empty series.");
+                default:
+                    return new NumericSeries(
+                        values,
+                        times,
+                        name ?? Name,
+                        new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
             }
-
-            return new NumericSeries(
-                values,
-                times,
-                name ?? Name,
-                new SeriesWindow(startInclusive, endExclusive, SeriesWindowKind.CallerSupplied));
         }
         catch (Exception ex)
         {

@@ -55,13 +55,7 @@ public sealed class FrequencyTable
         var modes = frequencies.Where(b => b.Count == maxCount).Select(b => b.Value).ToArray();
         var hasUniqueMode = maxCount >= 2 && modes.Length == 1;
 
-        double entropy = 0;
-        foreach (var bin in frequencies)
-        {
-            if (bin.RelativeFrequency <= 0)
-                continue;
-            entropy -= bin.RelativeFrequency * Math.Log(bin.RelativeFrequency);
-        }
+        var entropy = frequencies.Where(bin => !(bin.RelativeFrequency <= 0)).Aggregate<FrequencyBin?, double>(0, (current, bin) => current - bin.RelativeFrequency * Math.Log(bin.RelativeFrequency));
 
         var histogram = BuildHistogram(values, iqr, min!.Value, max!.Value);
         return new FrequencyTable(frequencies, modes, hasUniqueMode, entropy, histogram);
