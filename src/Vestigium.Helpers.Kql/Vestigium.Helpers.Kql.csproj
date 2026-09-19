@@ -13,9 +13,6 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
-  </ItemGroup>
-  <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
   <ItemGroup>
