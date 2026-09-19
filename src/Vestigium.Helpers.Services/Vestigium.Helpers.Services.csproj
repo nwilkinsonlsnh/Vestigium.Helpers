@@ -16,7 +16,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Processes\Vestigium.Helpers.Processes.csproj" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.8" />
@@ -24,5 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EventCatalog\services.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
