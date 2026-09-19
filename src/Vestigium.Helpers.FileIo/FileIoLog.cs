@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.FileIo;
@@ -6,7 +7,7 @@ namespace Vestigium.Helpers.FileIo;
 /// ALCOA+ door for FileIo. Never file contents. Live FileIoProgress stays chatty;
 /// these JSONL lines stay sparse. Failed never attaches Exception.ToString().
 /// </summary>
-internal static class FileIoLog
+internal static partial class FileIoLog
 {
     public static class Subcategories
     {
@@ -25,6 +26,9 @@ internal static class FileIoLog
         public const string Stats = "Stats";
         public const string Progress = "Progress";
     }
+
+    [GeneratedRegex(@"^[A-Za-z0-9+/]{44,}={0,2}$", RegexOptions.CultureInvariant)]
+    private static partial Regex RegexBase64();
 
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
@@ -100,7 +104,7 @@ internal static class FileIoLog
         var t = value.Trim();
         if (t.Length >= 32 && t.All(Uri.IsHexDigit))
             return true;
-        if (t.Length >= 44 && RegexBase64.IsMatch(t))
+        if (t.Length >= 44 && RegexBase64().IsMatch(t))
             return true;
         return false;
     }
@@ -134,9 +138,6 @@ internal static class FileIoLog
             properties: Props(("detail", detail), ("subcategory", subcategory)),
             appId: FileIoCatalog.AppId);
     }
-
-    static readonly System.Text.RegularExpressions.Regex RegexBase64 =
-        new(@"^[A-Za-z0-9+/]{44,}={0,2}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     private sealed class NullScope : IDisposable
     {
