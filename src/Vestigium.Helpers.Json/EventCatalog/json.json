@@ -1,0 +1,13 @@
+{
+  "app": "Json",
+  "category": "Helpers",
+  "block": { "start": 13500, "end": 13999 },
+  "events": [
+    { "eventId": 13500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Json", "message": "enter Probe" },
+    { "eventId": 13505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Json", "message": "probe complete" },
+    { "eventId": 13510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Json", "message": "enter operation" },
+    { "eventId": 13515, "name": "OperationComplete", "severity": "Information", "subcategory": "Json", "message": "operation complete" },
+    { "eventId": 13520, "name": "OperationFailed", "severity": "Error", "subcategory": "Json", "message": "operation failed" },
+    { "eventId": 13525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Json", "message": "operation warning" }
+  ]
+}
