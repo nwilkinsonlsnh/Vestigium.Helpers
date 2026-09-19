@@ -15,7 +15,8 @@ public enum ChartKind
     Box,
     Bands,
     MeanInterval,
-    Control
+    Control,
+    PercentileInterval
 }
 
 public enum TrendKind
@@ -47,6 +48,7 @@ public sealed record ChartOptions
     public double? Height { get; init; }
     public string? Color { get; init; }
     public double? IntervalLevel { get; init; }
+    public double? PercentileP { get; init; }
     public RunRuleReport? RunRules { get; init; }
     public SpecLimits? Spec { get; init; }
 }

@@ -5,6 +5,14 @@ namespace Vestigium.Helpers.Charts;
 
 internal static partial class PlotBuilder
 {
+    internal static bool TryFillExtra(Plot plot, ChartSpec spec, ChartOptions options)
+    {
+        if (spec.Kind != ChartKind.PercentileInterval)
+            return false;
+        FillPercentileInterval(plot, spec, options);
+        return true;
+    }
+
     private static void FillPercentileInterval(Plot plot, ChartSpec spec, ChartOptions options)
     {
         var series = RequireSeries(spec);
