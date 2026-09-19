@@ -12,6 +12,5 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
-    <ProjectReference Include="$(VestigiumLoggingProject)" />
   </ItemGroup>
 </Project>
