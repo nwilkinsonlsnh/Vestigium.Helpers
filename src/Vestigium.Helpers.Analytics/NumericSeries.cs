@@ -12,11 +12,12 @@ public sealed class NumericSeries
 {
     public NumericSeries(IEnumerable<decimal> values, string? name = null)
     {
-        using var scope = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Series,
-            "ctor",
-            $"name={name ?? "(none)"}");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.SeriesEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Series,
+            "enter series",
+            properties: AnalyticsLog.Props(("name", name), ("via", "ctor")));
         try
         {
             Bind(
@@ -27,7 +28,7 @@ public sealed class NumericSeries
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.SeriesThrown, AnalyticsCatalog.Subcategories.Series, ex);
             throw;
         }
     }
@@ -47,7 +48,7 @@ public sealed class NumericSeries
         string? name,
         SeriesWindow window)
     {
-        SeriesId = HelperLog.NewId();
+        SeriesId = AnalyticsLog.NewId();
         Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
         Values = values;
         Sorted = values.OrderBy(v => v).ToArray();
@@ -89,57 +90,49 @@ public sealed class NumericSeries
         Q4 = new SeriesSlice(SliceKind.Q4, values.Where(v => v > q3).ToArray());
         Iqr = new SeriesSlice(SliceKind.Iqr, values.Where(v => v >= q1 && v <= q3).ToArray());
 
-        HelperLog.Information(
-            HelperLog.AppIds.Analytics,
+        AnalyticsLog.Information(
+            AnalyticsEvents.SeriesConstructed,
             VestigiumStatus.Success,
-            HelperLog.Subcategories.Series,
-            $"constructed series={SeriesId} n={values.Count} name={Name ?? "(none)"} window={Window.Kind}");
+            AnalyticsCatalog.Subcategories.Series,
+            "constructed",
+            SeriesId,
+            AnalyticsLog.Props(
+                ("n", values.Count.ToString()),
+                ("name", Name),
+                ("window", Window.Kind.ToString())));
     }
 
     public static NumericSeries From<T>(IEnumerable<T> values, string? name = null)
         where T : INumber<T>
     {
-        using var scope = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Series,
-            "From",
-            $"name={name ?? "(none)"}");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.SeriesEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Series,
+            "enter series",
+            properties: AnalyticsLog.Props(("name", name), ("via", "From")));
         try
         {
             return new NumericSeries(NumberConvert.ToDecimalList(values), [], name, SeriesWindow.None);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.SeriesThrown, AnalyticsCatalog.Subcategories.Series, ex);
             throw;
         }
     }
 
     public static NumericSeries FromDecimal(IEnumerable<decimal> values, string? name = null)
-    {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Series,
-            "FromDecimal",
-            $"name={name ?? "(none)"}");
-        try
-        {
-            return new NumericSeries(values, name);
-        }
-        catch (Exception ex)
-        {
-            HelperLog.Trap(ex);
-            throw;
-        }
-    }
+        => new(values, name);
 
     public static NumericSeries FromObservations(IEnumerable<Observation> observations, string? name = null)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Series,
-            "FromObservations",
-            $"name={name ?? "(none)"}");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.SeriesEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Series,
+            "enter series",
+            properties: AnalyticsLog.Props(("name", name), ("via", "FromObservations")));
         try
         {
             HelperGuard.NotNull(observations, nameof(observations));
@@ -148,7 +141,7 @@ public sealed class NumericSeries
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.SeriesThrown, AnalyticsCatalog.Subcategories.Series, ex);
             throw;
         }
     }
@@ -159,11 +152,12 @@ public sealed class NumericSeries
         DateTimeOffset endExclusive,
         string? name = null)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Series,
-            "FromObservations",
-            $"name={name ?? "(none)"} window=[{startInclusive:o},{endExclusive:o})");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.SeriesEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Series,
+            "enter series",
+            properties: AnalyticsLog.Props(("name", name), ("via", "FromObservationsWindow")));
         try
         {
             HelperGuard.NotNull(observations, nameof(observations));
@@ -183,7 +177,7 @@ public sealed class NumericSeries
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.SeriesThrown, AnalyticsCatalog.Subcategories.Series, ex);
             throw;
         }
     }
@@ -210,12 +204,13 @@ public sealed class NumericSeries
 
     public NumericSeries Slice(DateTimeOffset startInclusive, DateTimeOffset endExclusive, string? name = null)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Series,
-            "Slice",
-            $"series={SeriesId} window=[{startInclusive:o},{endExclusive:o})",
-            SeriesId);
+        AnalyticsLog.Debug(
+            AnalyticsEvents.SeriesEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Series,
+            "enter series",
+            SeriesId,
+            AnalyticsLog.Props(("via", "Slice")));
         try
         {
             HelperGuard.RequireState(HasTimestamps, "Slice requires at least one timestamped observation.");
@@ -236,7 +231,12 @@ public sealed class NumericSeries
 
             if (values.Count == 0)
             {
-                HelperLog.Reject($"slice produced an empty series series={SeriesId}");
+                AnalyticsLog.Error(
+                    AnalyticsEvents.SeriesRejectedEmptySlice,
+                    VestigiumStatus.Failed,
+                    AnalyticsCatalog.Subcategories.Series,
+                    "rejected empty slice",
+                    correlationId: SeriesId);
                 throw new ArgumentException("Slice produced an empty series.");
             }
 
@@ -248,44 +248,54 @@ public sealed class NumericSeries
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.SeriesThrown, AnalyticsCatalog.Subcategories.Series, ex, SeriesId);
             throw;
         }
     }
 
     public ConfidenceReport Confidence(double level = ConfidenceLevel.DefaultValue)
     {
-        using var scope = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Confidence,
-            "Confidence",
-            $"γ={level} n={Count} series={SeriesId}",
-            SeriesId);
+        AnalyticsLog.Debug(
+            AnalyticsEvents.ConfidenceEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Confidence,
+            "enter confidence",
+            SeriesId,
+            AnalyticsLog.Props(("gamma", level.ToString("G6")), ("n", Count.ToString())));
         try
         {
             var report = Full.Confidence(level);
-            HelperLog.Information(
-                HelperLog.AppIds.Analytics,
+            AnalyticsLog.Information(
+                AnalyticsEvents.ConfidenceComputed,
                 VestigiumStatus.Success,
-                HelperLog.Subcategories.Confidence,
-                $"confidence series={SeriesId} γ={level} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
+                AnalyticsCatalog.Subcategories.Confidence,
+                "confidence computed",
+                SeriesId,
+                AnalyticsLog.Props(
+                    ("gamma", level.ToString("G6")),
+                    ("meanLower", Fmt(report.Mean.Lower)),
+                    ("meanUpper", Fmt(report.Mean.Upper))));
             return report;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.ConfidenceThrown, AnalyticsCatalog.Subcategories.Confidence, ex, SeriesId);
             throw;
         }
     }
 
     public ConfidenceReport Confidence(double level, int populationSize)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Confidence,
-            "Confidence",
-            $"γ={level} N={populationSize} n={Count} series={SeriesId}",
-            SeriesId);
+        AnalyticsLog.Debug(
+            AnalyticsEvents.ConfidenceEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Confidence,
+            "enter confidence",
+            SeriesId,
+            AnalyticsLog.Props(
+                ("gamma", level.ToString("G6")),
+                ("N", populationSize.ToString()),
+                ("n", Count.ToString())));
         try
         {
             HelperGuard.InRange(populationSize, 1, nameof(populationSize));
@@ -294,31 +304,29 @@ public sealed class NumericSeries
                 nameof(populationSize),
                 "Sample count cannot exceed population size.");
             var report = Full.Confidence(level, populationSize);
-            HelperLog.Information(
-                HelperLog.AppIds.Analytics,
+            AnalyticsLog.Information(
+                AnalyticsEvents.ConfidenceComputed,
                 VestigiumStatus.Success,
-                HelperLog.Subcategories.Confidence,
-                $"confidence series={SeriesId} γ={level} N={populationSize} mean=[{Fmt(report.Mean.Lower)},{Fmt(report.Mean.Upper)}]");
+                AnalyticsCatalog.Subcategories.Confidence,
+                "confidence computed",
+                SeriesId,
+                AnalyticsLog.Props(
+                    ("gamma", level.ToString("G6")),
+                    ("N", populationSize.ToString()),
+                    ("meanLower", Fmt(report.Mean.Lower)),
+                    ("meanUpper", Fmt(report.Mean.Upper))));
             return report;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.ConfidenceThrown, AnalyticsCatalog.Subcategories.Confidence, ex, SeriesId);
             throw;
         }
     }
 
-    /// <summary>
-    /// Two-sided p-value of H0: mean = <paramref name="hypothesizedMean"/>.
-    /// </summary>
     public double? MeanPValue(double hypothesizedMean)
         => ConfidenceReport.TwoSidedMeanPValue(Full.Statistics, hypothesizedMean);
 
-    /// <summary>
-    /// Just-covering two-sided level for the mean: the smallest γ whose interval
-    /// contains <paramref name="hypothesizedMean"/>. Equal to 1 − p. This is the
-    /// dual of a t-test, not an estimated "confidence of the sample."
-    /// </summary>
     public double? MeanConfidenceLevelContaining(double hypothesizedMean)
     {
         var p = MeanPValue(hypothesizedMean);
@@ -327,19 +335,20 @@ public sealed class NumericSeries
 
     public int? SampleSizeForMeanMargin(double targetMargin, double level = ConfidenceLevel.DefaultValue)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Confidence,
-            "SampleSizeForMeanMargin",
-            $"margin={targetMargin} γ={level} series={SeriesId}",
-            SeriesId);
+        AnalyticsLog.Debug(
+            AnalyticsEvents.ConfidenceEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Confidence,
+            "enter confidence",
+            SeriesId,
+            AnalyticsLog.Props(("margin", targetMargin.ToString("G6")), ("gamma", level.ToString("G6"))));
         try
         {
             return ConfidenceReport.PlanSampleSize(Full.Statistics, targetMargin, ConfidenceLevel.Of(level));
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.ConfidenceThrown, AnalyticsCatalog.Subcategories.Confidence, ex, SeriesId);
             throw;
         }
     }
@@ -350,29 +359,25 @@ public sealed class NumericSeries
     public ConfidenceInterval ProportionAtLeast(decimal threshold, double level = ConfidenceLevel.DefaultValue)
         => Full.ProportionAtLeast(threshold, level);
 
-    /// <summary>
-    /// Process-control fences for the full series. Pass the result to Charts.
-    /// Default is mean ± 3s. Use <see cref="ControlLimitMethod.MovingRange"/> for
-    /// Shewhart individuals (E2 × MR̄).
-    /// </summary>
     public ControlLimits ControlLimits(
         ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
         double k = 3,
         double? floor = null)
     {
-        using var scope = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Limits,
-            "ControlLimits",
-            $"series={SeriesId} method={method} k={k} n={Count}",
-            SeriesId);
+        AnalyticsLog.Debug(
+            AnalyticsEvents.LimitsEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Limits,
+            "enter limits",
+            SeriesId,
+            AnalyticsLog.Props(("method", method.ToString()), ("k", k.ToString("G6")), ("n", Count.ToString())));
         try
         {
             return Full.ControlLimits(method, k, floor);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex, SeriesId);
             throw;
         }
     }
@@ -455,7 +460,11 @@ public sealed class NumericSeries
 
         if (values.Count == 0)
         {
-            HelperLog.Reject("observations is empty");
+            AnalyticsLog.Error(
+                AnalyticsEvents.SeriesRejectedEmptyObservations,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Series,
+                "rejected empty observations");
             throw new ArgumentException("A numeric series must contain at least one value.", nameof(observations));
         }
 
