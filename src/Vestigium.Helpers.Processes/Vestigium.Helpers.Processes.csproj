@@ -15,7 +15,6 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.8" />
@@ -23,5 +22,8 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EventCatalog\processes.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
