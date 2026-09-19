@@ -68,11 +68,11 @@ public sealed class ControlLimits
     /// <summary>Number of encounter-order values outside (Lower, Upper).</summary>
     public int OutOfControlCount { get; init; }
 
-    /// <summary>Encounter indexes of those values. Empty when none, never null.</summary>
+    /// <summary>Frozen encounter indexes of those values. Empty when none, never null.</summary>
     public IReadOnlyList<int> OutOfControlIndexes { get; init; } = [];
 
     /// <summary>
-    /// Per-step |xᵢ − xᵢ₋₁| in encounter order when moving-range ran.
+    /// Frozen per-step |xᵢ − xᵢ₋₁| in encounter order when moving-range ran.
     /// Empty for mean ± kσ and caller-supplied fences.
     /// </summary>
     public IReadOnlyList<double> MovingRanges { get; init; } = [];
@@ -149,8 +149,8 @@ public sealed class ControlLimits
             E2 = E2,
             Floor = Floor,
             OutOfControlCount = outside.Count,
-            OutOfControlIndexes = outside,
-            MovingRanges = MovingRanges
+            OutOfControlIndexes = NumberConvert.Freeze(outside),
+            MovingRanges = NumberConvert.Freeze(MovingRanges)
         };
 
         if (outside.Count > 0)
@@ -339,8 +339,8 @@ public sealed class ControlLimits
             E2 = e2,
             Floor = floor,
             OutOfControlCount = outside.Count,
-            OutOfControlIndexes = outside,
-            MovingRanges = ranges
+            OutOfControlIndexes = NumberConvert.Freeze(outside),
+            MovingRanges = NumberConvert.Freeze(ranges)
         };
 
         AnalyticsLog.Information(
