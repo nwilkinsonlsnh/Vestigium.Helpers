@@ -18,4 +18,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="EventCatalog\kql.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
