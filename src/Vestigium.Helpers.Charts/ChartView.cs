@@ -11,7 +11,7 @@ namespace Vestigium.Helpers.Charts;
 /// Easy ScottPlot wrapper. Hosts drop the returned <see cref="FrameworkElement"/>
 /// on a WPF form. Limit values come from Analytics — this type does not compute UCL/LCL.
 /// </summary>
-public static class ChartView
+public static partial class ChartView
 {
     public static FrameworkElement From(ChartSpec spec)
     {
@@ -198,6 +198,7 @@ public static class ChartView
             Source = series,
             Limits = limits,
             RunRules = runRules ?? options?.RunRules,
+            Spec = options?.Spec,
             Options = options,
             Title = options?.Title ?? $"CL={limits.Center:G4}  UCL={limits.Upper:G4}  LCL={limits.Lower:G4}"
         });
@@ -215,12 +216,13 @@ public static class ChartView
             Kind = ChartKind.Control,
             Limits = limits,
             RunRules = options?.RunRules,
+            Spec = options?.Spec,
             Series = [new ChartSeries { Y = values.ToArray() }],
             Options = options
         });
     }
 
-    private static ChartSpec Spec(ChartKind kind, NumericSeries series, ChartOptions? options)
+    internal static ChartSpec Spec(ChartKind kind, NumericSeries series, ChartOptions? options)
     {
         ArgumentNullException.ThrowIfNull(series);
         return new ChartSpec { Kind = kind, Source = series, Options = options, Title = options?.Title ?? series.Name };
