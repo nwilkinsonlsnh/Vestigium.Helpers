@@ -1,0 +1,13 @@
+{
+  "app": "Xml",
+  "category": "Helpers",
+  "block": { "start": 16500, "end": 16999 },
+  "events": [
+    { "eventId": 16500, "name": "ProbeEnter", "severity": "Information", "subcategory": "Xml", "message": "enter Probe" },
+    { "eventId": 16505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Xml", "message": "probe complete" },
+    { "eventId": 16510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Xml", "message": "enter operation" },
+    { "eventId": 16515, "name": "OperationComplete", "severity": "Information", "subcategory": "Xml", "message": "operation complete" },
+    { "eventId": 16520, "name": "OperationFailed", "severity": "Error", "subcategory": "Xml", "message": "operation failed" },
+    { "eventId": 16525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Xml", "message": "operation warning" }
+  ]
+}
