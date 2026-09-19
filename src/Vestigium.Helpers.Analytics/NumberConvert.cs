@@ -81,14 +81,14 @@ internal static class NumberConvert
         catch (OverflowException ex)
         {
             LogOverflow(("index", index.ToString()));
-            throw new ArgumentOutOfRangeException(nameof(value), ex, $"Values[{index}] cannot be stored as decimal.");
+            throw new ArgumentOutOfRangeException($"Values[{index}] cannot be stored as decimal.", ex);
         }
     }
 
     public static void ThrowDescriptorOverflow(OverflowException ex)
     {
         LogOverflow();
-        throw new ArgumentOutOfRangeException("values", ex, DescriptorOverflowMessage);
+        throw new ArgumentOutOfRangeException(DescriptorOverflowMessage, ex);
     }
 
     private static void LogOverflow(params (string Key, string? Value)[] extra)
