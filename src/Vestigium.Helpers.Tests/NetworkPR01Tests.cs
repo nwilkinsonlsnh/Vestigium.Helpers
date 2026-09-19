@@ -4,9 +4,11 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR01Tests
+public sealed class NetworkPR01Tests : IDisposable
 {
     const string SampleMac = "00:1A:2B:3C:4D:5E";
+
+    public void Dispose() => NetworkTestHooks.Reset();
 
     [Fact]
     public async Task PR01_001_custom_registry_http_is_rejected()
@@ -114,6 +116,27 @@ public sealed class NetworkPR01Tests
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             NetworkHelper.LookupOuiAsync(SampleMac, options));
+    }
+
+    [Fact]
+    public void PR01_002_hooks_are_not_public()
+    {
+        var type = typeof(NetworkHelper).Assembly.GetType("Vestigium.Helpers.Network.NetworkTestHooks");
+        Assert.NotNull(type);
+        Assert.False(type!.IsPublic);
+        Assert.True(type.IsNotPublic);
+    }
+
+    [Fact]
+    public void PR01_002_reset_clears_injected_state()
+    {
+        NetworkTestHooks.CampaignRoot = Path.GetTempPath();
+        NetworkTestHooks.UtcNow = DateTimeOffset.UnixEpoch;
+        NetworkTestHooks.ProcRoot = "/tmp";
+        NetworkTestHooks.Reset();
+        Assert.Null(NetworkTestHooks.CampaignRoot);
+        Assert.Null(NetworkTestHooks.UtcNow);
+        Assert.Null(NetworkTestHooks.ProcRoot);
     }
 
     sealed class StubOuiHandler : HttpMessageHandler

@@ -1,13 +1,14 @@
 namespace Vestigium.Helpers.Network;
 
 /// <summary>
-/// Test injection only. Hosts must not set these.
+/// Test injection only. Not part of the public surface.
+/// Visible to <c>Vestigium.Helpers.Tests</c> via InternalsVisibleTo.
 /// </summary>
-public static class NetworkTestHooks
+internal static class NetworkTestHooks
 {
-    public static string? CampaignRoot { get; set; }
-    public static DateTimeOffset? UtcNow { get; set; }
-    public static string? ProcRoot { get; set; }
+    internal static string? CampaignRoot { get; set; }
+    internal static DateTimeOffset? UtcNow { get; set; }
+    internal static string? ProcRoot { get; set; }
 
     internal static DateTimeOffset Now()
         => UtcNow ?? DateTimeOffset.UtcNow;
