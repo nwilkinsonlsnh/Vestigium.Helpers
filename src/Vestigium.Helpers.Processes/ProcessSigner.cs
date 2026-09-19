@@ -13,16 +13,7 @@ internal static class ProcessSigner
         if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
             return new SignerInfo(SignerTrust.Denied, null, null, null, null);
 
-        X509Certificate2? cert = null;
-        try
-        {
-            cert = new X509Certificate2(X509Certificate.CreateFromSignedFile(imagePath));
-        }
-        catch
-        {
-            cert = null;
-        }
-
+        var cert = TryLoadAuthenticode(imagePath);
         var trust = VerifyTrust(imagePath);
         if (cert is null)
         {
@@ -39,10 +30,31 @@ internal static class ProcessSigner
                 return new SignerInfo(SignerTrust.Expired, publisher, issuer, cert.NotBefore, cert.NotAfter);
             if (trust != 0)
             {
-                return trust == TrustENoSignature ? new SignerInfo(SignerTrust.NotSigned, null, null, null, null) : new SignerInfo(SignerTrust.Untrusted, publisher, issuer, cert.NotBefore, cert.NotAfter);
+                return trust == TrustENoSignature
+                    ? new SignerInfo(SignerTrust.NotSigned, null, null, null, null)
+                    : new SignerInfo(SignerTrust.Untrusted, publisher, issuer, cert.NotBefore, cert.NotAfter);
             }
 
             return new SignerInfo(SignerTrust.Verified, publisher, issuer, cert.NotBefore, cert.NotAfter);
+        }
+    }
+
+    private static X509Certificate2? TryLoadAuthenticode(string imagePath)
+    {
+        try
+        {
+            if (X509Certificate2.GetCertContentType(imagePath) != X509ContentType.Authenticode)
+                return null;
+
+            // X509CertificateLoader has no Authenticode/PE path. CreateFromSignedFile is the
+            // remaining framework API; trust still comes from WinVerifyTrust below.
+#pragma warning disable SYSLIB0057
+            return new X509Certificate2(X509Certificate.CreateFromSignedFile(imagePath));
+#pragma warning restore SYSLIB0057
+        }
+        catch
+        {
+            return null;
         }
     }
 
