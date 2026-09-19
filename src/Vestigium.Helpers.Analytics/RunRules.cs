@@ -2,20 +2,25 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
 
-/// <summary>Western Electric rules 1–4. Nelson 5–8 stay out of PR03.</summary>
+/// <summary>Western Electric 1–4 and Nelson 5–8.</summary>
 public enum WesternElectricRule
 {
-    /// <summary>One point beyond 3σ.</summary>
     PointBeyondThreeSigma = 1,
-
-    /// <summary>Two of three consecutive points beyond 2σ on the same side.</summary>
     TwoOfThreeBeyondTwoSigma = 2,
-
-    /// <summary>Four of five consecutive points beyond 1σ on the same side.</summary>
     FourOfFiveBeyondOneSigma = 3,
+    EightOnOneSideOfCenter = 4,
 
-    /// <summary>Eight consecutive points on the same side of the center line.</summary>
-    EightOnOneSideOfCenter = 4
+    /// <summary>Nelson 5: six consecutive strictly increasing or decreasing.</summary>
+    SixIncreasingOrDecreasing = 5,
+
+    /// <summary>Nelson 6: fifteen consecutive in zone C (\|z\| &lt; 1).</summary>
+    FifteenInZoneC = 6,
+
+    /// <summary>Nelson 7: fourteen consecutive alternating up/down.</summary>
+    FourteenAlternating = 7,
+
+    /// <summary>Nelson 8: eight consecutive with none in zone C (\|z\| ≥ 1).</summary>
+    EightOutsideZoneC = 8
 }
 
 /// <summary>Indexes that participated in one rule.</summary>
@@ -25,7 +30,7 @@ public sealed class RunRuleHit
     public required IReadOnlyList<int> Indexes { get; init; }
 }
 
-/// <summary>Western Electric evaluation of one Full series.</summary>
+/// <summary>Shewhart run-rule evaluation of one Full series.</summary>
 public sealed class RunRuleReport
 {
     public required ControlLimits Limits { get; init; }
@@ -65,13 +70,16 @@ public sealed class RunRuleReport
         var sigma = SigmaOf(limits);
         var center = limits.Center;
         var y = slice.Values;
-        var n = y.Count;
 
         var hits = new List<RunRuleHit>();
         Add(hits, WesternElectricRule.PointBeyondThreeSigma, RuleBeyondK(y, center, sigma, 3, 1, 1));
         Add(hits, WesternElectricRule.TwoOfThreeBeyondTwoSigma, RuleBeyondK(y, center, sigma, 2, 3, 2));
         Add(hits, WesternElectricRule.FourOfFiveBeyondOneSigma, RuleBeyondK(y, center, sigma, 1, 5, 4));
         Add(hits, WesternElectricRule.EightOnOneSideOfCenter, RuleSameSide(y, center, 8));
+        Add(hits, WesternElectricRule.SixIncreasingOrDecreasing, RuleTrend(y, 6));
+        Add(hits, WesternElectricRule.FifteenInZoneC, RuleZoneC(y, center, sigma, 15, inside: true));
+        Add(hits, WesternElectricRule.FourteenAlternating, RuleAlternate(y, 14));
+        Add(hits, WesternElectricRule.EightOutsideZoneC, RuleZoneC(y, center, sigma, 8, inside: false));
 
         var all = hits.SelectMany(h => h.Indexes).Distinct().OrderBy(i => i).ToArray();
         var report = new RunRuleReport
@@ -104,11 +112,6 @@ public sealed class RunRuleReport
         hits.Add(new RunRuleHit { Rule = rule, Indexes = NumberConvert.Freeze(indexes) });
     }
 
-    /// <summary>
-    /// Window of <paramref name="window"/> consecutive points; fire when at least
-    /// <paramref name="need"/> sit beyond <paramref name="zone"/> σ on the same side.
-    /// Rule 1 is window=1 need=1 zone=3.
-    /// </summary>
     private static List<int> RuleBeyondK(
         IReadOnlyList<decimal> y,
         double center,
@@ -182,12 +185,109 @@ public sealed class RunRuleReport
 
         return [.. set];
     }
+
+    private static List<int> RuleTrend(IReadOnlyList<decimal> y, int window)
+    {
+        var set = new SortedSet<int>();
+        if (y.Count < window)
+            return [];
+
+        for (var end = window - 1; end < y.Count; end++)
+        {
+            var start = end - window + 1;
+            var up = true;
+            var down = true;
+            for (var i = start + 1; i <= end; i++)
+            {
+                if (y[i] <= y[i - 1]) up = false;
+                if (y[i] >= y[i - 1]) down = false;
+            }
+
+            if (up || down)
+            {
+                for (var i = start; i <= end; i++)
+                    set.Add(i);
+            }
+        }
+
+        return [.. set];
+    }
+
+    private static List<int> RuleAlternate(IReadOnlyList<decimal> y, int window)
+    {
+        var set = new SortedSet<int>();
+        if (y.Count < window)
+            return [];
+
+        for (var end = window - 1; end < y.Count; end++)
+        {
+            var start = end - window + 1;
+            var first = Math.Sign(y[start + 1] - y[start]);
+            if (first == 0)
+                continue;
+            var ok = true;
+            var expect = -first;
+            for (var i = start + 2; i <= end; i++)
+            {
+                var step = Math.Sign(y[i] - y[i - 1]);
+                if (step != expect)
+                {
+                    ok = false;
+                    break;
+                }
+                expect = -expect;
+            }
+
+            if (ok)
+            {
+                for (var i = start; i <= end; i++)
+                    set.Add(i);
+            }
+        }
+
+        return [.. set];
+    }
+
+    private static List<int> RuleZoneC(
+        IReadOnlyList<decimal> y,
+        double center,
+        double sigma,
+        int window,
+        bool inside)
+    {
+        var set = new SortedSet<int>();
+        if (y.Count < window || sigma <= 0)
+            return [];
+
+        for (var end = window - 1; end < y.Count; end++)
+        {
+            var start = end - window + 1;
+            var ok = true;
+            for (var i = start; i <= end; i++)
+            {
+                var z = Math.Abs((double)y[i] - center);
+                var inC = z < sigma;
+                if (inside ? !inC : inC)
+                {
+                    ok = false;
+                    break;
+                }
+            }
+
+            if (ok)
+            {
+                for (var i = start; i <= end; i++)
+                    set.Add(i);
+            }
+        }
+
+        return [.. set];
+    }
 }
 
 /// <summary>Run-rule doors.</summary>
 public static class SeriesRunRules
 {
-    /// <summary>Western Electric 1–4 on <see cref="NumericSeries.Full"/>.</summary>
     public static RunRuleReport RunRules(
         this NumericSeries series,
         ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
@@ -198,7 +298,6 @@ public static class SeriesRunRules
         return RunRuleReport.Evaluate(series.Full, method, k, floor);
     }
 
-    /// <summary>Western Electric 1–4. Legal only on <see cref="SliceKind.Full"/>.</summary>
     public static RunRuleReport RunRules(
         this SeriesSlice slice,
         ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
