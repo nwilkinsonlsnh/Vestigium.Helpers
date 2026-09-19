@@ -9,17 +9,28 @@ namespace Vestigium.Helpers.Analytics;
 /// </summary>
 public static class AnalyticsCatalog
 {
+    /// <summary>Suggested APPID when Analytics is the process.</summary>
     public const string AppId = "Analytics";
+    /// <summary>Catalog category for every Analytics event.</summary>
     public const string Category = "Helpers";
 
+    /// <summary>Subcategory strings used with <see cref="Register"/>.</summary>
     public static class Subcategories
     {
+        /// <summary>Smoke / probe path.</summary>
         public const string Probe = "Probe";
+        /// <summary>Series construction and slices.</summary>
         public const string Series = "Series";
+        /// <summary>Confidence level, interval, and planning.</summary>
         public const string Confidence = "Confidence";
+        /// <summary>Control limits.</summary>
         public const string Limits = "Limits";
     }
 
+    /// <summary>
+    /// Hosts call this inside <see cref="VestigiumLogger.Initialize"/>.
+    /// The library never calls it for them.
+    /// </summary>
     public static void Register(VestigiumLoggerOptions cfg)
     {
         ArgumentNullException.ThrowIfNull(cfg);
