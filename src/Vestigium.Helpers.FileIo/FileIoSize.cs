@@ -1,5 +1,4 @@
 using System.Globalization;
-using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.FileIo;
 
@@ -29,7 +28,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
     {
         if (value < 0)
         {
-            HelperLog.Reject(HelperLog.AppIds.FileIo, "Size", nameof(From), $"value={value}");
+            FileIoLog.Failed(FileIoLog.Subcategories.Job, $"Size value={value}");
             throw new ArgumentOutOfRangeException(nameof(value), "Size cannot be negative.");
         }
 
@@ -39,7 +38,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
             var bytesDec = decimal.Round(value * factor, 0, MidpointRounding.AwayFromZero);
             if (bytesDec > long.MaxValue)
             {
-                HelperLog.Reject(HelperLog.AppIds.FileIo, "Size", nameof(From), "overflow");
+                FileIoLog.Failed(FileIoLog.Subcategories.Job, "Size overflow");
                 throw new ArgumentOutOfRangeException(nameof(value), "Size does not fit in 64-bit bytes.");
             }
 
@@ -47,7 +46,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         }
         catch (OverflowException)
         {
-            HelperLog.Reject(HelperLog.AppIds.FileIo, "Size", nameof(From), "overflow");
+            FileIoLog.Failed(FileIoLog.Subcategories.Job, "Size overflow");
             throw new ArgumentOutOfRangeException(nameof(value), "Size does not fit in 64-bit bytes.");
         }
     }
