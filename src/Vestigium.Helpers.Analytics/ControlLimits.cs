@@ -3,7 +3,7 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Analytics;
 
 /// <summary>
-/// How <see cref="ControlLimits"/> were produced. Charts draws the numbers;
+/// How <see cref="ControlLimits"/> were produced. A drawing surface consumes the numbers;
 /// it does not pick a method.
 /// </summary>
 public enum ControlLimitMethod
@@ -12,43 +12,79 @@ public enum ControlLimitMethod
     MeanPlusKSigma = 0,
 
     /// <summary>
-    /// Some individuals using the average moving range of span 2.
+    /// Shewhart individuals using the average moving range of span 2.
     /// CL = mean, UCL/LCL = mean ± E2 × MR̄, E2 = 3 / d2, d2(n=2) = 1.1283791670955126.
     /// Moving ranges use encounter order, not the sorted copy.
     /// Legal only on <see cref="SliceKind.Full"/>.
     /// </summary>
     MovingRange = 1,
 
-    /// <summary>Host supplied CL / UCL / LCL. Analytics does not compute them.</summary>
+    /// <summary>Caller supplied CL / UCL / LCL. Analytics does not compute them.</summary>
     CallerSupplied = 2
 }
 
 /// <summary>
-/// Process-control fences for a snapshot. This type is the number contract
-/// <c>Vestigium.Helpers.Charts</c> consumes. Formulae live here, not in Charts.
+/// Process-control fences for a snapshot. Formulae live here. A sibling drawing
+/// library may consume this type; this project does not draw.
 /// </summary>
 public sealed class ControlLimits
 {
+    /// <summary>d2 for moving range of span 2.</summary>
     public const double D2Span2 = 1.1283791670955126;
+
+    /// <summary>E2 = 3 / d2 for moving range of span 2.</summary>
     public const double E2Span2 = 3d / D2Span2;
 
     internal const string MovingRangeRequiresFull =
         "Moving-range limits require SliceKind.Full (encounter order of the process). Value bands are not a Shewhart individuals chart.";
 
+    /// <summary>Center line (sample mean, or the caller-supplied center).</summary>
     public double Center { get; init; }
+
+    /// <summary>Upper control limit.</summary>
     public double Upper { get; init; }
+
+    /// <summary>Lower control limit, after any floor clamp.</summary>
     public double Lower { get; init; }
+
+    /// <summary>
+    /// k used for mean ± kσ. For moving-range this is 3 (the Shewhart convention inside E2).
+    /// Null on caller-supplied fences.
+    /// </summary>
     public double? K { get; init; }
+
+    /// <summary>Which formula produced the fences.</summary>
     public ControlLimitMethod Method { get; init; }
+
+    /// <summary>Average moving range of span 2, when <see cref="Method"/> is <see cref="ControlLimitMethod.MovingRange"/>.</summary>
     public double? MovingRangeBar { get; init; }
+
+    /// <summary>E2 used with <see cref="MovingRangeBar"/>, when that method ran.</summary>
     public double? E2 { get; init; }
+
+    /// <summary>Optional LCL floor supplied by the caller (typical 0 on a non-negative measure).</summary>
     public double? Floor { get; init; }
+
+    /// <summary>Number of encounter-order values outside (Lower, Upper).</summary>
     public int OutOfControlCount { get; init; }
+
+    /// <summary>Encounter indexes of those values. Empty when none, never null.</summary>
     public IReadOnlyList<int> OutOfControlIndexes { get; init; } = [];
+
+    /// <summary>
+    /// Per-step |xᵢ − xᵢ₋₁| in encounter order when moving-range ran.
+    /// Empty for mean ± kσ and caller-supplied fences.
+    /// </summary>
     public IReadOnlyList<double> MovingRanges { get; init; } = [];
 
+    /// <summary>True when <paramref name="y"/> is strictly above <see cref="Upper"/> or below <see cref="Lower"/>.</summary>
     public bool IsOutOfControl(double y) => y > Upper || y < Lower;
 
+    /// <summary>
+    /// Caller-supplied band. Out-of-control indexes stay empty until a later scoring API
+    /// walks a value list. Does not compute Center / Upper / Lower from a sample.
+    /// </summary>
+    /// <exception cref="ArgumentException">The band does not satisfy UCL &gt; CL &gt; LCL.</exception>
     public static ControlLimits FromCaller(double center, double upper, double lower)
     {
         AnalyticsLog.Debug(
