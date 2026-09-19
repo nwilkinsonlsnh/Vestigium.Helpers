@@ -1,5 +1,4 @@
 using System.Numerics;
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
@@ -9,7 +8,7 @@ internal static class NumberConvert
     public static List<decimal> ToDecimalList<T>(IEnumerable<T> values)
         where T : INumber<T>
     {
-        HelperGuard.NotNull(values, nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
 
         var list = new List<decimal>();
         var index = 0;
