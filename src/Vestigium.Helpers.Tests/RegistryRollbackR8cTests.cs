@@ -45,7 +45,7 @@ public sealed class RegistryRollbackR8cTests : IDisposable
         Assert.Equal(RegistryWriteStatus.Ok, result.Status);
         Assert.True(File.Exists(archive));
         Assert.Contains("SetValue", File.ReadAllText(archive), StringComparison.Ordinal);
-        Assert.Equal(1, RegistryHelper.ReadJournal(journal).Batches.Count);
+        Assert.Single(RegistryHelper.ReadJournal(journal).Batches);
         Assert.True(RegistryHelper.ReadJournal(archive).Batches.Count >= 1);
     }
 }
