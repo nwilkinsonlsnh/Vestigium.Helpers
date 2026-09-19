@@ -19,8 +19,6 @@ public sealed class PercentileInterval
     public required bool ReachedCoverage { get; init; }
     public required int LowerRank { get; init; }
     public required int UpperRank { get; init; }
-
-    /// <summary>Binomial coverage of the published (j, k) pair.</summary>
     public double Coverage { get; init; }
 
     internal static PercentileInterval For(SeriesSlice slice, double p, double level)
@@ -41,7 +39,7 @@ public sealed class PercentileInterval
             "enter percentile-interval",
             properties: AnalyticsLog.Props(
                 ("p", p.ToString("G6")),
-                ("gamma", gamma.ToString("G6")),
+                ("gamma", gamma.Value.ToString("G6")),
                 ("n", n.ToString())));
 
         int j;
@@ -63,13 +61,13 @@ public sealed class PercentileInterval
         }
         else
         {
-            (j, k, coverage, reached) = TightestPair(sorted, p, gamma);
+            (j, k, coverage, reached) = TightestPair(sorted, p, gamma.Value);
         }
 
         var interval = new PercentileInterval
         {
             P = p,
-            Level = gamma,
+            Level = gamma.Value,
             Lower = sorted[j - 1],
             Upper = sorted[k - 1],
             Method = reached ? OrderStatisticMethod : SampleRangeMethod,
@@ -130,7 +128,6 @@ public sealed class PercentileInterval
         return (bestJ, bestK, bestCov, reached);
     }
 
-    /// <summary>Σ_{i=j}^{k} C(n,i) p^i (1-p)^{n-i} with 1-based j,k in 1..n.</summary>
     internal static double CoverageOf(int n, double p, int j, int k)
         => QuantileFunctions.BinomialCdf(p, n, k) - QuantileFunctions.BinomialCdf(p, n, j - 1);
 }
