@@ -1,0 +1,14 @@
+{
+  "app": "FileIo",
+  "category": "Helpers",
+  "block": { "start": 12500, "end": 12999 },
+  "events": [
+    { "eventId": 12500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 12505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 12510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Job", "message": "enter operation" },
+    { "eventId": 12515, "name": "OperationComplete", "severity": "Information", "subcategory": "Job", "message": "operation complete" },
+    { "eventId": 12520, "name": "OperationFailed", "severity": "Error", "subcategory": "Job", "message": "operation failed" },
+    { "eventId": 12525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Job", "message": "operation warning" },
+    { "eventId": 12530, "name": "PathRejected", "severity": "Error", "subcategory": "Job", "message": "rejected path" }
+  ]
+}
