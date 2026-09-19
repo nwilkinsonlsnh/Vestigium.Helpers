@@ -57,5 +57,8 @@ internal static partial class PlotBuilder
         AddHLine(plot, limits.Center, Palette.Cl, "CL");
         AddHLine(plot, limits.Upper, Palette.Ucl, "UCL");
         AddHLine(plot, limits.Lower, Palette.Lcl, "LCL");
+
+        foreach (var (y, name, hex) in ChartSpecOverlay.Lines(spec.Spec ?? options.Spec))
+            AddHLine(plot, y, hex, name);
     }
 }
