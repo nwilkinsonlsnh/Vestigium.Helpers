@@ -23,6 +23,10 @@ internal static class HelperLog
         public const string Multi = "Multi";
         public const string Save = "Save";
         public const string Query = "Query";
+        public const string Safety = "Safety";
+        public const string Snapshot = "Snapshot";
+        public const string Diff = "Diff";
+        public const string Commit = "Commit";
     }
 
     private static readonly AsyncLocal<ScopeState?> Scope = new();
