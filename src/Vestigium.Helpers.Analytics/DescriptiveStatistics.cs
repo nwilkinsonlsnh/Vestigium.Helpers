@@ -55,6 +55,19 @@ internal sealed class DescriptiveStatistics
         if (values.Count == 0)
             return Empty;
 
+        try
+        {
+            return ComputeCore(values);
+        }
+        catch (OverflowException ex)
+        {
+            NumberConvert.ThrowDescriptorOverflow(ex);
+            throw;
+        }
+    }
+
+    private static DescriptiveStatistics ComputeCore(IReadOnlyList<decimal> values)
+    {
         var sorted = values.OrderBy(v => v).ToArray();
         var n = sorted.Length;
         var min = sorted[0];

@@ -51,4 +51,13 @@ public sealed class AnalyticsPR02Tests
         Assert.Equal(Quantiles.EmptySliceMessage, named.Message);
         Assert.Equal(Quantiles.EmptySliceMessage, rank.Message);
     }
+
+    [Fact]
+    public void PR02_004_descriptor_overflow_is_argument_out_of_range()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            NumericSeries.From(new[] { decimal.MaxValue, decimal.MaxValue }));
+        Assert.Contains("overflowed", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.IsType<OverflowException>(ex.InnerException);
+    }
 }
