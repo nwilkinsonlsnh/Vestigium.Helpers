@@ -5,6 +5,9 @@ namespace Vestigium.Helpers.Analytics;
 
 internal static class NumberConvert
 {
+    internal const string DescriptorOverflowMessage =
+        "A series descriptor overflowed the decimal range.";
+
     public static List<decimal> ToDecimalList<T>(IEnumerable<T> values)
         where T : INumber<T>
     {
@@ -77,16 +80,24 @@ internal static class NumberConvert
         }
         catch (OverflowException ex)
         {
-            AnalyticsLog.Error(
-                AnalyticsEvents.SeriesRejectedOverflow,
-                VestigiumStatus.Failed,
-                AnalyticsCatalog.Subcategories.Series,
-                "rejected overflow",
-                ex,
-                properties: AnalyticsLog.Props(("index", index.ToString())));
+            LogOverflow(("index", index.ToString()));
             throw new ArgumentOutOfRangeException(nameof(value), ex, $"Values[{index}] cannot be stored as decimal.");
         }
     }
+
+    public static void ThrowDescriptorOverflow(OverflowException ex)
+    {
+        LogOverflow();
+        throw new ArgumentOutOfRangeException("values", ex, DescriptorOverflowMessage);
+    }
+
+    private static void LogOverflow(params (string Key, string? Value)[] extra)
+        => AnalyticsLog.Error(
+            AnalyticsEvents.SeriesRejectedOverflow,
+            VestigiumStatus.Failed,
+            AnalyticsCatalog.Subcategories.Series,
+            "rejected overflow",
+            properties: extra.Length == 0 ? null : AnalyticsLog.Props(extra));
 
     private static void RejectNonFinite(int index)
         => AnalyticsLog.Error(
