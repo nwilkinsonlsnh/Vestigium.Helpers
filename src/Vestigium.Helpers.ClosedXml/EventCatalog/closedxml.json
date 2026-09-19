@@ -13,12 +13,14 @@
     { "eventId": 11035, "name": "SessionRejected", "severity": "Error", "subcategory": "Session", "message": "rejected session" },
     { "eventId": 11040, "name": "SessionThrown", "severity": "Error", "subcategory": "Session", "message": "unexpected failure" },
     { "eventId": 11045, "name": "SheetEnter", "severity": "Debug", "subcategory": "Sheet", "message": "enter sheet" },
-    { "eventId": 11050, "name": "SheetWrote", "severity": "Information", "subcategory": "Sheet", "message": "sheet wrote" },
+    { "eventId": 11050, "name": "SheetWrote", "severity": "Debug", "subcategory": "Sheet", "message": "sheet wrote" },
     { "eventId": 11055, "name": "SheetRejected", "severity": "Error", "subcategory": "Sheet", "message": "rejected sheet" },
     { "eventId": 11060, "name": "ChartQueued", "severity": "Information", "subcategory": "Chart", "message": "chart queued" },
     { "eventId": 11065, "name": "ChartRejected", "severity": "Error", "subcategory": "Chart", "message": "rejected chart" },
     { "eventId": 11070, "name": "CellNeutralized", "severity": "Warning", "subcategory": "Sheet", "message": "neutralized formula-like text" },
     { "eventId": 11075, "name": "CellRejectedNonFinite", "severity": "Error", "subcategory": "Sheet", "message": "rejected non-finite number" },
-    { "eventId": 11080, "name": "WriteSeriesComplete", "severity": "Information", "subcategory": "Session", "message": "series workbook written" }
+    { "eventId": 11080, "name": "WriteSeriesComplete", "severity": "Information", "subcategory": "Session", "message": "series workbook written" },
+    { "eventId": 11085, "name": "ChartsEmbedded", "severity": "Information", "subcategory": "Chart", "message": "charts embedded" },
+    { "eventId": 11090, "name": "ChartPackFailed", "severity": "Error", "subcategory": "Chart", "message": "chart pack failed" }
   ]
 }
