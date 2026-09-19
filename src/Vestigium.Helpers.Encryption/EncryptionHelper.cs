@@ -794,7 +794,7 @@ public static class EncryptionHelper
             OriginalFileName = originalName,
             HasRsaWrap = trailer.HasRsaWrap,
             WrapCount = trailer.Wraps.Count,
-            WrapThumbprints = trailer.Wraps.Select(w => Convert.ToHexString(w.Thumbprint).ToLowerInvariant( )).ToArray( )
+            WrapThumbprints = [.. trailer.Wraps.Select(w => Convert.ToHexString(w.Thumbprint).ToLowerInvariant())]
         };
 
     internal static (long Length, bool Unknown) ResolvePlaintextLength(Stream source, long? plaintextLength)
