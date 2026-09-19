@@ -78,8 +78,6 @@ public sealed class AnalyticsPR03Tests
         Assert.Equal((5d - 0d) / (3d * s), cap.Ppl!.Value, 10);
         Assert.Equal((15d - 5d) / (3d * s), cap.Ppu!.Value, 10);
         Assert.Equal(cap.Ppl, cap.Ppk);
-        Assert.Null(cap.Cp);
-        Assert.Null(cap.Cpk);
         Assert.Empty(cap.Spec.OutsideIndexes);
     }
 
@@ -96,6 +94,35 @@ public sealed class AnalyticsPR03Tests
         var constant = NumericSeries.From(new[] { 5, 5, 5 }).Capability(SpecLimits.From(0, 10));
         Assert.Null(constant.Pp);
         Assert.Null(constant.Ppk);
+        Assert.Null(constant.Cp);
+        Assert.Null(constant.Cpk);
         Assert.Equal(5d, constant.Mean);
+    }
+
+    [Fact]
+    public void PR03_003_cp_cpk_use_mr_over_d2_on_full()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var cap = series.Capability(SpecLimits.From(0, 15));
+        var sigmaW = 1d / ControlLimits.D2Span2;
+
+        Assert.Equal(1d, cap.MovingRangeBar);
+        Assert.Equal(sigmaW, cap.WithinSigma!.Value, 12);
+        Assert.Equal(15d / (6d * sigmaW), cap.Cp!.Value, 10);
+        Assert.Equal(5d / (3d * sigmaW), cap.Cpl!.Value, 10);
+        Assert.Equal(10d / (3d * sigmaW), cap.Cpu!.Value, 10);
+        Assert.Equal(cap.Cpl, cap.Cpk);
+    }
+
+    [Fact]
+    public void PR03_003_cp_is_null_on_value_bands()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var q4 = series.Q4.Capability(SpecLimits.From(0, 15));
+        Assert.NotNull(q4.Ppk);
+        Assert.Null(q4.Cp);
+        Assert.Null(q4.Cpk);
+        Assert.Null(q4.MovingRangeBar);
+        Assert.Null(q4.WithinSigma);
     }
 }
