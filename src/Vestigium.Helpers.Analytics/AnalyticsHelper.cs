@@ -1,5 +1,4 @@
 using System.Numerics;
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
@@ -7,7 +6,7 @@ namespace Vestigium.Helpers.Analytics;
 /// <summary>
 /// Façade for descriptive statistics on a finite numeric series.
 /// Real work lives on <see cref="NumericSeries"/>. Logging goes through
-/// <see cref="HelperLog"/> into <c>Vestigium.Logging</c> (APPID Analytics).
+/// <c>Vestigium.Logging</c> (APPID Analytics, EVENTID 10500+).
 /// This library never calls <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class AnalyticsHelper
@@ -26,9 +25,11 @@ public static class AnalyticsHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.Analytics;
-        using var _ = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
-        HelperLog.Information(app, VestigiumStatus.Pending, app, "Opening an in-process numeric series snapshot.");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.ProbeEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Probe,
+            "enter Probe");
 
         var series = From(new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 40.2, 12.1 }, "rtt-ms");
         var ci = series.Confidence(0.95);
@@ -36,11 +37,19 @@ public static class AnalyticsHelper
         var limits = series.ControlLimits();
         var mr = series.ControlLimits(ControlLimitMethod.MovingRange);
 
-        HelperLog.Information(
-            app,
+        AnalyticsLog.Information(
+            AnalyticsEvents.ProbeComplete,
             VestigiumStatus.Success,
-            app,
-            $"n={series.Count} mean={series.Full.Mean:F2} P50={series.Full.Median} P95={p95} Q4={series.Q4.Count} highOutliers={series.Full.HighOutliers.Count} meanCI=[{ci.Mean.Lower:F2},{ci.Mean.Upper:F2}] γ=0.95 UCL={limits.Upper:F2} MR-UCL={mr.Upper:F2} Identity={Identity}");
+            AnalyticsCatalog.Subcategories.Probe,
+            "probe complete",
+            series.SeriesId,
+            AnalyticsLog.Props(
+                ("n", series.Count.ToString()),
+                ("mean", series.Full.Mean?.ToString("G6")),
+                ("p95", p95.ToString()),
+                ("ucl", limits.Upper.ToString("G6")),
+                ("mrUcl", mr.Upper.ToString("G6")),
+                ("identity", Identity)));
 
         return Identity;
     }
