@@ -378,6 +378,34 @@ public sealed class NumericSeries
         }
     }
 
+    public bool TryControlLimits(
+        out ControlLimits? limits,
+        ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
+        double k = 3,
+        double? floor = null)
+    {
+        AnalyticsLog.Debug(
+            AnalyticsEvents.LimitsEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Limits,
+            "enter limits",
+            SeriesId,
+            AnalyticsLog.Props(
+                ("method", method.ToString()),
+                ("k", k.ToString("G6")),
+                ("n", Count.ToString()),
+                ("via", "Try")));
+        try
+        {
+            return Full.TryControlLimits(out limits, method, k, floor);
+        }
+        catch (Exception ex)
+        {
+            AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex, SeriesId);
+            throw;
+        }
+    }
+
     public IReadOnlyList<ChartPoint> SampleOrderPoints()
     {
         var points = new ChartPoint[Values.Count];
@@ -420,14 +448,23 @@ public sealed class NumericSeries
         if (!HasTimestamps)
             return [];
 
-        var list = new List<TimedValue>();
+        var list = new List<(int Index, DateTimeOffset At, decimal Value)>();
         for (var i = 0; i < Values.Count; i++)
         {
             if (Times[i] is { } at)
-                list.Add(new TimedValue(at, Values[i]));
+                list.Add((i, at, Values[i]));
         }
 
-        return list;
+        list.Sort((a, b) =>
+        {
+            var byTime = a.At.UtcTicks.CompareTo(b.At.UtcTicks);
+            return byTime != 0 ? byTime : a.Index.CompareTo(b.Index);
+        });
+
+        var points = new TimedValue[list.Count];
+        for (var i = 0; i < list.Count; i++)
+            points[i] = new TimedValue(list[i].At, list[i].Value);
+        return points;
     }
 
     private IReadOnlyList<ChartPoint> HistogramAsPoints(bool relative)
