@@ -22,7 +22,6 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Mean_plus_k_sigma_swallows_a_single_spike_on_small_n()
     {
-        // s inflates with the spike, so 1000 still sits inside mean ± 3s of {1..9, 1000}.
         var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 1000 });
         var limits = series.ControlLimits(ControlLimitMethod.MeanPlusKSigma, k: 3);
         Assert.Equal(0, limits.OutOfControlCount);
@@ -70,7 +69,6 @@ public sealed class ControlLimitsTests
         Assert.All(limits.MovingRanges, mr => Assert.Equal(1d, mr));
         Assert.Equal(5 + ControlLimits.E2Span2, limits.Upper, 10);
         Assert.Equal(5 - ControlLimits.E2Span2, limits.Lower, 10);
-        // 1,2 sit below LCL≈2.34; 8,9 sit above UCL≈7.66
         Assert.Equal(4, limits.OutOfControlCount);
         Assert.Equal(new[] { 0, 1, 7, 8 }, limits.OutOfControlIndexes);
     }
@@ -102,6 +100,7 @@ public sealed class ControlLimitsTests
     {
         var series = NumericSeries.From(new[] { 1, 2, 3 });
         Assert.Throws<ArgumentOutOfRangeException>(() => series.ControlLimits(k: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.TryControlLimits(out _, k: 0));
         Assert.Throws<ArgumentException>(() => ControlLimits.FromCaller(5, 4, 1));
         Assert.Throws<ArgumentException>(() =>
             series.ControlLimits(ControlLimitMethod.CallerSupplied));
@@ -114,5 +113,49 @@ public sealed class ControlLimitsTests
         Assert.Throws<InvalidOperationException>(() => series.ControlLimits());
         Assert.Throws<InvalidOperationException>(() =>
             series.ControlLimits(ControlLimitMethod.MovingRange));
+        Assert.False(series.TryControlLimits(out var sigma));
+        Assert.Null(sigma);
+        Assert.False(series.TryControlLimits(out var mr, ControlLimitMethod.MovingRange));
+        Assert.Null(mr);
+    }
+
+    [Fact]
+    public void Try_matches_throwing_call_on_a_good_series()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var thrown = series.ControlLimits();
+        Assert.True(series.TryControlLimits(out var tried));
+        Assert.NotNull(tried);
+        Assert.Equal(thrown.Center, tried!.Center);
+        Assert.Equal(thrown.Upper, tried.Upper);
+        Assert.Equal(thrown.Lower, tried.Lower);
+    }
+
+    [Fact]
+    public void Try_is_false_on_empty_q4_and_n_of_one()
+    {
+        var degenerate = NumericSeries.From(new[] { 5, 5, 5 });
+        Assert.False(degenerate.Q4.TryControlLimits(out var q4));
+        Assert.Null(q4);
+        Assert.Throws<InvalidOperationException>(() => degenerate.Q4.ControlLimits());
+
+        var one = NumericSeries.From(new[] { 7 });
+        Assert.False(one.TryControlLimits(out var limits));
+        Assert.Null(limits);
+        Assert.Throws<InvalidOperationException>(() => one.ControlLimits());
+    }
+
+    [Fact]
+    public void Moving_range_is_rejected_on_value_bands()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        Assert.Throws<ArgumentException>(() =>
+            series.Q4.ControlLimits(ControlLimitMethod.MovingRange));
+        Assert.False(series.Q4.TryControlLimits(out var tried, ControlLimitMethod.MovingRange));
+        Assert.Null(tried);
+
+        var sigma = series.Q4.ControlLimits();
+        Assert.Equal(ControlLimitMethod.MeanPlusKSigma, sigma.Method);
+        Assert.Equal(2, series.Q4.Count);
     }
 }
