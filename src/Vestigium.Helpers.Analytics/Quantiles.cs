@@ -1,4 +1,4 @@
-using Vestigium.Helpers;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -12,12 +12,21 @@ internal static class Quantiles
     {
         if (sorted.Count == 0)
         {
-            HelperLog.Reject("cannot compute a percentile of an empty sample");
+            AnalyticsLog.Error(
+                AnalyticsEvents.PercentileRejectedEmpty,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Series,
+                "rejected empty percentile");
             throw new ArgumentException("Cannot compute a percentile of an empty sample.", nameof(sorted));
         }
         if (p is < 0 or > 1)
         {
-            HelperLog.Reject($"p={p} is not in [0, 1]");
+            AnalyticsLog.Error(
+                AnalyticsEvents.PercentileRejectedP,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Series,
+                "rejected percentile p",
+                properties: AnalyticsLog.Props(("p", p.ToString("G6"))));
             throw new ArgumentOutOfRangeException(nameof(p), "Percentile p must be in [0, 1].");
         }
         if (sorted.Count == 1)
