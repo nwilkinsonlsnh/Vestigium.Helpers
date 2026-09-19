@@ -48,6 +48,14 @@ public sealed class OuiLookupOptions
     public string RegistryUrl { get; set; } = DefaultRegistryUrl;
     public string? RegistryFilePath { get; set; }
     public HttpMessageHandler? Handler { get; set; }
+
+    /// <summary>
+    /// When false (default), only <see cref="DefaultRegistryUrl"/> host is accepted.
+    /// Custom hosts also require an entry in <see cref="AllowedRegistryHosts"/>.
+    /// </summary>
+    public bool AllowCustomRegistry { get; set; }
+
+    public IList<string> AllowedRegistryHosts { get; set; } = new List<string>();
 }
 
 public sealed record OuiLookupResult(

@@ -84,19 +84,32 @@ internal static class MacEngine
         var url = (string.IsNullOrWhiteSpace(o.RegistryUrl) ? OuiLookupOptions.DefaultRegistryUrl : o.RegistryUrl)
             .Replace("{oui}", oui, StringComparison.OrdinalIgnoreCase)
             .Replace("{mac}", parsed.Colon, StringComparison.OrdinalIgnoreCase);
+        var uri = OuiLookupGuard.Bind(url, o);
 
         try
         {
-            using var client = o.Handler is null ? new HttpClient() : new HttpClient(o.Handler, disposeHandler: false);
+            using var ownHandler = o.Handler is null
+                ? new HttpClientHandler { AllowAutoRedirect = false }
+                : null;
+            using var client = o.Handler is null
+                ? new HttpClient(ownHandler!, disposeHandler: false)
+                : new HttpClient(o.Handler, disposeHandler: false);
             client.Timeout = timeout;
-            using var response = await client.GetAsync(url, cancel).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            using var response = await client.GetAsync(uri, cancel).ConfigureAwait(false);
+            var code = (int)response.StatusCode;
+            if (code is >= 300 and < 400)
             {
-                NetworkLog.Warning("Address", $"oui lookup http={(int)response.StatusCode} oui={oui}");
+                NetworkLog.Warning("Address", $"oui lookup redirect http={code} oui={oui}");
                 return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
             }
 
-            var body = (await response.Content.ReadAsStringAsync(cancel).ConfigureAwait(false)).Trim();
+            if (!response.IsSuccessStatusCode)
+            {
+                NetworkLog.Warning("Address", $"oui lookup http={code} oui={oui}");
+                return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
+            }
+
+            var body = (await ReadLimitedAsync(response, cancel).ConfigureAwait(false)).Trim();
             if (body.Length == 0 || body.Contains("<", StringComparison.Ordinal))
                 return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
 
@@ -109,6 +122,22 @@ internal static class MacEngine
             NetworkLog.Warning("Address", $"oui lookup failed oui={oui} {ex.GetType().Name}");
             return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
         }
+    }
+
+    static async Task<string> ReadLimitedAsync(HttpResponseMessage response, CancellationToken cancel)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync(cancel).ConfigureAwait(false);
+        var buffer = new byte[OuiLookupGuard.MaxBodyBytes];
+        var read = 0;
+        while (read < buffer.Length)
+        {
+            var n = await stream.ReadAsync(buffer.AsMemory(read, buffer.Length - read), cancel).ConfigureAwait(false);
+            if (n == 0)
+                break;
+            read += n;
+        }
+
+        return Encoding.UTF8.GetString(buffer, 0, read);
     }
 
     static MacAddress FromOctets(IReadOnlyList<byte> octets)
