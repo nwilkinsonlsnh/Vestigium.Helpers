@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers\Vestigium.Helpers.csproj" />
