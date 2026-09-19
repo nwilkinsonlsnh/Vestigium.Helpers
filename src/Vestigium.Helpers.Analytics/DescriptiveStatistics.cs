@@ -21,6 +21,9 @@ internal sealed class DescriptiveStatistics
     public IReadOnlyList<decimal> LowOutliers { get; init; } = [];
     public IReadOnlyList<decimal> HighOutliers { get; init; } = [];
     public IReadOnlyList<decimal> Outliers { get; init; } = [];
+    public IReadOnlyList<int> LowOutlierIndexes { get; init; } = [];
+    public IReadOnlyList<int> HighOutlierIndexes { get; init; } = [];
+    public IReadOnlyList<int> OutlierIndexes { get; init; } = [];
 
     public decimal? Sum { get; init; }
     public double? Mean { get; init; }
@@ -66,9 +69,31 @@ internal sealed class DescriptiveStatistics
         var trimean = (q1 + 2 * median + q3) / 4;
         var lowerFence = q1 - 1.5m * iqr;
         var upperFence = q3 + 1.5m * iqr;
-        var lowOutliers = values.Where(v => v < lowerFence).ToArray();
-        var highOutliers = values.Where(v => v > upperFence).ToArray();
-        var outliers = values.Where(v => v < lowerFence || v > upperFence).ToArray();
+
+        var lowOutliers = new List<decimal>();
+        var highOutliers = new List<decimal>();
+        var outliers = new List<decimal>();
+        var lowIndexes = new List<int>();
+        var highIndexes = new List<int>();
+        var outlierIndexes = new List<int>();
+        for (var i = 0; i < values.Count; i++)
+        {
+            var v = values[i];
+            if (v < lowerFence)
+            {
+                lowOutliers.Add(v);
+                lowIndexes.Add(i);
+                outliers.Add(v);
+                outlierIndexes.Add(i);
+            }
+            else if (v > upperFence)
+            {
+                highOutliers.Add(v);
+                highIndexes.Add(i);
+                outliers.Add(v);
+                outlierIndexes.Add(i);
+            }
+        }
 
         decimal sum = 0;
         foreach (var v in values)
@@ -127,6 +152,9 @@ internal sealed class DescriptiveStatistics
             LowOutliers = NumberConvert.Freeze(lowOutliers),
             HighOutliers = NumberConvert.Freeze(highOutliers),
             Outliers = NumberConvert.Freeze(outliers),
+            LowOutlierIndexes = NumberConvert.Freeze(lowIndexes),
+            HighOutlierIndexes = NumberConvert.Freeze(highIndexes),
+            OutlierIndexes = NumberConvert.Freeze(outlierIndexes),
             Sum = sum,
             Mean = mean,
             SumOfSquaredDeviations = ssd,
