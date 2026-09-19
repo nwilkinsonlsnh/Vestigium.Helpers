@@ -1,5 +1,6 @@
 using MathNet.Numerics.Distributions;
 using Vestigium.Helpers;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
 
@@ -16,11 +17,12 @@ public readonly record struct ConfidenceLevel
     {
         if (value is <= 0d or >= 1d)
         {
-            HelperLog.Reject(
-                HelperLog.AppIds.Analytics,
-                HelperLog.Subcategories.Confidence,
-                "ConfidenceLevel",
-                $"γ={value} is not in (0, 1)");
+            AnalyticsLog.Error(
+                AnalyticsEvents.ConfidenceRejectedLevel,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Confidence,
+                "rejected confidence level",
+                properties: AnalyticsLog.Props(("gamma", value.ToString("G6"))));
             throw new ArgumentOutOfRangeException(nameof(value), "Confidence level must be in (0, 1).");
         }
         Value = value;
@@ -129,12 +131,22 @@ public sealed class ConfidenceReport
         {
             if (N < 1)
             {
-                HelperLog.Reject("populationSize must be at least 1");
+                AnalyticsLog.Error(
+                    AnalyticsEvents.ConfidenceRejectedPopulation,
+                    VestigiumStatus.Failed,
+                    AnalyticsCatalog.Subcategories.Confidence,
+                    "rejected population size",
+                    properties: AnalyticsLog.Props(("reason", "N<1"), ("N", N.ToString())));
                 throw new ArgumentOutOfRangeException(nameof(populationSize), "Population size must be at least 1.");
             }
             if (n > N)
             {
-                HelperLog.Reject($"n={n} exceeds N={N}");
+                AnalyticsLog.Error(
+                    AnalyticsEvents.ConfidenceRejectedPopulation,
+                    VestigiumStatus.Failed,
+                    AnalyticsCatalog.Subcategories.Confidence,
+                    "rejected population size",
+                    properties: AnalyticsLog.Props(("reason", "n>N"), ("n", n.ToString()), ("N", N.ToString())));
                 throw new ArgumentOutOfRangeException(nameof(populationSize), "Sample count cannot exceed population size.");
             }
         }
@@ -245,7 +257,12 @@ public sealed class ConfidenceReport
     {
         if (targetMargin <= 0)
         {
-            HelperLog.Reject($"targetMargin={targetMargin} is not positive");
+            AnalyticsLog.Error(
+                AnalyticsEvents.ConfidenceRejectedMargin,
+                VestigiumStatus.Failed,
+                AnalyticsCatalog.Subcategories.Confidence,
+                "rejected target margin",
+                properties: AnalyticsLog.Props(("margin", targetMargin.ToString("G6"))));
             throw new ArgumentOutOfRangeException(nameof(targetMargin), "Target margin must be positive.");
         }
         if (stats.StdDev is not > 0)
