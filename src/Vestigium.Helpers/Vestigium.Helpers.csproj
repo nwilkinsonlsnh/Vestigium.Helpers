@@ -13,7 +13,7 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Vestigium.Logging" Version="1.7.0" />
+    <PackageReference Include="Vestigium.Logging" Version="1.7.1" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="_Documentation\Reports\" />
