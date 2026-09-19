@@ -175,10 +175,7 @@ internal sealed class DescriptiveStatistics
         };
     }
 
-    public decimal Percentile(double p) =>
-        Sorted.Count == 0
-            ? throw new InvalidOperationException("Cannot compute a percentile of an empty slice.")
-            : Quantiles.Inclusive(Sorted, p);
+    public decimal Percentile(double p) => Quantiles.Inclusive(Sorted, p);
 
     internal static double? ComputeSkewness(IReadOnlyList<decimal> values, double mean, double? sampleStd)
     {
