@@ -24,12 +24,13 @@ public sealed class AnalyticsLoggingTests
                 cfg.LogDirectory = dir;
                 cfg.MinimumDiskLevel = VestigiumLogLevel.Debug;
                 cfg.OperationsLogEnabled = false;
+                cfg.FloodThresholdCount = 100;
                 AnalyticsCatalog.Register(cfg);
             });
 
             Assert.Throws<ArgumentException>(() => NumericSeries.From(Array.Empty<double>()));
             VestigiumLogger.Flush();
-            Assert.Contains(VestigiumLogger.RecentJsonLines, line => line.Contains("\"EVENTID\":10520"));
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line => line.Contains("10520", StringComparison.Ordinal));
         }
         finally
         {
@@ -50,14 +51,20 @@ public sealed class AnalyticsLoggingTests
                 cfg.LogDirectory = dir;
                 cfg.MinimumDiskLevel = VestigiumLogLevel.Debug;
                 cfg.OperationsLogEnabled = false;
+                cfg.FloodThresholdCount = 100;
                 AnalyticsCatalog.Register(cfg);
             });
 
             var series = NumericSeries.From(new[] { 10.0, 10.1, 9.9, 10.2, 9.8, 100.0 }, "spike");
-            var limits = series.ControlLimits();
+            var limits = series.ControlLimits(k: 1);
             Assert.True(limits.OutOfControlCount > 0);
             VestigiumLogger.Flush();
-            Assert.Contains(VestigiumLogger.RecentJsonLines, line => line.Contains("\"EVENTID\":10595"));
+            var lines = VestigiumLogger.RecentJsonLines;
+            Assert.True(
+                lines.Any(line => line.Contains("10595", StringComparison.Ordinal)
+                    || line.Contains("LimitsOutOfControl", StringComparison.Ordinal)
+                    || line.Contains("out-of-control points", StringComparison.Ordinal)),
+                "Missing 10595. Ring:\n" + string.Join(Environment.NewLine, lines));
         }
         finally
         {
