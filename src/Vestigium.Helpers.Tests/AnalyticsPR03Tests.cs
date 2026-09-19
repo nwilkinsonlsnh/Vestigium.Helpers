@@ -64,4 +64,38 @@ public sealed class AnalyticsPR03Tests
         Assert.Throws<ArgumentOutOfRangeException>(() => SpecLimits.From(double.NaN, 1));
         Assert.Throws<ArgumentOutOfRangeException>(() => SpecLimits.From(0, double.PositiveInfinity));
     }
+
+    [Fact]
+    public void PR03_002_pp_ppk_on_one_to_nine()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var spec = SpecLimits.From(0, 15);
+        var cap = series.Capability(spec);
+        var s = series.Full.StdDev!.Value;
+
+        Assert.Equal(5d, cap.Mean);
+        Assert.Equal((15d - 0d) / (6d * s), cap.Pp!.Value, 10);
+        Assert.Equal((5d - 0d) / (3d * s), cap.Ppl!.Value, 10);
+        Assert.Equal((15d - 5d) / (3d * s), cap.Ppu!.Value, 10);
+        Assert.Equal(cap.Ppl, cap.Ppk);
+        Assert.Null(cap.Cp);
+        Assert.Null(cap.Cpk);
+        Assert.Empty(cap.Spec.OutsideIndexes);
+    }
+
+    [Fact]
+    public void PR03_002_one_sided_and_constant_are_null_not_throw()
+    {
+        var series = NumericSeries.From(Enumerable.Range(1, 9));
+        var usl = series.Capability(SpecLimits.From(upper: 15));
+        Assert.Null(usl.Pp);
+        Assert.Null(usl.Ppl);
+        Assert.NotNull(usl.Ppu);
+        Assert.Equal(usl.Ppu, usl.Ppk);
+
+        var constant = NumericSeries.From(new[] { 5, 5, 5 }).Capability(SpecLimits.From(0, 10));
+        Assert.Null(constant.Pp);
+        Assert.Null(constant.Ppk);
+        Assert.Equal(5d, constant.Mean);
+    }
 }
