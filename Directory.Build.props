@@ -7,5 +7,9 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <VestigiumLoggingVersion>1.7.1</VestigiumLoggingVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Vestigium.Logging" Version="$(VestigiumLoggingVersion)" />
+  </ItemGroup>
 </Project>
