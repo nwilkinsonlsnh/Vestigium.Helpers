@@ -5,10 +5,13 @@
     <RootNamespace>Vestigium.Helpers.Charts</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Charts</AssemblyName>
     <Description>ScottPlot wrapper that puts Analytics numbers on a WPF form.</Description>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>charts;scottplot;wpf;vestigium</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;NU1701</NoWarn>
     <IsPackable>true</IsPackable>
@@ -24,6 +27,7 @@
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="EventCatalog\charts.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
