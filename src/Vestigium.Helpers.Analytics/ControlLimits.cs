@@ -1,4 +1,3 @@
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
@@ -90,13 +89,14 @@ public sealed class ControlLimits
         double k,
         double? floor)
     {
+        ArgumentNullException.ThrowIfNull(encounterOrder);
+
         if (method == ControlLimitMethod.CallerSupplied)
         {
             RejectLimits("caller-supplied");
             throw new ArgumentException("Caller-supplied limits must use ControlLimits.FromCaller.", nameof(method));
         }
 
-        HelperGuard.NotNull(encounterOrder, nameof(encounterOrder));
         if (k <= 0)
         {
             RejectLimits("k", ("k", k.ToString("G6")));
