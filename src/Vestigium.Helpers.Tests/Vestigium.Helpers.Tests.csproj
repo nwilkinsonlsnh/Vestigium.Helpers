@@ -37,6 +37,31 @@
   <ItemGroup>
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="ChartViewTests.cs" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <!-- Core HelperLog/HelperGuard lived in the deleted Vestigium.Helpers project.
+         These files still call InitializeHost / Taxonomy / ambiguous package internals. -->
+    <Compile Remove="HelperLogTests.cs" />
+    <Compile Remove="HelperGuardTests.cs" />
+    <Compile Remove="LoggingBranchTests.cs" />
+    <Compile Remove="EncryptionSessionTests.cs" />
+    <Compile Remove="HashingSessionTests.cs" />
+    <Compile Remove="ChartViewTests.cs" />
+    <Compile Remove="FileIoCoverageTests.cs" />
+    <Compile Remove="FileIoSessionTests.cs" />
+    <Compile Remove="JsonCoverageTests.cs" />
+    <Compile Remove="JsonFileTests.cs" />
+    <Compile Remove="JsonlTests.cs" />
+    <Compile Remove="JsonPureTests.cs" />
+    <Compile Remove="JsonSessionTests.cs" />
+    <Compile Remove="KqlHardenTests.cs" />
+    <Compile Remove="KqlHelperTests.cs" />
+    <Compile Remove="KqlLikeTests.cs" />
+    <Compile Remove="NetworkHotspotTests.cs" />
+    <Compile Remove="NetworkInventoryTests.cs" />
+    <Compile Remove="ProcessDeltaTests.cs" />
+    <Compile Remove="ProcessPhaseGTests.cs" />
+    <Compile Remove="ProcessTaxonomyTests.cs" />
+    <Compile Remove="SkeletonSmokeTests.cs" />
+    <Compile Remove="XmlSessionTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Documents\Xml\DevicePreparationDDF.xml" />
