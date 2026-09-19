@@ -99,7 +99,7 @@ public sealed class AnalyticsCoverageTests
         Assert.Equal(5d, fpc.Mean.Estimate);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => series.Confidence(0.95, populationSize: 0));
-        Assert.Throws<ArgumentException>(() => series.Confidence(0.95, populationSize: 3));
+        Assert.Throws<ArgumentOutOfRangeException>(() => series.Confidence(0.95, populationSize: 3));
     }
 
     [Fact]
