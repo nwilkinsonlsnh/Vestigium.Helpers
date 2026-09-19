@@ -1,3 +1,4 @@
+using Vestigium.Helpers.Analytics;
 using Vestigium.Helpers.FileIo;
 using Vestigium.Logging;
 
@@ -22,6 +23,7 @@ public sealed class FileIoLoggingTests
             cfg.MinimumDiskLevel = VestigiumLogLevel.Debug;
             cfg.OperationsLogEnabled = false;
             FileIoCatalog.Register(cfg);
+            AnalyticsCatalog.Register(cfg);
         });
         return dir;
     }
