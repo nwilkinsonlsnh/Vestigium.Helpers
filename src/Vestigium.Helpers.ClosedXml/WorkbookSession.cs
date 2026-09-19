@@ -1,5 +1,4 @@
 using ClosedXML.Excel;
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.ClosedXml;
@@ -20,57 +19,57 @@ public sealed class WorkbookSession : IDisposable
     {
         _workbook = workbook;
         _path = path;
-        _appId = string.IsNullOrWhiteSpace(appId) ? HelperLog.AppIds.ClosedXml : appId.Trim();
-        SessionId = string.IsNullOrWhiteSpace(sessionId) ? HelperLog.NewId() : sessionId.Trim();
+        _appId = string.IsNullOrWhiteSpace(appId) ? ClosedXmlCatalog.AppId : appId.Trim();
+        SessionId = string.IsNullOrWhiteSpace(sessionId) ? ClosedXmlLog.NewId() : sessionId.Trim();
         if (_workbook.Worksheets.Count == 0)
             _workbook.AddWorksheet("Sheet1");
-        HelperLog.Information(
-            _appId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Session,
-            $"created session={SessionId} sheets={_workbook.Worksheets.Count} path={_path ?? "(new)"}");
+        ClosedXmlLog.Information(
+            ClosedXmlEvents.SessionCreated,
+            ClosedXmlCatalog.Subcategories.Session,
+            "session created",
+            SessionId,
+            ClosedXmlLog.Props(("sheets", _workbook.Worksheets.Count.ToString()), ("path", _path)),
+            _appId);
     }
 
     public string AppId => _appId;
-
     public string SessionId { get; }
-
     public string? Path => _path;
 
-    /// <summary>Excel table style applied when a sheet does not override it. Default Medium2.</summary>
     public string TableStyle
     {
         get => _tableStyle;
         set => _tableStyle = ExcelTableStyles.Normalize(value);
     }
 
-    /// <summary>
-    /// When true, queued <see cref="SheetChart"/> specs are written as native Excel
-    /// chart parts on save. ClosedXML itself does not author charts.
-    /// </summary>
     public bool IncludeCharts { get; set; } = true;
-
     public IReadOnlyList<SheetChart> Charts => _charts;
 
     public void AddChart(SheetChart chart)
     {
         ThrowIfDisposed();
-        HelperGuard.NotNull(chart, nameof(chart));
-        using var scope = Trace(HelperLog.Subcategories.Chart, "AddChart", $"sheet={chart.Sheet}");
-        HelperGuard.Require(!string.IsNullOrWhiteSpace(chart.Sheet), nameof(chart), "A chart needs a sheet name.");
-        HelperGuard.Require(chart.Series.Count > 0, nameof(chart), "A chart needs at least one series.");
+        ArgumentNullException.ThrowIfNull(chart);
+        Enter(ClosedXmlCatalog.Subcategories.Chart, "AddChart", chart.Sheet);
+        if (string.IsNullOrWhiteSpace(chart.Sheet))
+        {
+            ClosedXmlLog.Error(ClosedXmlEvents.ChartRejected, ClosedXmlCatalog.Subcategories.Chart, "rejected chart",
+                correlationId: SessionId, properties: ClosedXmlLog.Props(("reason", "blank-sheet")), appId: _appId);
+            throw new ArgumentException("A chart needs a sheet name.", nameof(chart));
+        }
+        if (chart.Series.Count == 0)
+        {
+            ClosedXmlLog.Error(ClosedXmlEvents.ChartRejected, ClosedXmlCatalog.Subcategories.Chart, "rejected chart",
+                correlationId: SessionId, properties: ClosedXmlLog.Props(("reason", "empty-series")), appId: _appId);
+            throw new ArgumentException("A chart needs at least one series.", nameof(chart));
+        }
         _charts.Add(chart);
-        HelperLog.Information(
-            _appId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Chart,
-            $"queued chart sheet={chart.Sheet} series={chart.Series.Count} kind={chart.Kind} session={SessionId}");
+        ClosedXmlLog.Information(ClosedXmlEvents.ChartQueued, ClosedXmlCatalog.Subcategories.Chart, "chart queued",
+            SessionId, ClosedXmlLog.Props(("sheet", chart.Sheet), ("series", chart.Series.Count.ToString()), ("kind", chart.Kind.ToString())), _appId);
     }
 
     public IReadOnlyList<string> SheetNames =>
         _workbook.Worksheets.OrderBy(w => w.Position).Select(w => w.Name).ToArray();
 
-    /// <summary>Workbook- and sheet-scoped defined names, letterhead first.</summary>
     public IReadOnlyList<string> NamedRanges
     {
         get
@@ -91,31 +90,27 @@ public sealed class WorkbookSession : IDisposable
         }
     }
 
-    /// <summary>1-based Excel tab position. Names are sanitized the same way as <see cref="Sheet"/>.</summary>
     public void MoveSheet(string name, int position)
     {
         ThrowIfDisposed();
-        using var scope = Trace(HelperLog.Subcategories.Sheet, "MoveSheet", $"name={name} position={position}");
-        HelperGuard.InRange(position, 1, nameof(position));
+        Enter(ClosedXmlCatalog.Subcategories.Sheet, "MoveSheet", name);
+        ArgumentOutOfRangeException.ThrowIfLessThan(position, 1);
         var safe = ExcelNames.Sanitize(name);
         if (!_workbook.TryGetWorksheet(safe, out var ws))
         {
-            HelperLog.Reject($"Sheet '{safe}' was not found");
+            ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+                correlationId: SessionId, properties: ClosedXmlLog.Props(("sheet", safe), ("reason", "missing")), appId: _appId);
             throw new KeyNotFoundException($"Sheet '{safe}' was not found.");
         }
         var max = _workbook.Worksheets.Count;
         ws.Position = position > max ? max : position;
     }
 
-    /// <summary>
-    /// Puts the named sheets first, in this order. Unknown names are ignored.
-    /// Sheets not listed keep their relative order after the named ones.
-    /// </summary>
     public void ReorderSheets(params string[] names)
     {
         ThrowIfDisposed();
-        HelperGuard.NotNull(names, nameof(names));
-        using var scope = Trace(HelperLog.Subcategories.Sheet, "ReorderSheets", $"count={names.Length}");
+        ArgumentNullException.ThrowIfNull(names);
+        Enter(ClosedXmlCatalog.Subcategories.Sheet, "ReorderSheets", names.Length.ToString());
         var position = 1;
         foreach (var name in names)
         {
@@ -130,40 +125,34 @@ public sealed class WorkbookSession : IDisposable
         }
     }
 
-    /// <summary>Workbook-scoped defined name over a rectangular range. Used by letterhead fill.</summary>
     public void DefineName(string name, string sheet, int firstRow, int firstColumn, int lastRow, int lastColumn)
     {
         ThrowIfDisposed();
-        using var scope = Trace(HelperLog.Subcategories.Sheet, "DefineName", $"name={name} sheet={sheet}");
+        Enter(ClosedXmlCatalog.Subcategories.Sheet, "DefineName", name);
         var safe = ExcelNames.SanitizeDefinedName(name);
-        HelperGuard.InRange(firstRow, 1, nameof(firstRow));
-        HelperGuard.InRange(firstColumn, 1, nameof(firstColumn));
-        HelperGuard.Require(lastRow >= firstRow && lastColumn >= firstColumn, nameof(lastRow), "Last cell must be at or below the origin.");
+        ArgumentOutOfRangeException.ThrowIfLessThan(firstRow, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(firstColumn, 1);
+        if (lastRow < firstRow || lastColumn < firstColumn)
+            throw new ArgumentException("Last cell must be at or below the origin.", nameof(lastRow));
         var ws = Sheet(sheet).Worksheet;
         var range = ws.Range(firstRow, firstColumn, lastRow, lastColumn);
         DropDefinedName(safe);
         _workbook.DefinedNames.Add(safe, range);
-        HelperLog.Information(
-            _appId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Sheet,
-            $"defined name={safe} sheet={ws.Name} session={SessionId}");
+        ClosedXmlLog.Information(ClosedXmlEvents.SheetWrote, ClosedXmlCatalog.Subcategories.Sheet, "sheet wrote",
+            SessionId, ClosedXmlLog.Props(("via", "DefineName"), ("name", safe), ("sheet", ws.Name)), _appId);
     }
 
-    /// <summary>
-    /// Write a table at the origin of a caller-defined name. Letterhead cells outside
-    /// that range are not cleared. Missing names throw <see cref="KeyNotFoundException"/>.
-    /// </summary>
     public void WriteNamedRange(string name, SheetTable table, SheetWriteOptions? options = null)
     {
         ThrowIfDisposed();
-        HelperGuard.NotNull(table, nameof(table));
-        using var scope = Trace(HelperLog.Subcategories.Sheet, "WriteNamedRange", $"name={name} rows={table.Rows.Count}");
+        ArgumentNullException.ThrowIfNull(table);
+        Enter(ClosedXmlCatalog.Subcategories.Sheet, "WriteNamedRange", name);
         var defined = ResolveName(name);
         var range = defined.Ranges.FirstOrDefault();
         if (range is null)
         {
-            HelperLog.Reject($"Named range '{defined.Name}' has no cells.");
+            ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+                correlationId: SessionId, properties: ClosedXmlLog.Props(("name", defined.Name), ("reason", "empty-range")), appId: _appId);
             throw new InvalidOperationException($"Named range '{defined.Name}' has no cells.");
         }
         var addr = range.RangeAddress;
@@ -192,19 +181,17 @@ public sealed class WorkbookSession : IDisposable
     public void AddPicture(string sheet, Stream image, int row, int column, int widthPx = 160, int heightPx = 48, string? name = null)
         => Sheet(sheet).AddPicture(image, row, column, widthPx, heightPx, name);
 
-    /// <summary>
-    /// Append-only merge by sheet name. Matching sheets get source data rows appended.
-    /// Unknown sheets are copied in full. Existing target sheets are never deleted.
-    /// </summary>
     public void Merge(WorkbookSession source)
     {
         ThrowIfDisposed();
-        HelperGuard.NotNull(source, nameof(source));
-        using var scope = Trace(HelperLog.Subcategories.Session, "Merge", $"from={source.SessionId}");
-        HelperGuard.Require(
-            !ReferenceEquals(source, this) && !ReferenceEquals(source.Workbook, _workbook),
-            nameof(source),
-            "Cannot merge a workbook into itself.");
+        ArgumentNullException.ThrowIfNull(source);
+        Enter(ClosedXmlCatalog.Subcategories.Session, "Merge", source.SessionId);
+        if (ReferenceEquals(source, this) || ReferenceEquals(source.Workbook, _workbook))
+        {
+            ClosedXmlLog.Error(ClosedXmlEvents.SessionRejected, ClosedXmlCatalog.Subcategories.Session, "rejected session",
+                correlationId: SessionId, properties: ClosedXmlLog.Props(("reason", "self-merge")), appId: _appId);
+            throw new ArgumentException("Cannot merge a workbook into itself.", nameof(source));
+        }
         source.ThrowIfDisposed();
         try
         {
@@ -230,15 +217,12 @@ public sealed class WorkbookSession : IDisposable
                 }
             }
 
-            HelperLog.Information(
-                _appId,
-                VestigiumStatus.Success,
-                HelperLog.Subcategories.Session,
-                $"Merged sheets appended={appended} copied={copied} total={_workbook.Worksheets.Count} session={SessionId}");
+            ClosedXmlLog.Information(ClosedXmlEvents.SessionMerged, ClosedXmlCatalog.Subcategories.Session, "session merged",
+                SessionId, ClosedXmlLog.Props(("appended", appended.ToString()), ("copied", copied.ToString())), _appId);
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Session, ex, SessionId, _appId);
             throw;
         }
     }
@@ -257,11 +241,8 @@ public sealed class WorkbookSession : IDisposable
         ThrowIfDisposed();
         var safe = UniqueSheetName(ExcelNames.Sanitize(name));
         var ws = _workbook.AddWorksheet(safe);
-        HelperLog.Debug(
-            _appId,
-            VestigiumStatus.Success,
-            HelperLog.Subcategories.Sheet,
-            $"added sheet={safe} session={SessionId}");
+        ClosedXmlLog.Debug(ClosedXmlEvents.SheetEnter, ClosedXmlCatalog.Subcategories.Sheet, "enter sheet",
+            SessionId, ClosedXmlLog.Props(("via", "AddSheet"), ("sheet", safe)), _appId);
         return new SheetSession(this, ws);
     }
 
@@ -271,7 +252,12 @@ public sealed class WorkbookSession : IDisposable
         var safe = ExcelNames.Sanitize(name);
         if (!_workbook.TryGetWorksheet(safe, out var ws))
             return false;
-        HelperGuard.RequireState(_workbook.Worksheets.Count > 1, "A workbook must keep at least one worksheet.");
+        if (_workbook.Worksheets.Count <= 1)
+        {
+            ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+                correlationId: SessionId, properties: ClosedXmlLog.Props(("reason", "last-sheet")), appId: _appId);
+            throw new InvalidOperationException("A workbook must keep at least one worksheet.");
+        }
         ws.Delete();
         return true;
     }
@@ -286,8 +272,8 @@ public sealed class WorkbookSession : IDisposable
     public string SaveAs(string path)
     {
         ThrowIfDisposed();
-        using var scope = Trace(HelperLog.Subcategories.Session, "SaveAs", $"path={path}");
-        var target = HelperGuard.NotBlank(path, nameof(path));
+        var target = ClosedXmlLog.RequireNotBlank(path, nameof(path), ClosedXmlEvents.SessionRejected, ClosedXmlCatalog.Subcategories.Session);
+        Enter(ClosedXmlCatalog.Subcategories.Session, "SaveAs", target);
         try
         {
             var dir = System.IO.Path.GetDirectoryName(target);
@@ -305,17 +291,13 @@ public sealed class WorkbookSession : IDisposable
                 _workbook.SaveAs(target);
             }
             _path = target;
-            HelperLog.Information(
-                _appId,
-                VestigiumStatus.Success,
-                HelperLog.Subcategories.Session,
-                $"Saved workbook path={target} sheets={_workbook.Worksheets.Count} charts={(IncludeCharts ? _charts.Count : 0)} session={SessionId}");
-            HelperLog.Exit(_appId, HelperLog.Subcategories.Session, "SaveAs", $"path={target} session={SessionId}");
+            ClosedXmlLog.Information(ClosedXmlEvents.SessionSaved, ClosedXmlCatalog.Subcategories.Session, "session saved",
+                SessionId, ClosedXmlLog.Props(("path", target), ("sheets", _workbook.Worksheets.Count.ToString()), ("charts", (IncludeCharts ? _charts.Count : 0).ToString())), _appId);
             return target;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            ClosedXmlLog.Unexpected(ClosedXmlEvents.SessionThrown, ClosedXmlCatalog.Subcategories.Session, ex, SessionId, _appId);
             throw;
         }
     }
@@ -323,8 +305,8 @@ public sealed class WorkbookSession : IDisposable
     public void SaveTo(Stream stream)
     {
         ThrowIfDisposed();
-        using var scope = Trace(HelperLog.Subcategories.Session, "SaveTo");
-        HelperGuard.NotNull(stream, nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
+        Enter(ClosedXmlCatalog.Subcategories.Session, "SaveTo", null);
         if (IncludeCharts && _charts.Count > 0)
         {
             using var ms = new MemoryStream();
@@ -337,18 +319,18 @@ public sealed class WorkbookSession : IDisposable
     }
 
     internal void SetSheetPosition(string name, int position) => MoveSheet(name, position);
-
     internal XLWorkbook Workbook => _workbook;
 
-    internal IDisposable Trace(string subcategory, string method, string? detail = null)
+    internal void Enter(string subcategory, string method, string? detail)
     {
-        var text = string.IsNullOrWhiteSpace(detail)
-            ? $"session={SessionId}"
-            : $"{detail} session={SessionId}";
-        return HelperLog.Begin(_appId, subcategory, method, text, SessionId);
+        var eventId = subcategory == ClosedXmlCatalog.Subcategories.Sheet
+            ? ClosedXmlEvents.SheetEnter
+            : ClosedXmlEvents.SessionEnter;
+        ClosedXmlLog.Debug(eventId, subcategory, subcategory == ClosedXmlCatalog.Subcategories.Sheet ? "enter sheet" : "enter session",
+            SessionId, ClosedXmlLog.Props(("via", method), ("detail", detail)), _appId);
     }
 
-    internal void ThrowIfDisposed() => HelperGuard.NotDisposed(_disposed, this);
+    internal void ThrowIfDisposed() => ClosedXmlLog.ThrowIfDisposed(_disposed, this);
 
     private IXLDefinedName ResolveName(string name)
     {
@@ -368,7 +350,8 @@ public sealed class WorkbookSession : IDisposable
             }
         }
 
-        HelperLog.Reject(_appId, HelperLog.Subcategories.Sheet, "ResolveName", $"named range '{safe}' was not found session={SessionId}", SessionId);
+        ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+            correlationId: SessionId, properties: ClosedXmlLog.Props(("name", safe), ("reason", "missing-name")), appId: _appId);
         throw new KeyNotFoundException($"Named range '{safe}' was not found.");
     }
 
@@ -401,7 +384,8 @@ public sealed class WorkbookSession : IDisposable
                 return candidate;
         }
 
-        HelperLog.Reject(_appId, HelperLog.Subcategories.Sheet, "AddSheet", $"could not allocate a unique sheet name session={SessionId}", SessionId);
+        ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
+            correlationId: SessionId, properties: ClosedXmlLog.Props(("reason", "unique-name")), appId: _appId);
         throw new InvalidOperationException("Could not allocate a unique sheet name.");
     }
 
