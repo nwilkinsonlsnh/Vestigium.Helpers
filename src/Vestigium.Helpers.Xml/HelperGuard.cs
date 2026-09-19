@@ -59,4 +59,12 @@ internal static class HelperGuard
         HelperLog.Reject(name + ": " + message);
         throw new ArgumentException(message, name);
     }
+
+    public static void NotDisposed(bool disposed, object instance)
+    {
+        if (!disposed)
+            return;
+        HelperLog.Reject("instance is disposed");
+        ObjectDisposedException.ThrowIf(true, instance);
+    }
 }
