@@ -25,7 +25,8 @@ public sealed class IcmpEchoCampaign
 
     public static IcmpEchoCampaign Open(string recipePath)
     {
-        var path = HelperGuard.FileExists(recipePath, nameof(recipePath));
+        var confined = CampaignPaths.Confine(recipePath, nameof(recipePath));
+        var path = HelperGuard.FileExists(confined, nameof(recipePath));
         var stored = JsonHelper.FromJson<CampaignRecipe>(File.ReadAllText(path));
         var options = stored.ToOptions();
         options.RecipePath = path;
@@ -48,7 +49,7 @@ public sealed class IcmpEchoCampaign
         var existing = CampaignJsonl.Read(resultsPath);
         if (!CampaignJsonl.HasKind(existing, CampaignId, "campaignStart"))
         {
-            CampaignJsonl.Append(resultsPath, new
+            CampaignJsonl.AppendCampaign(resultsPath, new
             {
                 kind = "campaignStart",
                 campaignId = CampaignId,
@@ -92,7 +93,7 @@ public sealed class IcmpEchoCampaign
 
             if (nowUtc - dueAt > Options.Grace)
             {
-                CampaignJsonl.Append(resultsPath, new
+                CampaignJsonl.AppendCampaign(resultsPath, new
                 {
                     kind = "windowMissed",
                     campaignId = CampaignId,
@@ -107,7 +108,7 @@ public sealed class IcmpEchoCampaign
                 continue;
             }
 
-            CampaignJsonl.Append(resultsPath, new
+            CampaignJsonl.AppendCampaign(resultsPath, new
             {
                 kind = "windowStart",
                 campaignId = CampaignId,
@@ -124,7 +125,7 @@ public sealed class IcmpEchoCampaign
             var result = await job.RunAsync(cancellation).ConfigureAwait(false);
             foreach (var reply in result.Replies)
             {
-                CampaignJsonl.Append(resultsPath, new
+                CampaignJsonl.AppendCampaign(resultsPath, new
                 {
                     kind = "echo",
                     campaignId = CampaignId,
@@ -139,7 +140,7 @@ public sealed class IcmpEchoCampaign
                 echoes++;
             }
 
-            CampaignJsonl.Append(resultsPath, new
+            CampaignJsonl.AppendCampaign(resultsPath, new
             {
                 kind = "windowSummary",
                 campaignId = CampaignId,
@@ -161,7 +162,7 @@ public sealed class IcmpEchoCampaign
         {
             if (!CampaignJsonl.HasKind(existing, CampaignId, "campaignEnd") && missed + run + skipped >= Options.Windows.Count)
             {
-                CampaignJsonl.Append(resultsPath, new
+                CampaignJsonl.AppendCampaign(resultsPath, new
                 {
                     kind = "campaignEnd",
                     campaignId = CampaignId,
@@ -210,6 +211,11 @@ public sealed class IcmpEchoCampaign
             throw new ArgumentOutOfRangeException(nameof(o.Grace), "Grace must be between 0 and 12 hours.");
         }
 
+        if (!string.IsNullOrWhiteSpace(o.RecipePath))
+            o.RecipePath = CampaignPaths.Confine(o.RecipePath, nameof(o.RecipePath));
+        if (!string.IsNullOrWhiteSpace(o.ResultsPath))
+            o.ResultsPath = CampaignPaths.Confine(o.ResultsPath, nameof(o.ResultsPath));
+
         return o;
     }
 
@@ -223,15 +229,9 @@ public sealed class IcmpEchoCampaign
     string ResolveResultsPath()
     {
         if (!string.IsNullOrWhiteSpace(Options.ResultsPath))
-            return Path.GetFullPath(Options.ResultsPath);
-        var root = NetworkTestHooks.CampaignRoot;
-        if (string.IsNullOrWhiteSpace(root))
-        {
-            root = OperatingSystem.IsWindows()
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Vestigium", "Network", "Campaigns")
-                : "/var/lib/vestigium/network/campaigns";
-        }
+            return CampaignPaths.Confine(Options.ResultsPath, nameof(Options.ResultsPath));
 
+        var root = CampaignPaths.Root();
         try
         {
             Directory.CreateDirectory(root);
@@ -247,9 +247,7 @@ public sealed class IcmpEchoCampaign
 
     static void WriteRecipe(string path, string campaignId, IcmpEchoCampaignOptions options)
     {
-        var dir = Path.GetDirectoryName(path);
-        if (!string.IsNullOrWhiteSpace(dir))
-            Directory.CreateDirectory(dir);
+        CampaignPaths.EnsureDirectoryUnderRoot(path);
         JsonHelper.WriteFile(path, new CampaignRecipe
         {
             CampaignId = campaignId,
