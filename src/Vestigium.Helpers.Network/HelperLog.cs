@@ -31,6 +31,8 @@ internal static class HelperLog
         public const string Address = "Address";
         public const string Bandwidth = "Bandwidth";
         public const string Subnet = "Subnet";
+        public const string Stats = "Stats";
+        public const string Progress = "Progress";
     }
 
     private static readonly AsyncLocal<ScopeState?> Scope = new();
