@@ -43,7 +43,7 @@ public sealed class RegistryRollbackR8Tests : IDisposable
 
         var live = RegistryHelper.PurgeJournal(journal, new RegistryPurgeOptions { KeepLastBatches = 1, Confirm = true });
         Assert.Equal(RegistryWriteStatus.Ok, live.Status);
-        Assert.Equal(1, RegistryHelper.ReadJournal(journal).Batches.Count);
+        Assert.Single(RegistryHelper.ReadJournal(journal).Batches);
         Assert.Equal("two", RegistryHelper.ReadJournal(journal).Batches[0].Label);
     }
 
