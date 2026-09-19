@@ -1,5 +1,4 @@
 using System.Numerics;
-using Vestigium.Helpers;
 using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Analytics;
@@ -12,6 +11,7 @@ public sealed class NumericSeries
 {
     public NumericSeries(IEnumerable<decimal> values, string? name = null)
     {
+        ArgumentNullException.ThrowIfNull(values);
         AnalyticsLog.Debug(
             AnalyticsEvents.SeriesEnter,
             VestigiumStatus.Pending,
@@ -21,7 +21,7 @@ public sealed class NumericSeries
         try
         {
             Bind(
-                NumberConvert.ToDecimalList(HelperGuard.NotNull(values, nameof(values))),
+                NumberConvert.ToDecimalList(values),
                 times: [],
                 name,
                 SeriesWindow.None);
@@ -127,6 +127,7 @@ public sealed class NumericSeries
 
     public static NumericSeries FromObservations(IEnumerable<Observation> observations, string? name = null)
     {
+        ArgumentNullException.ThrowIfNull(observations);
         AnalyticsLog.Debug(
             AnalyticsEvents.SeriesEnter,
             VestigiumStatus.Pending,
@@ -135,7 +136,6 @@ public sealed class NumericSeries
             properties: AnalyticsLog.Props(("name", name), ("via", "FromObservations")));
         try
         {
-            HelperGuard.NotNull(observations, nameof(observations));
             var (values, times) = Unpack(observations);
             return new NumericSeries(values, times, name, SeriesWindow.None);
         }
@@ -152,6 +152,8 @@ public sealed class NumericSeries
         DateTimeOffset endExclusive,
         string? name = null)
     {
+        ArgumentNullException.ThrowIfNull(observations);
+        RequireWindow(startInclusive, endExclusive);
         AnalyticsLog.Debug(
             AnalyticsEvents.SeriesEnter,
             VestigiumStatus.Pending,
@@ -160,9 +162,6 @@ public sealed class NumericSeries
             properties: AnalyticsLog.Props(("name", name), ("via", "FromObservationsWindow")));
         try
         {
-            HelperGuard.NotNull(observations, nameof(observations));
-            HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
-
             var filtered = observations.Where(o =>
                 o.At is { } at &&
                 at.UtcTicks >= startInclusive.UtcTicks &&
@@ -213,8 +212,9 @@ public sealed class NumericSeries
             AnalyticsLog.Props(("via", "Slice")));
         try
         {
-            HelperGuard.RequireState(HasTimestamps, "Slice requires at least one timestamped observation.");
-            HelperGuard.Require(startInclusive < endExclusive, nameof(startInclusive), "Window start must be earlier than end.");
+            if (!HasTimestamps)
+                throw new InvalidOperationException("Slice requires at least one timestamped observation.");
+            RequireWindow(startInclusive, endExclusive);
 
             var values = new List<decimal>();
             var times = new List<DateTimeOffset?>();
@@ -298,11 +298,6 @@ public sealed class NumericSeries
                 ("n", Count.ToString())));
         try
         {
-            HelperGuard.InRange(populationSize, 1, nameof(populationSize));
-            HelperGuard.Require(
-                Count <= populationSize,
-                nameof(populationSize),
-                "Sample count cannot exceed population size.");
             var report = Full.Confidence(level, populationSize);
             AnalyticsLog.Information(
                 AnalyticsEvents.ConfidenceComputed,
@@ -446,6 +441,13 @@ public sealed class NumericSeries
         }
 
         return points;
+    }
+
+    private static void RequireWindow(DateTimeOffset startInclusive, DateTimeOffset endExclusive)
+    {
+        if (startInclusive < endExclusive)
+            return;
+        throw new ArgumentException("Window start must be earlier than end.", nameof(startInclusive));
     }
 
     private static (List<decimal> Values, List<DateTimeOffset?> Times) Unpack(IEnumerable<Observation> observations)
