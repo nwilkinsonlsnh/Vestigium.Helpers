@@ -32,7 +32,7 @@ internal static class HelperGuard
         var target = NotBlank(path, name);
         if (File.Exists(target))
             return target;
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Guard, nameof(FileExists), name + " not found path=" + target);
+        NetworkLog.Reject(HelperLog.Subcategories.Guard, nameof(FileExists), name + " not found path=" + target);
         throw new FileNotFoundException(name + " was not found.", target);
     }
 
