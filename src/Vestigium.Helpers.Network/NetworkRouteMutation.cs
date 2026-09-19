@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Win32;
 using Vestigium.Helpers;
 
@@ -133,6 +134,7 @@ internal static class NetworkRouteMutation
         return new NetworkRouteDenied(message);
     }
 
+    [SupportedOSPlatform("windows")]
     static void WritePersistent(NetworkRouteChange change)
     {
         try
@@ -148,6 +150,7 @@ internal static class NetworkRouteMutation
         }
     }
 
+    [SupportedOSPlatform("windows")]
     static void DeletePersistent(NetworkRouteChange change)
     {
         try
