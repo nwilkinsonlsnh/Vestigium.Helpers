@@ -13,7 +13,10 @@ public static class XmlCatalog
         ArgumentNullException.ThrowIfNull(cfg);
         var taxonomy = new VestigiumTaxonomy();
         taxonomy.Register(Category, AppId);
-        taxonomy.Register(Category, "Probe", "Document", "Session", "Multi", "Save", "Query", "Guard");
+        taxonomy.Register(
+            Category,
+            "Probe", "Document", "Session", "Multi", "Save", "Query", "Guard",
+            "Safety", "Snapshot", "Diff", "Commit");
         cfg.RegisterTaxonomy(taxonomy);
         foreach (var row in Rows)
             cfg.RegisterEvent(row.Name, row.FullName, Category, Subcategory, row.EventId, row.Severity, row.Description);
