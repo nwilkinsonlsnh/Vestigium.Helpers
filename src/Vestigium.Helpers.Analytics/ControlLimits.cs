@@ -29,10 +29,7 @@ public enum ControlLimitMethod
 /// </summary>
 public sealed class ControlLimits
 {
-    /// <summary>Unbiasing constant d2 for a moving range of two consecutive points.</summary>
     public const double D2Span2 = 1.1283791670955126;
-
-    /// <summary>E2 = 3 / d2. Three-sigma individuals chart using MR̄.</summary>
     public const double E2Span2 = 3d / D2Span2;
 
     public double Center { get; init; }
@@ -49,14 +46,14 @@ public sealed class ControlLimits
 
     public bool IsOutOfControl(double y) => y > Upper || y < Lower;
 
-    /// <summary>Locked baseline / SLA fences. Not computed from a sample.</summary>
     public static ControlLimits FromCaller(double center, double upper, double lower)
     {
-        using var _ = HelperLog.Begin(
-            HelperLog.AppIds.Analytics,
-            HelperLog.Subcategories.Limits,
-            "FromCaller",
-            $"CL={center} UCL={upper} LCL={lower}");
+        AnalyticsLog.Debug(
+            AnalyticsEvents.LimitsEnter,
+            VestigiumStatus.Pending,
+            AnalyticsCatalog.Subcategories.Limits,
+            "enter limits",
+            properties: AnalyticsLog.Props(("via", "FromCaller")));
         try
         {
             ValidateBand(center, upper, lower);
@@ -67,16 +64,20 @@ public sealed class ControlLimits
                 Lower = lower,
                 Method = ControlLimitMethod.CallerSupplied
             };
-            HelperLog.Information(
-                HelperLog.AppIds.Analytics,
+            AnalyticsLog.Information(
+                AnalyticsEvents.LimitsCallerSupplied,
                 VestigiumStatus.Success,
-                HelperLog.Subcategories.Limits,
-                $"caller-supplied CL={center} UCL={upper} LCL={lower}");
+                AnalyticsCatalog.Subcategories.Limits,
+                "caller-supplied limits",
+                properties: AnalyticsLog.Props(
+                    ("cl", center.ToString("G6")),
+                    ("ucl", upper.ToString("G6")),
+                    ("lcl", lower.ToString("G6"))));
             return limits;
         }
         catch (Exception ex)
         {
-            HelperLog.Trap(ex);
+            AnalyticsLog.Unexpected(AnalyticsEvents.LimitsThrown, AnalyticsCatalog.Subcategories.Limits, ex);
             throw;
         }
     }
@@ -91,26 +92,26 @@ public sealed class ControlLimits
     {
         if (method == ControlLimitMethod.CallerSupplied)
         {
-            HelperLog.Reject("CallerSupplied limits must use ControlLimits.FromCaller");
+            RejectLimits("caller-supplied");
             throw new ArgumentException("Caller-supplied limits must use ControlLimits.FromCaller.", nameof(method));
         }
 
         HelperGuard.NotNull(encounterOrder, nameof(encounterOrder));
         if (k <= 0)
         {
-            HelperLog.Reject($"k={k} is not positive");
+            RejectLimits("k", ("k", k.ToString("G6")));
             throw new ArgumentOutOfRangeException(nameof(k), "k must be greater than 0.");
         }
 
         if (encounterOrder.Count < 2)
         {
-            HelperLog.Reject("control limits require n>=2");
+            RejectLimits("n", ("n", encounterOrder.Count.ToString()));
             throw new InvalidOperationException("Control limits require at least two observations.");
         }
 
         if (mean is null)
         {
-            HelperLog.Reject("mean is undefined");
+            RejectLimits("mean");
             throw new InvalidOperationException("Cannot compute control limits without a mean.");
         }
 
@@ -125,7 +126,7 @@ public sealed class ControlLimits
         {
             if (stdDev is null or 0)
             {
-                HelperLog.Reject("stddev is undefined or zero");
+                RejectLimits("stddev");
                 throw new InvalidOperationException("Mean ± kσ limits require a positive sample standard deviation.");
             }
 
@@ -147,7 +148,7 @@ public sealed class ControlLimits
             mrBar = sum / mrs.Length;
             if (mrBar == 0)
             {
-                HelperLog.Reject("moving-range bar is zero");
+                RejectLimits("mr");
                 throw new InvalidOperationException("Moving-range limits require a positive average moving range.");
             }
 
@@ -193,19 +194,31 @@ public sealed class ControlLimits
             MovingRanges = ranges
         };
 
-        HelperLog.Information(
-            HelperLog.AppIds.Analytics,
+        AnalyticsLog.Information(
+            AnalyticsEvents.LimitsComputed,
             VestigiumStatus.Success,
-            HelperLog.Subcategories.Limits,
-            $"computed method={method} CL={center:G6} UCL={upper:G6} LCL={lower:G6} k={k} outside={outside.Count} clamped={clamped}");
+            AnalyticsCatalog.Subcategories.Limits,
+            "limits computed",
+            properties: AnalyticsLog.Props(
+                ("method", method.ToString()),
+                ("cl", center.ToString("G6")),
+                ("ucl", upper.ToString("G6")),
+                ("lcl", lower.ToString("G6")),
+                ("k", k.ToString("G6")),
+                ("outside", outside.Count.ToString()),
+                ("clamped", clamped ? "true" : "false")));
 
         if (outside.Count > 0)
         {
-            HelperLog.Warning(
-                HelperLog.AppIds.Analytics,
+            AnalyticsLog.Warning(
+                AnalyticsEvents.LimitsOutOfControl,
                 VestigiumStatus.Warning,
-                HelperLog.Subcategories.Limits,
-                $"out-of-control points method={method} count={outside.Count} indexes={string.Join(",", outside)}");
+                AnalyticsCatalog.Subcategories.Limits,
+                "out-of-control points",
+                properties: AnalyticsLog.Props(
+                    ("method", method.ToString()),
+                    ("count", outside.Count.ToString()),
+                    ("indexes", string.Join(",", outside))));
         }
 
         return limits;
@@ -215,8 +228,21 @@ public sealed class ControlLimits
     {
         if (upper <= center || center <= lower)
         {
-            HelperLog.Reject($"malformed limits UCL={upper} CL={center} LCL={lower}");
+            RejectLimits("band", ("ucl", upper.ToString("G6")), ("cl", center.ToString("G6")), ("lcl", lower.ToString("G6")));
             throw new ArgumentException("UCL must be greater than CL and CL must be greater than LCL.");
         }
+    }
+
+    private static void RejectLimits(string reason, params (string Key, string? Value)[] extra)
+    {
+        var pairs = new (string Key, string? Value)[extra.Length + 1];
+        pairs[0] = ("reason", reason);
+        extra.CopyTo(pairs, 1);
+        AnalyticsLog.Error(
+            AnalyticsEvents.LimitsRejected,
+            VestigiumStatus.Failed,
+            AnalyticsCatalog.Subcategories.Limits,
+            "rejected limits",
+            properties: AnalyticsLog.Props(pairs));
     }
 }
