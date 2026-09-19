@@ -49,9 +49,10 @@ public sealed record ChartOptions
     public double? Width { get; init; }
     public double? Height { get; init; }
     public string? Color { get; init; }
-
-    /// <summary>γ for <see cref="ChartKind.MeanInterval"/>. Null means <see cref="ConfidenceLevel.DefaultValue"/>.</summary>
     public double? IntervalLevel { get; init; }
+
+    /// <summary>Host-computed run rules. Charts only paints <see cref="RunRuleReport.AllIndexes"/>.</summary>
+    public RunRuleReport? RunRules { get; init; }
 }
 
 public sealed class ChartSpec
@@ -63,6 +64,9 @@ public sealed class ChartSpec
     public ControlLimits? Limits { get; init; }
     public NumericSeries? Source { get; init; }
     public IReadOnlyList<ChartSlice>? Slices { get; init; }
+
+    /// <summary>Host-computed run rules. Wins over <see cref="ChartOptions.RunRules"/>.</summary>
+    public RunRuleReport? RunRules { get; init; }
 }
 
 public sealed class ChartSeries
@@ -139,6 +143,7 @@ internal static class Palette
     public const string Trend = "#2F4F4F";
     public const string Bell = "#8B3A3A";
     public const string Outlier = "#A33B3B";
+    public const string Rule = "#C47B4A";
     public const string Cl = "#2F4F4F";
     public const string Ucl = "#A33B3B";
     public const string Lcl = "#3B6EA3";
