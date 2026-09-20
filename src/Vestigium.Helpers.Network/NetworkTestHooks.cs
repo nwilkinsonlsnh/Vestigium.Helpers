@@ -7,6 +7,7 @@ namespace Vestigium.Helpers.Network;
 internal static class NetworkTestHooks
 {
     internal static string? CampaignRoot { get; set; }
+    internal static string? ShareRoot { get; set; }
     internal static DateTimeOffset? UtcNow { get; set; }
     internal static string? ProcRoot { get; set; }
 
@@ -24,6 +25,7 @@ internal static class NetworkTestHooks
     internal static void Reset()
     {
         CampaignRoot = null;
+        ShareRoot = null;
         UtcNow = null;
         ProcRoot = null;
     }
