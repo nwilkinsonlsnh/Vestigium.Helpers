@@ -9,6 +9,7 @@ internal static class NetworkRouteNetlink
 {
     const int AfNetlink = 16;
     const int AfInet = 2;
+    const int AfInet6 = 10;
     const int SockRaw = 3;
     const int SockCloexec = 0x80000;
     const int NetlinkRoute = 0;
@@ -31,7 +32,6 @@ internal static class NetworkRouteNetlink
     const int Eperm = 1;
     const int Eacces = 13;
     const int Enetunreach = 101;
-    const int EpermNetlink = 1;
 
     public static void Add(NetworkRouteChange change) => Apply(change, create: true, replace: false);
     public static void Change(NetworkRouteChange change) => Apply(change, create: true, replace: true);
@@ -42,15 +42,8 @@ internal static class NetworkRouteNetlink
         if (!OperatingSystem.IsLinux())
             throw NetworkRouteMutation.LinuxWriteDenied(nameof(Apply));
 
-        var dest = IPAddress.Parse(change.Destination);
-        var gw = IPAddress.Parse(change.Gateway);
-        if (dest.Equals(IPAddress.Any) && change.PrefixLength == 0)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Apply), "default route");
-            throw new NetworkRouteDenied("Default route write is not offered.");
-        }
-
-        var ifIndex = change.InterfaceIndex ?? 0;
+        var spec = NetworkRouteSpec.Parse(change);
+        var ifIndex = spec.InterfaceIndex;
         if (ifIndex < 1)
             throw new ArgumentException("Linux route write requires InterfaceIndex.", nameof(change.InterfaceIndex));
 
@@ -61,34 +54,34 @@ internal static class NetworkRouteNetlink
         else if (create)
             flags |= (ushort)(NlmFCreate | NlmFExcl);
 
-        var payload = Build(dest, gw, (byte)change.PrefixLength, ifIndex, Math.Max(1, change.Metric), type, flags);
+        var payload = Build(spec, type, flags, ifIndex);
         Send(payload, create ? nameof(Add) : nameof(Remove));
     }
 
-    static byte[] Build(IPAddress dest, IPAddress gw, byte prefix, int ifIndex, int metric, ushort type, ushort flags)
+    static byte[] Build(NetworkRouteSpec spec, ushort type, ushort flags, int ifIndex)
     {
-        var body = new List<byte>(80);
-        body.AddRange(new byte[16]); // nlmsghdr placeholder
-        body.Add(AfInet);
-        body.Add(prefix);
+        var family = (byte)(spec.IsIPv6 ? AfInet6 : AfInet);
+        var body = new List<byte>(96);
+        body.AddRange(new byte[16]);
+        body.Add(family);
+        body.Add((byte)spec.PrefixLength);
         body.Add(0);
         body.Add(0);
         body.Add(RtTableMain);
         body.Add(RtProtStatic);
         body.Add(RtScopeUniverse);
         body.Add(RtnUnicast);
-        body.AddRange(BitConverter.GetBytes(0)); // rtm_flags
-        AddAttr(body, RtaDst, dest.GetAddressBytes());
-        AddAttr(body, RtaGateway, gw.GetAddressBytes());
+        body.AddRange(BitConverter.GetBytes(0));
+        AddAttr(body, RtaDst, spec.Destination.GetAddressBytes());
+        AddAttr(body, RtaGateway, spec.Gateway.GetAddressBytes());
         AddAttr(body, RtaOif, BitConverter.GetBytes(ifIndex));
-        AddAttr(body, RtaPriority, BitConverter.GetBytes(metric));
+        AddAttr(body, RtaPriority, BitConverter.GetBytes(spec.Metric));
 
         var bytes = body.ToArray();
-        var len = bytes.Length;
-        BitConverter.GetBytes(len).CopyTo(bytes, 0);
+        BitConverter.GetBytes(bytes.Length).CopyTo(bytes, 0);
         BitConverter.GetBytes(type).CopyTo(bytes, 4);
         BitConverter.GetBytes(flags).CopyTo(bytes, 6);
-        BitConverter.GetBytes(1).CopyTo(bytes, 8); // seq
+        BitConverter.GetBytes(1).CopyTo(bytes, 8);
         return bytes;
     }
 
@@ -113,7 +106,6 @@ internal static class NetworkRouteNetlink
             var addr = new SockaddrNl { nl_family = AfNetlink };
             if (bind(fd, ref addr, 12) < 0)
                 throw Denied(verb, Marshal.GetLastPInvokeError());
-
             if (send(fd, payload, payload.Length, 0) < 0)
                 throw Denied(verb, Marshal.GetLastPInvokeError());
 
@@ -125,7 +117,6 @@ internal static class NetworkRouteNetlink
             var msgType = BitConverter.ToUInt16(reply, 4);
             if (msgType != NlmsgError)
                 return;
-
             var error = BitConverter.ToInt32(reply, 16);
             if (error != 0)
                 throw Denied(verb, -error);
@@ -138,7 +129,7 @@ internal static class NetworkRouteNetlink
 
     internal static NetworkRouteDenied Denied(string verb, int errno)
     {
-        var message = errno is Eperm or Eacces or EpermNetlink
+        var message = errno is Eperm or Eacces
             ? "Linux route write requires CAP_NET_ADMIN."
             : errno == Enetunreach
                 ? verb + " rejected. Gateway or interface is unreachable."
