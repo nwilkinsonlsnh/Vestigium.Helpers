@@ -39,9 +39,9 @@ public sealed class ShareCampaign
     public Task<ShareCampaignResult> RunAsync(CancellationToken cancellation = default)
     {
         cancellation.ThrowIfCancellationRequested();
-        if (Options.Mode == ShareCampaignMode.Advanced)
-            throw new InvalidOperationException("Advanced share estimate is PR03.005.");
-        return Task.FromResult(ShareCampaignEngine.RunDefault(CampaignId, Options, cancellation));
+        return Task.FromResult(Options.Mode == ShareCampaignMode.Advanced
+            ? ShareCampaignEngine.RunAdvanced(CampaignId, Options, cancellation)
+            : ShareCampaignEngine.RunDefault(CampaignId, Options, cancellation));
     }
 
     internal static ShareCampaignOptions Guard(ShareCampaignOptions? options)
@@ -74,7 +74,7 @@ public sealed class ShareCampaign
             throw new ArgumentOutOfRangeException(nameof(o.ProbeCount), "ProbeCount must be between 1 and 16.");
         }
 
-        if (o.ProbeBytes * (long)o.ProbeCount > o.MaxProbeBytes)
+        if (o.Mode == ShareCampaignMode.Default && o.ProbeBytes * (long)o.ProbeCount > o.MaxProbeBytes)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "probe budget");
             throw new ArgumentException("ProbeBytes × ProbeCount cannot exceed MaxProbeBytes.", nameof(o.MaxProbeBytes));
@@ -84,6 +84,12 @@ public sealed class ShareCampaign
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "planned size missing");
             throw new ArgumentException("Default mode requires PlannedSize.", nameof(o.PlannedSize));
+        }
+
+        if (o.Mode == ShareCampaignMode.Advanced && o.SourceAnalysis is null)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "analysis missing");
+            throw new ArgumentException("Advanced mode requires SourceAnalysis.", nameof(o.SourceAnalysis));
         }
 
         if (!string.IsNullOrWhiteSpace(o.RecipePath))
@@ -165,92 +171,5 @@ internal static class SharePaths
         }
 
         return full;
-    }
-}
-
-internal static class ShareCampaignEngine
-{
-    public static ShareCampaignResult RunDefault(string campaignId, ShareCampaignOptions options, CancellationToken cancellation)
-    {
-        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Share, nameof(RunDefault), campaignId);
-        var planned = options.PlannedSize ?? throw new InvalidOperationException("Default mode requires PlannedSize.");
-        var resultsPath = ResolveResults(campaignId, options);
-        var samples = CollectRates(options, cancellation);
-        var bits = samples.Select(b => (decimal)(b * 8d)).ToArray();
-        var bill = PercentileBillEngine.FromSamples(bits, 0.95);
-        var transfer = BandwidthEngine.TransferTime(planned, bill.Rate);
-        var measured = TimeSpan.FromTicks((long)Math.Round(transfer.Duration.Ticks / options.Efficiency, MidpointRounding.AwayFromZero));
-        TimeSpan? declared = options.DeclaredPipeRate is { } pipe
-            ? BandwidthEngine.TransferTime(planned, pipe).Duration
-            : null;
-
-        CampaignJsonl.AppendCampaign(resultsPath, new
-        {
-            kind = "campaignStart",
-            campaignId,
-            mode = "Default",
-            recordedUtc = NetworkTestHooks.Now()
-        });
-        CampaignJsonl.AppendCampaign(resultsPath, new
-        {
-            kind = "probe",
-            campaignId,
-            count = samples.Count,
-            p95BitsPerSecond = bill.Rate.Bits,
-            recordedUtc = NetworkTestHooks.Now()
-        });
-        CampaignJsonl.AppendCampaign(resultsPath, new
-        {
-            kind = "campaignEnd",
-            campaignId,
-            measuredSeconds = measured.TotalSeconds,
-            recordedUtc = NetworkTestHooks.Now()
-        });
-
-        NetworkLog.Success(
-            HelperLog.Subcategories.Share,
-            $"default campaign={campaignId} p95={bill.Rate.Display} duration={measured}");
-
-        return new ShareCampaignResult(
-            campaignId,
-            NetworkJobStatus.Success,
-            ShareCampaignMode.Default,
-            resultsPath,
-            ShareCampaign.DefaultDisclaimer,
-            measured,
-            bill.Rate,
-            declared);
-    }
-
-    static IReadOnlyList<double> CollectRates(ShareCampaignOptions options, CancellationToken cancellation)
-    {
-        if (NetworkTestHooks.ProbeBytesPerSecond is { Count: > 0 } injected)
-            return injected;
-
-        var size = FileIoSize.FromBytes(options.ProbeBytes);
-        var rates = new List<double>(options.ProbeCount);
-        for (var i = 0; i < options.ProbeCount; i++)
-        {
-            cancellation.ThrowIfCancellationRequested();
-            var written = FileIoHelper.WriteProbe(options.Target.Directory, size);
-            rates.Add(written.BytesPerSecond);
-            if (options.IncludeReadProbe && !written.Deleted)
-            {
-                var read = FileIoHelper.ReadProbe(written.Path);
-                rates.Add(read.BytesPerSecond);
-            }
-        }
-
-        return rates;
-    }
-
-    static string ResolveResults(string campaignId, ShareCampaignOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.ResultsPath))
-            return CampaignPaths.Confine(options.ResultsPath, nameof(options.ResultsPath));
-
-        var root = CampaignPaths.Root();
-        Directory.CreateDirectory(root);
-        return Path.Combine(root, campaignId + ".jsonl");
     }
 }
