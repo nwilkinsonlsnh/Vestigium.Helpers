@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Vestigium.Helpers.Json;
 
@@ -6,6 +9,7 @@ namespace Vestigium.Helpers.Network;
 internal static class CampaignJsonl
 {
     static readonly JsonWriteOptions Compact = new() { WriteIndented = false };
+    static readonly ConcurrentDictionary<string, object> Gates = new(StringComparer.OrdinalIgnoreCase);
 
     public static void AppendCampaign(string path, object record)
     {
@@ -22,32 +26,65 @@ internal static class CampaignJsonl
         WriteLine(path, record);
     }
 
+    static object Gate(string path)
+        => Gates.GetOrAdd(Path.GetFullPath(path), _ => new object());
+
     static void WriteLine(string path, object record)
     {
         var line = JsonHelper.ToJson(record, Compact);
         if (line.IndexOfAny(['\r', '\n']) >= 0)
             line = string.Join(' ', line.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries));
-        File.AppendAllText(path, line + "\n");
+        var payload = Encoding.UTF8.GetBytes(line + "\n");
+        var full = Path.GetFullPath(path);
+
+        lock (Gate(full))
+        {
+            for (var attempt = 0; attempt < 8; attempt++)
+            {
+                try
+                {
+                    using var stream = new FileStream(
+                        full,
+                        FileMode.Append,
+                        FileAccess.Write,
+                        FileShare.Read,
+                        bufferSize: 4096,
+                        FileOptions.None);
+                    stream.Write(payload, 0, payload.Length);
+                    stream.Flush();
+                    return;
+                }
+                catch (IOException) when (attempt < 7)
+                {
+                    Thread.Sleep(15 * (attempt + 1));
+                }
+            }
+        }
     }
 
     public static IReadOnlyList<Dictionary<string, object?>> Read(string path)
     {
         if (!File.Exists(path))
             return [];
-        using var session = JsonHelper.OpenJsonl(path);
-        var rows = new List<Dictionary<string, object?>>(session.RecordCount);
-        for (var i = 0; i < session.RecordCount; i++)
-        {
-            var node = session.Record(i);
-            if (node is not JsonObject obj)
-                continue;
-            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var prop in obj)
-                row[prop.Key] = prop.Value is null ? null : prop.Value.ToJsonString();
-            rows.Add(row);
-        }
 
-        return rows;
+        var full = Path.GetFullPath(path);
+        lock (Gate(full))
+        {
+            using var session = JsonHelper.OpenJsonl(full);
+            var rows = new List<Dictionary<string, object?>>(session.RecordCount);
+            for (var i = 0; i < session.RecordCount; i++)
+            {
+                var node = session.Record(i);
+                if (node is not JsonObject obj)
+                    continue;
+                var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                foreach (var prop in obj)
+                    row[prop.Key] = prop.Value is null ? null : prop.Value.ToJsonString();
+                rows.Add(row);
+            }
+
+            return rows;
+        }
     }
 
     public static bool HasTerminalWindow(IReadOnlyList<Dictionary<string, object?>> rows, string campaignId, string date, string localTime)
