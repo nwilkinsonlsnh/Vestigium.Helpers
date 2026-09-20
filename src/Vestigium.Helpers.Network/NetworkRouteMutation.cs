@@ -22,10 +22,7 @@ internal static class NetworkRouteMutation
     {
         var row = Bind(change);
         if (!OperatingSystem.IsWindows())
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Add), "Linux route write is not implemented");
-            throw new PlatformNotSupportedException("AddRoute is Windows-only in v1. Linux is a typed deny, not ip route.");
-        }
+            throw LinuxWriteDenied(nameof(Add));
 
         var code = CreateIpForwardEntry(ref row);
         if (code != 0)
@@ -39,10 +36,7 @@ internal static class NetworkRouteMutation
     {
         var row = Bind(change);
         if (!OperatingSystem.IsWindows())
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Change), "Linux route write is not implemented");
-            throw new PlatformNotSupportedException("ChangeRoute is Windows-only in v1.");
-        }
+            throw LinuxWriteDenied(nameof(Change));
 
         var code = SetIpForwardEntry(ref row);
         if (code != 0)
@@ -56,10 +50,7 @@ internal static class NetworkRouteMutation
     {
         var row = Bind(change);
         if (!OperatingSystem.IsWindows())
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Remove), "Linux route write is not implemented");
-            throw new PlatformNotSupportedException("RemoveRoute is Windows-only in v1.");
-        }
+            throw LinuxWriteDenied(nameof(Remove));
 
         var code = DeleteIpForwardEntry(ref row);
         if (code != 0 && code != ErrorNotFound)
@@ -154,6 +145,12 @@ internal static class NetworkRouteMutation
 
     static uint ToUint(IPAddress ip)
         => BitConverter.ToUInt32(ip.GetAddressBytes(), 0);
+
+    internal static NetworkRouteDenied LinuxWriteDenied(string verb)
+    {
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, "Linux route write is not in v1");
+        return new NetworkRouteDenied("Linux route write is not in v1.");
+    }
 
     internal static NetworkRouteDenied Denied(string verb, uint code)
     {

@@ -22,7 +22,7 @@ public sealed class NetworkPhase6Tests
     {
         if (!OperatingSystem.IsLinux())
             return;
-        Assert.Throws<PlatformNotSupportedException>(() =>
+        Assert.Throws<NetworkRouteDenied>(() =>
             NetworkHelper.AddRoute(new NetworkRouteChange
             {
                 Destination = "192.0.2.0",

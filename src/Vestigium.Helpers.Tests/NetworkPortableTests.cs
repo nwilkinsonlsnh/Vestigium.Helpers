@@ -52,7 +52,7 @@ public sealed class NetworkPortableTests : IDisposable
     {
         if (OperatingSystem.IsLinux())
         {
-            Assert.Throws<PlatformNotSupportedException>(() =>
+            Assert.Throws<NetworkRouteDenied>(() =>
                 NetworkHelper.DeleteRoute(new NetworkRouteChange
                 {
                     Destination = "192.0.2.1",
