@@ -18,7 +18,7 @@ internal static class ShareCampaignEngine
             ? BandwidthEngine.TransferTime(planned, pipe).Duration
             : null;
 
-        WriteJsonl(resultsPath, campaignId, "Default", measured, payload: measured, metadata: TimeSpan.Zero);
+        WriteJsonl(resultsPath, campaignId, "Default", ShareLabel(options), samples.Count, measured, measured, TimeSpan.Zero);
         NetworkLog.Success(HelperLog.Subcategories.Share, $"default campaign={campaignId} duration={measured}");
         return new ShareCampaignResult(
             campaignId, NetworkJobStatus.Success, ShareCampaignMode.Default, resultsPath,
@@ -87,12 +87,15 @@ internal static class ShareCampaignEngine
         var disclaimer =
             $"payload {payload.TotalHours:0.###} h + metadata {metadata.TotalHours:0.###} h. Declared-pipe estimate is separate.";
 
-        WriteJsonl(resultsPath, campaignId, "Advanced", measured, payload, metadata);
-        NetworkLog.Success(HelperLog.Subcategories.Share, $"advanced campaign={campaignId} {disclaimer}");
+        WriteJsonl(resultsPath, campaignId, "Advanced", ShareLabel(options), plan.Probes.Count, measured, payload, metadata);
+        NetworkLog.Success(HelperLog.Subcategories.Share, $"advanced campaign={campaignId} payloadHours={payload.TotalHours:0.###} metadataHours={metadata.TotalHours:0.###}");
         return new ShareCampaignResult(
             campaignId, NetworkJobStatus.Success, ShareCampaignMode.Advanced, resultsPath,
             disclaimer, measured, BandwidthEngine.From((decimal)(fallback * 8d), DataUnit.Bit), declared, payload, metadata);
     }
+
+    static string ShareLabel(ShareCampaignOptions options)
+        => Path.GetFileName(options.Target.Directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
     static IReadOnlyList<double> CollectDefaultRates(ShareCampaignOptions options, CancellationToken cancellation)
     {
@@ -140,9 +143,18 @@ internal static class ShareCampaignEngine
     static TimeSpan Scale(TimeSpan duration, double efficiency)
         => TimeSpan.FromTicks((long)Math.Round(duration.Ticks / efficiency, MidpointRounding.AwayFromZero));
 
-    static void WriteJsonl(string resultsPath, string campaignId, string mode, TimeSpan measured, TimeSpan payload, TimeSpan metadata)
+    static void WriteJsonl(
+        string resultsPath,
+        string campaignId,
+        string mode,
+        string share,
+        int probeCount,
+        TimeSpan measured,
+        TimeSpan payload,
+        TimeSpan metadata)
     {
-        CampaignJsonl.AppendCampaign(resultsPath, new { kind = "campaignStart", campaignId, mode, recordedUtc = NetworkTestHooks.Now() });
+        CampaignJsonl.AppendCampaign(resultsPath, new { kind = "campaignStart", campaignId, mode, share, recordedUtc = NetworkTestHooks.Now() });
+        CampaignJsonl.AppendCampaign(resultsPath, new { kind = "probe", campaignId, share, count = probeCount, recordedUtc = NetworkTestHooks.Now() });
         CampaignJsonl.AppendCampaign(resultsPath, new { kind = "windowSummary", campaignId, payloadSeconds = payload.TotalSeconds, metadataSeconds = metadata.TotalSeconds, recordedUtc = NetworkTestHooks.Now() });
         CampaignJsonl.AppendCampaign(resultsPath, new { kind = "campaignEnd", campaignId, measuredSeconds = measured.TotalSeconds, recordedUtc = NetworkTestHooks.Now() });
     }
