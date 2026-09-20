@@ -22,7 +22,11 @@ internal static class NetworkRouteMutation
     {
         var row = Bind(change);
         if (!OperatingSystem.IsWindows())
-            throw LinuxWriteDenied(nameof(Add));
+        {
+            NetworkRouteNetlink.Add(change);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"AddRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} linux-netlink");
+            return;
+        }
 
         var code = CreateIpForwardEntry(ref row);
         if (code != 0)
@@ -36,7 +40,11 @@ internal static class NetworkRouteMutation
     {
         var row = Bind(change);
         if (!OperatingSystem.IsWindows())
-            throw LinuxWriteDenied(nameof(Change));
+        {
+            NetworkRouteNetlink.Change(change);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"ChangeRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} linux-netlink");
+            return;
+        }
 
         var code = SetIpForwardEntry(ref row);
         if (code != 0)
@@ -50,7 +58,11 @@ internal static class NetworkRouteMutation
     {
         var row = Bind(change);
         if (!OperatingSystem.IsWindows())
-            throw LinuxWriteDenied(nameof(Remove));
+        {
+            NetworkRouteNetlink.Remove(change);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"RemoveRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} linux-netlink");
+            return;
+        }
 
         var code = DeleteIpForwardEntry(ref row);
         if (code != 0 && code != ErrorNotFound)
@@ -148,8 +160,8 @@ internal static class NetworkRouteMutation
 
     internal static NetworkRouteDenied LinuxWriteDenied(string verb)
     {
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, "Linux route write is not in v1");
-        return new NetworkRouteDenied("Linux route write is not in v1.");
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, "Linux route write requires CAP_NET_ADMIN");
+        return new NetworkRouteDenied("Linux route write requires CAP_NET_ADMIN.");
     }
 
     internal static NetworkRouteDenied Denied(string verb, uint code)
