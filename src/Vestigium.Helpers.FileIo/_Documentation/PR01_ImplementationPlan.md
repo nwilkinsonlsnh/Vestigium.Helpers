@@ -1,8 +1,8 @@
 # Vestigium.Helpers.FileIo — PR01 implementation plan
 
 **Document ID:** VEST-HLP-FILEIO-PLAN-PR01  
-**Version:** 1.0  
-**Status:** Open  
+**Version:** 1.1  
+**Status:** Open. PR01.001 and PR01.002 landed.  
 **Date:** 19 September 2026  
 **Priority:** P0  
 **Depends on:** nothing  
@@ -32,8 +32,8 @@ A FileIo nupkg that project-references `Vestigium.Helpers.Analytics.csproj` cann
 
 | Step | Priority | Work | Status |
 |---|---|---|---|
-| **PR01.001** | P0 | In `src/Vestigium.Helpers.FileIo/Vestigium.Helpers.FileIo.csproj`, remove `<ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />`. | Open |
-| **PR01.002** | P0 | Add `<PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />` to the same csproj. | Open |
+| **PR01.001** | P0 | In `src/Vestigium.Helpers.FileIo/Vestigium.Helpers.FileIo.csproj`, remove `<ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />`. | **Done** 19 Sep 2026 |
+| **PR01.002** | P0 | Add `<PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />` to the same csproj. | **Done** 19 Sep 2026 |
 | **PR01.003** | P0 | Keep the Hashing **project** reference. Hashing is not in scope. | Open |
 | **PR01.004** | P0 | Confirm restore comes from the feed, not `src/Vestigium.Helpers.Analytics`. If restore fails, stop and fix nuget.config / package source / push. Do not point FileIo back at the csproj. | Open |
 | **PR01.005** | P2 | Optional, same PR if it stays one line: explicit `<PackageReference Include="Vestigium.Logging" Version="$(VestigiumLoggingVersion)" />` in FileIo so the csproj is readable without knowing about `Directory.Build.props`. Version **must** be `$(VestigiumLoggingVersion)` so it cannot drift from 1.7.1. | Open |
@@ -75,3 +75,10 @@ Commit: `FileIo PR01: consume Analytics 1.0.1 NuGet`.
 ## Out of PR01
 
 EVENTIDs, HelperCompat, session tests, dest index, Demo, Hashing NuGet, FileIo version bump.
+
+## Document control
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0 | 19 Sep 2026 | Plan opened. |
+| 1.1 | 19 Sep 2026 | PR01.001 and PR01.002 landed. Hashing project reference kept. |

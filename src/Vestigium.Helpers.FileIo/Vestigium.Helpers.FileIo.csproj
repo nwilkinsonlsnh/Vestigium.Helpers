@@ -17,7 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers.Hashing\Vestigium.Helpers.Hashing.csproj" />
-    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
+    <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="EventCatalog\fileio.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
