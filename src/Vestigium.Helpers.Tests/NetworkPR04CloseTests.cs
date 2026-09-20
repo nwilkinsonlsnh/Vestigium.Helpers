@@ -41,8 +41,8 @@ public sealed class NetworkPR04CloseTests
     public void PR04_006_persistent_key_is_single_slash()
     {
         var key = NetworkRouteMutation.PersistentRoutesKey;
-        Assert.Equal(@"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes", key);
-        Assert.DoesNotContain(@"\\", key);
+        Assert.Equal("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\PersistentRoutes", key);
+        Assert.DoesNotContain("\\\\", key);
     }
 
     [Fact]
