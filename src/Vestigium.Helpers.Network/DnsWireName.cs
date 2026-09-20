@@ -19,21 +19,16 @@ internal static class DnsWireName
                 throw new ArgumentException("DNS label exceeds 63 octets.", nameof(name));
             }
 
-            foreach (var ch in label)
+            if (label.Any(ch => ch == 0 || ch > 127))
             {
-                if (ch == 0 || ch > 127)
-                {
-                    HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Dns, nameof(Guard), "non-ascii");
-                    throw new ArgumentException("DNS wire names must be ASCII or already-punycode. IDNA is the host's job.", nameof(name));
-                }
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Dns, nameof(Guard), "non-ascii");
+                throw new ArgumentException("DNS wire names must be ASCII or already-punycode. IDNA is the host's job.", nameof(name));
             }
 
             encoded += 1 + label.Length;
-            if (encoded + 1 > MaxEncodedOctets)
-            {
-                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Dns, nameof(Guard), $"encoded={encoded + 1}");
-                throw new ArgumentException("DNS name exceeds 255 octets on the wire.", nameof(name));
-            }
+            if (encoded + 1 <= MaxEncodedOctets) continue;
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Dns, nameof(Guard), $"encoded={encoded + 1}");
+            throw new ArgumentException("DNS name exceeds 255 octets on the wire.", nameof(name));
         }
     }
 }

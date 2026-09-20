@@ -82,24 +82,20 @@ internal static class IcmpEchoEngine
                 throw new ArgumentException("AllowBurst is limited to continuous jobs of one minute or less.", nameof(o.AllowBurst));
             }
 
-            if (o.Interval < IcmpEchoOptions.MinLongContinuousInterval)
-            {
-                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "long interval below 1s");
-                throw new ArgumentOutOfRangeException(
-                    nameof(o.Interval),
-                    "Continuous jobs longer than one minute require an Interval of at least 1 second.");
-            }
+            if (o.Interval >= IcmpEchoOptions.MinLongContinuousInterval) return;
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "long interval below 1s");
+            throw new ArgumentOutOfRangeException(
+                nameof(o.Interval),
+                "Continuous jobs longer than one minute require an Interval of at least 1 second.");
 
             return;
         }
 
-        if (!o.AllowBurst && o.Interval < IcmpEchoOptions.MinContinuousInterval)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "interval below 200ms");
-            throw new ArgumentOutOfRangeException(
-                nameof(o.Interval),
-                "Continuous jobs require an Interval of at least 200 ms unless AllowBurst is set.");
-        }
+        if (o.AllowBurst || o.Interval >= IcmpEchoOptions.MinContinuousInterval) return;
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), "interval below 200ms");
+        throw new ArgumentOutOfRangeException(
+            nameof(o.Interval),
+            "Continuous jobs require an Interval of at least 200 ms unless AllowBurst is set.");
     }
 
     static async Task<IcmpEchoResult> RunAsync(
@@ -161,11 +157,9 @@ internal static class IcmpEchoEngine
 
                 if (options.Count > 0 && sequence >= options.Count)
                     break;
-                if (options.Interval > TimeSpan.Zero)
-                {
-                    try { await Task.Delay(options.Interval, token).ConfigureAwait(false); }
-                    catch (OperationCanceledException) { break; }
-                }
+                if (options.Interval <= TimeSpan.Zero) continue;
+                try { await Task.Delay(options.Interval, token).ConfigureAwait(false); }
+                catch (OperationCanceledException) { break; }
             }
         }
         catch (OperationCanceledException)
@@ -196,9 +190,7 @@ internal static class IcmpEchoEngine
             return NetworkJobStatus.Cancelled;
         if (received > 0)
             return NetworkJobStatus.Success;
-        if (protocolForbidden)
-            return NetworkJobStatus.Failed;
-        return NetworkJobStatus.TimedOut;
+        return protocolForbidden ? NetworkJobStatus.Failed : NetworkJobStatus.TimedOut;
     }
 
     internal static (long? Min, long? Max, double? Average) SummarizeTimes(IReadOnlyList<long> successTimes)
@@ -208,12 +200,18 @@ internal static class IcmpEchoEngine
 
     internal static void LogFinished(NetworkJobStatus status, string line)
     {
-        if (status == NetworkJobStatus.Success)
-            NetworkLog.Success(HelperLog.Subcategories.Icmp, line);
-        else if (status == NetworkJobStatus.Cancelled)
-            NetworkLog.Warning(HelperLog.Subcategories.Icmp, line);
-        else
-            NetworkLog.Failed(HelperLog.Subcategories.Icmp, line);
+        switch (status)
+        {
+            case NetworkJobStatus.Success:
+                NetworkLog.Success(HelperLog.Subcategories.Icmp, line);
+                break;
+            case NetworkJobStatus.Cancelled:
+                NetworkLog.Warning(HelperLog.Subcategories.Icmp, line);
+                break;
+            default:
+                NetworkLog.Failed(HelperLog.Subcategories.Icmp, line);
+                break;
+        }
     }
 
     static async Task<IcmpEchoReply> SendOnceAsync(
