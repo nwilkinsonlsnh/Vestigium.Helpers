@@ -1,5 +1,6 @@
 using Vestigium.Helpers;
 using Vestigium.Helpers.Analytics;
+using Vestigium.Helpers.FileIo;
 
 namespace Vestigium.Helpers.Network;
 
@@ -100,6 +101,15 @@ public static class NetworkHelper
 
     public static IcmpEchoCampaign OpenEchoCampaign(string recipePath)
         => IcmpEchoCampaign.Open(recipePath);
+
+    public static ShareProbePlan PlanShareProbe(FileIoDirectoryAnalysis source, ShareProbeOptions? options = null)
+        => ShareProbePlanner.Plan(source, options);
+
+    public static ShareCampaign CreateShareCampaign(ShareCampaignOptions options)
+        => ShareCampaign.Create(options);
+
+    public static ShareCampaign OpenShareCampaign(string recipePath)
+        => ShareCampaign.Open(recipePath);
 
     public static NetworkSnapshot GetSnapshot()
     {
