@@ -1,0 +1,54 @@
+<Window x:Class="Vestigium.Helpers.Network.Demo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vestigium.Helpers.Network" Height="640" Width="920">
+  <DockPanel Margin="12">
+    <TextBlock DockPanel.Dock="Top" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"
+               Text="Network gallery — library stays net10.0; this host is Windows-only." />
+    <TabControl>
+      <TabItem Header="Probe">
+        <StackPanel Margin="12">
+          <Button Content="Probe()" Width="120" HorizontalAlignment="Left" Click="Probe_Click" />
+          <TextBox x:Name="ProbeOut" Margin="0,8,0,0" Height="200" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap" />
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="Subnet">
+        <StackPanel Margin="12">
+          <TextBlock Text="CIDR" />
+          <TextBox x:Name="CidrBox" Text="192.168.10.0/24" />
+          <Button Content="Describe / plan / VLSM" Width="180" HorizontalAlignment="Left" Margin="0,8,0,0" Click="Subnet_Click" />
+          <TextBox x:Name="SubnetOut" Margin="0,8,0,0" Height="280" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" />
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="MAC">
+        <StackPanel Margin="12">
+          <TextBlock Text="MAC / OUI" />
+          <TextBox x:Name="MacBox" Text="00:1A:2B:3C:4D:5E" />
+          <CheckBox x:Name="LiveOui" Content="Live OUI lookup (off by default)" Margin="0,8,0,0" />
+          <Button Content="Parse / EUI-64 / link-local" Width="220" HorizontalAlignment="Left" Margin="0,8,0,0" Click="Mac_Click" />
+          <TextBox x:Name="MacOut" Margin="0,8,0,0" Height="260" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" />
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="Bandwidth">
+        <StackPanel Margin="12">
+          <TextBlock Text="Size GiB / rate Mb/s" />
+          <StackPanel Orientation="Horizontal">
+            <TextBox x:Name="SizeBox" Width="80" Text="10" />
+            <TextBlock Text=" GiB at " VerticalAlignment="Center" />
+            <TextBox x:Name="RateBox" Width="80" Text="100" />
+            <TextBlock Text=" Mb/s" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button Content="Transfer time / website estimate" Width="240" HorizontalAlignment="Left" Margin="0,8,0,0" Click="Bandwidth_Click" />
+          <TextBox x:Name="BwOut" Margin="0,8,0,0" Height="260" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" />
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="Share">
+        <StackPanel Margin="12">
+          <TextBlock Text="Default probe against %TEMP%\VestigiumShareProbe (256 KiB × 1, not 64 MiB)." TextWrapping="Wrap" />
+          <Button Content="Run Default campaign" Width="200" HorizontalAlignment="Left" Margin="0,8,0,0" Click="Share_Click" />
+          <TextBox x:Name="ShareOut" Margin="0,8,0,0" Height="280" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>
