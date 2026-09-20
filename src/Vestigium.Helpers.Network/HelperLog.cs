@@ -28,6 +28,7 @@ internal static class HelperLog
         public const string Icmp = "Icmp";
         public const string Dns = "Dns";
         public const string Campaign = "Campaign";
+        public const string Share = "Share";
         public const string Address = "Address";
         public const string Bandwidth = "Bandwidth";
         public const string Subnet = "Subnet";
