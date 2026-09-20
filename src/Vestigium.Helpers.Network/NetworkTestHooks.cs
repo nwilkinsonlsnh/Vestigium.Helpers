@@ -11,6 +11,7 @@ internal static class NetworkTestHooks
     internal static DateTimeOffset? UtcNow { get; set; }
     internal static string? ProcRoot { get; set; }
     internal static IReadOnlyList<double>? ProbeBytesPerSecond { get; set; }
+    internal static IReadOnlyDictionary<string, IReadOnlyList<double>>? ProbeRatesByWorkload { get; set; }
 
     internal static DateTimeOffset Now()
         => UtcNow ?? DateTimeOffset.UtcNow;
@@ -30,5 +31,6 @@ internal static class NetworkTestHooks
         UtcNow = null;
         ProcRoot = null;
         ProbeBytesPerSecond = null;
+        ProbeRatesByWorkload = null;
     }
 }

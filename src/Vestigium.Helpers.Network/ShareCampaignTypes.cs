@@ -63,4 +63,6 @@ public sealed record ShareCampaignResult(
     string Disclaimer,
     TimeSpan MeasuredDuration,
     BandwidthAmount? MeasuredRate,
-    TimeSpan? DeclaredPipeDuration);
+    TimeSpan? DeclaredPipeDuration,
+    TimeSpan PayloadDuration,
+    TimeSpan MetadataDuration);
