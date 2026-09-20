@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DSN-000  
 **Version:** 1.6  
-**Status:** Locked companion to SRS v1.6  
+**Status:** Locked companion to SRS v1.6 + PR02.001  
 **Date:** 19 September 2026  
 **Binding:** `Requirements_v1.6.md` wins on conflict
 
@@ -21,7 +21,7 @@ host
        ├ IcmpEcho / Ping / IcmpTrace
        ├ LookupAsync (OS or wire)
        ├ tables: connections, stats, routes, neighbors
-       ├ Add/Change/RemoveRoute          Windows write; Linux typed deny
+       ├ Add/Change/RemoveRoute          Windows IPv4 write; Linux typed deny
        ├ CreateEchoCampaign / OpenEchoCampaign
        ├ prefix math                     SubnetEngine
        ├ MAC / OUI                       MacEngine + OuiLookupGuard
@@ -48,7 +48,7 @@ HTTP reachability is HttpIQ, not this DLL. A later scheduler package starts jobs
 | OUI allowlist + no redirect | `HttpClient.GetAsync` on a host string is SSRF. Default vendor host stays; custom hosts opt in. |
 | DNS accept only the queried peer | UDP is connectionless. A local attacker can answer first. TXID alone is not enough. |
 | No guessed IfIndex `1` | Interface 1 is often Loopback or absent. A write would hit the wrong NIC or fail opaquely. |
-| Linux route write is typed deny | v1 does not parse `ip route`. Print is enough. Write lock is restated in PR02. |
+| Linux route write is typed deny | v1 does not parse `ip route` or speak netlink. Print is enough. Hosts catch one type after PR02.002. |
 | IPv6 mutate parked | IPv4 IP Helper row is what shipped. IPv6 write is PR04. |
 | Prefix / MAC / bandwidth are pure | No wire, no files except optional OUI registry and stats JSONL. |
 | Logging is sparse | APPID Network. No packet bytes. Campaign per-echo rows go to stats JSONL. |
@@ -70,10 +70,10 @@ A **scheduler** (future package or host) wakes the process and calls `CreateEcho
 | Class | When |
 |---|---|
 | `ArgumentNullException` | Required reference is null. |
-| `ArgumentException` | Bad MAC, bad IPv4 dest/gw, OUI URL policy, campaign path escape, burst past one minute, DNS label > 63 (existing). |
+| `ArgumentException` | Bad MAC, bad IPv4 dest/gw, IPv6 dest on mutate, OUI URL policy, campaign path escape, burst past one minute, DNS label > 63 (existing). |
 | `ArgumentOutOfRangeException` | Count < 0, timeout/buffer/TTL bounds, interval floors, MaxDuration ≤ 0 or > 24 h, prefix length, InterfaceIndex < 1. |
-| `PlatformNotSupportedException` | Linux route write. NetBIOS paths that are Windows-only at the engine. |
-| `NetworkRouteDenied` | Windows IP Helper access denied / invalid parameter; persistent-route ACL (typed deny on delete is PR01.010). |
+| `PlatformNotSupportedException` | Linux route write **until PR02.002**. NetBIOS paths that are Windows-only at the engine. |
+| `NetworkRouteDenied` | Windows IP Helper access denied / invalid parameter; persistent-route ACL; Linux route write after PR02.002. |
 | `FileNotFoundException` | OUI registry / recipe file missing after confine. |
 
 OUI HTTP failures (timeout, 404, 3xx, HTML body) are **not** throws. Result `Source = None`.
@@ -90,7 +90,7 @@ OUI HTTP failures (timeout, 404, 3xx, HTML body) are **not** throws. Result `Sou
 | `IcmpTraceEngine.cs` | TTL walk |
 | `DnsClient.cs` | OS lookup + RFC 1035 + peer bind |
 | `NetworkStackEngine.cs` / Linux / Windows tables | Connections, routes print, neighbors |
-| `NetworkRouteMutation.cs` | Windows write; fail-closed interface |
+| `NetworkRouteMutation.cs` | Windows IPv4 write; Linux typed deny |
 | `IcmpEchoCampaign.cs` / `CampaignPaths.cs` / `CampaignJsonl.cs` | Recipe + confined JSONL |
 | `SubnetEngine.cs` | Prefix math |
 | `MacEngine.cs` / `OuiLookupGuard.cs` / `OuiRegistry.cs` | EUI + live/file OUI |
@@ -98,30 +98,23 @@ OUI HTTP failures (timeout, 404, 3xx, HTML body) are **not** throws. Result `Sou
 | `NetworkTestHooks.cs` | Internal test injection |
 | `HelperLog.cs` / `NetworkLog.cs` / `NetworkCatalog.cs` | Logging |
 
-Tests live under `src/Vestigium.Helpers.Tests/`. PR01 fixtures: `NetworkPR01Tests.cs`, `NetworkPR01RouteTests.cs`, `NetworkPR01CampaignPathTests.cs`.
+Tests live under `src/Vestigium.Helpers.Tests/`.
 
 ---
 
-## 6. What closed to reach 1.6
+## 6. What closed
 
 | Pass | Outcome |
 |---|---|
-| Phases 0–11 | Inventory, ICMP, DNS, tables, campaigns, snapshot, subnet, MAC/bandwidth, P95 in the tree |
-| PR01.001 | OUI HTTPS allowlist, no redirect, 4 KiB, blocked ranges |
-| PR01.002 | Hooks internal |
-| PR01.003 | Duration bands + interval floors + `AllowBurst` |
-| PR01.004 | DNS UDP/TCP peer bind |
-| PR01.005 | Route interface fail-closed; `FirstIpv4Index` no longer guesses `1` |
-| PR01.006 | Campaign path confine + `AppendCampaign` |
-| PR01.007 | These three live docs |
-
-Still open on the PR01 plan: OUI file size/row cap, Reject-line path redact, persistent-delete access-denied typing.
+| Phases 0–11 | Inventory through P95 in the tree |
+| PR01.001–011 | Security harden + live docs |
+| PR02.001 | SRS / Guide / Design lock Windows-write / Linux-print / no IPv6 mutate |
 
 ---
 
 ## 7. Still out
 
-Linux `ip route` writer. IPv6 route mutate (PR04). Share-transfer campaigns (PR03). Scheduler package. HTTP client. Following OUI redirects. Public test hooks. Demo tabs as a library requirement.
+Linux `ip route` / netlink writer (PR04). IPv6 route mutate (PR04). Share-transfer campaigns (PR03). Scheduler package. HTTP client. Following OUI redirects. Public test hooks. Demo tabs as a library requirement.
 
 ---
 
@@ -130,3 +123,4 @@ Linux `ip route` writer. IPv6 route mutate (PR04). Share-transfer campaigns (PR0
 | Version | Date | Change |
 |---|---|---|
 | 1.6 | 19 Sep 2026 | First standalone Design. Lifted from archived Guide v1.2 + shipped phases + PR01.001–006. |
+| 1.6 + PR02.001 | 19 Sep 2026 | Route contract restated. Linux write is deny, not a missing feature to paper over. |

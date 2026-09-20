@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-SRS-000  
 **Version:** 1.6  
-**Status:** Draft. Platform locks from v1.2 stand. v1.3 subnet, v1.4 MAC/bandwidth are shipped. v1.6 records PR01.001–006 security locks. Status stays Draft until PR02 contract lock.  
+**Status:** Draft → PR02 contract lock in progress. Decision 11 / 11b landed in PR02.001. Linux mutate exception type lands in PR02.002.  
 **Date:** 19 September 2026  
 **Package:** `Vestigium.Helpers.Network`  
 **TFM:** `net10.0` (.NET 10 LTS) — **Windows and Linux are first-class**. Not `net10.0-windows`.  
@@ -33,14 +33,15 @@ A future `Vestigium.Scheduler` (name not locked) may start jobs. This library do
 | 6 | Campaign scheduler | Clock windows + date range + append-only JSONL. In-process. Host stays alive. |
 | 7 | Who keeps time | In-process runner. No schtasks, no cron install. |
 | 8–10 | Json stats | Recipe `.json`, stats `.jsonl` via Vestigium.Helpers.Json. Append one compact line. |
-| 11 | route | Print required both OS. Add/change/delete explicit Windows IP Helper. Linux typed `PlatformNotSupportedException`. |
+| 11 | route | **Print both OS.** Mutate is **Windows only** in v1 (IP Helper + persistent HKLM). Linux mutate → `NetworkRouteDenied` (“Linux route write is not in v1”). Never spawn `route` / `ip`. |
+| 11b | IPv6 routes | **Print required** both OS. IPv6 mutate is not v1 (PR04). |
 | 12 | Snapshot | Read-only interface snapshot. Same object both OS. |
 | 13 | Windows-only | NetBIOS (nbtstat-class). Not emulated with Samba/`nmblookup`. |
 | 14 | Logging | HelperLog audit. APPID Network. |
 | 15 | Two JSONL channels | Audit under Vestigium.Logging data dir. Stats under Network campaign dir. |
 | 16 | IPv4 and IPv6 | First-class both OS. Includes prefix calculator. IPv6 **route mutate** is out until PR04. |
 | 17 | Probe | On-box only. |
-| 18 | Linux ICMP | Prefer unprivileged ICMP DGRAM when the kernel allows it. Confirmation of that path is PR02. |
+| 18 | Linux ICMP | Prefer unprivileged ICMP DGRAM when the kernel allows it. Confirmation of that path is PR02.005. |
 | 19 | Linux payload | Custom Echo buffer rejected → empty retry + `PayloadRestricted`. |
 | 20 | Subnet calculator | IPv4 **and** IPv6. Shipped. |
 | 21 | Classful | A/B/C/D/E is a label from the first IPv4 octet. It never selects the mask. |
@@ -55,6 +56,8 @@ A future `Vestigium.Scheduler` (name not locked) may start jobs. This library do
 | 30 | Campaign paths | Recipe and results must resolve under the campaign root after `Path.GetFullPath`. `..` escape → Reject + `ArgumentException`. Campaign JSONL does not `CreateDirectory` above that root. One-shot echo `StatsPath` is not this lock. |
 | 31 | HTTP | Never this library. HttpIQ. |
 | 32 | Share campaigns | Locked in the v1.5 addendum. Not in this DLL until PR03. |
+
+Until PR02.002 ships, Linux mutate still throws `PlatformNotSupportedException`. Hosts should catch `NetworkRouteDenied` after 002; 002 will wrap the Linux deny so there is one type.
 
 ---
 
@@ -71,8 +74,9 @@ A future `Vestigium.Scheduler` (name not locked) may start jobs. This library do
 | DNS explicit server | Yes | Yes | UDP/TCP 53. Peer-bound. |
 | Connections / statistics | Yes | Yes | Linux PID best-effort |
 | Neighbors | Yes | Yes | |
-| Routes print | Yes | Yes | |
-| Routes mutate | Yes | Typed deny | Interface required on Windows write |
+| Routes print (IPv4 + IPv6) | Yes | Yes | |
+| Routes mutate IPv4 | Yes | **No** — `NetworkRouteDenied` | Not `ip`. Not netlink in v1. |
+| Routes mutate IPv6 | **No** | **No** | PR04 |
 | Interface snapshot | Yes | Yes | |
 | Campaign recipe + JSONL | Yes | Yes | Paths confined to campaign root |
 | Prefix describe / plan / VLSM / classify | Yes | Yes | Pure math |
@@ -89,7 +93,7 @@ A future `Vestigium.Scheduler` (name not locked) may start jobs. This library do
 | Audit logs | Vestigium.Logging host path | Vestigium.Logging host path |
 | Tests | `NetworkTestHooks.CampaignRoot` temp | same |
 
-Prefix math writes no files. Live OUI writes no files. File OUI is host-supplied path (size/row cap is PR01.008, not yet code).
+Prefix math writes no files. Live OUI writes no files. File OUI is host-supplied path (8 MiB / 200_000 row cap).
 
 ---
 
@@ -119,7 +123,7 @@ G1. Same façade on Windows and Linux.
 G2. ICMP Echo, not ping(8) / ping.exe.  
 G3. Default 4 echoes; override; continuous under §2.4.  
 G4. Campaign windows + JSONL on both OS, confined to campaign root.  
-G5. Route print both OS; mutations explicit and fail-closed.  
+G5. Route **print** both OS; **mutate Windows only** in v1.  
 G6. DNS to a specified server; accept only that peer.  
 G7. Json for recipe/stats.  
 G8. Sparse HelperLog.  
@@ -138,7 +142,7 @@ Same fields as v1.2. Linux: NetBIOS-over-TCP is `Unknown`.
 
 ## 5. Protocol jobs
 
-Unchanged from v1.2 except §2.4, §28, §29.
+Unchanged from v1.2 except §2.4, §28, §29, and decisions 11 / 11b.
 
 ### 5.1 Prefix calculator
 
@@ -174,7 +178,7 @@ v1.2 surface plus §5.1 and §5.2. Count default 4. Grace 15 min. `MaxList` defa
 
 ## 9. Logging
 
-APPID Network. Sparse. Campaign echoes live in stats JSONL only. Subnet / MAC / bandwidth lines are query + summary. No packet bytes. Absolute-path redaction in Reject lines is PR01.009 (not yet code).
+APPID Network. Sparse. Campaign echoes live in stats JSONL only. Subnet / MAC / bandwidth lines are query + summary. No packet bytes. Absolute-path prefixes are stripped from Network log / Reject lines (PR01.009).
 
 ---
 
@@ -186,7 +190,7 @@ WPF gallery remains Windows. Subnet / MAC / Bandwidth / Share tabs are PR03. Thi
 
 ## 11. Tests
 
-Portable suite plus PR01 fixtures `PR01_001` … `PR01_006`.
+Portable suite plus PR01 fixtures `PR01_001` … `PR01_011` and PR02 fixtures as they land.
 
 No public Internet. No live ProgramData / `/var/lib/vestigium` in tests. OUI tests inject `OuiLookupOptions.Handler`.
 
@@ -196,7 +200,7 @@ Linux CI for `FullyQualifiedName~Network` remains waived until PR04 splits the t
 
 ## 12. Non-goals
 
-Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP client. NetBIOS on Linux. Full NetworkManager / netplan writers. Packet capture. Classful mask inference when prefix and mask are both omitted. Classless in-addr.arpa fabrication. DHCP scope design. Guessing IfIndex. Following OUI HTTP redirects. Accepting DNS answers from a foreign UDP source.
+Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP client. NetBIOS on Linux. Full NetworkManager / netplan writers. Packet capture. Classful mask inference when prefix and mask are both omitted. Classless in-addr.arpa fabrication. DHCP scope design. Guessing IfIndex. Following OUI HTTP redirects. Accepting DNS answers from a foreign UDP source. Linux `ip route` / netlink write in v1. IPv6 route write in v1.
 
 ---
 
@@ -206,12 +210,12 @@ Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP client. Net
 |---|---|
 | v1.2 | Windows + Linux first-class |
 | v1.3 | Subnet calculator IPv4 + IPv6 + classful labels — **shipped** |
-| v1.4 | MAC / EUI / OUI / bandwidth / P95 — **shipped** (OUI hardened in 1.6) |
+| v1.4 | MAC / EUI / OUI / bandwidth / P95 — **shipped** |
 | v1.5 | Share-transfer campaigns — **locked, PR03** |
-| v1.6 | PR01.001–006 security locks — **this file** |
-| PR01 remainder | OUI file cap, log redact, persistent-delete typed deny |
-| PR02 | Linux route print-only lock, DNS name length, JSONL file lock, P95 empty |
-| PR04 | Linux test TFM; optional IPv6 route write |
+| v1.6 | PR01 security locks — **shipped** |
+| PR02.001 | Route contract: Windows write / Linux print — **this amendment** |
+| PR02 remainder | Deny type, DNS length, JSONL lock, ICMP note, P95 empty |
+| PR04 | Linux test TFM; optional IPv6 / Linux route write |
 | later | Scheduler package; macOS as a test gate; pathping-class |
 
 HTTP reachability stays out of this package.
@@ -225,7 +229,7 @@ HTTP reachability stays out of this package.
 | ping.exe | ping(8) | ICMP Echo | IcmpEcho |
 | tracert | traceroute | ICMP / UDP TTL | IcmpTrace |
 | route print | ip route | forwarding table | GetRoutes |
-| route add/delete | ip route add/del | forwarding table | AddRoute / DeleteRoute |
+| route add/delete | ip route add/del | forwarding table | AddRoute / DeleteRoute — **Windows write only.** Linux → `NetworkRouteDenied`. Cousin never spawned. |
 | netstat / ss | ss | TCP/UDP tables | GetConnections |
 | arp -a | ip neigh | ARP / ND | GetNeighbors |
 | nbtstat | — | NetBIOS | Windows only |
@@ -239,7 +243,7 @@ Cousins are documentation. Never spawned.
 
 ## 15. Acceptance
 
-Draft until PR02. Network stays `net10.0`, one DLL for Windows and Linux. PR01.001–006 are accepted into this contract. PR01.008–010 remain open work under the PR01 plan.
+PR01 is accepted. PR02.001 accepts decisions 11 and 11b. Status stays Draft until PR02 close. Network stays `net10.0`, one DLL for Windows and Linux.
 
 ## Document control
 
@@ -250,3 +254,4 @@ Draft until PR02. Network stays `net10.0`, one DLL for Windows and Linux. PR01.0
 | 1.4 | Sep 2026 | MAC / bandwidth addendum (separate file). |
 | 1.5 | Sep 2026 | Share campaign addendum (separate file, not shipped). |
 | 1.6 | 19 Sep 2026 | PR01.001–006 locks. Live docs restored next to the PR plans. |
+| 1.6 + PR02.001 | 19 Sep 2026 | Decision 11 / 11b: Windows mutate, Linux print-only, IPv6 write out of v1. |
