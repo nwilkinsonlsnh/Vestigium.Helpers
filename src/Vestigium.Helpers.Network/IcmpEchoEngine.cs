@@ -6,6 +6,12 @@ using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Network;
 
+// Linux ICMP path (PR02.005): System.Net.NetworkInformation.Ping.
+// On current .NET 10 this is unprivileged ICMP DGRAM when the kernel allows it.
+// Never spawn ping(8). Never open a raw socket here.
+// Custom payload rejected → empty-buffer retry + PayloadRestricted.
+// Access denied / not permitted → ProtocolForbidden.
+// A dedicated DGRAM socket is PR04 only if BCL Ping is proven raw-only.
 internal static class IcmpEchoEngine
 {
     public static NetworkJob<IcmpEchoResult> Create(string target, IcmpEchoOptions? options)
