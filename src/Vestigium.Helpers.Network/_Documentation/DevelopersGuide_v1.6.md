@@ -13,9 +13,17 @@ A .NET 10 LTS resource library. PingIQ, DnsIQ, TraceIQ, and ProbeHost subscribe 
 
 One `net10.0` DLL. Do not spawn `ping` / `ip` / `ss` / `traceroute` / `netstat` / `arp` / `nbtstat` / `netsh` / `nslookup` / `route`.
 
-Linux ICMP: DGRAM first when the kernel allows it; payload reject → empty retry + `PayloadRestricted`. Route **print** works on both OS. Route **mutate** is Windows-only in v1 (administrator). Linux mutate is a typed deny — catch `NetworkRouteDenied` after PR02.002; today the DLL still throws `PlatformNotSupportedException` with the same meaning. IPv6 destinations are rejected on mutate. NetBIOS is Windows-only.
+Route **print** works on both OS. Route **mutate** is Windows-only in v1 (administrator). Linux mutate throws `NetworkRouteDenied`. IPv6 destinations are rejected on mutate. NetBIOS is Windows-only.
 
 `NetworkTestHooks` is internal. Hosts cannot set it. Tests already have `InternalsVisibleTo`.
+
+## Linux ICMP (PR02.005)
+
+`IcmpEcho` / `Ping` use `System.Net.NetworkInformation.Ping`. On current .NET 10 and the distros we care about that is unprivileged **ICMP DGRAM** when the kernel allows it. The library does not open a raw socket itself and does not spawn `ping(8)`.
+
+If the kernel rejects a custom Echo payload, the engine retries once with an empty buffer and sets `PayloadRestricted` on the result. If ICMP is not permitted at all (`Operation not permitted`, access denied, or `PlatformNotSupportedException`), the reply is `ProtocolForbidden` and the job status is `Failed` when nothing else succeeded.
+
+A dedicated DGRAM socket stack is **not** in PR02. Open that in PR04 only if a supported distro proves BCL Ping is raw-only.
 
 ## Public surface
 
@@ -23,13 +31,13 @@ Linux ICMP: DGRAM first when the kernel allows it; payload reject → empty retr
 |---|---|
 | `Probe` / `Identity` | On-box. Returns `Vestigium.Helpers.Network`. |
 | `GetWorkstation` / `GetAdapters` / `GetAdapter` | IPv4 prefix and mask agree. Linux NetBIOS-over-TCP = Unknown. |
-| `IcmpEcho` / `Ping` | Count default 4. `0` = continuous under the duration/interval lock below. `StatsPath` appends JSONL (not campaign-confined). |
+| `IcmpEcho` / `Ping` | Count default 4. `0` = continuous under the duration/interval lock below. `StatsPath` appends JSONL (not campaign-confined). Linux: BCL Ping / DGRAM. |
 | `IcmpTrace` / `Trace` | TTL walk. ICMP then UDP fallback. |
 | `LookupAsync` / `LookupManyAsync` | Null server = OS. Set server = RFC 1035 UDP/TCP 53. Wire path accepts only that IP+port. |
 | `GetConnections` / `GetStatistics` / `GetRoutes` / `GetNeighbors` | Lists. Empty is legal. Linux PID is best-effort. `GetRoutes` prints IPv4 and IPv6. |
 | `CreateEchoCampaign` / `OpenEchoCampaign` | In-process clock. 15 min grace. Recipe/results must sit under the campaign root. |
 | `GetSnapshot` | Adapters + routes + connections + neighbors + stats. |
-| `AddRoute` / `ChangeRoute` / `RemoveRoute` / `DeleteRoute` | **Windows IPv4 write** (IP Helper + optional HKLM persistent). Linux → typed deny, never `ip route`. IPv6 dest → `ArgumentException`. Pass `InterfaceIndex` or an up IPv4 NIC must exist. Access denied → `NetworkRouteDenied`. |
+| `AddRoute` / `ChangeRoute` / `RemoveRoute` / `DeleteRoute` | **Windows IPv4 write** (IP Helper + optional HKLM persistent). Linux → `NetworkRouteDenied`, never `ip route`. IPv6 dest → `ArgumentException`. Pass `InterfaceIndex` or an up IPv4 NIC must exist. Access denied → `NetworkRouteDenied`. |
 | `GetNetBios` | Windows only. |
 | `ClassifyAddress` / `DescribePrefix` / `PlanByHosts` / `PlanByNetworks` / `SplitPrefix` / `SplitPrefixByCount` / `PackVlsm` / `Contains` / `Overlaps` / `Summarize` / `NextBlock` | Prefix math. See subnet addendum. |
 | `ParseMac` / `MacFromInteger` / `FormatMac` / `ToModifiedEui64` / `ToEui48` / `ToLinkLocal` | Offline. No HTTP. |
@@ -77,7 +85,7 @@ NetworkHelper.AddRoute(new NetworkRouteChange
 });
 ```
 
-On Linux that `AddRoute` is a typed deny. Do not catch only `PlatformNotSupportedException` after PR02.002 — catch `NetworkRouteDenied`.
+On Linux that `AddRoute` throws `NetworkRouteDenied`.
 
 ## OUI
 
@@ -99,7 +107,7 @@ Dated **10 September 2026**. `Vestigium.Helpers.Tests` is `net10.0-windows` (Cha
 
 ## What is not next in this DLL
 
-Share-transfer campaigns (PR03). Linux netlink write / IPv6 route write (PR04). A scheduler service. HTTP client.
+Share-transfer campaigns (PR03). Linux netlink write / IPv6 route write / a dedicated ICMP DGRAM socket if BCL is proven raw-only (PR04). A scheduler service. HTTP client.
 
 ## Document control
 
@@ -108,3 +116,4 @@ Share-transfer campaigns (PR03). Linux netlink write / IPv6 route write (PR04). 
 | 1.2 | 10 Sep 2026 | Phase 8 harden wording. Inventory through campaigns. |
 | 1.6 | 19 Sep 2026 | Shipped façade including subnet / MAC / bandwidth. PR01.001–006 call rules. Hooks no longer public. |
 | 1.6 + PR02.001 | 19 Sep 2026 | Route print both OS; mutate Windows IPv4 only. |
+| 1.6 + PR02.005 | 19 Sep 2026 | Linux ICMP is BCL Ping / DGRAM. No ping(8). No new socket in PR02. |
