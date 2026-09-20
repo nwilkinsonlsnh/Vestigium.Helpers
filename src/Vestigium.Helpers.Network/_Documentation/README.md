@@ -19,9 +19,9 @@ Share-transfer campaigns: [`ARCHIVE/PR01/ShareCampaign_v1.5.md`](ARCHIVE/PR01/Sh
 
 | Plan | Goal | Status |
 |---|---|---|
-| [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden + docs match shipped code | **Code complete on main.** Confirm `PR01_` + `Network` on Windows. |
-| [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock + remaining harden | Open. After PR01 Windows gate. |
-| [`PR03_ImplementationPlan.md`](PR03_ImplementationPlan.md) | File-share transfer campaigns | Open. After PR02. |
+| [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden + docs match shipped code | **Code complete on main.** |
+| [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock + remaining harden | **Code complete on main.** Confirm `PR02_` + `Network` on Windows. |
+| [`PR03_ImplementationPlan.md`](PR03_ImplementationPlan.md) | File-share transfer campaigns | Open. After PR02 Windows gate. |
 | [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md) | Linux test gate + optional IPv6 route write | Open. After PR03. HTTP stays out. |
 
 Phase 0–11 history: [`ARCHIVE/PR01/ImplementationPlan_v1.0.md`](ARCHIVE/PR01/ImplementationPlan_v1.0.md). Those phases are in the tree. Active work is PR01–PR04.
