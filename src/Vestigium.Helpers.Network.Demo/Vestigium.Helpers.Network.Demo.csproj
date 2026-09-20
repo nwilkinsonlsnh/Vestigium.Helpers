@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Vestigium.Helpers.Network.Demo</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Network.Demo</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vestigium.Helpers.Gallery\Vestigium.Helpers.Gallery.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
+  </ItemGroup>
+</Project>
