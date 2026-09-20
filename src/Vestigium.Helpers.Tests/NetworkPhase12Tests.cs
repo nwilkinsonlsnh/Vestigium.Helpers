@@ -30,7 +30,7 @@ public sealed class NetworkPhase12Tests
 
     [Fact]
     public void P95_empty_throws()
-        => Assert.Throws<ArgumentException>(() => NetworkHelper.BillP95(Array.Empty<decimal>()));
+        => Assert.Throws<InvalidOperationException>(() => NetworkHelper.BillP95(Array.Empty<decimal>()));
 
     [Fact]
     public void Oui_file_lookup_does_not_use_http()
