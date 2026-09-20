@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DSN-000  
 **Version:** 1.6  
-**Status:** Locked companion to SRS v1.6 + PR02.001  
+**Status:** Locked companion to SRS v1.6 + PR04.001  
 **Date:** 19 September 2026  
 **Binding:** `Requirements_v1.6.md` wins on conflict
 
@@ -23,12 +23,17 @@ host
        ├ tables: connections, stats, routes, neighbors
        ├ Add/Change/RemoveRoute          Windows IPv4 write; Linux typed deny
        ├ CreateEchoCampaign / OpenEchoCampaign
+       ├ PlanShareProbe / CreateShareCampaign / OpenShareCampaign
        ├ prefix math                     SubnetEngine
        ├ MAC / OUI                       MacEngine + OuiLookupGuard
-       └ bandwidth / P95                 BandwidthEngine + Analytics
+       ├ bandwidth / P95                 BandwidthEngine + Analytics
+       └ FileIo probes                   FileIoHelper.WriteProbe / AnalyzeDirectory
+
+host (optional)
+  → Vestigium.Helpers.Charts            plots Network numbers; not referenced here
 ```
 
-HTTP reachability is HttpIQ, not this DLL. A later scheduler package starts jobs; this DLL only runs a job when called.
+HTTP reachability is HttpIQ, not this DLL. A later scheduler package starts jobs; this DLL only runs a job when called. Plotting is the host.
 
 ---
 
@@ -37,46 +42,34 @@ HTTP reachability is HttpIQ, not this DLL. A later scheduler package starts jobs
 | Decision | Why |
 |---|---|
 | One façade, internal engines | Hosts cannot reach hooks, wire codecs, or IP Helper structs. |
-| No process spawn | Output of `ping`/`ip` is not an API. Privileges and parsing drift by distro. |
+| No process spawn | Output of `ping`/`ip` is not an API. |
 | `Ping` is an alias of `IcmpEcho` | PingIQ name. JSONL kind stays `icmpEcho`. |
-| Continuous is `Count = 0` plus a duration cap | Unlimited + `Interval = 0` is a flood. Finite count may still burst. |
-| Duration bands | Short jobs may be faster. Jobs longer than one minute must wait ≥ 1 s. Burst cannot buy a long flood. |
-| Campaign is a recipe, not a daemon | Process lifetime is the host’s. Grace covers “woke up late.” |
-| Campaign paths under one root | Recipe/results strings are host-supplied. `..` must not write `%WINDIR%` or `/etc`. |
-| `Append` vs `AppendCampaign` | One-shot echo `StatsPath` is a host file. Campaign JSONL must not create directories above the root. |
-| `NetworkTestHooks` internal | A published package must not let a plugin retarget ProgramData or `/proc`. |
-| OUI allowlist + no redirect | `HttpClient.GetAsync` on a host string is SSRF. Default vendor host stays; custom hosts opt in. |
-| DNS accept only the queried peer | UDP is connectionless. A local attacker can answer first. TXID alone is not enough. |
-| No guessed IfIndex `1` | Interface 1 is often Loopback or absent. A write would hit the wrong NIC or fail opaquely. |
-| Linux route write is typed deny | v1 does not parse `ip route` or speak netlink. Print is enough. Hosts catch one type after PR02.002. |
-| IPv6 mutate parked | IPv4 IP Helper row is what shipped. IPv6 write is PR04. |
-| Prefix / MAC / bandwidth are pure | No wire, no files except optional OUI registry and stats JSONL. |
-| Logging is sparse | APPID Network. No packet bytes. Campaign per-echo rows go to stats JSONL. |
+| Continuous is `Count = 0` plus a duration cap | Unlimited + `Interval = 0` is a flood. |
+| Duration bands | Jobs longer than one minute must wait ≥ 1 s. |
+| Campaign is a recipe, not a daemon | Process lifetime is the host’s. |
+| Campaign paths under one root | `..` must not write `%WINDIR%` or `/etc`. |
+| `NetworkTestHooks` internal | Plugins must not retarget ProgramData or `/proc`. |
+| OUI allowlist + no redirect | SSRF. |
+| DNS accept only the queried peer | UDP is connectionless. |
+| No guessed IfIndex `1` | Wrong NIC. |
+| Linux route write is typed deny | v1 does not speak netlink. Option A in PR04. |
+| IPv6 mutate parked | Option A. Open B/C only in writing on the PR04 plan. |
+| Prefix / MAC / bandwidth are numbers | No wire, no plot control. |
+| **No Charts reference** | Network returns `BandwidthAmount`, `PercentileBill`, `ShareCampaignResult`. A host that wants a picture calls Charts. |
+| Share I/O is FileIo | Network does not open `FileStream`. |
+| Logging is sparse | APPID Network. No packet bytes. No credentials. |
 
 ---
 
 ## 3. Job vs schedule
 
-An ICMP **job** is `IcmpEchoOptions`: target, count, interval, timeout, max duration.
-
-A campaign **recipe** is windows on a local clock plus a date range. `RunAsync` asks “is this window in grace right now?” It does not sleep until midnight.
-
-A **scheduler** (future package or host) wakes the process and calls `CreateEchoCampaign` / `IcmpEcho`. That split is intentional so Network can publish without owning service lifetime.
+An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a local clock. A **scheduler** (future package or host) wakes the process. Network does not install cron, schtasks, or systemd.
 
 ---
 
 ## 4. Exception policy
 
-| Class | When |
-|---|---|
-| `ArgumentNullException` | Required reference is null. |
-| `ArgumentException` | Bad MAC, bad IPv4 dest/gw, IPv6 dest on mutate, OUI URL policy, campaign path escape, burst past one minute, DNS label > 63 (existing). |
-| `ArgumentOutOfRangeException` | Count < 0, timeout/buffer/TTL bounds, interval floors, MaxDuration ≤ 0 or > 24 h, prefix length, InterfaceIndex < 1. |
-| `PlatformNotSupportedException` | Linux route write **until PR02.002**. NetBIOS paths that are Windows-only at the engine. |
-| `NetworkRouteDenied` | Windows IP Helper access denied / invalid parameter; persistent-route ACL; Linux route write after PR02.002. |
-| `FileNotFoundException` | OUI registry / recipe file missing after confine. |
-
-OUI HTTP failures (timeout, 404, 3xx, HTML body) are **not** throws. Result `Source = None`.
+Unchanged from PR02: `NetworkRouteDenied` for Linux / ACL route write; `InvalidOperationException` for empty P95; OUI HTTP failures are `Source = None`, not throws.
 
 ---
 
@@ -85,18 +78,10 @@ OUI HTTP failures (timeout, 404, 3xx, HTML body) are **not** throws. Result `Sou
 | File | Role |
 |---|---|
 | `NetworkHelper.cs` | Public façade |
-| `NetworkInventoryEngine.cs` / types | Workstation snapshot |
-| `IcmpEchoEngine.cs` / `IcmpEchoTypes.cs` | Echo job + duration guards |
-| `IcmpTraceEngine.cs` | TTL walk |
-| `DnsClient.cs` | OS lookup + RFC 1035 + peer bind |
-| `NetworkStackEngine.cs` / Linux / Windows tables | Connections, routes print, neighbors |
+| `ShareCampaign.cs` / `ShareCampaignTypes.cs` / `ShareCampaignEngine.cs` / `ShareProbePlanner.cs` | Share campaigns |
 | `NetworkRouteMutation.cs` | Windows IPv4 write; Linux typed deny |
-| `IcmpEchoCampaign.cs` / `CampaignPaths.cs` / `CampaignJsonl.cs` | Recipe + confined JSONL |
-| `SubnetEngine.cs` | Prefix math |
-| `MacEngine.cs` / `OuiLookupGuard.cs` / `OuiRegistry.cs` | EUI + live/file OUI |
 | `BandwidthEngine.cs` / `PercentileBillEngine.cs` | Rate math + P95 via Analytics |
-| `NetworkTestHooks.cs` | Internal test injection |
-| `HelperLog.cs` / `NetworkLog.cs` / `NetworkCatalog.cs` | Logging |
+| `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. **Not Charts.** |
 
 Tests live under `src/Vestigium.Helpers.Tests/`.
 
@@ -106,15 +91,17 @@ Tests live under `src/Vestigium.Helpers.Tests/`.
 
 | Pass | Outcome |
 |---|---|
-| Phases 0–11 | Inventory through P95 in the tree |
-| PR01.001–011 | Security harden + live docs |
-| PR02.001 | SRS / Guide / Design lock Windows-write / Linux-print / no IPv6 mutate |
+| Phases 0–11 | Inventory through P95 |
+| PR01 | Security harden |
+| PR02 | Route contract + remaining harden |
+| PR03 | Share campaigns. Demo skipped. |
+| PR04.001 | Charts stay on the host |
 
 ---
 
-## 7. Still out
+## 7. Still out of this DLL
 
-Linux `ip route` / netlink writer (PR04). IPv6 route mutate (PR04). Share-transfer campaigns (PR03). Scheduler package. HTTP client. Following OUI redirects. Public test hooks. Demo tabs as a library requirement.
+Linux netlink / IPv6 route write unless PR04 Option B/C is chosen in writing. Scheduler package. HTTP client. Demo gallery. **Charts.** Repo-wide portable test TFM / ubuntu workflow.
 
 ---
 
@@ -122,5 +109,6 @@ Linux `ip route` / netlink writer (PR04). IPv6 route mutate (PR04). Share-transf
 
 | Version | Date | Change |
 |---|---|---|
-| 1.6 | 19 Sep 2026 | First standalone Design. Lifted from archived Guide v1.2 + shipped phases + PR01.001–006. |
-| 1.6 + PR02.001 | 19 Sep 2026 | Route contract restated. Linux write is deny, not a missing feature to paper over. |
+| 1.6 | 19 Sep 2026 | First standalone Design. |
+| 1.6 + PR02.001 | 19 Sep 2026 | Route contract. |
+| 1.6 + PR04.001 | 19 Sep 2026 | No Charts reference. Hosts plot results. |
