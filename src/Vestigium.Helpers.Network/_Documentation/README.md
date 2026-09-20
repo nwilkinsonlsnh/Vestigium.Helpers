@@ -11,10 +11,6 @@
 
 If these three disagree, **Requirements wins**.
 
-Prefix math: [`ARCHIVE/PR01/SubnetCalculator_v1.3.md`](ARCHIVE/PR01/SubnetCalculator_v1.3.md).  
-MAC / bandwidth: [`ARCHIVE/PR01/MacAndBandwidth_v1.4.md`](ARCHIVE/PR01/MacAndBandwidth_v1.4.md).  
-Share campaigns: [`ARCHIVE/PR01/ShareCampaign_v1.5.md`](ARCHIVE/PR01/ShareCampaign_v1.5.md) — **shipped in PR03**.
-
 ## Active PR series
 
 | Plan | Goal | Status |
@@ -22,6 +18,6 @@ Share campaigns: [`ARCHIVE/PR01/ShareCampaign_v1.5.md`](ARCHIVE/PR01/ShareCampai
 | [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden | Closed |
 | [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock | Closed |
 | [`PR03_ImplementationPlan.md`](PR03_ImplementationPlan.md) | Share campaigns | Closed. Demo skipped. |
-| [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md) | Package leftovers. No Charts. Option A routes. | Open. 001 landed. |
+| [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md) | Packed OUI + Option C route write. No Charts. | **Closed** |
 
-Charts, Demo, and Linux CI topology are **not** this package.
+Charts, Demo, and Linux CI topology are not this package.
