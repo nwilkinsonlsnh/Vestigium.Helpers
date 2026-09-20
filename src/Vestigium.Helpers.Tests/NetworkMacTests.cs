@@ -63,13 +63,15 @@ public sealed class NetworkMacTests
     [Fact]
     public async Task LookupOui_dead_endpoint_does_not_hang()
     {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
         var result = await NetworkHelper.LookupOuiAsync(
             "00:1A:2B:3C:4D:5E",
             new OuiLookupOptions
             {
                 Timeout = TimeSpan.FromMilliseconds(250),
-                RegistryUrl = "http://127.0.0.1:1/{oui}"
-            });
+                Handler = new HangOuiHandler()
+            },
+            cts.Token);
         Assert.Null(result.Vendor);
         Assert.Equal(OuiSource.None, result.Source);
         Assert.Contains("Not proof", result.Disclaimer, StringComparison.OrdinalIgnoreCase);
@@ -81,5 +83,14 @@ public sealed class NetworkMacTests
         var mac = NetworkHelper.ParseMac("00-1A-2B-3C-4D-5E");
         Assert.Equal("00:1A:2B:3C:4D:5E", mac.Colon);
         Assert.Equal("00:1A:2B", mac.Oui24);
+    }
+
+    sealed class HangOuiHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+            throw new HttpRequestException("dead endpoint");
+        }
     }
 }

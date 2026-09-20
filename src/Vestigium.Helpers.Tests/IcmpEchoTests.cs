@@ -57,7 +57,9 @@ public sealed class IcmpEchoTests
         {
             Count = 0,
             Timeout = TimeSpan.FromMilliseconds(200),
-            Interval = TimeSpan.FromMilliseconds(50)
+            Interval = TimeSpan.FromMilliseconds(50),
+            MaxDuration = TimeSpan.FromSeconds(5),
+            AllowBurst = true
         });
         var run = job.RunAsync();
         await Task.Delay(200);
