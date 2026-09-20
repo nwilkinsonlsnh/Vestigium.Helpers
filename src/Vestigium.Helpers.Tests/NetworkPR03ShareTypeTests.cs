@@ -86,18 +86,4 @@ public sealed class NetworkPR03ShareTypeTests : IDisposable
         Assert.Equal(1024, plan.PlannedBytes);
         Assert.Empty(plan.Probes);
     }
-
-    [Fact]
-    public void PR03_002_run_is_reserved_for_003()
-    {
-        var share = Path.Combine(_root, "later");
-        Directory.CreateDirectory(share);
-        var campaign = NetworkHelper.CreateShareCampaign(new ShareCampaignOptions
-        {
-            Target = new FileShareTarget { Directory = share },
-            PlannedSize = NetworkHelper.Bandwidth(64, DataUnit.MiB)
-        });
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => campaign.RunAsync());
-        Assert.Contains("PR03.003", ex.Result.Message);
-    }
 }
