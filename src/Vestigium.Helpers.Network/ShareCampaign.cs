@@ -40,7 +40,7 @@ public sealed class ShareCampaign
     {
         cancellation.ThrowIfCancellationRequested();
         if (Options.Mode == ShareCampaignMode.Advanced)
-            throw new InvalidOperationException("Advanced share estimate is PR03.004 / PR03.005.");
+            throw new InvalidOperationException("Advanced share estimate is PR03.005.");
         return Task.FromResult(ShareCampaignEngine.RunDefault(CampaignId, Options, cancellation));
     }
 
@@ -165,26 +165,6 @@ internal static class SharePaths
         }
 
         return full;
-    }
-}
-
-internal static class ShareProbePlanner
-{
-    public static ShareProbePlan Plan(FileIoDirectoryAnalysis source, ShareProbeOptions? options)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        var o = options ?? new ShareProbeOptions();
-        if (o.MaxProbeBytes < 1024 * 1024)
-            throw new ArgumentOutOfRangeException(nameof(options), "MaxProbeBytes must be at least 1 MiB.");
-
-        return new ShareProbePlan
-        {
-            Mode = ShareCampaignMode.Advanced,
-            SourcePath = source.Path,
-            PlannedBytes = source.TotalBytes,
-            MaxProbeBytes = o.MaxProbeBytes,
-            Probes = []
-        };
     }
 }
 
