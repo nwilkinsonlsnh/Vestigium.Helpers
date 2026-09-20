@@ -19,8 +19,8 @@ Share-transfer campaigns: [`ARCHIVE/PR01/ShareCampaign_v1.5.md`](ARCHIVE/PR01/Sh
 
 | Plan | Goal | Status |
 |---|---|---|
-| [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden + docs match shipped code | Open. **001–006 and 007 docs landed.** 008–010 still code. |
-| [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock + remaining harden | Open. After PR01. |
+| [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden + docs match shipped code | **Code complete on main.** Confirm `PR01_` + `Network` on Windows. |
+| [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock + remaining harden | Open. After PR01 Windows gate. |
 | [`PR03_ImplementationPlan.md`](PR03_ImplementationPlan.md) | File-share transfer campaigns | Open. After PR02. |
 | [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md) | Linux test gate + optional IPv6 route write | Open. After PR03. HTTP stays out. |
 
