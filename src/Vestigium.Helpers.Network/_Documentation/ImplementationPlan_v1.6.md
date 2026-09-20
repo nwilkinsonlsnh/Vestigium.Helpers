@@ -6,17 +6,21 @@
 
 Phases 0–11 from [`ARCHIVE/PR01/ImplementationPlan_v1.0.md`](ARCHIVE/PR01/ImplementationPlan_v1.0.md) are **in the tree**. That file is history.
 
-Active work is the PR series in this folder:
+| PR | Goal | Status |
+|---|---|---|
+| [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden | Closed |
+| [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock | Closed |
+| [`PR03_ImplementationPlan.md`](PR03_ImplementationPlan.md) | Share campaigns | Closed. Demo skipped. |
+| [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md) | Packed OUI + Option C route write | Closed |
+| [`PR05_ImplementationPlan.md`](PR05_ImplementationPlan.md) | Hygiene: persist key, docs, README, test names | **Open** |
 
-| PR | Status |
-|---|---|
-| PR01.001–011 | Code + roster on `main` |
-| PR02.001–007 | Code on `main` |
-| PR02.008 | Fixture roster on `main`. Run the commands below on Windows-latest. |
-| PR03–PR04 | Planned. Do not mix into PR02 commits. |
+Live Ubuntu / Windows-admin route checks are parked on PR05 §4. They are not a Network publish gate.
 
 ```text
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~PR01_
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~PR02_
-dotnet test src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj --filter FullyQualifiedName~Network
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR01_
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR02_
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR03_
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR04_
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR05_
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network
 ```
