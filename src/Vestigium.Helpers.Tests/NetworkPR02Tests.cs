@@ -52,4 +52,40 @@ public sealed class NetworkPR02Tests
         {
         }
     }
+
+    [Fact]
+    public void PR02_003_label_over_63_rejected()
+    {
+        var label = new string('a', 64);
+        var name = label + ".example.test";
+        Assert.Throws<ArgumentException>(() => DnsWireName.Guard(name));
+        Assert.Throws<ArgumentException>(() => DnsClient.EncodeQuery(1, name, DnsRecordType.A, true));
+    }
+
+    [Fact]
+    public void PR02_003_name_over_255_rejected()
+    {
+        var label = new string('a', 63);
+        var name = string.Join('.', label, label, label, label);
+        var ex = Assert.Throws<ArgumentException>(() => DnsWireName.Guard(name));
+        Assert.Contains("255", ex.Message);
+        Assert.Throws<ArgumentException>(() => DnsClient.EncodeQuery(1, name, DnsRecordType.A, true));
+    }
+
+    [Fact]
+    public void PR02_003_non_ascii_and_nul_rejected()
+    {
+        Assert.Throws<ArgumentException>(() => DnsWireName.Guard("café.example.test"));
+        Assert.Throws<ArgumentException>(() => DnsWireName.Guard("bad\0label.example.test"));
+        Assert.Throws<ArgumentException>(() => DnsClient.EncodeQuery(1, "café.example.test", DnsRecordType.A, true));
+    }
+
+    [Fact]
+    public void PR02_003_punycode_and_short_name_ok()
+    {
+        DnsWireName.Guard("www.example.test");
+        DnsWireName.Guard("xn--caf-dma.example.test");
+        var wire = DnsClient.EncodeQuery(1, "www.example.test", DnsRecordType.A, true);
+        Assert.True(wire.Length > 12);
+    }
 }
