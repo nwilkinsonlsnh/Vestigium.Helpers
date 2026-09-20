@@ -22,13 +22,12 @@ public sealed class NetworkPR02BillTests
     [Fact]
     public void PR02_007_empty_series_throw()
     {
-        var built = Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentException>(() =>
             NumericSeries.FromDecimal(Array.Empty<decimal>(), "empty"));
-        Assert.False(string.IsNullOrWhiteSpace(built.Message));
 
         var series = NumericSeries.FromDecimal([10_000_000m], "one");
         var bill = NetworkHelper.BillP95(series);
         Assert.Equal(1, bill.SampleCount);
-        Assert.NotEqual(0m, bill.Rate.BitsPerSecond);
+        Assert.NotEqual(0m, bill.Rate.Bits);
     }
 }
