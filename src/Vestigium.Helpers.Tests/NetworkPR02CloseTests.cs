@@ -12,7 +12,7 @@ public sealed class NetworkPR02CloseTests
         "PR02_003_name_over_255_rejected",
         "PR02_004_two_appends_are_whole_lines",
         "PR02_005_linux_forbidden_stays_typed",
-        "PR02_006_ipv6_destination_rejected_on_add",
+        "PR02_006_ipv6_write_is_cap_or_cleanup",
         "PR02_007_empty_samples_throw",
         "PR02_007_empty_series_throw"
     ];

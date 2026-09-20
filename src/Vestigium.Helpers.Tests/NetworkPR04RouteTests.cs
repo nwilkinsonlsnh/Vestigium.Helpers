@@ -35,7 +35,7 @@ public sealed class NetworkPR04RouteTests
     }
 
     [Fact]
-    public void PR04_003_ipv6_write_denied()
+    public void PR04_003_ipv6_write_is_cap_or_cleanup()
     {
         var change = new NetworkRouteChange
         {

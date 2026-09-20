@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 public sealed class NetworkPR02RouteFamilyTests
 {
     [Fact]
-    public void PR02_006_ipv6_destination_rejected_on_add()
+    public void PR02_006_ipv6_write_is_cap_or_cleanup()
     {
         var change = new NetworkRouteChange
         {

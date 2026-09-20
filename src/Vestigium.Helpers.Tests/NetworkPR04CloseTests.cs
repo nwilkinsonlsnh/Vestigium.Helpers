@@ -12,7 +12,7 @@ public sealed class NetworkPR04CloseTests
         "PR04_002_packed_oui_unknown_is_none",
         "PR04_002_packed_registry_is_offline",
         "PR04_003_linux_mutate_denied",
-        "PR04_003_ipv6_write_denied",
+        "PR04_003_ipv6_write_is_cap_or_cleanup",
         "PR04_003_ipv6_print_stays",
         "PR04_004_default_route_is_not_offered",
         "PR04_004_linux_ipv4_is_netlink_or_cap_deny",
