@@ -170,6 +170,10 @@ public static class NetworkHelper
     public static OuiLookupResult LookupOuiFile(string macOrOui, string registryPath)
         => OuiRegistry.Lookup(macOrOui, OuiRegistry.Load(registryPath));
 
+    public static IReadOnlyDictionary<string, string> LoadPackedOuiRegistry() => OuiPacked.Registry();
+
+    public static OuiLookupResult LookupOuiPacked(string macOrOui) => OuiPacked.Lookup(macOrOui);
+
     public static BandwidthAmount Bandwidth(decimal value, DataUnit unit) => BandwidthEngine.From(value, unit);
     public static BandwidthAmount ConvertBandwidth(BandwidthAmount amount, DataUnit unit) => BandwidthEngine.Convert(amount, unit);
     public static TransferResult TransferTime(BandwidthAmount size, BandwidthAmount rate) => BandwidthEngine.TransferTime(size, rate);
