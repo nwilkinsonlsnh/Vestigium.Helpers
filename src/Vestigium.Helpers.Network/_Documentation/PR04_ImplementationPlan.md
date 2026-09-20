@@ -1,13 +1,13 @@
 # Vestigium.Helpers.Network — PR04 implementation plan
 
 **Document ID:** VEST-HLP-NETWORK-PLAN-PR04  
-**Version:** 1.1  
-**Status:** Open. Starts after PR03 close.  
+**Version:** 1.2  
+**Status:** Open. PR04.001 closed.  
 **Date:** 19 September 2026  
 **Package:** `Vestigium.Helpers.Network` only  
 **Default route goal:** Option A — v1 write stays Windows IPv4. Linux / IPv6 mutate stay denied.
 
-PR01–PR03 closed security, contract lock, and share campaigns. PR04 is the leftover **Network package** work. It is not a gallery, not Charts, not a scheduler, not HttpIQ.
+PR01–PR03 closed security, contract lock, and share campaigns. PR04 is leftover **Network package** work. Not a gallery. Not Charts. Not a scheduler. Not HttpIQ.
 
 ---
 
@@ -15,118 +15,56 @@ PR01–PR03 closed security, contract lock, and share campaigns. PR04 is the lef
 
 | Item | Why it is out |
 |---|---|
-| Charts / ScottPlot / WPF plots | Application host wires numbers to Charts. Network returns `BandwidthAmount`, `PercentileBill`, `ShareCampaignResult`. No Charts reference. |
-| Demo / Gallery tabs | Host concern. Skipped in PR03.007–009. |
-| Portable test project / ubuntu workflow | Solution CI. Tests today are `net10.0-windows` because the umbrella test assembly also references WinReg and (on Windows) Charts. That coupling is not Network's to fix. |
-| HTTP reachability | HttpIQ / host. Network's only HTTP is the already-constrained OUI GET. |
-| Packet capture, cousin CLIs, cron/schtasks, `net use`, stored share passwords | Never |
-
-If a host wants a chart of share hours or P95, it reads the result object and calls Charts itself.
+| Charts / ScottPlot / WPF plots | Host wires numbers to Charts. Network returns `BandwidthAmount`, `PercentileBill`, `ShareCampaignResult`. |
+| Demo / Gallery tabs | Skipped in PR03.007–009. |
+| Portable test project / ubuntu workflow | Solution CI. Not Network's to fix. |
+| HTTP reachability | HttpIQ. |
+| Packet capture, cousin CLIs, cron/schtasks, `net use`, passwords | Never |
 
 ---
 
-## 1. Decision: route write
+## 1. Route write — Option A unless this table is edited with a date
 
-Pick **one** before any mutate code. Default is A.
+| Option | Meaning |
+|---|---|
+| **A. Stop (default)** | Windows IPv4 IP Helper + HKLM. Linux and IPv6 write → `NetworkRouteDenied`. |
+| B / C | Netlink / IPv6 mutate. Out until written here with a date. |
 
-| Option | Meaning | v1 |
+---
+
+## 2. Work table
+
+| ID | Item | Status |
 |---|---|---|
-| **A. Stop** | Windows IPv4 IP Helper + persistent HKLM as locked in PR02. Linux and IPv6 write throw `NetworkRouteDenied`. | **Default** |
-| **B. Linux IPv4 mutate** | Netlink / RTM_NEWROUTE. No `ip`. No cap → `NetworkRouteDenied`. | Out unless written here with a date |
-| **C. B + IPv6 mutate** | Same door, both families, both OS. | Out unless written here with a date |
-
-Do not start B or C because a test matrix would look nicer. Start them only if a real host needs mutate from this DLL on Linux or IPv6.
-
----
-
-## 2. Work table (Network package only)
-
-| ID | Item | Type | Priority | Complexity | In by default |
-|---|---|---|---|---|---|
-| PR04.001 | Docs lock: Network has no Charts reference; hosts chart results | Update | P2 | Low | Yes |
-| PR04.002 | Optional packed OUI snapshot for offline `LookupOuiFile` | New | P3 | Medium | Optional |
-| PR04.003 | Confirm Linux / IPv6 mutate still throw `NetworkRouteDenied` (Option A) | Update | P2 | Low | Yes |
-| PR04.004 | Linux IPv4 netlink mutate | New | P3 | High | **No — Option B only** |
-| PR04.005 | IPv6 mutate both OS | New | P3 | High | **No — Option C only** |
-| PR04.006 | Tests + close | Update | P2 | Low | Yes |
-
-CI topology (portable `net10.0` test project, `ubuntu-latest` job, lift the 10 Sep 2026 Linux waiver) is a **repo** PR, not a Network feature slice. It may mention Network fixtures. It must not land as a Charts or Network API change.
+| PR04.001 | Docs lock: no Charts reference | **Closed** |
+| PR04.002 | Optional packed OUI snapshot | Optional / open |
+| PR04.003 | Option A deny confirmation | Open |
+| PR04.004 | Linux IPv4 netlink | Out (Option B) |
+| PR04.005 | IPv6 mutate | Out (Option C) |
+| PR04.006 | Tests + close | Open |
 
 ---
 
-## 3. Slice notes
+## 3. PR04.001 result
 
-### PR04.001 — Docs lock
-
-Requirements / Design / Developers Guide one paragraph:
-
-- Network does not reference `Vestigium.Helpers.Charts`.
-- Share and bandwidth results are numbers + disclaimer text.
-- Plotting is the host.
-
-No code change required if `Vestigium.Helpers.Network.csproj` still has no Charts `ProjectReference` (verify in the close test).
-
-### PR04.002 — Packed OUI (optional)
-
-Already shipped: `LoadOuiRegistry` / `LookupOuiFile`. Optional work is a checked-in snapshot under `_Data/` or ProgramData, `Source = File`. Skip if you do not want a file in the package.
-
-### PR04.003 — Option A confirmation
-
-Re-run the PR02.002 / PR02.006 fixtures:
-
-- Linux `AddRoute` / `ChangeRoute` / `RemoveRoute` → `NetworkRouteDenied`
-- IPv6 destination on write → `NetworkRouteDenied`
-- Windows IPv4 write path unchanged
-
-No new writer.
-
-### PR04.004 / PR04.005 — only if B or C is chosen in writing
-
-Rules if opened later:
-
-- No `ip`, `route`, `netsh`.
-- No `sudo` / `setcap` from the library.
-- Missing capability → `NetworkRouteDenied`.
-- Same public `AddRoute` / `ChangeRoute` / `RemoveRoute`.
-- Tests must not mutate a developer default route in CI.
-
-### PR04.006 — Close
-
-| Fixture | Asserts |
-|---|---|
-| `PR04_001_network_has_no_charts_reference` | Network csproj / assembly does not reference Charts |
-| `PR04_003_linux_mutate_denied` | existing typed deny |
-| `PR04_003_ipv6_write_denied` | existing typed deny |
+- `Vestigium.Helpers.Network.csproj` references Json, Analytics, FileIo. Not Charts.
+- Fixture `PR04_001_network_has_no_charts_reference`.
+- Design + Developers Guide state: hosts plot `ShareCampaignResult` / P95 if they want a picture.
 
 ```text
-dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR04_
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PR04_001
 ```
 
 ---
 
-## 4. Permanently out of this library
+## 4. Permanently out
 
-| Item | Where it lives |
-|---|---|
-| Charts, plots, WPF controls | `Vestigium.Helpers.Charts` + host |
-| Demo gallery | Host, later |
-| Portable test TFM / Linux CI job | Repo workflow PR |
-| HTTP reachability | Host / HttpIQ |
-| Scheduler / cron / schtasks / systemd | Later Scheduler package or host |
-| `net use` / mount / passwords | Never |
-| Packet capture / cousin CLIs | Never |
-
----
-
-## 5. Commit form
-
-```text
-Network PR04: <id short goal>
-```
+Charts, Demo, portable CI TFM, HttpIQ, scheduler install, `net use`, packet capture, cousin CLIs.
 
 ## Document control
 
 | Version | Date | Change |
 |---|---|---|
-| 1.0 | 19 Sep 2026 | Open. CI split mixed into Network; Charts named as test-TFM reason. |
-| 1.1 | 19 Sep 2026 | Charts, Demo, and portable CI removed from Network scope. Option A default. |
+| 1.0 | 19 Sep 2026 | Open. CI mixed into Network. |
+| 1.1 | 19 Sep 2026 | Charts / Demo / CI removed from Network scope. |
+| 1.2 | 19 Sep 2026 | 001 closed. |
