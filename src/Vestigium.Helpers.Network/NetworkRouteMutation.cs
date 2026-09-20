@@ -16,7 +16,6 @@ internal static class NetworkRouteMutation
     const uint ErrorNotFound = 1168;
     const int ProtoNetMgmt = 3;
     const int TypeIndirect = 4;
-    const string PersistentKey = @"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\PersistentRoutes";
 
     public static void Add(NetworkRouteChange change)
     {
@@ -200,7 +199,7 @@ internal static class NetworkRouteMutation
     {
         try
         {
-            using var key = Registry.LocalMachine.CreateSubKey(PersistentKey, writable: true);
+            using var key = Registry.LocalMachine.CreateSubKey(NetworkRouteKeys.PersistentRoutes, writable: true);
             if (key is null)
                 throw new NetworkRouteDenied("Persistent route registry key is not writable.");
             key.SetValue(PersistentName(change), "", RegistryValueKind.String);
@@ -216,7 +215,7 @@ internal static class NetworkRouteMutation
     {
         try
         {
-            using var key = Registry.LocalMachine.OpenSubKey(PersistentKey, writable: true);
+            using var key = Registry.LocalMachine.OpenSubKey(NetworkRouteKeys.PersistentRoutes, writable: true);
             key?.DeleteValue(PersistentName(change), throwOnMissingValue: false);
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
