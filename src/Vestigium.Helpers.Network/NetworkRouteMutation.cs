@@ -16,11 +16,11 @@ internal static class NetworkRouteMutation
     const uint ErrorNotFound = 1168;
     const int ProtoNetMgmt = 3;
     const int TypeIndirect = 4;
-    const string PersistentKey = @"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes";
+    const string PersistentKey = @"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\PersistentRoutes";
 
     public static void Add(NetworkRouteChange change)
     {
-        var row = Bind(change);
+        var spec = NetworkRouteSpec.Parse(change);
         if (!OperatingSystem.IsWindows())
         {
             NetworkRouteNetlink.Add(change);
@@ -28,6 +28,16 @@ internal static class NetworkRouteMutation
             return;
         }
 
+        if (spec.IsIPv6)
+        {
+            if (spec.InterfaceIndex < 1)
+                spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
+            NetworkRouteWindowsV6.Add(spec);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"AddRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6");
+            return;
+        }
+
+        var row = BindV4(change, spec);
         var code = CreateIpForwardEntry(ref row);
         if (code != 0)
             throw Denied("AddRoute", code);
@@ -38,7 +48,7 @@ internal static class NetworkRouteMutation
 
     public static void Change(NetworkRouteChange change)
     {
-        var row = Bind(change);
+        var spec = NetworkRouteSpec.Parse(change);
         if (!OperatingSystem.IsWindows())
         {
             NetworkRouteNetlink.Change(change);
@@ -46,6 +56,15 @@ internal static class NetworkRouteMutation
             return;
         }
 
+        if (spec.IsIPv6)
+        {
+            if (spec.InterfaceIndex < 1)
+                spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
+            NetworkRouteWindowsV6.Change(spec);
+            return;
+        }
+
+        var row = BindV4(change, spec);
         var code = SetIpForwardEntry(ref row);
         if (code != 0)
             throw Denied("ChangeRoute", code);
@@ -56,7 +75,7 @@ internal static class NetworkRouteMutation
 
     public static void Remove(NetworkRouteChange change)
     {
-        var row = Bind(change);
+        var spec = NetworkRouteSpec.Parse(change);
         if (!OperatingSystem.IsWindows())
         {
             NetworkRouteNetlink.Remove(change);
@@ -64,6 +83,15 @@ internal static class NetworkRouteMutation
             return;
         }
 
+        if (spec.IsIPv6)
+        {
+            if (spec.InterfaceIndex < 1)
+                spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
+            NetworkRouteWindowsV6.Remove(spec);
+            return;
+        }
+
+        var row = BindV4(change, spec);
         var code = DeleteIpForwardEntry(ref row);
         if (code != 0 && code != ErrorNotFound)
             throw Denied("RemoveRoute", code);
@@ -71,38 +99,23 @@ internal static class NetworkRouteMutation
         NetworkLog.Success(HelperLog.Subcategories.Route, $"RemoveRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway}");
     }
 
-    static MibIpForwardRow Bind(NetworkRouteChange change)
+    static MibIpForwardRow BindV4(NetworkRouteChange change, NetworkRouteSpec spec)
     {
-        var dest = HelperGuard.NotBlank(change.Destination, nameof(change.Destination));
-        var gw = HelperGuard.NotBlank(change.Gateway, nameof(change.Gateway));
-        if (change.PrefixLength is < 0 or > 32)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Bind), $"prefix={change.PrefixLength}");
-            throw new ArgumentOutOfRangeException(nameof(change.PrefixLength), "PrefixLength must be 0–32.");
-        }
-
-        if (!IPAddress.TryParse(dest, out var destIp) || destIp.AddressFamily != AddressFamily.InterNetwork)
-            throw new ArgumentException("Destination must be IPv4.", nameof(change.Destination));
-        if (!IPAddress.TryParse(gw, out var gwIp) || gwIp.AddressFamily != AddressFamily.InterNetwork)
-            throw new ArgumentException("Gateway must be IPv4.", nameof(change.Gateway));
-
         int ifIndex;
         if (change.InterfaceIndex is { } specified)
             ifIndex = ResolveInterfaceIndex(specified, specified);
-        else if (OperatingSystem.IsWindows())
-            ifIndex = ResolveInterfaceIndex(null, TryFirstIpv4Index());
         else
-            ifIndex = 0;
+            ifIndex = ResolveInterfaceIndex(null, TryFirstIpv4Index());
 
         return new MibIpForwardRow
         {
-            dwForwardDest = ToUint(destIp),
-            dwForwardMask = ToUint(IPAddress.Parse(Ipv4Prefix.MaskFromPrefix(change.PrefixLength))),
-            dwForwardNextHop = ToUint(gwIp),
+            dwForwardDest = ToUint(spec.Destination),
+            dwForwardMask = ToUint(IPAddress.Parse(Ipv4Prefix.MaskFromPrefix(spec.PrefixLength))),
+            dwForwardNextHop = ToUint(spec.Gateway),
             dwForwardIfIndex = ifIndex,
             dwForwardType = TypeIndirect,
             dwForwardProto = ProtoNetMgmt,
-            dwForwardMetric1 = Math.Max(1, change.Metric)
+            dwForwardMetric1 = spec.Metric
         };
     }
 
