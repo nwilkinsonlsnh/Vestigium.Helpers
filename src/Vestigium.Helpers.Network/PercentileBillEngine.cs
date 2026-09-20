@@ -7,11 +7,12 @@ internal static class PercentileBillEngine
 {
     public static PercentileBill FromSamples(IEnumerable<decimal> samplesBitsPerSecond, double percentile = 0.95)
     {
-        var list = samplesBitsPerSecond?.ToList() ?? throw new ArgumentNullException(nameof(samplesBitsPerSecond));
+        ArgumentNullException.ThrowIfNull(samplesBitsPerSecond);
+        var list = samplesBitsPerSecond.ToList();
         if (list.Count == 0)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, "Bandwidth", nameof(FromSamples), "empty samples");
-            throw new ArgumentException("P95 billing needs at least one sample.", nameof(samplesBitsPerSecond));
+            throw new InvalidOperationException("P95 billing needs at least one sample.");
         }
 
         var series = NumericSeries.FromDecimal(list, "bandwidth-samples");
@@ -24,7 +25,7 @@ internal static class PercentileBillEngine
         if (series.Count == 0)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, "Bandwidth", nameof(FromSeries), "empty series");
-            throw new ArgumentException("P95 billing needs at least one sample.", nameof(series));
+            throw new InvalidOperationException("P95 billing needs at least one sample.");
         }
 
         if (percentile is <= 0 or >= 1)
