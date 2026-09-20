@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DSN-000  
 **Version:** 1.6  
-**Status:** Locked companion to SRS v1.6 + PR04.001  
+**Status:** Locked companion to SRS v1.6 + PR05.002  
 **Date:** 19 September 2026  
 **Binding:** `Requirements_v1.6.md` wins on conflict
 
@@ -21,11 +21,11 @@ host
        ├ IcmpEcho / Ping / IcmpTrace
        ├ LookupAsync (OS or wire)
        ├ tables: connections, stats, routes, neighbors
-       ├ Add/Change/RemoveRoute          Windows IPv4 write; Linux typed deny
+       ├ Add/Change/RemoveRoute          Option C (see §2)
        ├ CreateEchoCampaign / OpenEchoCampaign
        ├ PlanShareProbe / CreateShareCampaign / OpenShareCampaign
        ├ prefix math                     SubnetEngine
-       ├ MAC / OUI                       MacEngine + OuiLookupGuard
+       ├ MAC / OUI                       MacEngine + OuiLookupGuard + OuiPacked
        ├ bandwidth / P95                 BandwidthEngine + Analytics
        └ FileIo probes                   FileIoHelper.WriteProbe / AnalyzeDirectory
 
@@ -33,7 +33,7 @@ host (optional)
   → Vestigium.Helpers.Charts            plots Network numbers; not referenced here
 ```
 
-HTTP reachability is HttpIQ, not this DLL. A later scheduler package starts jobs; this DLL only runs a job when called. Plotting is the host.
+HTTP reachability is HttpIQ. A later scheduler package starts jobs. Plotting is the host.
 
 ---
 
@@ -42,21 +42,20 @@ HTTP reachability is HttpIQ, not this DLL. A later scheduler package starts jobs
 | Decision | Why |
 |---|---|
 | One façade, internal engines | Hosts cannot reach hooks, wire codecs, or IP Helper structs. |
-| No process spawn | Output of `ping`/`ip` is not an API. |
+| No process spawn | Output of `ping`/`ip`/`netsh` is not an API. |
 | `Ping` is an alias of `IcmpEcho` | PingIQ name. JSONL kind stays `icmpEcho`. |
 | Continuous is `Count = 0` plus a duration cap | Unlimited + `Interval = 0` is a flood. |
-| Duration bands | Jobs longer than one minute must wait ≥ 1 s. |
 | Campaign is a recipe, not a daemon | Process lifetime is the host’s. |
 | Campaign paths under one root | `..` must not write `%WINDIR%` or `/etc`. |
 | `NetworkTestHooks` internal | Plugins must not retarget ProgramData or `/proc`. |
-| OUI allowlist + no redirect | SSRF. |
+| OUI allowlist + no redirect | SSRF. Packed snapshot is offline and incomplete. |
 | DNS accept only the queried peer | UDP is connectionless. |
-| No guessed IfIndex `1` | Wrong NIC. |
-| Linux route write is typed deny | v1 does not speak netlink. Option A in PR04. |
-| IPv6 mutate parked | Option A. Open B/C only in writing on the PR04 plan. |
-| Prefix / MAC / bandwidth are numbers | No wire, no plot control. |
-| **No Charts reference** | Network returns `BandwidthAmount`, `PercentileBill`, `ShareCampaignResult`. A host that wants a picture calls Charts. |
-| Share I/O is FileIo | Network does not open `FileStream`. |
+| No guessed IfIndex `1` | Wrong NIC. Linux write requires an index. |
+| Route write is Option C | Windows IPv4 IP Helper + HKLM persist (`NetworkRouteKeys`). Windows IPv6 `CreateIpForwardEntry2`. Linux netlink IPv4+IPv6. Cap/admin miss → `NetworkRouteDenied`. |
+| Default route is not offered | `0.0.0.0/0` and `::/0` must not come from this DLL. |
+| Prefix / MAC / bandwidth / share results are numbers | No plot control. |
+| No Charts reference | A host that wants a picture calls Charts. |
+| Share I/O is FileIo | Network does not open `FileStream`. No password field. |
 | Logging is sparse | APPID Network. No packet bytes. No credentials. |
 
 ---
@@ -69,7 +68,13 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 
 ## 4. Exception policy
 
-Unchanged from PR02: `NetworkRouteDenied` for Linux / ACL route write; `InvalidOperationException` for empty P95; OUI HTTP failures are `Source = None`, not throws.
+| Type | When |
+|---|---|
+| `NetworkRouteDenied` | No admin / no `CAP_NET_ADMIN` / default route / persist ACL |
+| `ArgumentException` | Family mismatch, IPv4 dest required only when the other side is IPv4 |
+| `ArgumentOutOfRangeException` | Prefix outside 0–32 (v4) or 0–128 (v6) |
+| `InvalidOperationException` | Empty P95 samples |
+| OUI HTTP miss | `Source = None`, not a throw |
 
 ---
 
@@ -78,12 +83,13 @@ Unchanged from PR02: `NetworkRouteDenied` for Linux / ACL route write; `InvalidO
 | File | Role |
 |---|---|
 | `NetworkHelper.cs` | Public façade |
-| `ShareCampaign.cs` / `ShareCampaignTypes.cs` / `ShareCampaignEngine.cs` / `ShareProbePlanner.cs` | Share campaigns |
-| `NetworkRouteMutation.cs` | Windows IPv4 write; Linux typed deny |
-| `BandwidthEngine.cs` / `PercentileBillEngine.cs` | Rate math + P95 via Analytics |
+| `NetworkRouteMutation.cs` | Windows IPv4 write + persist via `NetworkRouteKeys` |
+| `NetworkRouteWindowsV6.cs` | `CreateIpForwardEntry2` |
+| `NetworkRouteNetlink.cs` | Linux IPv4+IPv6 |
+| `NetworkRouteSpec.cs` / `NetworkRouteKeys.cs` | Parse + HKLM path |
+| `ShareCampaign*.cs` / `ShareProbePlanner.cs` | Share campaigns |
+| `OuiPacked.cs` / `_Data/oui-snapshot.txt` | Offline OUI stub |
 | `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. **Not Charts.** |
-
-Tests live under `src/Vestigium.Helpers.Tests/`.
 
 ---
 
@@ -93,15 +99,16 @@ Tests live under `src/Vestigium.Helpers.Tests/`.
 |---|---|
 | Phases 0–11 | Inventory through P95 |
 | PR01 | Security harden |
-| PR02 | Route contract + remaining harden |
+| PR02 | Contract lock |
 | PR03 | Share campaigns. Demo skipped. |
-| PR04.001 | Charts stay on the host |
+| PR04 | Packed OUI. Option C route write. No Charts. |
+| PR05.001–002 | Persist key. Requirements catch-up. |
 
 ---
 
 ## 7. Still out of this DLL
 
-Linux netlink / IPv6 route write unless PR04 Option B/C is chosen in writing. Scheduler package. HTTP client. Demo gallery. **Charts.** Repo-wide portable test TFM / ubuntu workflow.
+Scheduler package. HTTP reachability. Demo gallery. Charts. Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4).
 
 ---
 
@@ -110,5 +117,6 @@ Linux netlink / IPv6 route write unless PR04 Option B/C is chosen in writing. Sc
 | Version | Date | Change |
 |---|---|---|
 | 1.6 | 19 Sep 2026 | First standalone Design. |
-| 1.6 + PR02.001 | 19 Sep 2026 | Route contract. |
-| 1.6 + PR04.001 | 19 Sep 2026 | No Charts reference. Hosts plot results. |
+| 1.6 + PR02.001 | 19 Sep 2026 | Then: Windows write / Linux print. |
+| 1.6 + PR04.001 | 19 Sep 2026 | No Charts. |
+| 1.6 + PR05.003 | 19 Sep 2026 | Option C + persist key + packed OUI. |

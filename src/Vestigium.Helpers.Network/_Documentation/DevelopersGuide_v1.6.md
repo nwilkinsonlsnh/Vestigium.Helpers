@@ -13,15 +13,46 @@ A .NET 10 LTS resource library. Hosts subscribe on Windows or Linux. Not a CLI. 
 
 One `net10.0` DLL. References: Json, Analytics, FileIo. **Does not reference Charts.**
 
-Route **print** works on both OS. Route **mutate** is Windows IPv4 only in v1. Linux and IPv6 write throw `NetworkRouteDenied`. NetBIOS is Windows-only.
+Route **print** works on both OS, both families. Route **write** is Option C:
 
-`NetworkTestHooks` is internal.
+| | Windows | Linux |
+|---|---|---|
+| IPv4 | IP Helper + optional HKLM persist | Netlink |
+| IPv6 | `CreateIpForwardEntry2` | Netlink |
+| Default `0.0.0.0/0` or `::/0` | `NetworkRouteDenied` | `NetworkRouteDenied` |
+| No admin / no `CAP_NET_ADMIN` | `NetworkRouteDenied` | `NetworkRouteDenied` |
 
-## Charts stay on the host (PR04.001)
+NetBIOS is Windows-only. `NetworkTestHooks` is internal.
 
-Network returns numbers: `BandwidthAmount`, `TransferResult`, `PercentileBill`, `ShareCampaignResult` (payload hours, metadata hours, declared-pipe hours, disclaimer).
+## Charts stay on the host
 
-A host that wants a plot calls `Vestigium.Helpers.Charts` itself. Do not add a Charts project reference here. Do not add `Chart*` / `Plot*` doors on `NetworkHelper`.
+Network returns numbers: `BandwidthAmount`, `TransferResult`, `PercentileBill`, `ShareCampaignResult`. A host that wants a plot calls Charts itself.
+
+## Routes
+
+```csharp
+var printed = NetworkHelper.GetRoutes(RouteFamily.All);
+
+NetworkHelper.AddRoute(new NetworkRouteChange
+{
+    Destination = "192.0.2.0",
+    PrefixLength = 24,
+    Gateway = "192.0.2.1",
+    InterfaceIndex = 12, // required on Linux
+    Persistent = true    // Windows IPv4 HKLM only
+});
+```
+
+`2001:db8::/32` is a legal write (same doors). `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`.
+
+## OUI
+
+```csharp
+var live = await NetworkHelper.LookupOuiAsync("00:00:0C:11:22:33");
+var packed = NetworkHelper.LookupOuiPacked("00:00:0C:11:22:33"); // offline stub, Source=File
+```
+
+Default live host is `api.macvendors.com`. Custom URL needs `AllowCustomRegistry` + allowlist. Packed snapshot is not a live IEEE pull.
 
 ## Share campaigns
 
@@ -35,28 +66,21 @@ var campaign = NetworkHelper.CreateShareCampaign(new ShareCampaignOptions
     SourceAnalysis = analysis
 });
 var result = await campaign.RunAsync();
-// result.PayloadDuration + result.MetadataDuration == result.MeasuredDuration
-// result.DeclaredPipeDuration is optional and separate
 ```
 
-Default mode: 64 MiB × 4 write probes via FileIo, P95 → `TransferTime(plannedSize)`. Network does not open `FileStream`. No password field on `FileShareTarget`.
+Default mode: 64 MiB × 4 FileIo write probes, P95 → `TransferTime`. Network does not open `FileStream`. No password field.
 
-## Public surface (additions)
+## ICMP continuous
 
-| Method | Notes |
-|---|---|
-| `PlanShareProbe` | Five FileIo buckets. Metadata step when the mix is many-small. |
-| `CreateShareCampaign` / `OpenShareCampaign` | Recipe/results under campaign root. Share directory confined when `ShareRoot` is set (tests). |
-
-Existing ICMP / DNS / route / MAC / bandwidth doors are unchanged from PR02.
+`Count = 0` needs `MaxDuration` (≤ 24 h). Interval floor 200 ms under one minute, 1 s above. `AllowBurst` is only for the short band.
 
 ## Linux CI
 
-Dated **10 September 2026**. The umbrella test project is `net10.0-windows` because that assembly also covers WinReg and, on Windows, Charts. That is **repo CI**, not a Network feature. A later workflow PR may add a portable `net10.0` test project. Until then Windows `FullyQualifiedName~Network` is the Network gate.
+The umbrella test project is `net10.0-windows` because that assembly also covers WinReg and, on Windows, Charts. That is **repo CI**, not a Network feature. Windows `FullyQualifiedName~Network` is the Network gate. Live Ubuntu route checks wait for a later box (PR05 §4).
 
 ## What is not next in this DLL
 
-Linux netlink / IPv6 route write unless PR04 Option B/C is chosen in writing on [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md). Packed OUI file is optional (PR04.002). Scheduler package. HTTP client. Demo gallery. Charts.
+Scheduler package. HTTP reachability. Demo gallery. Charts. Full IEEE OUI dump.
 
 ## Document control
 
@@ -64,6 +88,7 @@ Linux netlink / IPv6 route write unless PR04 Option B/C is chosen in writing on 
 |---|---|---|
 | 1.2 | 10 Sep 2026 | Phase 8 harden wording. |
 | 1.6 | 19 Sep 2026 | Shipped façade. PR01 locks. |
-| 1.6 + PR02 | 19 Sep 2026 | Route contract. Linux ICMP = BCL Ping. |
+| 1.6 + PR02 | 19 Sep 2026 | Then: Windows write / Linux print. |
 | 1.6 + PR03 | 19 Sep 2026 | Share campaigns. Demo skipped. |
-| 1.6 + PR04.001 | 19 Sep 2026 | No Charts reference. Hosts plot results. |
+| 1.6 + PR04.001 | 19 Sep 2026 | No Charts. |
+| 1.6 + PR05.003 | 19 Sep 2026 | Option C + packed OUI + persist key. |
