@@ -45,6 +45,9 @@ public sealed class ShareCampaignOptions
     public ShareCampaignMode Mode { get; set; } = ShareCampaignMode.Default;
     public double Efficiency { get; set; } = 1.0;
     public long MaxProbeBytes { get; set; } = 256L * 1024 * 1024;
+    public long ProbeBytes { get; set; } = 64L * 1024 * 1024;
+    public int ProbeCount { get; set; } = 4;
+    public bool IncludeReadProbe { get; set; }
     public BandwidthAmount? DeclaredPipeRate { get; set; }
     public FileIoDirectoryAnalysis? SourceAnalysis { get; set; }
     public string? RecipePath { get; set; }
@@ -56,4 +59,7 @@ public sealed record ShareCampaignResult(
     NetworkJobStatus Status,
     ShareCampaignMode Mode,
     string ResultsPath,
-    string Disclaimer);
+    string Disclaimer,
+    TimeSpan MeasuredDuration,
+    BandwidthAmount? MeasuredRate,
+    TimeSpan? DeclaredPipeDuration);
