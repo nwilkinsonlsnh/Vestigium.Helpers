@@ -26,7 +26,11 @@ internal static class DnsClient
             throw new ArgumentOutOfRangeException(nameof(o.Timeout), "Timeout must be between 10 ms and 60 s.");
         }
 
+        DnsWireName.Guard(qname);
         var question = PrepareQuestion(qname, o.Type);
+        if (o.Type != DnsRecordType.Ptr)
+            DnsWireName.Guard(question);
+
         NetworkLog.Pending(
             HelperLog.Subcategories.Dns,
             $"lookup q={question} type={o.Type} server={o.Server ?? "os"}");
@@ -192,6 +196,7 @@ internal static class DnsClient
 
     internal static byte[] EncodeQuery(ushort id, string qname, DnsRecordType type, bool rd)
     {
+        DnsWireName.Guard(qname);
         using var ms = new MemoryStream();
         Span<byte> header = stackalloc byte[12];
         BinaryPrimitives.WriteUInt16BigEndian(header, id);
@@ -211,8 +216,6 @@ internal static class DnsClient
         foreach (var label in name.Split('.', StringSplitOptions.RemoveEmptyEntries))
         {
             var bytes = Encoding.ASCII.GetBytes(label);
-            if (bytes.Length > 63)
-                throw new ArgumentException("DNS label exceeds 63 octets.", nameof(name));
             ms.WriteByte((byte)bytes.Length);
             ms.Write(bytes);
         }
