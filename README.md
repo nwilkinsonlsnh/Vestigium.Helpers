@@ -5,7 +5,7 @@
 Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, HttpIQ, ProbeHost).
 
 **Target:** .NET 10 LTS / Visual Studio 2026  
-**Shape:** class libraries + one WPF gallery per library (same chrome as Vestigium.Logging)  
+**Shape:** class libraries + one WPF gallery per library where a Demo project exists (same chrome as Vestigium.Logging)  
 **Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`  
 **Logging:** [Vestigium.Logging](https://www.nuget.org/packages/Vestigium.Logging) 1.7.0 (NuGet). Libraries write through `HelperLog`.
 
@@ -47,17 +47,17 @@ Each WPF gallery is a host. It initializes with that helper's APPID. JSONL lands
 | `Vestigium.Helpers.Services` | `net10.0` | Service control helpers |
 | `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals, **ControlLimits** |
 | `Vestigium.Helpers.Charts` | `net10.0-windows` | ScottPlot wrapper. Draws Analytics numbers on a WPF form (histogram, five-number box, control). Does not compute UCL/LCL. Analytics.Demo and ClosedXml.Demo host it. |
-| `Vestigium.Helpers.Network` | `net10.0` | Workstation inventory, ICMP Echo/Trace, RFC 1035 DNS, stack tables, echo campaigns, snapshot. Not HTTP/socket helpers. |
+| `Vestigium.Helpers.Network` | `net10.0` | Workstation inventory, ICMP Echo/Trace, RFC 1035 DNS, stack tables, echo + share campaigns, Option C route write, packed OUI. Not HTTP reachability. No Charts. No Demo project. |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit (logger collection is serial; ChartView tests run on Windows) |
 
-Each library has a matching `*.Demo` WPF gallery under the **Demo** solution folder. Shared chrome lives in `Vestigium.Helpers.Gallery`. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, FileIo, Json, and Network are shipped; the rest are Probe + JSONL skeletons until their SRS is accepted.
+Each library that has a gallery is a matching `*.Demo` WPF project. Shared chrome lives in `Vestigium.Helpers.Gallery`. **Network has no Demo project** — hosts consume the library. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, FileIo, and Json ship galleries; the rest are Probe + JSONL skeletons until their SRS is accepted.
 
 ## Open in Visual Studio
 
 1. Clone this repository.
 2. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
 3. Restore NuGet (`Vestigium.Logging` 1.7.0 comes from nuget.org).
-4. Set any `*.Demo` project as startup, F5. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, FileIo, Json, and Network open a gallery; the others open the shared skeleton. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
+4. Set any `*.Demo` project as startup, F5. Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, FileIo, and Json open a gallery. Network is library-only. Then open `%ProgramData%\Vestigium\Logs\{APPID}\`.
 5. Run `Vestigium.Helpers.Tests` for the contract.
 
 ```
@@ -69,7 +69,6 @@ dotnet run --project src/Vestigium.Helpers.Encryption.Demo
 dotnet run --project src/Vestigium.Helpers.Hashing.Demo
 dotnet run --project src/Vestigium.Helpers.FileIo.Demo
 dotnet run --project src/Vestigium.Helpers.Json.Demo
-dotnet run --project src/Vestigium.Helpers.Network.Demo
 dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network
 ```
 
@@ -82,4 +81,4 @@ dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory`.
 - Network campaign tests inject `NetworkTestHooks.CampaignRoot`. They never write `%ProgramData%\Vestigium\Network` or `/var/lib/vestigium`.
 - `Vestigium.Logging` is a NuGet package. Do not vendor its source into Helpers.
-- Linux CI for `--filter FullyQualifiedName~Network` is waived as of 10 September 2026 because the test project is `net10.0-windows`. Windows-latest remains the gate.
+- Linux CI for `--filter FullyQualifiedName~Network` is waived as of 10 September 2026 because the test project is `net10.0-windows`. Windows-latest remains the gate. That waiver is repo CI, not a Network feature.
