@@ -17,6 +17,7 @@ public sealed class ShareProbeOptions
 {
     public long MaxProbeBytes { get; set; } = 256L * 1024 * 1024;
     public long BucketFloorBytes { get; set; } = 1024 * 1024;
+    public long? PlannedBytesOverride { get; set; }
     public bool IncludeReadProbe { get; set; }
 }
 
