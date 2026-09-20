@@ -5,6 +5,9 @@ namespace Vestigium.Helpers.Network;
 
 public sealed class ShareCampaign
 {
+    public const string DefaultDisclaimer =
+        "Linear scale from a sequential write probe (default 64 MiB × 4). Many-small-file trees need Advanced.";
+
     ShareCampaign(string campaignId, ShareCampaignOptions options)
     {
         CampaignId = campaignId;
@@ -36,7 +39,9 @@ public sealed class ShareCampaign
     public Task<ShareCampaignResult> RunAsync(CancellationToken cancellation = default)
     {
         cancellation.ThrowIfCancellationRequested();
-        throw new InvalidOperationException("Share campaign execution is PR03.003.");
+        if (Options.Mode == ShareCampaignMode.Advanced)
+            throw new InvalidOperationException("Advanced share estimate is PR03.004 / PR03.005.");
+        return Task.FromResult(ShareCampaignEngine.RunDefault(CampaignId, Options, cancellation));
     }
 
     internal static ShareCampaignOptions Guard(ShareCampaignOptions? options)
@@ -55,6 +60,24 @@ public sealed class ShareCampaign
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), $"maxProbe={o.MaxProbeBytes}");
             throw new ArgumentOutOfRangeException(nameof(o.MaxProbeBytes), "MaxProbeBytes must be at least 1 MiB.");
+        }
+
+        if (o.ProbeBytes < 1)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), $"probeBytes={o.ProbeBytes}");
+            throw new ArgumentOutOfRangeException(nameof(o.ProbeBytes), "ProbeBytes must be at least 1.");
+        }
+
+        if (o.ProbeCount is < 1 or > 16)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), $"probeCount={o.ProbeCount}");
+            throw new ArgumentOutOfRangeException(nameof(o.ProbeCount), "ProbeCount must be between 1 and 16.");
+        }
+
+        if (o.ProbeBytes * (long)o.ProbeCount > o.MaxProbeBytes)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "probe budget");
+            throw new ArgumentException("ProbeBytes × ProbeCount cannot exceed MaxProbeBytes.", nameof(o.MaxProbeBytes));
         }
 
         if (o.Mode == ShareCampaignMode.Default && o.PlannedSize is null)
@@ -81,6 +104,8 @@ public sealed class ShareCampaign
             Mode = options.Mode.ToString(),
             Efficiency = options.Efficiency,
             MaxProbeBytes = options.MaxProbeBytes,
+            ProbeBytes = options.ProbeBytes,
+            ProbeCount = options.ProbeCount,
             PlannedBits = options.PlannedSize?.Bits,
             DeclaredPipeBits = options.DeclaredPipeRate?.Bits,
             ResultsPath = options.ResultsPath
@@ -94,6 +119,8 @@ public sealed class ShareCampaign
         public string Mode { get; set; } = "Default";
         public double Efficiency { get; set; } = 1;
         public long MaxProbeBytes { get; set; }
+        public long ProbeBytes { get; set; } = 64L * 1024 * 1024;
+        public int ProbeCount { get; set; } = 4;
         public decimal? PlannedBits { get; set; }
         public decimal? DeclaredPipeBits { get; set; }
         public string? ResultsPath { get; set; }
@@ -105,6 +132,8 @@ public sealed class ShareCampaign
                 Mode = Enum.TryParse<ShareCampaignMode>(Mode, true, out var mode) ? mode : ShareCampaignMode.Default,
                 Efficiency = Efficiency,
                 MaxProbeBytes = MaxProbeBytes,
+                ProbeBytes = ProbeBytes <= 0 ? 64L * 1024 * 1024 : ProbeBytes,
+                ProbeCount = ProbeCount <= 0 ? 4 : ProbeCount,
                 PlannedSize = PlannedBits is { } bits ? BandwidthEngine.From(bits, DataUnit.Bit) : null,
                 DeclaredPipeRate = DeclaredPipeBits is { } pipe ? BandwidthEngine.From(pipe, DataUnit.Bit) : null,
                 ResultsPath = ResultsPath
@@ -156,5 +185,92 @@ internal static class ShareProbePlanner
             MaxProbeBytes = o.MaxProbeBytes,
             Probes = []
         };
+    }
+}
+
+internal static class ShareCampaignEngine
+{
+    public static ShareCampaignResult RunDefault(string campaignId, ShareCampaignOptions options, CancellationToken cancellation)
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Share, nameof(RunDefault), campaignId);
+        var planned = options.PlannedSize ?? throw new InvalidOperationException("Default mode requires PlannedSize.");
+        var resultsPath = ResolveResults(campaignId, options);
+        var samples = CollectRates(options, cancellation);
+        var bits = samples.Select(b => (decimal)(b * 8d)).ToArray();
+        var bill = PercentileBillEngine.FromSamples(bits, 0.95);
+        var transfer = BandwidthEngine.TransferTime(planned, bill.Rate);
+        var measured = TimeSpan.FromTicks((long)Math.Round(transfer.Duration.Ticks / options.Efficiency, MidpointRounding.AwayFromZero));
+        TimeSpan? declared = options.DeclaredPipeRate is { } pipe
+            ? BandwidthEngine.TransferTime(planned, pipe).Duration
+            : null;
+
+        CampaignJsonl.AppendCampaign(resultsPath, new
+        {
+            kind = "campaignStart",
+            campaignId,
+            mode = "Default",
+            recordedUtc = NetworkTestHooks.Now()
+        });
+        CampaignJsonl.AppendCampaign(resultsPath, new
+        {
+            kind = "probe",
+            campaignId,
+            count = samples.Count,
+            p95BitsPerSecond = bill.Rate.Bits,
+            recordedUtc = NetworkTestHooks.Now()
+        });
+        CampaignJsonl.AppendCampaign(resultsPath, new
+        {
+            kind = "campaignEnd",
+            campaignId,
+            measuredSeconds = measured.TotalSeconds,
+            recordedUtc = NetworkTestHooks.Now()
+        });
+
+        NetworkLog.Success(
+            HelperLog.Subcategories.Share,
+            $"default campaign={campaignId} p95={bill.Rate.Display} duration={measured}");
+
+        return new ShareCampaignResult(
+            campaignId,
+            NetworkJobStatus.Success,
+            ShareCampaignMode.Default,
+            resultsPath,
+            ShareCampaign.DefaultDisclaimer,
+            measured,
+            bill.Rate,
+            declared);
+    }
+
+    static IReadOnlyList<double> CollectRates(ShareCampaignOptions options, CancellationToken cancellation)
+    {
+        if (NetworkTestHooks.ProbeBytesPerSecond is { Count: > 0 } injected)
+            return injected;
+
+        var size = FileIoSize.FromBytes(options.ProbeBytes);
+        var rates = new List<double>(options.ProbeCount);
+        for (var i = 0; i < options.ProbeCount; i++)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            var written = FileIoHelper.WriteProbe(options.Target.Directory, size);
+            rates.Add(written.BytesPerSecond);
+            if (options.IncludeReadProbe && !written.Deleted)
+            {
+                var read = FileIoHelper.ReadProbe(written.Path);
+                rates.Add(read.BytesPerSecond);
+            }
+        }
+
+        return rates;
+    }
+
+    static string ResolveResults(string campaignId, ShareCampaignOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.ResultsPath))
+            return CampaignPaths.Confine(options.ResultsPath, nameof(options.ResultsPath));
+
+        var root = CampaignPaths.Root();
+        Directory.CreateDirectory(root);
+        return Path.Combine(root, campaignId + ".jsonl");
     }
 }
