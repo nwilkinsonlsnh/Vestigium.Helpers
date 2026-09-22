@@ -1,24 +1,87 @@
-# Vestigium.Helpers.Network — document set (Rev 1.6)
+# Vestigium.Helpers.Network
 
-**Status:** Single source of truth as of 19 September 2026.  
-**Package:** `Vestigium.Helpers.Network` (`net10.0`)
+Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `ping.exe`. Not a charting package. Charts stay on the host.
 
-| Document | Role |
+## Identity
+
+| Field | Value |
 |---|---|
-| [`Requirements_v1.6.md`](Requirements_v1.6.md) | Binding contract. |
-| [`Design_v1.6.md`](Design_v1.6.md) | Why it is shaped this way. |
-| [`DevelopersGuide_v1.6.md`](DevelopersGuide_v1.6.md) | How to call it. |
+| Package | `Vestigium.Helpers.Network` 1.0.0 |
+| TFM | `net10.0` |
+| APPID | `Network` (`NetworkCatalog.AppId`) |
+| EVENTID | Reserved 14500–14999 (used through 14525) |
+| Depends on | Json, Analytics, FileIo, `Vestigium.Logging` |
+| License | MIT |
+| Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/002%20--%20Requirements%20Document) |
 
-If these three disagree, **Requirements wins**.
+Does not reference Charts. Packed OUI snapshot is offline and incomplete.
 
-## PR series
+## Consume
 
-| Plan | Goal | Status |
+```xml
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.0.0" />
+```
+
+```csharp
+using Vestigium.Helpers.Network;
+
+var box = NetworkHelper.GetWorkstation();
+var echo = await NetworkHelper.IcmpEcho("192.0.2.1").RunAsync();
+var dns  = await NetworkHelper.LookupAsync("example.com");
+var routes = NetworkHelper.GetRoutes();
+```
+
+`Ping` / `Trace` are aliases for `IcmpEcho` / `IcmpTrace`.
+
+## Surface
+
+| Call | Returns | Notes |
 |---|---|---|
-| [`PR01_ImplementationPlan.md`](PR01_ImplementationPlan.md) | Security harden | Closed |
-| [`PR02_ImplementationPlan.md`](PR02_ImplementationPlan.md) | Contract lock | Closed |
-| [`PR03_ImplementationPlan.md`](PR03_ImplementationPlan.md) | Share campaigns | Closed. Demo skipped. |
-| [`PR04_ImplementationPlan.md`](PR04_ImplementationPlan.md) | Packed OUI + Option C. No Charts. | Closed |
-| [`PR05_ImplementationPlan.md`](PR05_ImplementationPlan.md) | Hygiene | **Closed** |
+| `GetWorkstation` / `GetAdapters` / `GetSnapshot` | inventory | Local stack. |
+| `IcmpEcho` / `IcmpTrace` | `NetworkJob<T>` | Then `RunAsync`. |
+| `LookupAsync` | DNS result | |
+| `GetConnections` / `GetRoutes` / `GetNeighbors` | lists | Route print works on Windows and Linux. |
+| `AddRoute` / `ChangeRoute` / `RemoveRoute` | void | Default `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`. |
+| `CreateEchoCampaign` / `CreateShareCampaign` | campaign | Share campaigns use FileIo probes. No password field. |
+| `ClassifyAddress` / `DescribePrefix` / `PlanByHosts` | prefix math | |
+| `ParseMac` / `LookupOuiPacked` / `LookupOuiAsync` | MAC / OUI | Packed is offline. |
+| `Bandwidth` / `BillP95` | amounts | Numbers only. Host plots. |
+| `NetworkCatalog.Register(cfg)` | void | Host-only, during `VestigiumLogger.Initialize`. |
 
-Charts, Demo, and Linux CI topology are not this package. Live Ubuntu route checks stay on PR05 §3.
+## Rules that do not move
+
+- Not `ping.exe` / `tracert.exe`. Jobs are BCL + IP Helper / ICMP.
+- Route writes need admin / `CAP_NET_ADMIN`. Defaults are denied.
+- NetBIOS is Windows-only.
+- Packed OUI is not a live IEEE dump.
+- Never log credentials. Share campaigns have no password field.
+- The library never calls `VestigiumLogger.Initialize`.
+
+## Logging
+
+```csharp
+VestigiumLogger.Initialize(cfg =>
+{
+    cfg.AppId = "PingIQ";                       // host APPID, not Network
+    cfg.LogDirectory = logDir;
+    NetworkCatalog.Register(cfg);
+});
+```
+
+Writes are no-ops until the host initializes. JSONL lands at `%ProgramData%\Vestigium\Logs\{host-APPID}\`.
+
+Named events live in `EventCatalog/network.json`.
+
+## Related
+
+Sizes: `Vestigium.Helpers.Analytics`. Share probes: `Vestigium.Helpers.FileIo`. Campaign recipes: `Vestigium.Helpers.Json`.
+
+Long-form documents live in [Vestigium.Documentation / Helpers / Network](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network). Folders, not files — current revision sits inside the folder.
+
+| Area | GitHub |
+|---|---|
+| 000 -- Archived | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/000%20--%20Archived) |
+| 001 -- Implementation Plan | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/001%20--%20Implementation%20Plan) |
+| 002 -- Requirements Document | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/002%20--%20Requirements%20Document) |
+| 003 -- Design Document | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/003%20--%20Design%20Document) |
+| 004 -- Developers Guide | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/004%20--Developers%20Guide) |
