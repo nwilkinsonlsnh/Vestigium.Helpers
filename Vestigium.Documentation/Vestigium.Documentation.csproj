@@ -1,10 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\src\Vestigium.Helpers.Analytics\README.md" Link="Vestigium\Helpers\Analytics\README.md" />
+  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Vestigium\Helpers\Analytics\000 -- Archived\003 -- Design Document\" />
