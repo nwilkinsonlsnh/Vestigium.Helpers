@@ -21,4 +21,7 @@
   <ItemGroup>
     <None Include="EventCatalog\encryption.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="_Documentation\" />
+  </ItemGroup>
 </Project>

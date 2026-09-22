@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Documentation/">
+    <Project Path="Vestigium.Documentation/Vestigium.Documentation.csproj" Id="ef8920a0-42ee-4e01-b568-6c061cf0b3bd" />
+  </Folder>
   <Folder Name="/Library/">
     <Project Path="src/Vestigium.Helpers.Analytics/Vestigium.Helpers.Analytics.csproj" />
     <Project Path="src/Vestigium.Helpers.Charts/Vestigium.Helpers.Charts.csproj" />
