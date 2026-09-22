@@ -47,6 +47,7 @@ internal static class FrameCipher
                 using (var cha = new ChaCha20Poly1305(key))
                     cha.Encrypt(nonce, plaintext, ciphertext, tag, aad);
                 break;
+            case EncryptionAlgorithm.Aes256CbcHmac:
             default:
                 throw new NotSupportedException("alg");
         }
@@ -73,6 +74,7 @@ internal static class FrameCipher
                     using (var cha = new ChaCha20Poly1305(key))
                         cha.Decrypt(nonce, ciphertext, tag, plaintext, aad);
                     break;
+                case EncryptionAlgorithm.Aes256CbcHmac:
                 default:
                     throw new NotSupportedException("alg");
             }

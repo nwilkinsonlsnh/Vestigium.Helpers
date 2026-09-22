@@ -161,9 +161,7 @@ internal static class Trailer
 
     public static TrailerFields Read(Stream source)
     {
-        if (!TryRead(source, out var trailer))
-            throw new CryptographicException("The envelope is corrupt.");
-        return trailer;
+        return !TryRead(source, out var trailer) ? throw new CryptographicException("The envelope is corrupt.") : trailer;
     }
 
     public static TrailerFields ParseBody(byte[] body)
@@ -255,10 +253,14 @@ internal static class Trailer
 
     public static byte[] EncodeWraps(IReadOnlyList<RsaWrapRecord> wraps)
     {
-        if (wraps.Count == 0)
-            return [];
-        if (wraps.Count > MaxWraps)
-            throw new ArgumentOutOfRangeException(nameof(wraps), "At most 8 RSA wraps.");
+        switch (wraps.Count)
+        {
+            case 0:
+                return [];
+            case > MaxWraps:
+                throw new ArgumentOutOfRangeException(nameof(wraps), "At most 8 RSA wraps.");
+        }
+
         using var ms = new MemoryStream();
         ms.WriteByte((byte)wraps.Count);
         Span<byte> u16 = stackalloc byte[2];
@@ -315,9 +317,7 @@ internal static class Trailer
             });
         }
 
-        if (o != region.Length)
-            throw new CryptographicException("The envelope is corrupt.");
-        return list;
+        return o != region.Length ? throw new CryptographicException("The envelope is corrupt.") : list;
     }
 
     public static byte[] ComputeMac(ReadOnlySpan<byte> contentKey, ReadOnlySpan<byte> fileNonce, ReadOnlySpan<byte> bodyWithoutMac)

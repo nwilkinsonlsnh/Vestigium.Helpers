@@ -83,9 +83,7 @@ public sealed class EncryptionRsaKey : IDisposable
     public byte[] ExportPkcs8()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_pkcs8 is null)
-            throw new InvalidOperationException("Public-only wrap key.");
-        return _pkcs8.ToArray();
+        return _pkcs8 is null ? throw new InvalidOperationException("Public-only wrap key.") : _pkcs8.ToArray();
     }
 
     public EncryptionRsaKey PublicOnly()
@@ -94,9 +92,7 @@ public sealed class EncryptionRsaKey : IDisposable
     public byte[] Wrap(ReadOnlySpan<byte> contentKey32)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (contentKey32.Length != 32)
-            throw new ArgumentException("Content key must be 32 bytes.", nameof(contentKey32));
-        return _rsa!.Encrypt(contentKey32.ToArray(), RSAEncryptionPadding.OaepSHA256);
+        return contentKey32.Length != 32 ? throw new ArgumentException("Content key must be 32 bytes.", nameof(contentKey32)) : _rsa!.Encrypt(contentKey32.ToArray(), RSAEncryptionPadding.OaepSHA256);
     }
 
     public byte[] Unwrap(ReadOnlySpan<byte> wrapped)
@@ -107,9 +103,7 @@ public sealed class EncryptionRsaKey : IDisposable
         try
         {
             var plain = _rsa!.Decrypt(wrapped.ToArray(), RSAEncryptionPadding.OaepSHA256);
-            if (plain.Length != 32)
-                throw new CryptographicException("The envelope is corrupt.");
-            return plain;
+            return plain.Length != 32 ? throw new CryptographicException("The envelope is corrupt.") : plain;
         }
         catch (CryptographicException)
         {

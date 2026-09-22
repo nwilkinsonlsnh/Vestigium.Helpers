@@ -781,7 +781,7 @@ public static class EncryptionHelper
             HeaderVersion = $"{trailer.SuiteMajor}.{trailer.SuiteMinor}",
             TrailerVersion = $"{trailer.TrailerMajor}.{trailer.TrailerMinor}",
             Algorithm = (EncryptionAlgorithm)trailer.Alg,
-            UsedArgon2id = trailer.Kdf == 1,
+            UsedArgon2Id = trailer.Kdf == 1,
             FrameSize = (int)trailer.FrameSize,
             FrameCount = trailer.FrameCount,
             PlaintextLength = trailer.PlaintextLength,

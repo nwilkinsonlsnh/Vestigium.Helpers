@@ -30,19 +30,12 @@ public sealed class EncryptionKeyOverride
             DateTimeOffset.UtcNow);
 }
 
-public sealed class EncryptionTokenException : InvalidOperationException
+public sealed class EncryptionTokenException(Guid tokenId, EncryptionKeyStatus status, EncryptionTokenUse use)
+    : InvalidOperationException(MessageFor(status))
 {
-    public EncryptionTokenException(Guid tokenId, EncryptionKeyStatus status, EncryptionTokenUse use)
-        : base(MessageFor(status))
-    {
-        TokenId = tokenId;
-        Status = status;
-        Use = use;
-    }
-
-    public Guid TokenId { get; }
-    public EncryptionKeyStatus Status { get; }
-    public EncryptionTokenUse Use { get; }
+    public Guid TokenId { get; } = tokenId;
+    public EncryptionKeyStatus Status { get; } = status;
+    public EncryptionTokenUse Use { get; } = use;
 
     private static string MessageFor(EncryptionKeyStatus status) => status switch
     {

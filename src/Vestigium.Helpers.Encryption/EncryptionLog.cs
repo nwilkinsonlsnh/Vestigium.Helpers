@@ -79,9 +79,7 @@ internal static class EncryptionLog
     {
         if (string.IsNullOrEmpty(message))
             return message ?? string.Empty;
-        if (EncryptionAudit.LooksLikeSecret(message))
-            return "[redacted]";
-        return message;
+        return EncryptionAudit.LooksLikeSecret(message) ? "[redacted]" : message;
     }
 
     private static void Write(

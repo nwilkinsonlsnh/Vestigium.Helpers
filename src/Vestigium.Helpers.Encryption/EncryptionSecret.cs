@@ -31,9 +31,7 @@ public sealed class EncryptionSecret : IDisposable
 
     public static EncryptionSecret FromKey(ReadOnlySpan<byte> key32)
     {
-        if (key32.Length != 32)
-            throw new ArgumentException("Raw keys must be 32 bytes.", nameof(key32));
-        return new EncryptionSecret(key32.ToArray());
+        return key32.Length != 32 ? throw new ArgumentException("Raw keys must be 32 bytes.", nameof(key32)) : new EncryptionSecret(key32.ToArray());
     }
 
     internal byte[] DeriveContentKey(byte kdf, byte[] salt, byte memMiB, byte iter, byte par)
@@ -51,10 +49,7 @@ public sealed class EncryptionSecret : IDisposable
         if (kdf != 1)
             throw new NotSupportedException("kdf");
 
-        if (_passphrase is null)
-            throw new CryptographicException("The envelope is corrupt.");
-
-        return Argon2idKdf.Derive(_passphrase, salt, memMiB, iter, par);
+        return _passphrase is null ? throw new CryptographicException("The envelope is corrupt.") : Argon2idKdf.Derive(_passphrase, salt, memMiB, iter, par);
     }
 
     public void Dispose()

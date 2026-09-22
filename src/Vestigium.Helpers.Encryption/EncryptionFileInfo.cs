@@ -6,7 +6,7 @@ public sealed class EncryptionFileInfo
     public string HeaderVersion { get; init; } = "1.0";
     public string TrailerVersion { get; init; } = "1.0";
     public EncryptionAlgorithm Algorithm { get; init; }
-    public bool UsedArgon2id { get; init; }
+    public bool UsedArgon2Id { get; init; }
     public int FrameSize { get; init; }
     public ulong FrameCount { get; init; }
     public ulong PlaintextLength { get; init; }

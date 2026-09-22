@@ -19,17 +19,13 @@ internal static class EncryptionAudit
     public static string Actor(string requestedBy)
     {
         var value = EncryptionKeyRecord.Clamp(requestedBy, ActorMax, nameof(requestedBy));
-        if (LooksLikeSecret(value))
-            throw new ArgumentException("RequestedBy must not contain key material.", nameof(requestedBy));
-        return value;
+        return LooksLikeSecret(value) ? throw new ArgumentException("RequestedBy must not contain key material.", nameof(requestedBy)) : value;
     }
 
     public static string Reason(string reason)
     {
         var value = EncryptionKeyRecord.Clamp(reason, ReasonMax, nameof(reason));
-        if (LooksLikeSecret(value))
-            throw new ArgumentException("Override reason must not contain key material.", nameof(reason));
-        return value;
+        return LooksLikeSecret(value) ? throw new ArgumentException("Override reason must not contain key material.", nameof(reason)) : value;
     }
 
     public static bool LooksLikeSecret(string value)
@@ -43,11 +39,12 @@ internal static class EncryptionAudit
             return true;
 
         var compact = value.Replace(" ", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal);
-        if (compact.Length >= 32 && compact.All(Uri.IsHexDigit))
-            return true;
-        if (compact.Length >= 44 && compact.All(IsBase64Char))
-            return true;
-        return false;
+        return compact.Length switch
+        {
+            >= 32 when compact.All(Uri.IsHexDigit) => true,
+            >= 44 when compact.All(IsBase64Char) => true,
+            _ => false
+        };
     }
 
     private static bool IsBase64Char(char c)

@@ -20,13 +20,11 @@ internal static class Argon2idKdf
         var password = Encoding.UTF8.GetBytes(passphrase);
         try
         {
-            using var argon = new Argon2id(password)
-            {
-                Salt = salt,
-                DegreeOfParallelism = par,
-                Iterations = iter,
-                MemorySize = memMiB * 1024
-            };
+            using var argon = new Argon2id(password);
+            argon.Salt = salt;
+            argon.DegreeOfParallelism = par;
+            argon.Iterations = iter;
+            argon.MemorySize = memMiB * 1024;
             return argon.GetBytes(KeyLength);
         }
         finally

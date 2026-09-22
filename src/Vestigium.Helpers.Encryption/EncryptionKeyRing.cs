@@ -59,9 +59,7 @@ public sealed class EncryptionKeyRecord
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, name);
         value = value.Trim();
-        if (value.Length > max)
-            throw new ArgumentException($"{name} is limited to {max} characters.", name);
-        return value;
+        return value.Length > max ? throw new ArgumentException($"{name} is limited to {max} characters.", name) : value;
     }
 }
 

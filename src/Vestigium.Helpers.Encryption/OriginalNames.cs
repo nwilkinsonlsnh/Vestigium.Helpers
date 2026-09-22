@@ -14,9 +14,7 @@ internal static class OriginalNames
         var file = Path.GetFileName(raw);
         if (string.IsNullOrWhiteSpace(file))
             throw new ArgumentException("Value is required.", nameof(name));
-        if (Encoding.UTF8.GetByteCount(file) > 255)
-            throw new ArgumentException("Original file name is too long.", nameof(name));
-        return file;
+        return Encoding.UTF8.GetByteCount(file) > 255 ? throw new ArgumentException("Original file name is too long.", nameof(name)) : file;
     }
 
     public static string Stem(string originalFileName)
