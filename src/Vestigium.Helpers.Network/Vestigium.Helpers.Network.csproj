@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
+    <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. Packed OUI snapshot is offline and incomplete.</Description>
+    <Version>1.0.0</Version>
+    <Authors>Vestigium</Authors>
+    <Company>Wilkinson Business</Company>
+    <PackageTags>network;icmp;dns;share;oui;vestigium</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.FileIo\Vestigium.Helpers.FileIo.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EventCatalog\network.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="_Data\oui-snapshot.txt" Pack="true" PackagePath="contentFiles\any\any\NetworkData\" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="_Data\oui-snapshot.txt" LogicalName="Vestigium.Helpers.Network.Data.oui-snapshot.txt" />
+  </ItemGroup>
+</Project>

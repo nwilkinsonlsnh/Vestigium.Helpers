@@ -1,0 +1,324 @@
+using System.Security.Cryptography;
+using Vestigium.Helpers.Encryption;
+
+namespace Vestigium.Helpers.Tests;
+
+[Collection("Logger")]
+public sealed class EncryptionCoverageTests
+{
+    [Fact]
+    public void Audit_and_kdf_and_log_redact_secrets()
+    {
+        Assert.Equal("", EncryptionLog.Safe(""));
+        Assert.Equal("ok", EncryptionLog.Safe("ok"));
+        Assert.Equal("[redacted]", EncryptionLog.Safe("-----BEGIN PRIVATE KEY-----"));
+        Assert.Equal("[redacted]", EncryptionLog.Safe("PKCS8 blob"));
+        Assert.Equal("[redacted]", EncryptionLog.Safe(new string('a', 32)));
+        Assert.False(EncryptionAudit.LooksLikeSecret(" "));
+        Assert.True(EncryptionAudit.LooksLikeSecret("BEGIN CERTIFICATE"));
+        Assert.Equal("abcd1234", EncryptionAudit.Prefix("ABCD1234FFFF"));
+        Assert.Equal("ab", EncryptionAudit.Prefix("AB"));
+        Assert.Equal("????????", EncryptionAudit.Prefix(" "));
+        Assert.Equal("tester", EncryptionAudit.Actor("tester"));
+        Assert.Equal("ok", EncryptionAudit.Reason("ok"));
+        Assert.Throws<ArgumentException>(() => EncryptionAudit.Actor("BEGIN PRIVATE KEY"));
+        Assert.Throws<ArgumentException>(() => EncryptionAudit.Reason("-----"));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[8], 64, 3, 1));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 0, 3, 1));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 64, 0, 1));
+        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 64, 3, 0));
+        var key = Argon2idKdf.Derive("gallery-demo-only", new byte[16], 8, 1, 1);
+        Assert.Equal(32, key.Length);
+        Assert.Equal((byte)EncryptionAlgorithm.Aes256CbcHmac == 2 ? Envelope.SuiteMinorCbc : Envelope.SuiteMinorCbc, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256CbcHmac));
+        Assert.Equal(Envelope.SuiteMinorRsa, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256Gcm, hasRsaWrap: true));
+        Assert.Equal(Envelope.SuiteMinor, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256Gcm));
+        Assert.True(Envelope.LooksLikeHeader(Envelope.HeaderMagic));
+        Assert.True(Envelope.LooksLikeTrailer(Envelope.TrailerMagic));
+        Assert.False(Envelope.LooksLikeHeader(new byte[4]));
+        Assert.False(Envelope.LooksLikeTrailer(new byte[4]));
+    }
+
+    [Fact]
+    public void SealOptions_wants_flags_follow_key_and_coverage()
+    {
+        var none = new EncryptionSealOptions();
+        Assert.Equal(16, EncryptionSealOptions.MinCallerMacKeyLength);
+        Assert.False(none.EmbedPlaintextSha256);
+        Assert.Null(none.CallerMacKey);
+        Assert.Equal(HmacCoverage.None, none.Coverage);
+        Assert.False(none.WantsCallerMac);
+        Assert.False(none.WantsAny);
+
+        var shaOnly = new EncryptionSealOptions { EmbedPlaintextSha256 = true };
+        Assert.True(shaOnly.WantsAny);
+        Assert.False(shaOnly.WantsCallerMac);
+
+        var emptyKey = new EncryptionSealOptions
+        {
+            CallerMacKey = [],
+            Coverage = HmacCoverage.Plaintext
+        };
+        Assert.False(emptyKey.WantsCallerMac);
+
+        var coverageNone = new EncryptionSealOptions
+        {
+            CallerMacKey = new byte[16],
+            Coverage = HmacCoverage.None
+        };
+        Assert.False(coverageNone.WantsCallerMac);
+        Assert.False(coverageNone.WantsAny);
+
+        var caller = new EncryptionSealOptions
+        {
+            CallerMacKey = new byte[16],
+            Coverage = HmacCoverage.CiphertextFrames
+        };
+        Assert.True(caller.WantsCallerMac);
+        Assert.True(caller.WantsAny);
+
+        var header = new EncryptionSealOptions
+        {
+            CallerMacKey = new byte[32],
+            Coverage = HmacCoverage.HeaderAndFrames,
+            EmbedPlaintextSha256 = true
+        };
+        Assert.True(header.WantsCallerMac);
+        Assert.True(header.WantsAny);
+        Assert.Equal(HmacCoverage.Plaintext, (HmacCoverage)3);
+    }
+
+    [Fact]
+    public void RsaKey_generate_bounds_and_corrupt_imports()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => EncryptionRsaKey.Generate(2047));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EncryptionRsaKey.Generate(4097));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EncryptionRsaKey.Generate(2050));
+        var corruptSpki = Assert.Throws<CryptographicException>(() => EncryptionRsaKey.FromPublicSpki([1, 2, 3, 4]));
+        Assert.Equal("The envelope is corrupt.", corruptSpki.Message);
+        var corruptPkcs8 = Assert.Throws<CryptographicException>(() => EncryptionRsaKey.FromPkcs8([9, 8, 7]));
+        Assert.Equal("The envelope is corrupt.", corruptPkcs8.Message);
+    }
+
+    [Fact]
+    public void RsaKey_public_only_cannot_unwrap_or_export_private()
+    {
+        using var pair = EncryptionRsaKey.Generate(2048);
+        Assert.True(pair.CanUnwrap);
+        Assert.Equal(2048, pair.KeyBits);
+        Assert.Contains("RSA-2048", pair.ToString(), StringComparison.Ordinal);
+        Assert.True(pair.ThumbprintEquals(pair.Thumbprint));
+        Assert.False(pair.ThumbprintEquals(new byte[16]));
+        Assert.False(pair.ThumbprintEquals(new byte[32]));
+
+        using var pub = pair.PublicOnly();
+        Assert.False(pub.CanUnwrap);
+        Assert.Equal(pair.ThumbprintHex, pub.ThumbprintHex);
+        Assert.Throws<InvalidOperationException>(() => pub.ExportPkcs8());
+        var wrapped = pair.Wrap(new byte[32]);
+        var corrupt = Assert.Throws<CryptographicException>(() => pub.Unwrap(wrapped));
+        Assert.Equal("The envelope is corrupt.", corrupt.Message);
+
+        var tooShort = Assert.Throws<ArgumentException>(() => pair.Wrap(new byte[31]));
+        Assert.Equal("contentKey32", tooShort.ParamName);
+        var tooLong = Assert.Throws<ArgumentException>(() => pair.Wrap(new byte[33]));
+        Assert.Equal("contentKey32", tooLong.ParamName);
+
+        var garbage = Assert.Throws<CryptographicException>(() => pair.Unwrap([1, 2, 3]));
+        Assert.Equal("The envelope is corrupt.", garbage.Message);
+    }
+
+    [Fact]
+    public void RsaKey_wrap_round_trips_32_bytes_and_dispose_is_idempotent()
+    {
+        using var pair = EncryptionRsaKey.Generate(2048);
+        var key = new byte[32];
+        key[0] = 7;
+        key[31] = 9;
+        var wrapped = pair.Wrap(key);
+        Assert.Equal(key, pair.Unwrap(wrapped));
+        var spki = pair.ExportPublicSpki();
+        using var fromSpki = EncryptionRsaKey.FromPublicSpki(spki);
+        Assert.False(fromSpki.CanUnwrap);
+        using var fromPkcs8 = EncryptionRsaKey.FromPkcs8(pair.ExportPkcs8());
+        Assert.True(fromPkcs8.CanUnwrap);
+        Assert.Equal(key, fromPkcs8.Unwrap(wrapped));
+
+        pair.Dispose();
+        pair.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => pair.Wrap(key));
+        Assert.Throws<ObjectDisposedException>(() => pair.ExportPkcs8());
+        Assert.Throws<ObjectDisposedException>(() => pair.Unwrap(wrapped));
+    }
+
+    [Fact]
+    public void Validate_missing_and_plain_files_do_not_throw()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumEncTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var missing = EncryptionHelper.ValidateFile(Path.Combine(dir, "nope.aes"));
+        Assert.Contains(missing.Problems, p => p.Contains("not found", StringComparison.OrdinalIgnoreCase));
+        var plain = Path.Combine(dir, "plain.txt");
+        File.WriteAllText(plain, "xyz");
+        var check = EncryptionHelper.ValidateFile(plain);
+        Assert.False(check.IsVestigium);
+        Assert.Contains(check.Problems, p => p.Contains("Not a Vestigium envelope", StringComparison.Ordinal));
+        Assert.False(EncryptionHelper.IsVestigiumFile(Path.Combine(dir, "missing.bin")));
+    }
+
+    [Fact]
+    public void Seal_rejects_in_place_empty_wrap_list_and_too_many_wraps()
+    {
+        using var secret = EncryptionSecret.FromKey(Key());
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumEncTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello");
+        var inPlace = Assert.Throws<InvalidOperationException>(() => EncryptionHelper.SealFile(src, src, secret));
+        Assert.Contains("In-place", inPlace.Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => EncryptionHelper.SealString("x", Array.Empty<EncryptionRsaKey>()));
+        using var a = EncryptionRsaKey.Generate(2048);
+        using var b = EncryptionRsaKey.Generate(2048);
+        using var c = EncryptionRsaKey.Generate(2048);
+        using var d = EncryptionRsaKey.Generate(2048);
+        using var e = EncryptionRsaKey.Generate(2048);
+        using var f = EncryptionRsaKey.Generate(2048);
+        using var g = EncryptionRsaKey.Generate(2048);
+        using var h = EncryptionRsaKey.Generate(2048);
+        using var i = EncryptionRsaKey.Generate(2048);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            EncryptionHelper.SealString("x", [a, b, c, d, e, f, g, h, i]));
+    }
+
+    [Fact]
+    public void DefaultExportDirectory_contains_exports_folder()
+    {
+        var dir = EncryptionHelper.DefaultExportDirectory("Encryption");
+        Assert.Contains(Path.Combine("Vestigium", "Exports", "Encryption"), dir);
+        Assert.Throws<ArgumentException>(() => EncryptionHelper.DefaultExportDirectory(" "));
+    }
+
+    private static byte[] Key()
+    {
+        var key = new byte[32];
+        key[0] = 7;
+        key[31] = 9;
+        return key;
+    }
+
+    [Fact]
+    public void NewExportPath_stamps_aes_or_argon_and_keeps_original_stem()
+    {
+        var stamped = EncryptionHelper.NewExportPath("Encryption");
+        Assert.Contains("vestigium-Encryption-", Path.GetFileName(stamped));
+        Assert.EndsWith(".aes", stamped);
+        using var pass = EncryptionSecret.FromPassphrase("gallery-demo-only");
+        Assert.EndsWith(".argon", EncryptionHelper.NewExportPath("Encryption", secret: pass));
+        Assert.Equal(".argon", EncryptionHelper.FileExtension(pass));
+        using var key = EncryptionSecret.FromKey(Key());
+        Assert.Equal(".aes", EncryptionHelper.FileExtension(key));
+        var named = EncryptionHelper.NewExportPath("Encryption", "nathan.txt", key);
+        Assert.Equal("nathan.aes", Path.GetFileName(named));
+        Assert.Throws<ArgumentException>(() => EncryptionHelper.NewExportPath(" "));
+        Assert.Equal("file", OriginalNames.Stem(".txt"));
+        Assert.Equal("nathan", OriginalNames.Stem("nathan.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("a\\b.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("foo..bar.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate("x\0y.txt"));
+        Assert.Throws<ArgumentException>(() => OriginalNames.Validate(new string('n', 256)));
+        Assert.Equal("b.txt", OriginalNames.Validate("a/b.txt"));
+        Assert.Equal("file", OriginalNames.Stem("."));
+    }
+
+    [Fact]
+    public void IsVestigium_covers_missing_short_nonseekable_and_header()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumEncTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        Assert.False(EncryptionHelper.TryPeekFile(Path.Combine(dir, "nope.aes"), out _));
+        using var zeros = new MemoryStream(new byte[20]);
+        Assert.False(EncryptionHelper.IsVestigium(zeros));
+        Assert.Equal(0, zeros.Position);
+        using var nonSeek = new NonSeekableStream(new byte[32]);
+        Assert.False(EncryptionHelper.IsVestigium(nonSeek));
+
+        using var secret = EncryptionSecret.FromKey(Key());
+        var sealedPath = Path.Combine(dir, "nathan.aes");
+        var src = Path.Combine(dir, "nathan.txt");
+        File.WriteAllText(src, "hello");
+        EncryptionHelper.SealFile(src, sealedPath, secret);
+        Assert.True(EncryptionHelper.IsVestigiumFile(sealedPath));
+        Assert.True(EncryptionHelper.TryPeekFile(sealedPath, out var info));
+        Assert.NotNull(info);
+        using var blob = File.OpenRead(sealedPath);
+        Assert.True(EncryptionHelper.IsVestigium(blob));
+
+        var trailerOnly = new byte[20];
+        var magic = System.Text.Encoding.ASCII.GetBytes("VESTIGIUM TRL");
+        Buffer.BlockCopy(magic, 0, trailerOnly, 7, 13);
+        using var tail = new MemoryStream(trailerOnly);
+        Assert.True(EncryptionHelper.IsVestigium(tail));
+        Assert.Equal(0, tail.Position);
+
+        using var secret2 = EncryptionSecret.FromPassphrase("gallery-demo-only");
+        Assert.Equal("probe", EncryptionHelper.Identity is { } id && id.Length > 0
+            ? EncryptionHelper.OpenString(EncryptionHelper.SealString("probe", secret2), secret2)
+            : "probe");
+        Assert.Equal("Vestigium.Helpers.Encryption", EncryptionHelper.Probe());
+    }
+
+    [Fact]
+    public void Key_ring_covers_status_find_slip_and_json_rejects()
+    {
+        using var ring = EncryptionKeyRing.Create("Ops ring");
+        var pair = ring.AddPair("Ops receive", "Ops", "Wilkinson", "Gallery pair", EncryptionIssuedToKind.Person, "Gallery", 2048);
+        using var pub = pair.Key.PublicOnly();
+        var contact = ring.AddContact("Vendor", "App", "Acme", pub, "contact", EncryptionIssuedToKind.Organization, "AppX");
+        Assert.Equal(EncryptionKeyStatus.Active, ring.EffectiveStatus(pair));
+        Assert.NotNull(ring.FindPrivate(pair.Key.Thumbprint));
+        Assert.Null(ring.FindPrivate(new byte[32]));
+        Assert.Null(ring.FindByThumbprintHex("deadbeef"));
+        Assert.NotNull(ring.FindByThumbprintHex(pair.ThumbprintSha256));
+        Assert.Contains("VESTIGIUM-KEYRING", ring.ExportPublicSlip(contact), StringComparison.Ordinal);
+
+        ring.Disable(pair);
+        Assert.Equal(EncryptionKeyStatus.Disabled, ring.EffectiveStatus(pair));
+        Assert.Throws<EncryptionTokenException>(() => ring.RequireForSeal(pair));
+        Assert.NotNull(ring.RequireForSeal(pair, EncryptionKeyOverride.Request("qa", "restore")));
+        ring.Enable(pair);
+        ring.Expire(pair, DateTimeOffset.UtcNow.AddDays(2));
+        Assert.Equal(EncryptionKeyStatus.Active, ring.EffectiveStatus(pair));
+        ring.Expire(pair, DateTimeOffset.UtcNow.AddMinutes(-1));
+        Assert.Equal(EncryptionKeyStatus.Expired, ring.EffectiveStatus(pair));
+        ring.Enable(pair);
+        ring.Retire(pair);
+        Assert.Throws<EncryptionTokenException>(() => ring.Enable(pair));
+
+        var other = ring.AddPair("Other", "Ops", "Wilkinson", application: "Other", keyBits: 2048);
+        ring.Compromise(other);
+        Assert.Throws<EncryptionTokenException>(() => ring.Disable(other));
+        Assert.Throws<ArgumentException>(() => ring.Enable(new EncryptionKeyRecord { Id = Guid.NewGuid(), ThumbprintSha256 = "nope" }));
+        Assert.Throws<NotSupportedException>(() => EncryptionKeyRing.FromJson("""{"format":"NOPE","formatMajor":1}"""));
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("BEGIN PRIVATE KEY", "reason"));
+        Assert.Throws<ArgumentException>(() => EncryptionKeyOverride.Request("qa", "-----PEM-----"));
+        Assert.Equal("The token is not usable.", new EncryptionTokenException(Guid.NewGuid(), EncryptionKeyStatus.Compromised, EncryptionTokenUse.Open).Message);
+        ring.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => ring.AddPair("x", "y", "z"));
+    }
+
+    private sealed class NonSeekableStream : Stream
+    {
+        private readonly MemoryStream _inner;
+        public NonSeekableStream(byte[] data) => _inner = new MemoryStream(data);
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+}

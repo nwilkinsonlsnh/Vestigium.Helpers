@@ -1,0 +1,94 @@
+# Vestigium.Helpers.Network — Developers Guide
+
+**Document ID:** VEST-HLP-NETWORK-DEV-000  
+**Version:** 1.6  
+**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md).  
+**Date:** 19 September 2026
+
+Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
+
+## What this library is
+
+A .NET 10 LTS resource library. Hosts subscribe on Windows or Linux. Not a CLI. Not `ping.exe`. Not a charting package.
+
+One `net10.0` DLL. References: Json, Analytics, FileIo. **Does not reference Charts.**
+
+Route **print** works on both OS, both families. Route **write** is Option C:
+
+| | Windows | Linux |
+|---|---|---|
+| IPv4 | IP Helper + optional HKLM persist | Netlink |
+| IPv6 | `CreateIpForwardEntry2` | Netlink |
+| Default `0.0.0.0/0` or `::/0` | `NetworkRouteDenied` | `NetworkRouteDenied` |
+| No admin / no `CAP_NET_ADMIN` | `NetworkRouteDenied` | `NetworkRouteDenied` |
+
+NetBIOS is Windows-only. `NetworkTestHooks` is internal.
+
+## Charts stay on the host
+
+Network returns numbers: `BandwidthAmount`, `TransferResult`, `PercentileBill`, `ShareCampaignResult`. A host that wants a plot calls Charts itself.
+
+## Routes
+
+```csharp
+var printed = NetworkHelper.GetRoutes(RouteFamily.All);
+
+NetworkHelper.AddRoute(new NetworkRouteChange
+{
+    Destination = "192.0.2.0",
+    PrefixLength = 24,
+    Gateway = "192.0.2.1",
+    InterfaceIndex = 12, // required on Linux
+    Persistent = true    // Windows IPv4 HKLM only
+});
+```
+
+`2001:db8::/32` is a legal write (same doors). `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`.
+
+## OUI
+
+```csharp
+var live = await NetworkHelper.LookupOuiAsync("00:00:0C:11:22:33");
+var packed = NetworkHelper.LookupOuiPacked("00:00:0C:11:22:33"); // offline stub, Source=File
+```
+
+Default live host is `api.macvendors.com`. Custom URL needs `AllowCustomRegistry` + allowlist. Packed snapshot is not a live IEEE pull.
+
+## Share campaigns
+
+```csharp
+var analysis = FileIoHelper.AnalyzeDirectory(sourceDir);
+var plan = NetworkHelper.PlanShareProbe(analysis);
+var campaign = NetworkHelper.CreateShareCampaign(new ShareCampaignOptions
+{
+    Target = new FileShareTarget { Directory = shareDir },
+    Mode = ShareCampaignMode.Advanced,
+    SourceAnalysis = analysis
+});
+var result = await campaign.RunAsync();
+```
+
+Default mode: 64 MiB × 4 FileIo write probes, P95 → `TransferTime`. Network does not open `FileStream`. No password field.
+
+## ICMP continuous
+
+`Count = 0` needs `MaxDuration` (≤ 24 h). Interval floor 200 ms under one minute, 1 s above. `AllowBurst` is only for the short band.
+
+## Linux CI
+
+The umbrella test project is `net10.0-windows` because that assembly also covers WinReg and, on Windows, Charts. That is **repo CI**, not a Network feature. Windows `FullyQualifiedName~Network` is the Network gate. Live Ubuntu route checks wait for a later box (PR05 §4).
+
+## What is not next in this DLL
+
+Scheduler package. HTTP reachability. Demo gallery. Charts. Full IEEE OUI dump.
+
+## Document control
+
+| Version | Date | Change |
+|---|---|---|
+| 1.2 | 10 Sep 2026 | Phase 8 harden wording. |
+| 1.6 | 19 Sep 2026 | Shipped façade. PR01 locks. |
+| 1.6 + PR02 | 19 Sep 2026 | Then: Windows write / Linux print. |
+| 1.6 + PR03 | 19 Sep 2026 | Share campaigns. Demo skipped. |
+| 1.6 + PR04.001 | 19 Sep 2026 | No Charts. |
+| 1.6 + PR05.003 | 19 Sep 2026 | Option C + packed OUI + persist key. |

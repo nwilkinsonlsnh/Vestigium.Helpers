@@ -1,0 +1,12 @@
+{
+  "app": "Kql",
+  "category": "Helpers",
+  "block": { "start": 14000, "end": 14499 },
+  "events": [
+    { "eventId": 14000, "name": "ProbeEnter", "severity": "Information", "subcategory": "Kql", "message": "enter Probe" },
+    { "eventId": 14005, "name": "ProbeComplete", "severity": "Information", "subcategory": "Kql", "message": "probe complete" },
+    { "eventId": 14010, "name": "SessionCreated", "severity": "Information", "subcategory": "Session", "message": "session created" },
+    { "eventId": 14015, "name": "QueryWarning", "severity": "Warning", "subcategory": "Query", "message": "query warning" },
+    { "eventId": 14020, "name": "QueryFailed", "severity": "Warning", "subcategory": "Query", "message": "query failed" }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "app": "ClosedXml",
+  "category": "Helpers",
+  "block": { "start": 11000, "end": 11499 },
+  "events": [
+    { "eventId": 11000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 11005, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 11010, "name": "SessionEnter", "severity": "Debug", "subcategory": "Session", "message": "enter session" },
+    { "eventId": 11015, "name": "SessionCreated", "severity": "Information", "subcategory": "Session", "message": "session created" },
+    { "eventId": 11020, "name": "SessionOpened", "severity": "Information", "subcategory": "Session", "message": "session opened" },
+    { "eventId": 11025, "name": "SessionSaved", "severity": "Information", "subcategory": "Session", "message": "session saved" },
+    { "eventId": 11030, "name": "SessionMerged", "severity": "Information", "subcategory": "Session", "message": "session merged" },
+    { "eventId": 11035, "name": "SessionRejected", "severity": "Error", "subcategory": "Session", "message": "rejected session" },
+    { "eventId": 11040, "name": "SessionThrown", "severity": "Error", "subcategory": "Session", "message": "unexpected failure" },
+    { "eventId": 11045, "name": "SheetEnter", "severity": "Debug", "subcategory": "Sheet", "message": "enter sheet" },
+    { "eventId": 11050, "name": "SheetWrote", "severity": "Debug", "subcategory": "Sheet", "message": "sheet wrote" },
+    { "eventId": 11055, "name": "SheetRejected", "severity": "Error", "subcategory": "Sheet", "message": "rejected sheet" },
+    { "eventId": 11060, "name": "ChartQueued", "severity": "Information", "subcategory": "Chart", "message": "chart queued" },
+    { "eventId": 11065, "name": "ChartRejected", "severity": "Error", "subcategory": "Chart", "message": "rejected chart" },
+    { "eventId": 11070, "name": "CellNeutralized", "severity": "Warning", "subcategory": "Sheet", "message": "neutralized formula-like text" },
+    { "eventId": 11075, "name": "CellRejectedNonFinite", "severity": "Error", "subcategory": "Sheet", "message": "rejected non-finite number" },
+    { "eventId": 11080, "name": "WriteSeriesComplete", "severity": "Information", "subcategory": "Session", "message": "series workbook written" },
+    { "eventId": 11085, "name": "ChartsEmbedded", "severity": "Information", "subcategory": "Chart", "message": "charts embedded" },
+    { "eventId": 11090, "name": "ChartPackFailed", "severity": "Error", "subcategory": "Chart", "message": "chart pack failed" }
+  ]
+}

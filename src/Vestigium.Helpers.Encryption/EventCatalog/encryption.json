@@ -1,0 +1,14 @@
+{
+  "app": "Encryption",
+  "category": "Helpers",
+  "block": { "start": 12000, "end": 12499 },
+  "events": [
+    { "eventId": 12000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 12005, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 12010, "name": "OperationEnter", "severity": "Debug", "subcategory": "Encryption", "message": "enter operation" },
+    { "eventId": 12015, "name": "OperationComplete", "severity": "Information", "subcategory": "Encryption", "message": "operation complete" },
+    { "eventId": 12020, "name": "OperationFailed", "severity": "Error", "subcategory": "Encryption", "message": "operation failed" },
+    { "eventId": 12025, "name": "TokenWarning", "severity": "Warning", "subcategory": "Token", "message": "token warning" },
+    { "eventId": 12030, "name": "FileRejected", "severity": "Error", "subcategory": "Encryption", "message": "rejected file" }
+  ]
+}

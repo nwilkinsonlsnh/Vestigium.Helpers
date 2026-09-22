@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MgmtTree PUBLIC " -//OMA//DTD-DM-DDF 1.2//EN"
+  "http://www.openmobilealliance.org/tech/DTD/DM_DDF-V1_2.dtd"
+  [<?oma-dm-ddf-ver supported-versions="1.2"?>]>
+<MgmtTree xmlns:MSFT="http://schemas.microsoft.com/MobileDevice/DM">
+  <VerDTD>1.2</VerDTD>
+  <Node>
+    <NodeName>DevicePreparation</NodeName>
+    <Path>./Device/Vendor/MSFT</Path>
+    <DFProperties>
+      <AccessType>
+        <Get />
+      </AccessType>
+      <Description>Parent node for configuring the Device Preparation page in OOBE settings and configuring </Description>
+      <DFFormat>
+        <node />
+      </DFFormat>
+      <Occurrence>
+        <One />
+      </Occurrence>
+      <Scope>
+        <Permanent />
+      </Scope>
+      <DFType>
+        <MIME>com.microsoft/1.0/MDM/DevicePreparation</MIME>
+      </DFType>
+    </DFProperties>
+    <Node>
+      <NodeName>PageEnabled</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+          <Replace />
+        </AccessType>
+        <DefaultValue>false</DefaultValue>
+        <Description>This node determines whether to show the Device Preparation page during OOBE.</Description>
+        <DFFormat>
+          <bool />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>PageStatus</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+          <Replace />
+        </AccessType>
+        <Description>This node provides status of the Device Preparation page.  </Description>
+        <DFFormat>
+          <int />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>PageErrorPhase</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+        </AccessType>
+        <Description>This node provides the specific phase that failed during the Device Preparation page.  Values are an enum: 0 = Unknown; 1 = AgentDownload;  2 = AgentProgress.</Description>
+        <DFFormat>
+          <int />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>PageErrorCode</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+        </AccessType>
+        <Description>This node provides specific overall HRESULT causing a fatal error on the Device Preparation page.  This node is valid only if the PageErrorPhase node's value is not Unknown.</Description>
+        <DFFormat>
+          <int />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>PageErrorDetails</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+        </AccessType>
+        <Description>This node provides optional details for any fatal error on the Device Preparation page.  This node is valid only if the PageErrorPhase node's value is not Unknown, but not all errors will have details.</Description>
+        <DFFormat>
+          <chr />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>PageSettings</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+          <Replace />
+        </AccessType>
+        <Description>This node configures the Device Preparation page settings.</Description>
+        <DFFormat>
+          <chr />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>BootstrapperAgent</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+        </AccessType>
+        <Description>Parent node for configuring agent that orchestrage provioning and communicate status to Device Preparation page.</Description>
+        <DFFormat>
+          <node />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <DDFName></DDFName>
+        </DFType>
+      </DFProperties>
+      <Node>
+        <NodeName>ExecutionContext</NodeName>
+        <DFProperties>
+          <AccessType>
+            <Get />
+            <Replace />
+          </AccessType>
+          <Description>This node holds opaque data that will be passed to the Bootstrapper Agent as a parameter when it is invoked to execute.</Description>
+          <DFFormat>
+            <chr />
+          </DFFormat>
+          <Occurrence>
+            <One />
+          </Occurrence>
+          <Scope>
+            <Permanent />
+          </Scope>
+          <DFType>
+            <MIME>text/plain</MIME>
+          </DFType>
+        </DFProperties>
+      </Node>
+    </Node>
+    <Node>
+      <NodeName>MDMProvider</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+        </AccessType>
+        <Description>Parent node for configuring the MDM provider that interacts with the BootstrapperAgent. </Description>
+        <DFFormat>
+          <node />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <DDFName></DDFName>
+        </DFType>
+      </DFProperties>
+      <Node>
+        <NodeName>Progress</NodeName>
+        <DFProperties>
+          <AccessType>
+            <Add />
+            <Delete />
+            <Get />
+            <Replace />
+          </AccessType>
+          <Description>Node for reporting progress status as opaque data. Contract for data is between the server and EMM agent that reads the data. </Description>
+          <DFFormat>
+            <chr />
+          </DFFormat>
+          <Occurrence>
+            <One />
+          </Occurrence>
+          <Scope>
+            <Permanent />
+          </Scope>
+          <DFType>
+            <MIME>text/plain</MIME>
+          </DFType>
+        </DFProperties>
+      </Node>
+      <Node>
+        <NodeName>MdmAgentInstalled</NodeName>
+        <DFProperties>
+          <AccessType>
+            <Get />
+            <Replace />
+          </AccessType>
+          <DefaultValue>False</DefaultValue>
+          <Description>This node indicates whether the mdm agent was installed or not. When set to true sets the AUTOPILOT_MDM_AGENT_REGISTERED WNF event.</Description>
+          <DFFormat>
+            <bool />
+          </DFFormat>
+          <Occurrence>
+            <One />
+          </Occurrence>
+          <Scope>
+            <Permanent />
+          </Scope>
+          <DFType>
+            <MIME>text/plain</MIME>
+          </DFType>
+        </DFProperties>
+      </Node>
+      <Node>
+        <NodeName>RebootRequired</NodeName>
+        <DFProperties>
+          <AccessType>
+            <Get />
+          </AccessType>
+          <DefaultValue>False</DefaultValue>
+          <Description>This node indicates whether an MDM policy was provisioned that requires a reboot.</Description>
+          <DFFormat>
+            <bool />
+          </DFFormat>
+          <Occurrence>
+            <One />
+          </Occurrence>
+          <Scope>
+            <Permanent />
+          </Scope>
+          <DFType>
+            <MIME>text/plain</MIME>
+          </DFType>
+        </DFProperties>
+      </Node>
+    </Node>
+    <Node>
+      <NodeName>IsPostOobeProvisioningAllowed</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+          <Replace />
+        </AccessType>
+        <DefaultValue>false</DefaultValue>
+        <Description>This node determines whether Autopilot Device Preparation provisioning can be executed after OOBE has completed.</Description>
+        <DFFormat>
+          <bool />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <MIME>text/plain</MIME>
+        </DFType>
+      </DFProperties>
+    </Node>
+    <Node>
+      <NodeName>DeviceAssociation</NodeName>
+      <DFProperties>
+        <AccessType>
+          <Get />
+        </AccessType>
+        <Description>Settings to configure device association to a tenant.</Description>
+        <DFFormat>
+          <node />
+        </DFFormat>
+        <Occurrence>
+          <One />
+        </Occurrence>
+        <Scope>
+          <Permanent />
+        </Scope>
+        <DFType>
+          <DDFName></DDFName>
+        </DFType>
+      </DFProperties>
+      <Node>
+        <NodeName>TenantAssociation</NodeName>
+        <DFProperties>
+          <AccessType>
+            <Get />
+          </AccessType>
+          <Description>Settings for associating the device to a tenant.</Description>
+          <DFFormat>
+            <node />
+          </DFFormat>
+          <Occurrence>
+            <One />
+          </Occurrence>
+          <Scope>
+            <Permanent />
+          </Scope>
+          <DFType>
+            <DDFName></DDFName>
+          </DFType>
+        </DFProperties>
+        <Node>
+          <NodeName>TenantAssociationInfo</NodeName>
+          <DFProperties>
+            <AccessType>
+              <Get />
+              <Replace />
+            </AccessType>
+            <Description>The current tenant association data. To clear this node, Replace is used, passing in null data.</Description>
+            <DFFormat>
+              <b64 />
+            </DFFormat>
+            <Occurrence>
+              <One />
+            </Occurrence>
+            <Scope>
+              <Permanent />
+            </Scope>
+            <DFType>
+              <DDFName></DDFName>
+            </DFType>
+            <ExposedTo>
+              <Wmi />
+              <Mdm />
+            </ExposedTo>
+          </DFProperties>
+        </Node>
+        <Node>
+          <NodeName>TenantAssociationInfoRequest</NodeName>
+          <DFProperties>
+            <AccessType>
+              <Get />
+            </AccessType>
+            <DFFormat>
+              <node />
+            </DFFormat>
+            <Occurrence>
+              <One />
+            </Occurrence>
+            <Scope>
+              <Permanent />
+            </Scope>
+            <DFType>
+              <DDFName></DDFName>
+            </DFType>
+          </DFProperties>
+          <Node>
+            <NodeName>RefreshTenantAssociationInfo</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Exec />
+                <Get />
+              </AccessType>
+              <Description>Any pre-existing tenant association info will be automatically overwritten when this action is completed successfully.</Description>
+              <DFFormat>
+                <null />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+              <ExposedTo>
+                <Wmi />
+                <Mdm />
+              </ExposedTo>
+            </DFProperties>
+          </Node>
+          <Node>
+            <NodeName>Status</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Get />
+                <Replace />
+              </AccessType>
+              <DefaultValue>0</DefaultValue>
+              <Description>Status value associated with Device Association tag request operation. This number represents the progress of the most recent request for associating a device to a tenant, via an Exec on the RefreshTenantAssociationInfo node. Values are an enum: 0 = NotStarted; 1= InProgress; 2 = ExitOnFailure; 3 = ExitOnSuccess</Description>
+              <DFFormat>
+                <int />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+              <ExposedTo>
+                <Wmi />
+                <Mdm />
+              </ExposedTo>
+            </DFProperties>
+          </Node>
+          <Node>
+            <NodeName>ErrorCode</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Get />
+                <Replace />
+              </AccessType>
+              <DefaultValue>0</DefaultValue>
+              <Description>Error value, if any, associated with Device Association tag request operation (typically an HRESULT). This number represents an HRESULT representing the specific error encountered by the process of associating a device to a tenant. On success, the value is always zero.</Description>
+              <DFFormat>
+                <int />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+              <ExposedTo>
+                <Wmi />
+                <Mdm />
+              </ExposedTo>
+            </DFProperties>
+          </Node>
+          <Node>
+            <NodeName>ErrorPhase</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Get />
+                <Replace />
+              </AccessType>
+              <DefaultValue>0</DefaultValue>
+              <Description>This node provides the specific phase that failed during the RefreshTenantAssociation action. This number represents the specific phase that failed during the process of associating a device to a tenant. Values are an enum: 0 = Unknown; 1 = TpmPrerequisiteCheck; 2 = KeyGeneration; 3 = PreassociationDiscovery; 4 = EnrollmentDiscovery; 5 = TpmAttestation; 6 = MaaAttestation; 7 = GetAssociationFromServer; 8 = StoreAssociationInfo; 9 = AckToMdm; 10 = Complete</Description>
+              <DFFormat>
+                <int />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+              <ExposedTo>
+                <Wmi />
+                <Mdm />
+              </ExposedTo>
+            </DFProperties>
+          </Node>
+        </Node>
+      </Node>
+      <Node>
+        <NodeName>DeviceLink</NodeName>
+        <DFProperties>
+          <AccessType>
+            <Get />
+          </AccessType>
+          <Description>Settings to initialize device-side information used in associating the device to a tenant.</Description>
+          <DFFormat>
+            <node />
+          </DFFormat>
+          <Occurrence>
+            <One />
+          </Occurrence>
+          <Scope>
+            <Permanent />
+          </Scope>
+          <DFType>
+            <DDFName></DDFName>
+          </DFType>
+          <ExposedTo>
+            <Wmi />
+            <Mdm />
+          </ExposedTo>
+        </DFProperties>
+        <Node>
+          <NodeName>DeviceLinkInfo</NodeName>
+          <DFProperties>
+            <AccessType>
+              <Get />
+              <Replace />
+            </AccessType>
+            <Description>The device link blob generated by GenerateDeviceLinkInfo. This blob is provided to OEM/Admin for pre-association workflows. To clear this node, Replace is used, passing in null data.</Description>
+            <DFFormat>
+              <b64 />
+            </DFFormat>
+            <Occurrence>
+              <One />
+            </Occurrence>
+            <Scope>
+              <Permanent />
+            </Scope>
+            <DFType>
+              <MIME>text/plain</MIME>
+            </DFType>
+          </DFProperties>
+        </Node>
+        <Node>
+          <NodeName>DeviceLinkInfoRequest</NodeName>
+          <DFProperties>
+            <AccessType>
+              <Get />
+            </AccessType>
+            <DFFormat>
+              <node />
+            </DFFormat>
+            <Occurrence>
+              <One />
+            </Occurrence>
+            <Scope>
+              <Permanent />
+            </Scope>
+            <DFType>
+              <DDFName></DDFName>
+            </DFType>
+          </DFProperties>
+          <Node>
+            <NodeName>GenerateDeviceLinkInfo</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Exec />
+                <Get />
+              </AccessType>
+              <Description>Any pre-existing DeviceLinkInfo must first be cleared before invoking this action.</Description>
+              <DFFormat>
+                <null />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+            </DFProperties>
+          </Node>
+          <Node>
+            <NodeName>Status</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Get />
+                <Replace />
+              </AccessType>
+              <DefaultValue>0</DefaultValue>
+              <Description>Status value associated with Device Association tag request operation. This number represents the progress of the most recent request for generating device information to be used in association to a tenant via an Exec on the GenerateDeviceLinkInfo node. Values are an enum: 0 = NotStarted; 1= InProgress; 2 = ExitOnFailure; 3 = ExitOnSuccess</Description>
+              <DFFormat>
+                <int />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+            </DFProperties>
+          </Node>
+          <Node>
+            <NodeName>ErrorCode</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Get />
+                <Replace />
+              </AccessType>
+              <Description>Error value, if any, associated with Device Association tag request operation (typically an HRESULT). This number represents an HRESULT representing the specific error encountered by the process of generating device information to be used in association to a tenant. On success, the value is always zero.</Description>
+              <DFFormat>
+                <int />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+            </DFProperties>
+          </Node>
+          <Node>
+            <NodeName>ErrorPhase</NodeName>
+            <DFProperties>
+              <AccessType>
+                <Get />
+                <Replace />
+              </AccessType>
+              <DefaultValue>0</DefaultValue>
+              <Description>This node provides the specific phase that failed during the GenerateDeviceLinkInfo action. This number represents the specific phase that failed during the process of generating device information to be used in association to a tenant.</Description>
+              <DFFormat>
+                <int />
+              </DFFormat>
+              <Occurrence>
+                <One />
+              </Occurrence>
+              <Scope>
+                <Permanent />
+              </Scope>
+              <DFType>
+                <MIME>text/plain</MIME>
+              </DFType>
+            </DFProperties>
+          </Node>
+        </Node>
+      </Node>
+    </Node>
+    </Node>
+</MgmtTree>

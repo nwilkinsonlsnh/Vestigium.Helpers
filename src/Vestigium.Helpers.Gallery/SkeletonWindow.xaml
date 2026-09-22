@@ -1,0 +1,113 @@
+<Window x:Class="Vestigium.Helpers.Gallery.SkeletonWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Spec.Title}"
+        Height="820" Width="1180"
+        MinHeight="600" MinWidth="880"
+        Background="#0B1A30" Foreground="#E2E8F0"
+        FontFamily="Segoe UI" FontSize="13">
+  <Grid Margin="20,16,20,12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <DockPanel LastChildFill="False" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#7DD3FC" Text="VESTIGIUM SUITE"/>
+        <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding Spec.Title}"/>
+        <TextBlock Opacity="0.7" Text="{Binding Spec.Role}"/>
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <TextBlock Opacity="0.9" FontFamily="Cascadia Mono, Consolas" FontSize="16" Text="{Binding WrittenCaption}" HorizontalAlignment="Right"/>
+        <TextBlock Opacity="0.55" FontFamily="Cascadia Mono, Consolas" Text="{Binding Spec.AppId}" HorizontalAlignment="Right"/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Grid.Row="1">
+      <TabItem Header="Overview">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock Style="{StaticResource Id}" Text="{Binding Spec.DocumentId}"/>
+            <TextBlock FontSize="18" FontWeight="SemiBold" Text="What this module does"/>
+            <TextBlock Opacity="0.75" TextWrapping="Wrap" Margin="0,0,0,16" Text="{Binding Spec.Blurb}"/>
+            <WrapPanel>
+              <Border Style="{StaticResource Card}" Width="280">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Caption}" Text="IDENTITY"/>
+                  <TextBlock FontWeight="SemiBold" Text="{Binding Spec.Identity}"/>
+                  <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="Stable Identity string. Probe writes it into HelperLog after Initialize."/>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}" Width="280">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Caption}" Text="HOST"/>
+                  <TextBlock FontWeight="SemiBold" Text="WPF gallery"/>
+                  <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="This process calls HelperWpfHost.Start. The class library never does."/>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}" Width="280">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Caption}" Text="JSONL"/>
+                  <TextBlock FontWeight="SemiBold" Text="ProgramData · Vestigium · Logs"/>
+                  <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding LogDirectoryCaption}"/>
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}" Width="280">
+                <StackPanel>
+                  <TextBlock Style="{StaticResource Caption}" Text="STATUS"/>
+                  <TextBlock FontWeight="SemiBold" Text="{Binding Spec.StatusLabel}"/>
+                  <TextBlock Opacity="0.7" TextWrapping="Wrap" Text="{Binding Spec.StatusNote}"/>
+                </StackPanel>
+              </Border>
+            </WrapPanel>
+            <Border Style="{StaticResource Panel}" Margin="0,8,0,0">
+              <StackPanel>
+                <TextBlock Style="{StaticResource Caption}" Text="HOST STARTUP"/>
+                <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap"
+                           Text="{Binding StartupSnippet}"/>
+                <WrapPanel Margin="0,12,0,0">
+                  <Button Content="Run probe" Command="{Binding ProbeCommand}" Style="{StaticResource PrimaryButton}"/>
+                  <Button Content="Copy log directory" Command="{Binding CopyLogDirectoryCommand}"/>
+                </WrapPanel>
+                <TextBlock Opacity="0.7" Text="{Binding StatusText}"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="JSONL">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <DockPanel LastChildFill="False" Margin="0,0,0,8">
+            <TextBlock FontWeight="SemiBold" Text="Recent JSON Lines" VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearFeedCommand}"/>
+            <Button DockPanel.Dock="Right" Content="Probe" Command="{Binding ProbeCommand}" Style="{StaticResource PrimaryButton}"/>
+          </DockPanel>
+          <ListView Grid.Row="1" ItemsSource="{Binding Lines}" FontFamily="Cascadia Mono, Consolas" FontSize="12">
+            <ListView.View>
+              <GridView>
+                <GridViewColumn Header="Time" Width="90" DisplayMemberBinding="{Binding Time}"/>
+                <GridViewColumn Header="LEVEL" Width="110">
+                  <GridViewColumn.CellTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Level}" Foreground="{Binding Level, Converter={StaticResource LevelBrush}}" FontWeight="SemiBold"/>
+                    </DataTemplate>
+                  </GridViewColumn.CellTemplate>
+                </GridViewColumn>
+                <GridViewColumn Header="STATUS" Width="90" DisplayMemberBinding="{Binding Status}"/>
+                <GridViewColumn Header="APPID" Width="110" DisplayMemberBinding="{Binding AppId}"/>
+                <GridViewColumn Header="MESSAGE" Width="640" DisplayMemberBinding="{Binding Message}"/>
+              </GridView>
+            </ListView.View>
+          </ListView>
+        </Grid>
+      </TabItem>
+    </TabControl>
+    <DockPanel Grid.Row="2" Margin="0,10,0,0">
+      <TextBlock Opacity="0.55" Text="{Binding StatusText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+    </DockPanel>
+  </Grid>
+</Window>

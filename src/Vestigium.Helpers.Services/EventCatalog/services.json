@@ -1,0 +1,13 @@
+{
+  "app": "Services",
+  "category": "Helpers",
+  "block": { "start": 15500, "end": 15999 },
+  "events": [
+    { "eventId": 15500, "name": "ProbeEnter", "severity": "Information", "subcategory": "Services", "message": "enter Probe" },
+    { "eventId": 15505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Services", "message": "probe complete" },
+    { "eventId": 15510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Services", "message": "enter operation" },
+    { "eventId": 15515, "name": "OperationComplete", "severity": "Information", "subcategory": "Services", "message": "operation complete" },
+    { "eventId": 15520, "name": "OperationFailed", "severity": "Error", "subcategory": "Services", "message": "operation failed" },
+    { "eventId": 15525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Services", "message": "operation warning" }
+  ]
+}
