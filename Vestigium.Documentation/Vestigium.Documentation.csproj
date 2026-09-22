@@ -9,6 +9,7 @@
   <ItemGroup>
     <Content Include="..\src\Vestigium.Helpers.Analytics\README.md" Link="Vestigium\Helpers\Analytics\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Charts\README.md" Link="Vestigium\Helpers\Charts\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.ClosedXml\README.md" Link="Vestigium\Helpers\ClosedXml\README.md" />
   </ItemGroup>
 
   <ItemGroup>
