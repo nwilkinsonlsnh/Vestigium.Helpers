@@ -23,7 +23,11 @@
     <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <Content Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
     <None Include="EventCatalog\fileio.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
