@@ -14,6 +14,7 @@
     <Content Include="..\src\Vestigium.Helpers.Encryption\README.md" Link="Vestigium\Helpers\Encryption\README.md" />
     <Content Include="..\src\Vestigium.Helpers.FileIo\README.md" Link="Vestigium\Helpers\FileIo\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Hashing\README.md" Link="Vestigium\Helpers\Hashing\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.Json\README.md" Link="Vestigium\Helpers\Json\README.md" />
   </ItemGroup>
 
   <ItemGroup>
