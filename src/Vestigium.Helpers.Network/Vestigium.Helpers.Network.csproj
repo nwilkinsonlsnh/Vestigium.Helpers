@@ -8,6 +8,9 @@
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>network;icmp;dns;share;oui;vestigium</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>true</IsPackable>
@@ -23,6 +26,11 @@
     <ProjectReference Include="..\Vestigium.Helpers.FileIo\Vestigium.Helpers.FileIo.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
     <None Include="EventCatalog\network.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
     <None Include="_Data\oui-snapshot.txt" Pack="true" PackagePath="contentFiles\any\any\NetworkData\" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="_Data\oui-snapshot.txt" LogicalName="Vestigium.Helpers.Network.Data.oui-snapshot.txt" />
