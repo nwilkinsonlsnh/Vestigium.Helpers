@@ -24,7 +24,11 @@
     <PackageReference Include="System.IO.Hashing" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <Content Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
     <None Include="EventCatalog\hashing.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
