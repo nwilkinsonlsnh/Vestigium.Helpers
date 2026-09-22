@@ -10,24 +10,21 @@ internal static class CellReader
     public static object? Read(IXLCell cell)
     {
         var value = cell.Value;
-        if (value.IsBlank)
-            return null;
-        if (value.IsBoolean)
-            return value.GetBoolean();
-        if (value.IsDateTime)
-            return value.GetDateTime();
-        if (value.IsTimeSpan)
-            return value.GetTimeSpan().TotalDays;
-        if (value.IsNumber)
-        {
-            if (LooksLikeDateFormat(cell) && cell.TryGetValue(out DateTime dt))
-                return dt;
-            return value.GetNumber();
-        }
 
-        if (value.IsText)
-            return value.GetText();
-        return cell.GetString();
+        return value switch
+        {
+            { IsBlank: true } => null,
+            { IsBoolean: true } => value.GetBoolean( ),
+            { IsDateTime: true } => value.GetDateTime( ),
+            { IsTimeSpan: true } => value.GetTimeSpan( ).TotalDays,
+
+            // Use a 'when' clause to evaluate the extra conditions for numbers
+            { IsNumber: true } when LooksLikeDateFormat(cell) && cell.TryGetValue(out DateTime dt) => dt,
+            { IsNumber: true } => value.GetNumber( ),
+
+            { IsText: true } => value.GetText( ),
+            _ => cell.GetString( )
+        };
     }
 
     public static string KindOf(object? value) => value switch

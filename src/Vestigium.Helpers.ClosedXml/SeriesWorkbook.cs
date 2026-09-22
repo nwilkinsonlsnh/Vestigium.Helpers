@@ -78,7 +78,7 @@ internal static class SeriesWorkbook
                     {
                         Name = "Count",
                         ValuesFormula = ExcelNames.A1Range(histName, 5, 2, 5, last),
-                        Values = hist.Select(b => (double)b.Count).ToArray(),
+                        Values = [.. hist.Select(b => (double)b.Count)],
                         Color = "4C6B8A"
                     }
                 ],
@@ -230,32 +230,36 @@ internal static class SeriesWorkbook
             });
         }
 
-        if (hist.Count > 0)
+        switch (hist.Count)
         {
-            var last = 1 + hist.Count;
-            book.AddChart(new SheetChart
+            case > 0:
             {
-                Sheet = chartsName,
-                Title = "Histogram share",
-                Kind = ChartKind.Pie,
-                CategoriesFormula = ExcelNames.A1Range(histName, 2, 2, 2, last),
-                Categories = hist.Select(b => ((double)b.LowerInclusive).ToString("G6")).ToArray(),
-                Series =
-                [
-                    new ChartSeries
-                    {
-                        Name = "Count",
-                        ValuesFormula = ExcelNames.A1Range(histName, 5, 2, 5, last),
-                        Values = hist.Select(b => (double)b.Count).ToArray(),
-                        Color = "1F4E79"
-                    }
-                ],
-                FromColumn = 25,
-                FromRow = 1,
-                ToColumn = 34,
-                ToRow = 16,
-                Color = "1F4E79"
-            });
+                var last = 1 + hist.Count;
+                book.AddChart(new SheetChart
+                {
+                    Sheet = chartsName,
+                    Title = "Histogram share",
+                    Kind = ChartKind.Pie,
+                    CategoriesFormula = ExcelNames.A1Range(histName, 2, 2, 2, last),
+                    Categories = hist.Select(b => ((double)b.LowerInclusive).ToString("G6")).ToArray(),
+                    Series =
+                    [
+                        new ChartSeries
+                        {
+                            Name = "Count",
+                            ValuesFormula = ExcelNames.A1Range(histName, 5, 2, 5, last),
+                            Values = hist.Select(b => (double)b.Count).ToArray(),
+                            Color = "1F4E79"
+                        }
+                    ],
+                    FromColumn = 25,
+                    FromRow = 1,
+                    ToColumn = 34,
+                    ToRow = 16,
+                    Color = "1F4E79"
+                });
+                break;
+            }
         }
     }
 
@@ -264,12 +268,6 @@ internal static class SeriesWorkbook
         int? populationSize)
     {
         var list = new List<(string, double, double, double)>(4);
-        void Add(string label, ConfidenceInterval iv)
-        {
-            if (!iv.IsDefined)
-                return;
-            list.Add((label, iv.Estimate ?? 0, iv.Lower ?? 0, iv.Upper ?? 0));
-        }
 
         Add("90%", series.Confidence(0.90).Mean);
         Add("95%", series.Confidence(0.95).Mean);
@@ -277,6 +275,13 @@ internal static class SeriesWorkbook
         if (populationSize is { } n)
             Add("95% FPC", series.Confidence(0.95, n).Mean);
         return list;
+
+        void Add(string label, ConfidenceInterval iv)
+        {
+            if (!iv.IsDefined)
+                return;
+            list.Add((label, iv.Estimate ?? 0, iv.Lower ?? 0, iv.Upper ?? 0));
+        }
     }
 
     private static SheetWriteOptions AnalyticsOptions(string tab, string? tableStyle)

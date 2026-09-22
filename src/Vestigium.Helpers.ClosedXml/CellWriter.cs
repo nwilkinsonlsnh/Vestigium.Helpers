@@ -7,21 +7,20 @@ internal static class CellWriter
 {
     public static bool Write(IXLCell cell, object? value, SheetWriteOptions options)
     {
-        if (value is null)
-        {
-            cell.Clear();
-            return false;
-        }
+        if (value is not null)
+            return value switch
+            {
+                string s => WriteString(cell, s),
+                bool b => WriteBool(cell, b),
+                DateTime or DateTimeOffset or TimeSpan => WriteDate(cell, value, options),
+                decimal or float or double or byte or sbyte or short or ushort or int or uint or long or ulong
+                    => WriteNumber(cell, value, options),
+                _ => WriteString(cell,
+                    Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)
+            };
+        cell.Clear();
+        return false;
 
-        return value switch
-        {
-            string s => WriteString(cell, s),
-            bool b => WriteBool(cell, b),
-            DateTime or DateTimeOffset or TimeSpan => WriteDate(cell, value, options),
-            decimal or float or double or byte or sbyte or short or ushort or int or uint or long or ulong
-                => WriteNumber(cell, value, options),
-            _ => WriteString(cell, Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)
-        };
     }
 
     internal static bool WriteBool(IXLCell cell, bool value)
@@ -142,8 +141,6 @@ internal static class CellWriter
         if (text.Length == 0)
             return (text, false);
         var lead = text[0];
-        if (lead is not ('=' or '+' or '-' or '@'))
-            return (text, false);
-        return ("'" + text, true);
+        return lead is not ('=' or '+' or '-' or '@') ? (text, false) : ("'" + text, true);
     }
 }

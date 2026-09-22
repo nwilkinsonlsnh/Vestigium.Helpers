@@ -132,10 +132,9 @@ internal static class ChartPacker
     {
         var root = types.Root!;
         var ns = root.Name.Namespace == XNamespace.None ? Ct : root.Name.Namespace;
-        foreach (var ov in root.Elements())
+        if (root.Elements().Any(ov => string.Equals((string?)ov.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase)))
         {
-            if (string.Equals((string?)ov.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase))
-                return;
+            return;
         }
         root.Add(new XElement(ns + "Override",
             new XAttribute("PartName", partName),
@@ -516,11 +515,11 @@ internal static class ChartPacker
 
     private static string Esc(string s)
     {
-        var amp = "\u0026";
+        const string amp = "\u0026";
         return s.Replace("&", amp + "amp;", StringComparison.Ordinal)
             .Replace("<", amp + "lt;", StringComparison.Ordinal)
             .Replace(">", amp + "gt;", StringComparison.Ordinal)
-            .Replace("\u0022", amp + "quot;", StringComparison.Ordinal);
+            .Replace(new StringBuilder().Append("\"").ToString(), amp + "quot;", StringComparison.Ordinal);
     }
 
     private static string XmlOf(XDocument doc)
@@ -551,11 +550,6 @@ internal static class ChartPacker
     private static ZipArchiveEntry? Find(ZipArchive zip, string path)
     {
         path = path.Replace('\\', '/').TrimStart('/');
-        foreach (var e in zip.Entries)
-        {
-            if (e.FullName.Replace('\\', '/').TrimStart('/').Equals(path, StringComparison.OrdinalIgnoreCase))
-                return e;
-        }
-        return null;
+        return zip.Entries.FirstOrDefault(e => e.FullName.Replace('\\', '/').TrimStart('/').Equals(path, StringComparison.OrdinalIgnoreCase));
     }
 }

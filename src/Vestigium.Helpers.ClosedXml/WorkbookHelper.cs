@@ -36,11 +36,9 @@ public static class WorkbookHelper
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         if (string.IsNullOrWhiteSpace(desktop))
             desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        if (string.IsNullOrWhiteSpace(desktop))
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
-        }
+        if (!string.IsNullOrWhiteSpace(desktop)) return Path.Combine(desktop, "Vestigium", "Exports", id);
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
 
         return Path.Combine(desktop, "Vestigium", "Exports", id);
     }
@@ -52,8 +50,7 @@ public static class WorkbookHelper
         var file = string.IsNullOrWhiteSpace(stem)
             ? $"vestigium-{id}-{stamp}.xlsx"
             : $"{stem.Trim()}-{stamp}.xlsx";
-        foreach (var ch in Path.GetInvalidFileNameChars())
-            file = file.Replace(ch, '_');
+        file = Path.GetInvalidFileNameChars().Aggregate(file, (current, ch) => current.Replace(ch, '_'));
         return Path.Combine(DefaultExportDirectory(id), file);
     }
 
@@ -72,13 +69,17 @@ public static class WorkbookHelper
         {
             var wb = new XLWorkbook();
             var session = new WorkbookSession(wb, path: null, app, sessionId);
-            if (!string.IsNullOrWhiteSpace(firstSheetName))
+            switch (string.IsNullOrWhiteSpace(firstSheetName))
             {
-                var safe = ExcelNames.Sanitize(firstSheetName);
-                if (session.SheetNames.Count == 1 && session.SheetNames[0] != safe)
-                    wb.Worksheet(1).Name = safe;
-                else
-                    session.Sheet(safe);
+                case false:
+                {
+                    var safe = ExcelNames.Sanitize(firstSheetName);
+                    if (session.SheetNames.Count == 1 && session.SheetNames[0] != safe)
+                        wb.Worksheet(1).Name = safe;
+                    else
+                        session.Sheet(safe);
+                    break;
+                }
             }
 
             return session;

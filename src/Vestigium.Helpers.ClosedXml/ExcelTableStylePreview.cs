@@ -80,37 +80,33 @@ public sealed class ExcelTableStylePreview
     private static (string Header, string HeaderInk, string Band, string BandAlt) Colors(string group, int index)
     {
         var a = Accents[(index - 1) % Accents.Length];
-        if (group == "Light")
+        switch (group)
         {
-            if (index <= 7)
+            case "Light" when index <= 7:
                 return (White, a.Dark, a.Pale, White);
-            if (index <= 14)
+            case "Light" when index <= 14:
                 return (a.Pale, a.Dark, Mix(a.Pale, White, 0.45), White);
-            return (White, a.Dark, Mix(a.Pale, White, 0.2), White);
-        }
-
-        if (group == "Medium")
-        {
-            if (index <= 7)
+            case "Light":
+                return (White, a.Dark, Mix(a.Pale, White, 0.2), White);
+            case "Medium" when index <= 7:
                 return (a.Fill, a.Ink, a.Pale, White);
-            if (index <= 14)
+            case "Medium" when index <= 14:
                 return (a.Dark, White, a.Pale, White);
-            if (index <= 21)
+            case "Medium" when index <= 21:
                 return (Mix(a.Dark, Black, 0.25), White, Mix(a.Fill, White, 0.55), Mix(a.Pale, White, 0.2));
-            return (Black, White, a.Pale, Mix(a.Fill, White, 0.72));
+            case "Medium":
+                return (Black, White, a.Pale, Mix(a.Fill, White, 0.72));
         }
 
-        if (index <= 7)
-            return (Mix(a.Dark, Black, 0.35), White, a.Fill, a.Dark);
-        return (Black, White, a.Dark, Mix(a.Dark, Black, 0.2));
+        return index <= 7 ? (Mix(a.Dark, Black, 0.35), White, a.Fill, a.Dark) : (Black, White, a.Dark, Mix(a.Dark, Black, 0.2));
     }
 
     private static string Mix(string a, string b, double t)
     {
         var pa = Rgb(a);
         var pb = Rgb(b);
-        byte M(byte x, byte y) => (byte)Math.Clamp((int)Math.Round(x + (y - x) * t), 0, 255);
         return $"#{M(pa.R, pb.R):X2}{M(pa.G, pb.G):X2}{M(pa.B, pb.B):X2}";
+        byte M(byte x, byte y) => (byte)Math.Clamp((int)Math.Round(x + (y - x) * t), 0, 255);
     }
 
     private static (byte R, byte G, byte B) Rgb(string hex)

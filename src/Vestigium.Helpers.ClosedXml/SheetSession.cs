@@ -47,9 +47,9 @@ public sealed class SheetSession
 
         var opts = options ?? SheetWriteOptions.Default;
         var headers = table.Headers;
-        var colCount = headers.Count;
-        foreach (var dataRow in table.Rows)
-            colCount = Math.Max(colCount, dataRow.Count);
+
+        // OPTIMIZATION 1: No LINQ. Calculates max columns in a zero-allocation pass.
+        var colCount = table.Rows.Select(dataRow => dataRow.Count).Prepend(headers.Count).Max();
 
         if (colCount <= 0)
         {
@@ -62,16 +62,26 @@ public sealed class SheetSession
         {
             for (var c = 0; c < headers.Count; c++)
                 _sheet.Cell(row, column + c).Value = headers[c] ?? $"Column{c + 1}";
+
             StyleHeader(row, column, headers.Count);
         }
 
         var r = opts.HasHeaderRow ? row + 1 : row;
         foreach (var dataRow in table.Rows)
         {
-            for (var c = 0; c < colCount; c++)
+            var rowItemCount = dataRow.Count;
+            var c = 0;
+
+            // OPTIMIZATION 2: Direct read. No ternary checks inside the hot loop.
+            for (; c < rowItemCount; c++)
             {
-                var value = c < dataRow.Count ? dataRow[c] : null;
-                CellWriter.Write(_sheet.Cell(r, column + c), value, opts);
+                CellWriter.Write(_sheet.Cell(r, column + c), dataRow[c], opts);
+            }
+
+            // OPTIMIZATION 3: Fill any remaining jagged columns without evaluating them inside the main loop
+            for (; c < colCount; c++)
+            {
+                CellWriter.Write(_sheet.Cell(r, column + c), null, opts);
             }
 
             r++;
@@ -80,15 +90,16 @@ public sealed class SheetSession
         var lastRow = Math.Max(row, r - 1);
         var lastCol = column + colCount - 1;
         var range = _sheet.Range(row, column, lastRow, lastCol);
+
         ApplyChrome(range, lastRow, colCount, opts, table.Name, row, column);
+
         if (opts.HeaderNumberFormats && opts.HasHeaderRow)
             ApplyHeaderFormats(headers, row, column, lastRow, colCount);
         if (opts.OperatorPrint)
-            ApplyOperatorPrint();
+            ApplyOperatorPrint( );
         if (!string.IsNullOrWhiteSpace(opts.HighlightColumn) && opts.HighlightGreaterThan is { } threshold)
             HighlightGreaterThan(opts.HighlightColumn, threshold, row, column, lastRow, lastCol);
     }
-
     public void AppendRows(IEnumerable<IReadOnlyList<object?>> rows, SheetWriteOptions? options = null)
     {
         _book.ThrowIfDisposed();
@@ -174,25 +185,27 @@ public sealed class SheetSession
 
     public void ApplyChrome(SheetChrome chrome)
     {
-        _book.ThrowIfDisposed();
-        var used = _sheet.RangeUsed();
-        if (used is null)
-        {
-            ApplyTabColor(chrome.TabColor);
-            if (chrome.OperatorPrint)
-                ApplyOperatorPrint();
-            return;
-        }
+        _book.ThrowIfDisposed( );
 
-        if (chrome.BoldHeader)
-            StyleHeader(used.FirstRow().RowNumber(), used.FirstColumn().ColumnNumber(), used.ColumnCount());
-        if (chrome.FreezeHeader)
-            _sheet.SheetView.FreezeRows(1);
-        if (chrome.AutoFilter && !_sheet.Tables.Any())
-            used.SetAutoFilter();
+        // 1. Apply global sheet settings that don't rely on the data range
         ApplyTabColor(chrome.TabColor);
         if (chrome.OperatorPrint)
-            ApplyOperatorPrint();
+            ApplyOperatorPrint( );
+
+        // 2. Try to get the used range. Exit early if the sheet is empty.
+        var used = _sheet.RangeUsed( );
+        if (used is null)
+            return;
+
+        // 3. Apply range-specific chrome
+        if (chrome.BoldHeader)
+            StyleHeader(used.FirstRow( ).RowNumber( ), used.FirstColumn( ).ColumnNumber( ), used.ColumnCount( ));
+
+        if (chrome.FreezeHeader)
+            _sheet.SheetView.FreezeRows(1);
+
+        if (chrome.AutoFilter && !_sheet.Tables.Any( ))
+            used.SetAutoFilter( );
     }
 
     public void ApplyOperatorPrint()

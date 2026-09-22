@@ -71,14 +71,19 @@ internal static class ExcelNames
     {
         if (string.IsNullOrWhiteSpace(hex))
             return null;
-        var t = hex.Trim().TrimStart('#');
-        if (t.Length == 8)
-            t = t[^6..];
-        if (t.Length != 6)
-            return null;
-        if (!int.TryParse(t, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
-            return null;
-        return XLColor.FromHtml("#" + t);
+
+        var t = hex.Trim( ).TrimStart('#');
+
+        return t.Length switch
+        {
+            8 when IsValidHex(t[^6..]) => XLColor.FromHtml($"#{t[^6..]}"),
+            6 when IsValidHex(t) => XLColor.FromHtml($"#{t}"),
+            _ => null
+        };
+
+        // Local function keeps the switch expression clean
+        static bool IsValidHex(string s) =>
+            int.TryParse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _);
     }
 
     public static string ColumnLetter(int index1Based)
@@ -102,13 +107,9 @@ internal static class ExcelNames
         var quote = safe.Length == 0 || char.IsDigit(safe[0]);
         if (!quote)
         {
-            foreach (var ch in safe)
+            if (safe.Any(ch => !(char.IsLetterOrDigit(ch) || ch is '_' or '.')))
             {
-                if (!(char.IsLetterOrDigit(ch) || ch is '_' or '.'))
-                {
-                    quote = true;
-                    break;
-                }
+                quote = true;
             }
         }
         var escaped = safe.Replace("'", "''", StringComparison.Ordinal);

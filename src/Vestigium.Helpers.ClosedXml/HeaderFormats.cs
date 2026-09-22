@@ -12,24 +12,23 @@ internal static class HeaderFormats
     public static string? For(string header)
     {
         var t = Compact(header);
-        if (t.Length == 0)
-            return null;
-        if (IsUtc(t))
-            return Utc;
-        if (IsPct(t))
-            return Percent;
-        if (IsMs(t))
-            return Milliseconds;
-        return null;
+
+        return t switch
+        {
+            { Length: 0 } => null,
+            _ when IsUtc(t) => Utc,
+            _ when IsPct(t) => Percent,
+            _ when IsMs(t) => Milliseconds,
+            _ => null
+        };
     }
 
     private static string Compact(string header)
     {
         var builder = new System.Text.StringBuilder(header.Length);
-        foreach (var ch in header.Trim().ToLowerInvariant())
+        foreach (var ch in header.Trim().ToLowerInvariant().Where(ch => ch is not (' ' or '_' or '-')))
         {
-            if (ch is not (' ' or '_' or '-'))
-                builder.Append(ch);
+            builder.Append(ch);
         }
 
         return builder.ToString();

@@ -38,9 +38,7 @@ public static class ExcelTableStyles
 
         var group = char.ToUpperInvariant(t[0]) + t[1..i].ToLowerInvariant();
         var key = group + t[i..];
-        if (!IsKnown(key))
-            throw Unknown(id);
-        return key;
+        return !IsKnown(key) ? throw Unknown(id) : key;
     }
 
     public static string ToExcelName(string? id)
@@ -53,9 +51,7 @@ public static class ExcelTableStyles
     {
         if (string.IsNullOrWhiteSpace(id))
             return false;
-        if (id.Equals("None", StringComparison.OrdinalIgnoreCase))
-            return true;
-        return IdPattern.IsMatch(id);
+        return id.Equals("None", StringComparison.OrdinalIgnoreCase) || IdPattern.IsMatch(id);
     }
 
     public static XLTableTheme Resolve(string? id)
@@ -64,9 +60,7 @@ public static class ExcelTableStyles
         // ClosedXML 0.105 ships these as public static fields, not properties.
         // FromName is the documented lookup (Name == "TableStyleMedium2").
         var theme = XLTableTheme.FromName(excel);
-        if (theme is not null)
-            return theme;
-        throw Unknown(id);
+        return theme ?? throw Unknown(id);
     }
 
     private static ArgumentOutOfRangeException Unknown(string? id)
