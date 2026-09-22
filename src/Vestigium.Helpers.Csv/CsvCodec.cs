@@ -68,9 +68,7 @@ internal static class CsvCodec
         var records = ParseRecords(text, options.Delimiter);
         if (records.Count == 0)
         {
-            if (options.HasHeaderRow)
-                throw Fail(1, "The file is empty and a header row was required.");
-            return CsvTable.Empty();
+            return options.HasHeaderRow ? throw Fail(1, "The file is empty and a header row was required.") : CsvTable.Empty();
         }
 
         var width = records[0].Count;
@@ -146,17 +144,16 @@ internal static class CsvCodec
         {
             case decimal m:
                 return m.ToString(CultureInfo.InvariantCulture);
+            case float f when !float.IsFinite(f):
+            {
+                CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
+                throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
+            }
             case float f:
-                if (!float.IsFinite(f))
-                {
-                    CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
-                    throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
-                }
                 return f.ToString("G9", CultureInfo.InvariantCulture);
-            case double d:
-                if (!double.IsFinite(d))
-                {
-                    CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
+            case double d when !double.IsFinite(d):
+            {
+                CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
                     throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
                 }
                 return d.ToString("G17", CultureInfo.InvariantCulture);
@@ -167,19 +164,15 @@ internal static class CsvCodec
 
     internal static string FormatDateTime(object value)
     {
-        switch (value)
+        return value switch
         {
-            case DateTime dt:
-                return dt.Kind == DateTimeKind.Utc
-                    ? dt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
-                    : dt.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture);
-            case DateTimeOffset dto:
-                return dto.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
-            case TimeSpan ts:
-                return ts.ToString("c", CultureInfo.InvariantCulture);
-            default:
-                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-        }
+            DateTime dt => dt.Kind == DateTimeKind.Utc
+                ? dt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
+                : dt.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture),
+            DateTimeOffset dto => dto.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
+            TimeSpan ts => ts.ToString("c", CultureInfo.InvariantCulture),
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty
+        };
     }
 
     public static string Neutralize(string text)
@@ -194,15 +187,7 @@ internal static class CsvCodec
 
     public static string Quote(string field, char delimiter)
     {
-        var needs = false;
-        foreach (var c in field)
-        {
-            if (c == delimiter || c == CsvOptions.Quote || c is '\r' or '\n')
-            {
-                needs = true;
-                break;
-            }
-        }
+        var needs = field.Any(c => c == delimiter || c == CsvOptions.Quote || c is '\r' or '\n');
 
         if (!needs)
             return field;
@@ -246,16 +231,14 @@ internal static class CsvCodec
     private static string DecodeUtf8(byte[] bytes)
     {
         var start = 0;
-        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+        if (bytes is [0xEF, 0xBB, 0xBF, ..])
             start = 3;
         return Utf8NoBom.GetString(bytes, start, bytes.Length - start);
     }
 
     private static List<string> Trim(List<string> fields, CsvOptions options)
     {
-        if (!options.TrimFields)
-            return fields;
-        return fields.Select(f => f.Trim()).ToList();
+        return !options.TrimFields ? fields : fields.Select(f => f.Trim()).ToList();
     }
 
     private static CsvFormatException Fail(int line, string message)
@@ -270,99 +253,95 @@ internal static class CsvCodec
 
     private static List<List<string>> ParseRecords(string text, char delimiter)
     {
-        var records = new List<List<string>>();
-        var record = new List<string>();
-        var field = new StringBuilder();
-        var i = 0;
+        var records = new List<List<string>>( );
+        var record = new List<string>( );
+        var field = new StringBuilder( );
+
         var line = 1;
         var inQuotes = false;
-        var fieldStart = true;
-        var sawRecord = false;
+        var isFieldStart = true;
 
-        void EndField()
-        {
-            record.Add(field.ToString());
-            field.Clear();
-            fieldStart = true;
-        }
-
-        void EndRecord()
-        {
-            EndField();
-            records.Add(record);
-            record = [];
-            line++;
-            fieldStart = true;
-            sawRecord = true;
-        }
-
-        while (i < text.Length)
+        for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
+
             if (inQuotes)
             {
                 if (c == CsvOptions.Quote)
                 {
+                    // Lookahead: Escaped quote ("")
                     if (i + 1 < text.Length && text[i + 1] == CsvOptions.Quote)
                     {
                         field.Append(CsvOptions.Quote);
-                        i += 2;
-                        fieldStart = false;
-                        continue;
+                        i++; // Skip the second quote
                     }
-
-                    inQuotes = false;
-                    i++;
-                    fieldStart = false;
-                    continue;
+                    else
+                    {
+                        inQuotes = false; // Close quotes
+                    }
                 }
-
-                field.Append(c);
-                i++;
-                fieldStart = false;
-                continue;
+                else
+                {
+                    field.Append(c);
+                }
+                isFieldStart = false;
             }
-
-            if (c == CsvOptions.Quote && fieldStart)
+            else
             {
-                inQuotes = true;
-                i++;
-                fieldStart = false;
-                continue;
+                if (c == CsvOptions.Quote)
+                {
+                    if (!isFieldStart)
+                        throw Fail(line, "A quote appeared in the middle of an unquoted field.");
+
+                    inQuotes = true;
+                    isFieldStart = false;
+                }
+                else if (c == delimiter)
+                {
+                    EndField( );
+                }
+                else if (c is '\r' or '\n')
+                {
+                    // Lookahead: Windows newline (\r\n)
+                    if (c == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+                        i++;
+
+                    // Ignore a completely empty trailing newline at the end of the file
+                    if (i == text.Length - 1 && record.Count == 0 && field.Length == 0 && records.Count > 0)
+                        break;
+
+                    EndRecord( );
+                }
+                else
+                {
+                    field.Append(c);
+                    isFieldStart = false;
+                }
             }
-
-            if (c == CsvOptions.Quote)
-                throw Fail(line, "A quote appeared in the middle of an unquoted field.");
-
-            if (c == delimiter)
-            {
-                EndField();
-                i++;
-                continue;
-            }
-
-            if (c is '\r' or '\n')
-            {
-                if (c == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
-                    i++;
-                i++;
-                if (i >= text.Length && record.Count == 0 && field.Length == 0 && sawRecord)
-                    break;
-                EndRecord();
-                continue;
-            }
-
-            field.Append(c);
-            fieldStart = false;
-            i++;
         }
 
         if (inQuotes)
             throw Fail(line, "Unclosed quoted field at end of file.");
 
+        // Flush remaining data at EOF
         if (field.Length > 0 || record.Count > 0)
-            EndRecord();
+            EndRecord( );
 
         return records;
+
+        void EndRecord( )
+        {
+            EndField( );
+            records.Add(record);
+            record = [ ];
+            line++;
+        }
+
+        void EndField( )
+        {
+            record.Add(field.ToString( ));
+            field.Clear( );
+            isFieldStart = true; // Next character will start a new field
+        }
     }
 }

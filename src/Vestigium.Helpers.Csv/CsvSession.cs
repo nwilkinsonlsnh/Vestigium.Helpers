@@ -8,13 +8,12 @@ namespace Vestigium.Helpers.Csv;
 public sealed class CsvSession : IDisposable
 {
     private CsvTable _table = CsvTable.Empty();
-    private string? _path;
     private bool _disposed;
     private bool _hasTable;
 
     internal CsvSession(CsvTable? table, string? path, string appId, string sessionId, CsvOptions options)
     {
-        _path = path;
+        Path = path;
         AppId = appId;
         SessionId = sessionId;
         Options = options;
@@ -32,14 +31,15 @@ public sealed class CsvSession : IDisposable
             CsvLog.Props(
                 ("cols", _table.Headers.Count.ToString()),
                 ("rows", _table.Rows.Count.ToString()),
-                ("path", _path),
+                ("path", Path),
                 ("delimiter", Options.DescribeDelimiter())),
             AppId);
     }
 
     public string AppId { get; }
     public string SessionId { get; }
-    public string? Path => _path;
+    public string? Path { get; private set; }
+
     public CsvOptions Options { get; }
 
     public void WriteTable(CsvTable table)
@@ -103,9 +103,7 @@ public sealed class CsvSession : IDisposable
     public string Save()
     {
         ThrowIfDisposed();
-        if (!string.IsNullOrWhiteSpace(_path))
-            return SaveAs(_path);
-        return SaveAs(CsvHelper.NewExportPath(AppId));
+        return SaveAs(!string.IsNullOrWhiteSpace(Path) ? Path : CsvHelper.NewExportPath(AppId));
     }
 
     public string SaveAs(string path)
@@ -121,7 +119,7 @@ public sealed class CsvSession : IDisposable
                 Directory.CreateDirectory(parent);
             var bytes = CsvCodec.WriteBytes(_hasTable ? _table : CsvTable.Empty(), Options);
             File.WriteAllBytes(target, bytes);
-            _path = target;
+            Path = target;
             CsvLog.Information(
                 CsvEvents.SessionSaved,
                 CsvCatalog.Subcategories.Session,

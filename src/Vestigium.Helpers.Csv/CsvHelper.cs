@@ -33,11 +33,9 @@ public static class CsvHelper
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         if (string.IsNullOrWhiteSpace(desktop))
             desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        if (string.IsNullOrWhiteSpace(desktop))
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
-        }
+        if (!string.IsNullOrWhiteSpace(desktop)) return Path.Combine(desktop, "Vestigium", "Exports", id);
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
 
         return Path.Combine(desktop, "Vestigium", "Exports", id);
     }
@@ -49,8 +47,7 @@ public static class CsvHelper
         var file = string.IsNullOrWhiteSpace(stem)
             ? $"vestigium-{id}-{stamp}.csv"
             : $"{stem.Trim()}-{stamp}.csv";
-        foreach (var ch in Path.GetInvalidFileNameChars())
-            file = file.Replace(ch, '_');
+        file = Path.GetInvalidFileNameChars().Aggregate(file, (current, ch) => current.Replace(ch, '_'));
         return Path.Combine(DefaultExportDirectory(id), file);
     }
 
