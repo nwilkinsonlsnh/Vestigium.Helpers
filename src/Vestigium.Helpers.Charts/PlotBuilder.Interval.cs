@@ -22,10 +22,10 @@ internal static partial class PlotBuilder
         var point = (double)series.Full.Percentile(p);
         var lo = (double)interval.Lower;
         var hi = (double)interval.Upper;
-        var sc = plot.Add.Scatter(new[] { 1d }, new[] { point });
+        var sc = plot.Add.Scatter([1d], new[] { point });
         sc.Color = Primary(options);
         sc.LegendText = $"P{p * 100:0}";
-        var err = plot.Add.Scatter(new[] { 1d, 1d }, new[] { lo, hi });
+        var err = plot.Add.Scatter(new[] { 1d, 1d }, [lo, hi]);
         err.Color = Color.FromHex(Palette.Trend);
         err.LegendText = $"{gamma:P0} {interval.Method}";
         plot.Axes.SetLimitsX(0, 2);

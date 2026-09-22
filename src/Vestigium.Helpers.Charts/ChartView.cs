@@ -118,23 +118,22 @@ public static partial class ChartView
     {
         ArgumentNullException.ThrowIfNull(x);
         ArgumentNullException.ThrowIfNull(y);
-        if (x.Count != y.Count)
-        {
-            ChartsLog.Error(
-                ChartsEvents.ChartRejectedXy,
-                VestigiumStatus.Failed,
-                ChartsCatalog.Subcategories.Chart,
-                "rejected x/y length mismatch",
-                properties: ChartsLog.Props(("nx", x.Count.ToString()), ("ny", y.Count.ToString())));
-            throw new ArgumentException("X and Y lengths must match.");
-        }
+        if (x.Count == y.Count)
+            return From(new ChartSpec
+            {
+                Kind = ChartKind.Scatter,
+                Series = [new ChartSeries { X = x.ToArray(), Y = [.. y] }],
+                Options = With(options, trend: trend)
+            });
 
-        return From(new ChartSpec
-        {
-            Kind = ChartKind.Scatter,
-            Series = [new ChartSeries { X = x.ToArray(), Y = y.ToArray() }],
-            Options = With(options, trend: trend)
-        });
+        ChartsLog.Error(
+            ChartsEvents.ChartRejectedXy,
+            VestigiumStatus.Failed,
+            ChartsCatalog.Subcategories.Chart,
+            "rejected x/y length mismatch",
+            properties: ChartsLog.Props(("nx", x.Count.ToString()), ("ny", y.Count.ToString())));
+        throw new ArgumentException("X and Y lengths must match.");
+
     }
 
     public static FrameworkElement Column(NumericSeries series, ChartOptions? options = null)

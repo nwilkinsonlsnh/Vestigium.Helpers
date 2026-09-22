@@ -23,38 +23,38 @@ internal static partial class PlotBuilder
         plot.Axes.Color(Color.FromHex("#1F2A33"));
         plot.Grid.MajorLineColor = Color.FromHex(Palette.Grid);
 
-        switch (spec.Kind)
+        switch (spec)
         {
-            case ChartKind.Histogram:
+            case { Kind: ChartKind.Histogram }:
                 FillHistogram(plot, spec, options);
                 break;
-            case ChartKind.Ecdf:
+            case { Kind: ChartKind.Ecdf }:
                 FillEcdf(plot, spec, options);
                 break;
-            case ChartKind.Line:
-            case ChartKind.Scatter:
+            case { Kind: ChartKind.Line }:
+            case { Kind: ChartKind.Scatter }:
                 FillXy(plot, spec, options, spec.Kind == ChartKind.Line);
                 break;
-            case ChartKind.Column:
-            case ChartKind.Bar:
+            case { Kind: ChartKind.Column }:
+            case { Kind: ChartKind.Bar }:
                 FillBars(plot, spec, options, horizontal: spec.Kind == ChartKind.Bar);
                 break;
-            case ChartKind.Pie:
+            case { Kind: ChartKind.Pie }:
                 FillPie(plot, spec);
                 break;
-            case ChartKind.Pareto:
+            case { Kind: ChartKind.Pareto }:
                 FillPareto(plot, spec, options);
                 break;
-            case ChartKind.Box:
+            case { Kind: ChartKind.Box }:
                 FillBox(plot, spec, options);
                 break;
-            case ChartKind.Bands:
+            case { Kind: ChartKind.Bands }:
                 FillBands(plot, spec, options);
                 break;
-            case ChartKind.MeanInterval:
+            case { Kind: ChartKind.MeanInterval }:
                 FillMeanInterval(plot, spec, options);
                 break;
-            case ChartKind.Control:
+            case { Kind: ChartKind.Control }:
                 FillControl(plot, spec, options);
                 break;
             default:
@@ -125,17 +125,22 @@ internal static partial class PlotBuilder
             bell.LegendText = "N(μ, s)";
         }
 
-        if (options.ShowKde)
+        switch (options.ShowKde)
         {
-            var pts = series.PdfPoints();
-            if (pts.Count > 0)
+            case true:
             {
-                var scale = series.Count * binWidth;
-                var xs = pts.Select(p => p.X).ToArray();
-                var ys = pts.Select(p => p.Y * scale).ToArray();
-                var kde = plot.Add.ScatterLine(xs, ys);
-                kde.Color = Color.FromHex(Palette.Kde);
-                kde.LegendText = "KDE";
+                var pts = series.PdfPoints();
+                if (pts.Count > 0)
+                {
+                    var scale = series.Count * binWidth;
+                    var xs = pts.Select(p => p.X).ToArray();
+                    var ys = pts.Select(p => p.Y * scale).ToArray();
+                    var kde = plot.Add.ScatterLine(xs, ys);
+                    kde.Color = Color.FromHex(Palette.Kde);
+                    kde.LegendText = "KDE";
+                }
+
+                break;
             }
         }
     }
@@ -159,17 +164,25 @@ internal static partial class PlotBuilder
         sc.LegendText = spec.Source?.Name ?? "series";
         ApplyLimits(plot, options.Limits ?? spec.Limits, xs, ys);
 
-        if (options.Trend == TrendKind.Linear)
+        switch (options.Trend)
         {
-            var fit = TrendFit.Linear(xs, ys);
-            if (fit is not null)
+            case TrendKind.Linear:
             {
-                var x0 = xs.Min();
-                var x1 = xs.Max();
-                var tr = plot.Add.ScatterLine(new[] { x0, x1 }, new[] { fit.Intercept + fit.Slope * x0, fit.Intercept + fit.Slope * x1 });
-                tr.Color = Color.FromHex(Palette.Trend);
-                tr.LegendText = $"trend R²={fit.RSquared:F3}";
+                var fit = TrendFit.Linear(xs, ys);
+                if (fit is not null)
+                {
+                    var x0 = xs.Min();
+                    var x1 = xs.Max();
+                    var tr = plot.Add.ScatterLine(new[] { x0, x1 }, new[] { fit.Intercept + fit.Slope * x0, fit.Intercept + fit.Slope * x1 });
+                    tr.Color = Color.FromHex(Palette.Trend);
+                    tr.LegendText = $"trend R²={fit.RSquared:F3}";
+                }
+
+                break;
             }
+            case TrendKind.None:
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
