@@ -14,7 +14,7 @@ It does not draw. It does not persist. Charts paints; the host owns storage.
 | EVENTID | Reserved 10500–10999 (used through 10615) |
 | Depends on | `MathNet.Numerics` 5.0.0, `Vestigium.Logging` |
 | License | MIT |
-| Contract | [`Requirements_v2.0.md`](../../../Vestigium.Documentation/Vestigium/Helpers/Analytics/002%20--%20Requirements%20Document/Requirements_v2.0.md) |
+| Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics/002%20--%20Requirements%20Document) |
 
 ## Consume
 
@@ -78,8 +78,14 @@ Named events live in `EventCatalog/analytics.json`.
 
 ## Related
 
-- Paint: `Vestigium.Helpers.Charts`
-- Disk log: `Vestigium.Logging`
-- Binding contract: [`Requirements_v2.0.md`](../../../Vestigium.Documentation/Vestigium/Helpers/Analytics/002%20--%20Requirements%20Document/Requirements_v2.0.md)
-- Design: [`Design_v2.0.md`](../../../Vestigium.Documentation/Vestigium/Helpers/Analytics/003%20--%20Design%20Document/Design_v2.0.md)
-- Developers guide: [`004 -- Developers Guide`](../../../Vestigium.Documentation/Vestigium/Helpers/Analytics/004%20--%20Developers%20Guide)
+Paint: `Vestigium.Helpers.Charts`. Disk log: `Vestigium.Logging`.
+
+Long-form documents live in [Vestigium.Documentation / Helpers / Analytics](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics). Folders, not files — current revision sits inside the folder.
+
+| Area | GitHub |
+|---|---|
+| 000 -- Archived | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics/000%20--%20Archived) |
+| 001 -- Implementation Plan | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics/001%20--%20Implementation%20Plan) |
+| 002 -- Requirements Document | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics/002%20--%20Requirements%20Document) |
+| 003 -- Design Document | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics/003%20--%20Design%20Document) |
+| 004 -- Developers Guide | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Analytics/004%20--%20Developers%20Guide) |
