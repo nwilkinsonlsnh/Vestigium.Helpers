@@ -16,6 +16,7 @@
     <Content Include="..\src\Vestigium.Helpers.Hashing\README.md" Link="Vestigium\Helpers\Hashing\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Json\README.md" Link="Vestigium\Helpers\Json\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Kql\README.md" Link="Vestigium\Helpers\Kql\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.Network\README.md" Link="Vestigium\Helpers\Network\README.md" />
   </ItemGroup>
 
   <ItemGroup>
