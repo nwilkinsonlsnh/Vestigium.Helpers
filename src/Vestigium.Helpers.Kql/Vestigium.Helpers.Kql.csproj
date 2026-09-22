@@ -18,7 +18,4 @@
   <ItemGroup>
     <None Include="EventCatalog\kql.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="_Documentation\" />
-  </ItemGroup>
 </Project>
