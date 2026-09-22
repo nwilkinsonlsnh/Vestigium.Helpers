@@ -1,8 +1,6 @@
 # 003 -- Design Document
 
 **Library:** Vestigium.Helpers.ClosedXml  
-**Status:** No current design document in this folder.
+**Status:** Current design is [`Design_v1.0.md`](Design_v1.0.md).
 
-This folder is kept so the GitHub tree matches Solution Explorer. Binding contract stays in `002 -- Requirements Document`.
-
-When a live design exists, put the current `Design_vX.Y.md` in this folder and change **Status** above.
+Binding contract: [`Requirements_v1.0.md`](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/ClosedXml/002%20--%20Requirements%20Document). Requirements win on conflict.
