@@ -12,6 +12,7 @@
     <Content Include="..\src\Vestigium.Helpers.ClosedXml\README.md" Link="Vestigium\Helpers\ClosedXml\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Csv\README.md" Link="Vestigium\Helpers\Csv\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Encryption\README.md" Link="Vestigium\Helpers\Encryption\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.FileIo\README.md" Link="Vestigium\Helpers\FileIo\README.md" />
   </ItemGroup>
 
   <ItemGroup>
