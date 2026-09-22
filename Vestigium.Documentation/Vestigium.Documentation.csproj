@@ -19,6 +19,7 @@
     <Content Include="..\src\Vestigium.Helpers.Network\README.md" Link="Vestigium\Helpers\Network\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Processes\README.md" Link="Vestigium\Helpers\Processes\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Services\README.md" Link="Vestigium\Helpers\Services\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.WinReg\README.md" Link="Vestigium\Helpers\WinReg\README.md" />
   </ItemGroup>
 
   <ItemGroup>
