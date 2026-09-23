@@ -57,55 +57,56 @@ internal static class KqlBinder
                 $"compile failed line={ex.Line} col={ex.Column}");
             return KqlCompileResult.Fail(ex.Line, ex.Column, ex.Message, diagnostics);
         }
-    }
 
-    private static void Bind(KqlExpression expr, KqlSession session, List<string> diagnostics)
-    {
-        switch (expr)
+        static void Bind(KqlExpression expr, KqlSession session, List<string> diagnostics)
         {
-            case KqlLogicalExpression logical:
-                Bind(logical.Left, session, diagnostics);
-                Bind(logical.Right, session, diagnostics);
-                break;
-            case KqlNotExpression not:
-                Bind(not.Operand, session, diagnostics);
-                break;
-            case KqlComparisonExpression cmp:
+            while (true)
             {
-                var field = RequireField(cmp.Field, cmp.Line, cmp.Column, session);
-                cmp.BoundField = field;
-                CheckTypes(field, cmp.Op.ToString(), cmp.Value.Type, cmp.Line, cmp.Column, like: cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike);
-                WarnExactWildcard(cmp, field, diagnostics);
+                switch (expr)
+                {
+                    case KqlLogicalExpression logical:
+                        Bind(logical.Left, session, diagnostics);
+                        expr = logical.Right;
+                        continue;
+                    case KqlNotExpression not:
+                        expr = not.Operand;
+                        continue;
+                    case KqlComparisonExpression cmp:
+                    {
+                        var field = RequireField(cmp.Field, cmp.Line, cmp.Column, session);
+                        cmp.BoundField = field;
+                        CheckTypes(field, cmp.Op.ToString(), cmp.Value.Type, cmp.Line, cmp.Column, like: cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike);
+                        WarnExactWildcard(cmp, field, diagnostics);
+                        break;
+                    }
+                    case KqlInExpression inn:
+                    {
+                        var field = RequireField(inn.Field, inn.Line, inn.Column, session);
+                        inn.BoundField = field;
+                        if (inn.Values.Count == 0) throw new KqlParseException(inn.Line, inn.Column, "IN list is empty");
+                        foreach (var value in inn.Values) CheckTypes(field, "IN", value.Type, inn.Line, inn.Column, like: false);
+                        break;
+                    }
+                    case KqlBetweenExpression between:
+                    {
+                        var field = RequireField(between.Field, between.Line, between.Column, session);
+                        between.BoundField = field;
+                        CheckTypes(field, "BETWEEN", between.Low.Type, between.Line, between.Column, like: false);
+                        CheckTypes(field, "BETWEEN", between.High.Type, between.Line, between.Column, like: false);
+                        break;
+                    }
+                    default:
+                        throw new KqlParseException(expr.Line, expr.Column, "unsupported expression");
+                }
+
                 break;
             }
-            case KqlInExpression inn:
-            {
-                var field = RequireField(inn.Field, inn.Line, inn.Column, session);
-                inn.BoundField = field;
-                if (inn.Values.Count == 0)
-                    throw new KqlParseException(inn.Line, inn.Column, "IN list is empty");
-                foreach (var value in inn.Values)
-                    CheckTypes(field, "IN", value.Type, inn.Line, inn.Column, like: false);
-                break;
-            }
-            case KqlBetweenExpression between:
-            {
-                var field = RequireField(between.Field, between.Line, between.Column, session);
-                between.BoundField = field;
-                CheckTypes(field, "BETWEEN", between.Low.Type, between.Line, between.Column, like: false);
-                CheckTypes(field, "BETWEEN", between.High.Type, between.Line, between.Column, like: false);
-                break;
-            }
-            default:
-                throw new KqlParseException(expr.Line, expr.Column, "unsupported expression");
         }
     }
 
     private static KqlField RequireField(string name, int line, int column, KqlSession session)
     {
-        if (!session.TryGetField(name, out var field))
-            throw new KqlParseException(line, column, UnknownFieldMessage(name, session));
-        return field;
+        return !session.TryGetField(name, out var field) ? throw new KqlParseException(line, column, UnknownFieldMessage(name, session)) : field;
     }
 
     internal static string UnknownFieldMessage(string name, KqlSession session)
@@ -168,8 +169,10 @@ internal static class KqlBinder
     {
         if (field == literal)
             return true;
-        if (field is KqlType.Integer or KqlType.Number && literal is KqlType.Integer or KqlType.Number)
-            return true;
-        return false;
+        return field switch
+        {
+            KqlType.Integer or KqlType.Number when literal is KqlType.Integer or KqlType.Number => true,
+            _ => false
+        };
     }
 }

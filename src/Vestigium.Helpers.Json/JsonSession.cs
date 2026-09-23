@@ -197,7 +197,7 @@ public sealed class JsonSession : IDisposable
     {
         ThrowIfDisposed();
         var target = string.IsNullOrWhiteSpace(Path) ? JsonHelper.NewExportPath(kind: Kind) : Path;
-        var replace = JsonIO.SamePath(Path, target);
+        var replace = JsonIo.SamePath(Path, target);
         return WriteTree(_working, target, replace, Options.Collision, working: true, "SaveWorking");
     }
 
@@ -205,7 +205,7 @@ public sealed class JsonSession : IDisposable
     {
         ThrowIfDisposed();
         var target = System.IO.Path.GetFullPath(HelperGuard.NotBlank(path, nameof(path)));
-        var replace = JsonIO.SamePath(Path, target);
+        var replace = JsonIo.SamePath(Path, target);
         return WriteTree(_committed, target, replace, collision, working: false, "SaveAs");
     }
 
@@ -226,10 +226,10 @@ public sealed class JsonSession : IDisposable
         using var scope = HelperLog.Begin(App, HelperLog.Subcategories.Save, method, $"path={path} session={SessionId}", SessionId);
         try
         {
-            JsonIO.RejectCollision(path, collision, replaceInPlace);
+            JsonIo.RejectCollision(path, collision, replaceInPlace);
             var bytes = Kind == JsonDocumentKind.Jsonl
-                ? JsonIO.WriteJsonl(path, AsArray(tree), Options.AtomicWrite)
-                : JsonIO.Write(path, tree, indented: true, Options.AtomicWrite);
+                ? JsonIo.WriteJsonl(path, AsArray(tree), Options.AtomicWrite)
+                : JsonIo.Write(path, tree, indented: true, Options.AtomicWrite);
             Path = path;
             _saved = tree.DeepClone();
             if (Kind == JsonDocumentKind.Jsonl)

@@ -47,7 +47,7 @@ public static class JsonHelper
         var name = string.IsNullOrWhiteSpace(stem)
             ? $"vestigium-Json-{stamp}"
             : stem.Trim();
-        return JsonIO.ResolveExportFile(DefaultExportDirectory(), name, kind);
+        return JsonIo.ResolveExportFile(DefaultExportDirectory(), name, kind);
     }
 
     public static string ToJson<T>(T value, JsonWriteOptions? options = null)
@@ -232,7 +232,7 @@ public static class JsonHelper
         try
         {
             var stored = string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path.Trim());
-            var kind = JsonIO.KindFromPath(stored);
+            var kind = JsonIo.KindFromPath(stored);
             JsonNode root = kind == JsonDocumentKind.Jsonl ? new JsonArray() : new JsonObject();
             return new JsonSession(
                 root,
@@ -256,7 +256,7 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
         try
         {
-            var node = JsonIO.Read(target);
+            var node = JsonIo.Read(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(
                 app,
@@ -288,7 +288,7 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Jsonl, "OpenJsonl", $"path={target} session={sessionId}", sessionId);
         try
         {
-            var records = JsonIO.ReadJsonl(target);
+            var records = JsonIo.ReadJsonl(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(
                 app,
@@ -315,7 +315,7 @@ public static class JsonHelper
     public static JsonSession OpenExport(string stem, JsonDocumentKind kind = JsonDocumentKind.Json, JsonSessionOptions? options = null)
     {
         var name = HelperGuard.NotBlank(stem, nameof(stem));
-        var target = JsonIO.ResolveExportFile(DefaultExportDirectory(), name, kind);
+        var target = JsonIo.ResolveExportFile(DefaultExportDirectory(), name, kind);
         return kind == JsonDocumentKind.Jsonl ? OpenJsonl(target, options) : Open(target, options);
     }
 
@@ -333,10 +333,10 @@ public static class JsonHelper
             }
 
             var opts = options ?? new JsonWriteOptions();
-            JsonIO.RejectCollision(target, opts.Collision, replaceInPlace: false);
+            JsonIo.RejectCollision(target, opts.Collision, replaceInPlace: false);
             var node = JsonCodec.ToNode(value)
                 ?? throw new JsonException("RFC 8259 JSON null is not a document root.");
-            var bytes = JsonIO.Write(target, node, opts.WriteIndented, opts.AtomicWrite);
+            var bytes = JsonIo.Write(target, node, opts.WriteIndented, opts.AtomicWrite);
             HelperLog.Information(
                 app,
                 VestigiumStatus.Success,

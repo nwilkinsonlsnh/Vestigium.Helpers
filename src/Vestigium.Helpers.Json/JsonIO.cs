@@ -5,7 +5,7 @@ using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Json;
 
-internal static class JsonIO
+internal static class JsonIo
 {
     internal const int StreamBufferSize = 64 * 1024;
 

@@ -53,9 +53,7 @@ internal static class HelperLog
         if (string.Equals(subcategory, AppIds.Kql, StringComparison.Ordinal)
             || string.Equals(subcategory, Subcategories.Probe, StringComparison.Ordinal))
         {
-            if (message.Contains("probe complete", StringComparison.OrdinalIgnoreCase))
-                return KqlEvents.ProbeComplete;
-            return KqlEvents.ProbeEnter;
+            return message.Contains("probe complete", StringComparison.OrdinalIgnoreCase) ? KqlEvents.ProbeComplete : KqlEvents.ProbeEnter;
         }
 
         if (string.Equals(subcategory, Subcategories.Session, StringComparison.Ordinal))
