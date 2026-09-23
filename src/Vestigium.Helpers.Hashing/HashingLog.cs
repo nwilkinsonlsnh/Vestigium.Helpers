@@ -80,12 +80,10 @@ internal static class HashingLog
             || value.Contains("PRIVATE KEY", StringComparison.OrdinalIgnoreCase)
             || value.Contains("-----"))
             return true;
-        if (value.Contains("password=", StringComparison.OrdinalIgnoreCase)
-            || value.Contains("passphrase=", StringComparison.OrdinalIgnoreCase)
-            || value.Contains("hmac-key=", StringComparison.OrdinalIgnoreCase)
-            || value.Contains("salt=", StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
+        return value.Contains("password=", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("passphrase=", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("hmac-key=", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("salt=", StringComparison.OrdinalIgnoreCase);
     }
 
     private static (int EventId, string Message) CompleteOf(string verb)
@@ -108,9 +106,7 @@ internal static class HashingLog
             return (HashingEvents.PasswordHashed, "password hashed");
         if (string.Equals(verb, "VerifyPassword", StringComparison.Ordinal))
             return (HashingEvents.PasswordVerify, "password verify");
-        if (verb.Contains("Convert", StringComparison.Ordinal))
-            return (HashingEvents.ConvertComplete, "convert complete");
-        return (HashingEvents.OperationComplete, "operation complete");
+        return verb.Contains("Convert", StringComparison.Ordinal) ? (HashingEvents.ConvertComplete, "convert complete") : (HashingEvents.OperationComplete, "operation complete");
     }
 
     private static void Write(

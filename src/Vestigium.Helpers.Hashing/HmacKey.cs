@@ -124,11 +124,9 @@ public sealed class HmacKey : IDisposable
     {
         if (length < MinimumLength)
             throw new ArgumentException($"HMAC key must be at least {MinimumLength} bytes.", param);
-        if (required is { } size)
-        {
-            EnsureSize(size);
-            if (length != (int)size)
-                throw new ArgumentException($"HMAC key must be exactly {(int)size} bytes.", param);
-        }
+        if (required is not { } size) return;
+        EnsureSize(size);
+        if (length != (int)size)
+            throw new ArgumentException($"HMAC key must be exactly {(int)size} bytes.", param);
     }
 }
