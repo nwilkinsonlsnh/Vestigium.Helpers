@@ -25,8 +25,8 @@ internal static class BandwidthEngine
         new(CommonBotId.SemrushBot, "SemrushBot", "Semrush"),
         new(CommonBotId.DotBot, "DotBot", "Moz"),
         new(CommonBotId.PetalBot, "PetalBot", "Huawei"),
-        new(CommonBotId.GPTBot, "GPTBot", "OpenAI"),
-        new(CommonBotId.ChatGPTUser, "ChatGPT-User", "OpenAI"),
+        new(CommonBotId.GptBot, "GPTBot", "OpenAI"),
+        new(CommonBotId.ChatGptUser, "ChatGPT-User", "OpenAI"),
         new(CommonBotId.ClaudeBot, "ClaudeBot", "Anthropic"),
         new(CommonBotId.Bytespider, "Bytespider", "ByteDance"),
         new(CommonBotId.Other, "Other", "Operator")

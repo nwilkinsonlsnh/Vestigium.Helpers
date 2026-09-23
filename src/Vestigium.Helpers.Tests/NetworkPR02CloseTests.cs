@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR02CloseTests
+public sealed class NetworkPr02CloseTests
 {
     private static readonly string[] Required =
     [
@@ -20,7 +20,7 @@ public sealed class NetworkPR02CloseTests
     [Fact]
     public void PR02_008_required_fixtures_exist()
     {
-        var names = typeof(NetworkPR02CloseTests).Assembly.GetTypes()
+        var names = typeof(NetworkPr02CloseTests).Assembly.GetTypes()
             .SelectMany(t => t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             .Where(m => m.GetCustomAttributes().Any(a => a.GetType().Name is "FactAttribute" or "TheoryAttribute"))
             .Select(m => m.Name)

@@ -30,7 +30,7 @@ public static partial class HashingHelper
         if (ChecksumCrc32("123456789") != "cbf43926")
             throw new CryptographicException("CRC-32 probe vector failed.");
         if (HMACSHA3_256.IsSupported &&
-            HmacString("Hi There", rfcKey, HmacAlgorithm.Sha3_256) !=
+            HmacString("Hi There", rfcKey, HmacAlgorithm.Sha3256) !=
             "ba85192310dffa96e2a3a40e69774351140bb7185e1202cdcc917589f95e16bb")
             throw new CryptographicException("HMAC-SHA3-256 probe vector failed.");
         if (System.Security.Cryptography.Shake128.IsSupported &&
@@ -56,9 +56,9 @@ public static partial class HashingHelper
         HashingAlgorithm.Sha256 => "SHA-256",
         HashingAlgorithm.Sha384 => "SHA-384",
         HashingAlgorithm.Sha512 => "SHA-512",
-        HashingAlgorithm.Sha3_256 => "SHA3-256",
-        HashingAlgorithm.Sha3_384 => "SHA3-384",
-        HashingAlgorithm.Sha3_512 => "SHA3-512",
+        HashingAlgorithm.Sha3256 => "SHA3-256",
+        HashingAlgorithm.Sha3384 => "SHA3-384",
+        HashingAlgorithm.Sha3512 => "SHA3-512",
         HashingAlgorithm.Md5 => "MD5",
         HashingAlgorithm.Sha1 => "SHA-1",
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
@@ -66,9 +66,9 @@ public static partial class HashingHelper
 
     public static int DigestLength(HashingAlgorithm algorithm) => algorithm switch
     {
-        HashingAlgorithm.Sha256 or HashingAlgorithm.Sha3_256 => 32,
-        HashingAlgorithm.Sha384 or HashingAlgorithm.Sha3_384 => 48,
-        HashingAlgorithm.Sha512 or HashingAlgorithm.Sha3_512 => 64,
+        HashingAlgorithm.Sha256 or HashingAlgorithm.Sha3256 => 32,
+        HashingAlgorithm.Sha384 or HashingAlgorithm.Sha3384 => 48,
+        HashingAlgorithm.Sha512 or HashingAlgorithm.Sha3512 => 64,
         HashingAlgorithm.Md5 => 16,
         HashingAlgorithm.Sha1 => 20,
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
@@ -78,9 +78,9 @@ public static partial class HashingHelper
     {
         HashingAlgorithm.Sha256 or HashingAlgorithm.Sha384 or HashingAlgorithm.Sha512
             or HashingAlgorithm.Md5 or HashingAlgorithm.Sha1 => true,
-        HashingAlgorithm.Sha3_256 => SHA3_256.IsSupported,
-        HashingAlgorithm.Sha3_384 => SHA3_384.IsSupported,
-        HashingAlgorithm.Sha3_512 => SHA3_512.IsSupported,
+        HashingAlgorithm.Sha3256 => SHA3_256.IsSupported,
+        HashingAlgorithm.Sha3384 => SHA3_384.IsSupported,
+        HashingAlgorithm.Sha3512 => SHA3_512.IsSupported,
         _ => false,
     };
 

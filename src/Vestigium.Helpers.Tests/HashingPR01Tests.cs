@@ -5,9 +5,9 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Tests;
 
 [Collection("Logger")]
-public sealed class HashingPR01Tests
+public sealed class HashingPr01Tests
 {
-    public HashingPR01Tests() => VestigiumLogger.Shutdown();
+    public HashingPr01Tests() => VestigiumLogger.Shutdown();
 
     private static string Init()
     {

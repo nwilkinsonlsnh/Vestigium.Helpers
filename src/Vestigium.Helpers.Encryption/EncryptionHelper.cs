@@ -541,9 +541,9 @@ public static class EncryptionHelper
 
         var algByte = (byte)alg;
         var kdf = secret.IsPassphrase ? (byte)1 : (byte)0;
-        var kdfMem = kdf == 1 ? Argon2idKdf.MemoryMiB : (byte)0;
-        var kdfIter = kdf == 1 ? Argon2idKdf.Iterations : (byte)0;
-        var kdfPar = kdf == 1 ? Argon2idKdf.Parallelism : (byte)0;
+        var kdfMem = kdf == 1 ? Argon2IdKdf.MemoryMiB : (byte)0;
+        var kdfIter = kdf == 1 ? Argon2IdKdf.Iterations : (byte)0;
+        var kdfPar = kdf == 1 ? Argon2IdKdf.Parallelism : (byte)0;
         var salt = kdf == 1 ? RandomNumberGenerator.GetBytes(16) : new byte[16];
         var fileNonce = new byte[12];
         RandomNumberGenerator.Fill(fileNonce.AsSpan(0, 8));

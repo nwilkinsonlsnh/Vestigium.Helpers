@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR02IcmpTests
+public sealed class NetworkPr02IcmpTests
 {
     [Fact]
     public void PR02_005_linux_forbidden_stays_typed()

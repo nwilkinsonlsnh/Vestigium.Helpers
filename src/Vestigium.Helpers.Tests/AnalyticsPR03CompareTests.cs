@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR03CompareTests
+public sealed class AnalyticsPr03CompareTests
 {
     [Fact]
     public void PR03_007_equal_counts_pair_and_welch_is_one_when_identical()

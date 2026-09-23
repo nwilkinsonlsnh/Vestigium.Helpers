@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR02RouteFamilyTests
+public sealed class NetworkPr02RouteFamilyTests
 {
     [Fact]
     public void PR02_006_ipv6_write_is_cap_or_cleanup()

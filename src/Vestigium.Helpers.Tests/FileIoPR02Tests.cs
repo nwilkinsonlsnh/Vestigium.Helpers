@@ -5,9 +5,9 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Tests;
 
 [Collection("Logger")]
-public sealed class FileIoPR02Tests
+public sealed class FileIoPr02Tests
 {
-    public FileIoPR02Tests()
+    public FileIoPr02Tests()
     {
         VestigiumLogger.Shutdown();
     }

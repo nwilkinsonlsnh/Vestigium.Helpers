@@ -309,7 +309,7 @@ public sealed class ProcessCoverageBoostTests
             Arguments = "-n 20 127.0.0.1",
             WorkingDirectory = Environment.SystemDirectory,
             CreateNoWindow = true,
-            RedirectStandardIO = true,
+            RedirectStandardIo = true,
             Environment = new Dictionary<string, string> { ["VESTIGIUM_COV"] = "1" }
         });
         Assert.True(started.Ok, started.Message);

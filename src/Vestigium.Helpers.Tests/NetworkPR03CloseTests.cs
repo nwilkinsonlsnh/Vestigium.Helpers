@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR03CloseTests
+public sealed class NetworkPr03CloseTests
 {
     [Fact]
     public void PR03_010_share_surface_has_no_password_and_no_writeprobe()

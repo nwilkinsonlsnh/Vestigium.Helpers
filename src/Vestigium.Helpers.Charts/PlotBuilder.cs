@@ -105,7 +105,7 @@ internal static partial class PlotBuilder
         if (binWidth <= 0)
             binWidth = Math.Max(1e-9, (max - min) / Math.Max(1, bins.Count));
 
-        if (options.ShowBellCurve && series.Full.Mean is { } mu && series.Full.StdDev is { } s and not 0)
+        if (options.ShowBellCurve && series.Full is { Mean: { } mu, StdDev: { } s and not 0 })
         {
             var lo = Math.Min(min, mu - 3.5 * s);
             var hi = Math.Max(max, mu + 3.5 * s);

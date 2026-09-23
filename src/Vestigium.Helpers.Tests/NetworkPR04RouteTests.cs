@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR04RouteTests
+public sealed class NetworkPr04RouteTests
 {
     [Fact]
     public void PR04_003_linux_mutate_denied()

@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR03Tests
+public sealed class AnalyticsPr03Tests
 {
     [Fact]
     public void PR03_001_from_does_not_score()

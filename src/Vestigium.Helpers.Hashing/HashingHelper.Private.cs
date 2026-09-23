@@ -21,13 +21,13 @@ public static partial class HashingHelper
             case HashingAlgorithm.Sha512:
                 SHA512.HashData(data, destination);
                 break;
-            case HashingAlgorithm.Sha3_256:
+            case HashingAlgorithm.Sha3256:
                 SHA3_256.HashData(data, destination);
                 break;
-            case HashingAlgorithm.Sha3_384:
+            case HashingAlgorithm.Sha3384:
                 SHA3_384.HashData(data, destination);
                 break;
-            case HashingAlgorithm.Sha3_512:
+            case HashingAlgorithm.Sha3512:
                 SHA3_512.HashData(data, destination);
                 break;
             case HashingAlgorithm.Md5:
@@ -46,9 +46,9 @@ public static partial class HashingHelper
         HmacAlgorithm.Sha256 => HashAlgorithmName.SHA256,
         HmacAlgorithm.Sha384 => HashAlgorithmName.SHA384,
         HmacAlgorithm.Sha512 => HashAlgorithmName.SHA512,
-        HmacAlgorithm.Sha3_256 => HashAlgorithmName.SHA3_256,
-        HmacAlgorithm.Sha3_384 => HashAlgorithmName.SHA3_384,
-        HmacAlgorithm.Sha3_512 => HashAlgorithmName.SHA3_512,
+        HmacAlgorithm.Sha3256 => HashAlgorithmName.SHA3_256,
+        HmacAlgorithm.Sha3384 => HashAlgorithmName.SHA3_384,
+        HmacAlgorithm.Sha3512 => HashAlgorithmName.SHA3_512,
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
     };
 
@@ -57,9 +57,9 @@ public static partial class HashingHelper
         HashingAlgorithm.Sha256 => HashAlgorithmName.SHA256,
         HashingAlgorithm.Sha384 => HashAlgorithmName.SHA384,
         HashingAlgorithm.Sha512 => HashAlgorithmName.SHA512,
-        HashingAlgorithm.Sha3_256 => HashAlgorithmName.SHA3_256,
-        HashingAlgorithm.Sha3_384 => HashAlgorithmName.SHA3_384,
-        HashingAlgorithm.Sha3_512 => HashAlgorithmName.SHA3_512,
+        HashingAlgorithm.Sha3256 => HashAlgorithmName.SHA3_256,
+        HashingAlgorithm.Sha3384 => HashAlgorithmName.SHA3_384,
+        HashingAlgorithm.Sha3512 => HashAlgorithmName.SHA3_512,
         HashingAlgorithm.Md5 => HashAlgorithmName.MD5,
         HashingAlgorithm.Sha1 => HashAlgorithmName.SHA1,
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),

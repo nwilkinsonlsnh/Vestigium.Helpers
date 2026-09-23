@@ -59,13 +59,13 @@ internal static class HelperLog
         if (string.Equals(subcategory, Subcategories.Session, StringComparison.Ordinal))
             return KqlEvents.SessionCreated;
 
-        if (level == VestigiumLogLevel.Warning && statusIsFailed(message))
+        if (level == VestigiumLogLevel.Warning && StatusIsFailed(message))
             return KqlEvents.QueryFailed;
 
         return KqlEvents.QueryWarning;
     }
 
-    private static bool statusIsFailed(string message)
+    private static bool StatusIsFailed(string message)
         => message.Contains("failed", StringComparison.OrdinalIgnoreCase);
 
     private static string CatalogMessage(int eventId) => eventId switch

@@ -85,13 +85,13 @@ public sealed class HashingContractTests
     [Fact]
     public void Sha3_kmac_shake_skip_when_unsupported()
     {
-        if (HashingHelper.IsSupported(HashingAlgorithm.Sha3_256))
-            Assert.Equal(64, HashingHelper.HashString("abc", HashingAlgorithm.Sha3_256).Length);
+        if (HashingHelper.IsSupported(HashingAlgorithm.Sha3256))
+            Assert.Equal(64, HashingHelper.HashString("abc", HashingAlgorithm.Sha3256).Length);
 
-        if (HashingHelper.IsHmacSupported(HmacAlgorithm.Sha3_256))
+        if (HashingHelper.IsHmacSupported(HmacAlgorithm.Sha3256))
         {
             using var key = HmacKey.Generate();
-            Assert.Equal(64, HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha3_256).Length);
+            Assert.Equal(64, HashingHelper.HmacString("Hi There", key, HmacAlgorithm.Sha3256).Length);
         }
 
         if (HashingHelper.IsShakeSupported)

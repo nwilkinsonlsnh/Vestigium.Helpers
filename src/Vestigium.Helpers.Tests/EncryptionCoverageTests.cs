@@ -23,11 +23,11 @@ public sealed class EncryptionCoverageTests
         Assert.Equal("ok", EncryptionAudit.Reason("ok"));
         Assert.Throws<ArgumentException>(() => EncryptionAudit.Actor("BEGIN PRIVATE KEY"));
         Assert.Throws<ArgumentException>(() => EncryptionAudit.Reason("-----"));
-        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[8], 64, 3, 1));
-        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 0, 3, 1));
-        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 64, 0, 1));
-        Assert.Throws<CryptographicException>(() => Argon2idKdf.Derive("pw", new byte[16], 64, 3, 0));
-        var key = Argon2idKdf.Derive("gallery-demo-only", new byte[16], 8, 1, 1);
+        Assert.Throws<CryptographicException>(() => Argon2IdKdf.Derive("pw", new byte[8], 64, 3, 1));
+        Assert.Throws<CryptographicException>(() => Argon2IdKdf.Derive("pw", new byte[16], 0, 3, 1));
+        Assert.Throws<CryptographicException>(() => Argon2IdKdf.Derive("pw", new byte[16], 64, 0, 1));
+        Assert.Throws<CryptographicException>(() => Argon2IdKdf.Derive("pw", new byte[16], 64, 3, 0));
+        var key = Argon2IdKdf.Derive("gallery-demo-only", new byte[16], 8, 1, 1);
         Assert.Equal(32, key.Length);
         Assert.Equal((byte)EncryptionAlgorithm.Aes256CbcHmac == 2 ? Envelope.SuiteMinorCbc : Envelope.SuiteMinorCbc, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256CbcHmac));
         Assert.Equal(Envelope.SuiteMinorRsa, Envelope.SuiteMinorFor((byte)EncryptionAlgorithm.Aes256Gcm, hasRsaWrap: true));
@@ -260,7 +260,7 @@ public sealed class EncryptionCoverageTests
         Assert.Equal(0, tail.Position);
 
         using var secret2 = EncryptionSecret.FromPassphrase("gallery-demo-only");
-        Assert.Equal("probe", EncryptionHelper.Identity is { } id && id.Length > 0
+        Assert.Equal("probe", EncryptionHelper.Identity is { Length: > 0 }
             ? EncryptionHelper.OpenString(EncryptionHelper.SealString("probe", secret2), secret2)
             : "probe");
         Assert.Equal("Vestigium.Helpers.Encryption", EncryptionHelper.Probe());

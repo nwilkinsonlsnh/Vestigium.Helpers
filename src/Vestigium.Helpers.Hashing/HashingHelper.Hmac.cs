@@ -10,26 +10,26 @@ public static partial class HashingHelper
         HmacAlgorithm.Sha256 => "HMAC-SHA256",
         HmacAlgorithm.Sha384 => "HMAC-SHA384",
         HmacAlgorithm.Sha512 => "HMAC-SHA512",
-        HmacAlgorithm.Sha3_256 => "HMAC-SHA3-256",
-        HmacAlgorithm.Sha3_384 => "HMAC-SHA3-384",
-        HmacAlgorithm.Sha3_512 => "HMAC-SHA3-512",
+        HmacAlgorithm.Sha3256 => "HMAC-SHA3-256",
+        HmacAlgorithm.Sha3384 => "HMAC-SHA3-384",
+        HmacAlgorithm.Sha3512 => "HMAC-SHA3-512",
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
     };
 
     public static int HmacLength(HmacAlgorithm algorithm) => algorithm switch
     {
-        HmacAlgorithm.Sha256 or HmacAlgorithm.Sha3_256 => 32,
-        HmacAlgorithm.Sha384 or HmacAlgorithm.Sha3_384 => 48,
-        HmacAlgorithm.Sha512 or HmacAlgorithm.Sha3_512 => 64,
+        HmacAlgorithm.Sha256 or HmacAlgorithm.Sha3256 => 32,
+        HmacAlgorithm.Sha384 or HmacAlgorithm.Sha3384 => 48,
+        HmacAlgorithm.Sha512 or HmacAlgorithm.Sha3512 => 64,
         _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
     };
 
     public static bool IsHmacSupported(HmacAlgorithm algorithm) => algorithm switch
     {
         HmacAlgorithm.Sha256 or HmacAlgorithm.Sha384 or HmacAlgorithm.Sha512 => true,
-        HmacAlgorithm.Sha3_256 => HMACSHA3_256.IsSupported,
-        HmacAlgorithm.Sha3_384 => HMACSHA3_384.IsSupported,
-        HmacAlgorithm.Sha3_512 => HMACSHA3_512.IsSupported,
+        HmacAlgorithm.Sha3256 => HMACSHA3_256.IsSupported,
+        HmacAlgorithm.Sha3384 => HMACSHA3_384.IsSupported,
+        HmacAlgorithm.Sha3512 => HMACSHA3_512.IsSupported,
         _ => false,
     };
 
@@ -78,9 +78,9 @@ public static partial class HashingHelper
             HmacAlgorithm.Sha256 => HMACSHA256.HashData(key.Span, data),
             HmacAlgorithm.Sha384 => HMACSHA384.HashData(key.Span, data),
             HmacAlgorithm.Sha512 => HMACSHA512.HashData(key.Span, data),
-            HmacAlgorithm.Sha3_256 => HMACSHA3_256.HashData(key.Span, data),
-            HmacAlgorithm.Sha3_384 => HMACSHA3_384.HashData(key.Span, data),
-            HmacAlgorithm.Sha3_512 => HMACSHA3_512.HashData(key.Span, data),
+            HmacAlgorithm.Sha3256 => HMACSHA3_256.HashData(key.Span, data),
+            HmacAlgorithm.Sha3384 => HMACSHA3_384.HashData(key.Span, data),
+            HmacAlgorithm.Sha3512 => HMACSHA3_512.HashData(key.Span, data),
             _ => throw new ArgumentOutOfRangeException(nameof(algorithm)),
         };
     }

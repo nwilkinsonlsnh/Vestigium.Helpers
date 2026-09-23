@@ -50,8 +50,8 @@ public sealed class NetworkCoverageBoostTests : IDisposable
         var all = NetworkLinuxTables.GetRoutes(RouteFamily.All);
         Assert.True(all.Count >= v4.Count);
         var neighbors = NetworkLinuxTables.GetNeighbors();
-        Assert.Contains(neighbors, n => n.State == "Reachable" && n.MacAddress == "aa:bb:cc:dd:ee:ff");
-        Assert.Contains(neighbors, n => n.State == "Permanent" && n.MacAddress is null);
+        Assert.Contains(neighbors, n => n is { State: "Reachable", MacAddress: "aa:bb:cc:dd:ee:ff" });
+        Assert.Contains(neighbors, n => n is { State: "Permanent", MacAddress: null });
         Assert.Contains(neighbors, n => n.State == "Failed");
         Assert.Contains(neighbors, n => n.State == "Incomplete");
     }

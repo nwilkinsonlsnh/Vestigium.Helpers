@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR04NelsonTests
+public sealed class AnalyticsPr04NelsonTests
 {
     [Fact]
     public void PR04_007_one_to_nine_is_nelson_five()

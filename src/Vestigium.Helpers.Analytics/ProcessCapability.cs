@@ -117,7 +117,7 @@ public sealed class ProcessCapability
 
         var lower = spec.Lower is { } lsl ? (xbar - lsl) / (3d * sigma) : null;
         var upper = spec.Upper is { } usl ? (usl - xbar) / (3d * sigma) : null;
-        var two = spec.Lower is { } lo && spec.Upper is { } hi
+        var two = spec is { Lower: { } lo, Upper: { } hi }
             ? (hi - lo) / (6d * sigma)
             : null;
         return new CapabilitySides(two, lower, upper, MinDefined(lower, upper));

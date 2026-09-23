@@ -77,9 +77,9 @@ internal static class RegistryRegFile
     public static string ReadAllText(string path)
     {
         var bytes = File.ReadAllBytes(path);
-        if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)
+        if (bytes is [0xFF, 0xFE, ..])
             return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
-        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+        if (bytes is [0xEF, 0xBB, 0xBF, ..])
             return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
         return Encoding.ASCII.GetString(bytes);
     }
@@ -247,7 +247,7 @@ internal static class RegistryRegFile
 
     private static string TrimQuoted(string raw)
     {
-        if (raw.Length >= 2 && raw[0] == '"' && raw[^1] == '"')
+        if (raw is ['"', _, ..] && raw[^1] == '"')
             return raw[1..^1];
         return raw;
     }

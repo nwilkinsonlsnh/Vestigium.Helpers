@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR04DocsTests
+public sealed class NetworkPr04DocsTests
 {
     [Fact]
     public void PR04_001_network_has_no_charts_reference()

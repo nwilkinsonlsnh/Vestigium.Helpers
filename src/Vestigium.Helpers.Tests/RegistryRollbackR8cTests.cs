@@ -3,13 +3,13 @@ using Vestigium.Helpers.WinReg;
 namespace Vestigium.Helpers.Tests;
 
 [Collection("Logger")]
-public sealed class RegistryRollbackR8cTests : IDisposable
+public sealed class RegistryRollbackR8CTests : IDisposable
 {
     private static readonly RegistryHiveKind Hive = RegistryHiveKind.CurrentUser;
     private readonly string _root;
     private readonly string _dir;
 
-    public RegistryRollbackR8cTests()
+    public RegistryRollbackR8CTests()
     {
         _root = @"Software\Vestigium\Helpers.Tests\" + Guid.NewGuid().ToString("N");
         _dir = Path.Combine(Path.GetTempPath(), "vest-r8c-" + Guid.NewGuid().ToString("N"));

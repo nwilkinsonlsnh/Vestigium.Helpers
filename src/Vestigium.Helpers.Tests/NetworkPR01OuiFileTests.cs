@@ -2,11 +2,11 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR01OuiFileTests : IDisposable
+public sealed class NetworkPr01OuiFileTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "vest-pr01-oui-" + Guid.NewGuid().ToString("N"));
 
-    public NetworkPR01OuiFileTests()
+    public NetworkPr01OuiFileTests()
     {
         Directory.CreateDirectory(_dir);
     }

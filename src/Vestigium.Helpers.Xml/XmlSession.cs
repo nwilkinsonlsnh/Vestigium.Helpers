@@ -281,7 +281,7 @@ public sealed class XmlSession : IDisposable
     {
         ThrowIfDisposed();
         var target = string.IsNullOrWhiteSpace(Path) ? XmlHelper.NewExportPath() : Path;
-        var replace = XmlIO.SamePath(Path, target);
+        var replace = XmlIo.SamePath(Path, target);
         return WriteTree(_working, target, replace, Options.Collision, working: true, "SaveWorking");
     }
 
@@ -289,7 +289,7 @@ public sealed class XmlSession : IDisposable
     {
         ThrowIfDisposed();
         var target = System.IO.Path.GetFullPath(HelperGuard.NotBlank(path, nameof(path)));
-        var replace = XmlIO.SamePath(Path, target);
+        var replace = XmlIo.SamePath(Path, target);
         return WriteTree(_committed, target, replace, collision, working: false, "SaveAs");
     }
 
@@ -304,7 +304,7 @@ public sealed class XmlSession : IDisposable
     public string WorkingXml(bool indent = false)
     {
         ThrowIfDisposed();
-        return XmlIO.Serialize(_working, _doctype, indent);
+        return XmlIo.Serialize(_working, _doctype, indent);
     }
 
     private string WriteTree(XDocument tree, string path, bool replaceInPlace, XmlCollision collision, bool working, string method)
@@ -319,7 +319,7 @@ public sealed class XmlSession : IDisposable
                 Collision = collision,
                 AtomicWrite = Options.AtomicWrite
             };
-            var bytes = XmlIO.WriteExisting(path, tree, _doctype, options, replaceInPlace);
+            var bytes = XmlIo.WriteExisting(path, tree, _doctype, options, replaceInPlace);
             Path = path;
             _saved = new XDocument(tree);
             if (working)

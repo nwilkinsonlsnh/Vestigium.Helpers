@@ -62,7 +62,7 @@ internal static class ProcessStarter
                 info.WorkingDirectory = request.WorkingDirectory;
             if (!string.IsNullOrWhiteSpace(request.Verb))
                 info.Verb = request.Verb;
-            if (request.RedirectStandardIO)
+            if (request.RedirectStandardIo)
             {
                 info.RedirectStandardInput = true;
                 info.RedirectStandardOutput = true;
@@ -157,10 +157,10 @@ internal static class ProcessStarter
         FileNotFoundException => ProcessStartError.FileNotFound,
         DirectoryNotFoundException => ProcessStartError.FileNotFound,
         BadImageFormatException => ProcessStartError.InvalidImage,
-        Win32Exception win when win.NativeErrorCode is 2 or 3 => ProcessStartError.FileNotFound,
-        Win32Exception win when win.NativeErrorCode == 5 => ProcessStartError.AccessDenied,
-        Win32Exception win when win.NativeErrorCode is 1326 or 1331 or 1385 => ProcessStartError.LogonFailed,
-        Win32Exception win when win.NativeErrorCode == 1223 => ProcessStartError.Cancelled,
+        Win32Exception { NativeErrorCode: 2 or 3 } => ProcessStartError.FileNotFound,
+        Win32Exception { NativeErrorCode: 5 } => ProcessStartError.AccessDenied,
+        Win32Exception { NativeErrorCode: 1326 or 1331 or 1385 } => ProcessStartError.LogonFailed,
+        Win32Exception { NativeErrorCode: 1223 } => ProcessStartError.Cancelled,
         UnauthorizedAccessException => ProcessStartError.AccessDenied,
         _ => ProcessStartError.Unknown
     };

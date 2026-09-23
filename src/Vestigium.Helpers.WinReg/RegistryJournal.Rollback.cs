@@ -77,7 +77,7 @@ public sealed partial class RegistryJournal
         var dest = mut.To ?? mut.Name;
         return mut.Op switch
         {
-            "SetValue" when mut.Existed && mut.Before is not null
+            "SetValue" when mut is { Existed: true, Before: not null }
                 => client.SetValue(mut.Hive, mut.Path, mut.Name, mut.Before.Data, mut.Before.Type, confirm: true),
             "SetValue"
                 => client.DeleteValue(mut.Hive, mut.Path, mut.Name, confirm: true),

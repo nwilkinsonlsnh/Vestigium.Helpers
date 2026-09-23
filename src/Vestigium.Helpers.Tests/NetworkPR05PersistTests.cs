@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR05PersistTests
+public sealed class NetworkPr05PersistTests
 {
     [Fact]
     public void PR05_001_persist_key_has_single_separators()

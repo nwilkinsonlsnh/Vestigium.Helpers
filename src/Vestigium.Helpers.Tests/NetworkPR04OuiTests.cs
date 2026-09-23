@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR04OuiTests
+public sealed class NetworkPr04OuiTests
 {
     [Fact]
     public void PR04_002_packed_oui_resolves_cisco()

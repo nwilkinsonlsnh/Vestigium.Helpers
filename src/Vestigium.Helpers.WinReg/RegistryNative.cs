@@ -49,7 +49,7 @@ internal static partial class RegistryNative
     internal static extern bool OpenProcessToken(nint process, uint access, out nint token);
 
     [DllImport("advapi32.dll", SetLastError = true)]
-    internal static extern bool AdjustTokenPrivileges(nint token, bool disableAll, ref TokenPrivileges NewState, int bufferLength, nint previous, nint required);
+    internal static extern bool AdjustTokenPrivileges(nint token, bool disableAll, ref TokenPrivileges newState, int bufferLength, nint previous, nint required);
 
     [DllImport("advapi32.dll", SetLastError = true)]
     internal static extern bool PrivilegeCheck(nint token, ref PrivilegeSet required, out bool result);

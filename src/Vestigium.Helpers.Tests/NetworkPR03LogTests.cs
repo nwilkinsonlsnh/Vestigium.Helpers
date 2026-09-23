@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR03LogTests : IDisposable
+public sealed class NetworkPr03LogTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-log-" + Guid.NewGuid().ToString("N"));
 
@@ -11,7 +11,7 @@ public sealed class NetworkPR03LogTests : IDisposable
         "password", "passwd", "credential", "secret", "connectionstring", "pwd="
     ];
 
-    public NetworkPR03LogTests()
+    public NetworkPr03LogTests()
     {
         Directory.CreateDirectory(_root);
         NetworkTestHooks.CampaignRoot = _root;

@@ -25,11 +25,9 @@ internal static class ProcessKiller
             return true;
         if (row.IntegrityLevel == IntegrityLevel.Protected)
             return true;
-        if (row.Protection is { } protection
-            && !string.IsNullOrWhiteSpace(protection.Level)
-            && !string.Equals(protection.Level, "None", StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
+        return row.Protection is { } protection
+               && !string.IsNullOrWhiteSpace(protection.Level)
+               && !string.Equals(protection.Level, "None", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static ProcessKillResult Kill(int pid, bool force)

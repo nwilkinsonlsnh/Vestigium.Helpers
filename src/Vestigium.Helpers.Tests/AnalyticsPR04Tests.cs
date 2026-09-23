@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR04Tests
+public sealed class AnalyticsPr04Tests
 {
     [Fact]
     public void PR04_001_rejects_empty_p_and_gamma()

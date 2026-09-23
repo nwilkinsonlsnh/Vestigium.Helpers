@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR05Tests
+public sealed class AnalyticsPr05Tests
 {
     [Fact]
     public void PR05_002_mean_interval_narrows_when_gamma_drops()

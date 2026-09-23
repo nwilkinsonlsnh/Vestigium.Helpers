@@ -4,7 +4,7 @@ using Konscious.Security.Cryptography;
 
 namespace Vestigium.Helpers.Encryption;
 
-internal static class Argon2idKdf
+internal static class Argon2IdKdf
 {
     public const byte MemoryMiB = 64;
     public const byte Iterations = 3;

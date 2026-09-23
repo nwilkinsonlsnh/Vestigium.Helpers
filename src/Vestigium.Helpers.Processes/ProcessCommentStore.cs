@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Processes;
 
@@ -23,7 +24,7 @@ internal static class ProcessCommentStore
         if (Memory.TryGetValue(key, out var live))
             return live;
         LoadDisk();
-        return Memory.TryGetValue(key, out var stored) ? stored : null;
+        return Memory.GetValueOrDefault(key);
     }
 
     internal static void Set(string key, string? comment, bool persist)
@@ -65,8 +66,14 @@ internal static class ProcessCommentStore
             foreach (var pair in data)
                 Memory.TryAdd(pair.Key, pair.Value);
         }
-        catch
+        catch (Exception exception)
         {
+            HelperLog.Error(
+                HelperLog.AppIds.Processes,
+                VestigiumStatus.Failed,
+                HelperLog.Subcategories.Campaign,
+                $"Failed to load comment store from {path}",
+                exception);
         }
     }
 }

@@ -2,7 +2,7 @@ using Vestigium.Helpers.FileIo;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class FileIoPR03Tests
+public sealed class FileIoPr03Tests
 {
     [Fact]
     public void UniqueName_dot_hash_hash_then_01_then_03()

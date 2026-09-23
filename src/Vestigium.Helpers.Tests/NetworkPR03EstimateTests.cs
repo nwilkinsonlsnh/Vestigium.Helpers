@@ -3,11 +3,11 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR03EstimateTests : IDisposable
+public sealed class NetworkPr03EstimateTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-est-" + Guid.NewGuid().ToString("N"));
 
-    public NetworkPR03EstimateTests()
+    public NetworkPr03EstimateTests()
     {
         Directory.CreateDirectory(_root);
         NetworkTestHooks.CampaignRoot = _root;

@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR04CloseTests
+public sealed class NetworkPr04CloseTests
 {
     private static readonly string[] Required =
     [
@@ -27,7 +27,7 @@ public sealed class NetworkPR04CloseTests
     [Fact]
     public void PR04_006_required_fixtures_exist()
     {
-        var names = typeof(NetworkPR04CloseTests).Assembly.GetTypes()
+        var names = typeof(NetworkPr04CloseTests).Assembly.GetTypes()
             .SelectMany(t => t.GetMethods())
             .Where(m => m.GetCustomAttribute<FactAttribute>() is not null)
             .Select(m => m.Name)

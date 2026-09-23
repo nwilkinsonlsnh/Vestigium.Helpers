@@ -49,7 +49,7 @@ public sealed class RegistryBacklogB3Tests : IDisposable
         RegistryHelper.Local.SetValue(Hive, _root, "Mark", "beta", confirm: true);
         Assert.Equal(RegistryWriteStatus.Ok, RegistryHelper.WriteIndex(b, Hive, _root, confirm: true, includePayload: true).Status);
         var summary = RegistryHelper.CompareDetailed(a, b, output, confirm: true, includePayload: true);
-        var changed = summary.Deltas.Single(d => d.Kind == "Changed" && d.Name == "Mark");
+        var changed = summary.Deltas.Single(d => d is { Kind: "Changed", Name: "Mark" });
         Assert.Equal("alpha", changed.LeftText);
         Assert.Equal("beta", changed.RightText);
         Assert.Contains("\"leftText\":\"alpha\"", File.ReadAllText(output));

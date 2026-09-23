@@ -10,7 +10,7 @@ public sealed partial class RegistryJournal
     public static RegistryPurgeResult Compact(string path, RegistryPurgeOptions options)
     {
         path = HelperGuard.NotBlank(path, nameof(path));
-        if (!options.DryRun && !options.Confirm)
+        if (options is { DryRun: false, Confirm: false })
             return Fail(path, RegistryWriteStatus.Denied, "confirm=false", options.DryRun);
         if (!File.Exists(path))
             return Fail(path, RegistryWriteStatus.NotFound, "journal missing", options.DryRun);

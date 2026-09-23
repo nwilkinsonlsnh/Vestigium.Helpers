@@ -44,8 +44,8 @@ public sealed partial class RegistryClient
         CancellationToken cancel = default)
     {
         var needle = HelperGuard.NotBlank(term, nameof(term));
-        HelperGuard.Require(maxDepth >= 0 && maxDepth <= MaxSearchDepth, nameof(maxDepth), $"MaxDepth cap is {MaxSearchDepth}.");
-        HelperGuard.Require(maxResults > 0 && maxResults <= MaxSearchResults, nameof(maxResults), $"MaxResults cap is {MaxSearchResults}.");
+        HelperGuard.Require(maxDepth is >= 0 and <= MaxSearchDepth, nameof(maxDepth), $"MaxDepth cap is {MaxSearchDepth}.");
+        HelperGuard.Require(maxResults is > 0 and <= MaxSearchResults, nameof(maxResults), $"MaxResults cap is {MaxSearchResults}.");
         if (fields == 0)
             fields = RegistrySearchFields.KeyName | RegistrySearchFields.ValueName;
 

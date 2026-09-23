@@ -46,7 +46,7 @@ internal static class ServiceLogon
         try
         {
             var serviceType = ServiceNative.ServiceNoChange;
-            if (request.Kind == ServiceLogonKind.LocalSystem && request.InteractWithDesktop)
+            if (request is { Kind: ServiceLogonKind.LocalSystem, InteractWithDesktop: true })
             {
                 if (IsShareProcess(handle))
                     return new ServiceControlResult(name, ServiceControlStatus.InvalidState, null, "InteractWithDesktop requires an own-process service");

@@ -7,7 +7,7 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Xml;
 
-internal static class XmlIO
+internal static class XmlIo
 {
     internal const int StreamBufferSize = 64 * 1024;
     private const string App = HelperLog.AppIds.Xml;

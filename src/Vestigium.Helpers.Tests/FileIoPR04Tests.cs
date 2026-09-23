@@ -2,7 +2,7 @@ using Vestigium.Helpers.FileIo;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class FileIoPR04Tests
+public sealed class FileIoPr04Tests
 {
     [Fact]
     public async Task Unique_content_copy_writes_jsonl_and_CleanIndex_deletes_it()

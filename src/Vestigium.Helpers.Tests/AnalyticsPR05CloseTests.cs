@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR05CloseTests
+public sealed class AnalyticsPr05CloseTests
 {
     [Fact]
     public void PR05_007_percentile_interval_is_defined_on_one_to_nine()

@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR02BillTests
+public sealed class NetworkPr02BillTests
 {
     [Fact]
     public void PR02_007_empty_samples_throw()

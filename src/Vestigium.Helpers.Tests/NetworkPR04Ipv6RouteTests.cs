@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR04Ipv6RouteTests
+public sealed class NetworkPr04Ipv6RouteTests
 {
     private static NetworkRouteChange DocV6() => new()
     {

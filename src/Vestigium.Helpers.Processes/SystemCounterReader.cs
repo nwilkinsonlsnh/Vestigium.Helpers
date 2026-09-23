@@ -141,10 +141,10 @@ internal static class SystemCounterReader
         var writeBytesDelta = Delta(raw.WriteBytes, previous?.WriteBytes ?? 0);
         var otherBytesDelta = Delta(raw.OtherBytes, previous?.OtherBytes ?? 0);
         long? ioPerSec = null;
-        if (interval is { } span && span.TotalSeconds > 0 && readBytesDelta is long r && writeBytesDelta is long w && otherBytesDelta is long o)
+        if (interval is { TotalSeconds: > 0 } span && readBytesDelta is long r && writeBytesDelta is long w && otherBytesDelta is long o)
             ioPerSec = (long)((r + w + o) / span.TotalSeconds);
 
-        double? commitPct = commitCurrent is long cur && commitLimit is long lim && lim > 0 ? (double)cur / lim : null;
+        double? commitPct = commitCurrent is long cur && commitLimit is long lim and > 0 ? (double)cur / lim : null;
         double? physPct = physTotal is long tot && physAvail is long av && tot > 0 ? (double)(tot - av) / tot : null;
 
         return new SystemCounters
@@ -176,7 +176,7 @@ internal static class SystemCounterReader
             CommitPeak = commitPeak,
             CommitChange = previous is null || interval is null || commitCurrent is null ? null : commitCurrent - previous.CommitCurrent,
             CommitCurrentToLimit = commitPct,
-            CommitPeakToLimit = commitPeak is long peak && commitLimit is long lim2 && lim2 > 0 ? (double)peak / lim2 : null,
+            CommitPeakToLimit = commitPeak is long peak && commitLimit is long lim2 and > 0 ? (double)peak / lim2 : null,
             PhysicalTotal = physTotal,
             PhysicalAvailable = physAvail,
             CacheWorkingSet = cacheWs,

@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR04NetlinkTests
+public sealed class NetworkPr04NetlinkTests
 {
     [Fact]
     public void PR04_004_default_route_is_not_offered()

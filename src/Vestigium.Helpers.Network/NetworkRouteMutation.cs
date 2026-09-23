@@ -132,7 +132,7 @@ internal static class NetworkRouteMutation
             }
         }
 
-        if (discoveredIndex is { } found && found >= 1)
+        if (discoveredIndex is { } found and >= 1)
             return found;
 
         HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(ResolveInterfaceIndex), "interface required");

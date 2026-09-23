@@ -9,7 +9,7 @@ public sealed class ProcessStartRequest
     public string? WorkingDirectory { get; init; }
     public bool UseShellExecute { get; init; }
     public bool CreateNoWindow { get; init; }
-    public bool RedirectStandardIO { get; init; }
+    public bool RedirectStandardIo { get; init; }
     public bool LogCommandLine { get; init; }
     public string? Verb { get; init; }
     public IReadOnlyDictionary<string, string>? Environment { get; init; }

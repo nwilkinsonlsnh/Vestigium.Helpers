@@ -23,16 +23,8 @@ internal static class ProcessAutostart
                 return hit.Label;
 
         var startup = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-        if (!string.IsNullOrWhiteSpace(startup) && Directory.Exists(startup))
-        {
-            foreach (var path in Directory.EnumerateFiles(startup))
-            {
-                if (Matches(path, file, shortName) || Matches(Path.GetFileNameWithoutExtension(path), file, shortName))
-                    return "Startup folder";
-            }
-        }
-
-        return "None";
+        if (string.IsNullOrWhiteSpace(startup) || !Directory.Exists(startup)) return "None";
+        return Directory.EnumerateFiles(startup).Any(path => Matches(path, file, shortName) || Matches(Path.GetFileNameWithoutExtension(path), file, shortName)) ? "Startup folder" : "None";
     }
 
     private static IEnumerable<(string Label, string Value)> ReadRun(RegistryHive hive, string key, string label)

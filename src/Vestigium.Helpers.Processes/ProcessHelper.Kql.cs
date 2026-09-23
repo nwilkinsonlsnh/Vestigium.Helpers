@@ -24,14 +24,9 @@ public static partial class ProcessHelper
         }
 
         var capture = ProcessKqlLevel.Resolve(level, compiled.Query!.Expression, session);
-        var app = HelperLog.AppIds.Processes;
+        const string app = HelperLog.AppIds.Processes;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Query, "Search", $"kql max={maxResults} level={capture}");
-        var hits = new List<ProcessInfo>();
-        foreach (var row in ProcessSnapshotter.Capture(capture))
-        {
-            if (compiled.Query.Matches(new ProcessKqlRow(row)))
-                hits.Add(row);
-        }
+        var hits = ProcessSnapshotter.Capture(capture).Where(row => compiled.Query.Matches(new ProcessKqlRow(row))).ToList();
 
         var taken = ProcessSearchSort.TakeStable(hits, maxResults);
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Query, $"Search kql hits={taken.Count} max={maxResults} level={capture}");

@@ -15,7 +15,7 @@ public sealed partial class FileIoJob
                 return;
             }
 
-            if (_options.IncludeEmptyDirectories && !_options.AuditMode && Verb != FileIoVerb.Delete)
+            if (_options is { IncludeEmptyDirectories: true, AuditMode: false } && Verb != FileIoVerb.Delete)
                 Directory.CreateDirectory(Destination);
 
             var dirs = new ConcurrentQueue<(string Path, int Depth)>();
@@ -87,7 +87,7 @@ public sealed partial class FileIoJob
                     continue;
                 if (_options.MaxDepth is { } max && depth + 1 >= max)
                     continue;
-                if (_options.IncludeEmptyDirectories && !_options.AuditMode && Verb != FileIoVerb.Delete)
+                if (_options is { IncludeEmptyDirectories: true, AuditMode: false } && Verb != FileIoVerb.Delete)
                 {
                     var rel = Rel(Source, entry);
                     if (!string.IsNullOrEmpty(rel))

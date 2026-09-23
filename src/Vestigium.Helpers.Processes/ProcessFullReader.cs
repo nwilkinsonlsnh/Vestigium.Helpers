@@ -256,7 +256,7 @@ internal static class ProcessFullReader
             out _);
         if (status != 0)
             return;
-        if (info.Level == 0 && info.Signer == 0)
+        if (info is { Level: 0, Signer: 0 })
         {
             row.Protection = new ProcessProtection("None", null);
             return;

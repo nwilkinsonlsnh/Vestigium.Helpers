@@ -48,11 +48,11 @@ public sealed class HashingLoggingTests
     [Fact]
     public void Catalog_rows_match_event_constants()
     {
-        Assert.Contains(HashingCatalog.Rows, r => r.EventId == HashingEvents.HashComplete && r.Name == "HashComplete");
-        Assert.Contains(HashingCatalog.Rows, r => r.EventId == HashingEvents.HashFileComplete && r.Name == "HashFileComplete");
-        Assert.Contains(HashingCatalog.Rows, r => r.EventId == HashingEvents.HmacComplete && r.Name == "HmacComplete");
-        Assert.Contains(HashingCatalog.Rows, r => r.EventId == HashingEvents.PasswordHashed && r.Name == "PasswordHashed");
-        Assert.Contains(HashingCatalog.Rows, r => r.EventId == HashingEvents.Rejected && r.Name == "Rejected");
+        Assert.Contains(HashingCatalog.Rows, r => r is { EventId: HashingEvents.HashComplete, Name: "HashComplete" });
+        Assert.Contains(HashingCatalog.Rows, r => r is { EventId: HashingEvents.HashFileComplete, Name: "HashFileComplete" });
+        Assert.Contains(HashingCatalog.Rows, r => r is { EventId: HashingEvents.HmacComplete, Name: "HmacComplete" });
+        Assert.Contains(HashingCatalog.Rows, r => r is { EventId: HashingEvents.PasswordHashed, Name: "PasswordHashed" });
+        Assert.Contains(HashingCatalog.Rows, r => r is { EventId: HashingEvents.Rejected, Name: "Rejected" });
         Assert.Equal(15, HashingCatalog.Rows.Length);
     }
 

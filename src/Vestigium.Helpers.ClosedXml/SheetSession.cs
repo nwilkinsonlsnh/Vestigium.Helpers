@@ -93,7 +93,7 @@ public sealed class SheetSession
 
         ApplyChrome(range, lastRow, colCount, opts, table.Name, row, column);
 
-        if (opts.HeaderNumberFormats && opts.HasHeaderRow)
+        if (opts is { HeaderNumberFormats: true, HasHeaderRow: true })
             ApplyHeaderFormats(headers, row, column, lastRow, colCount);
         if (opts.OperatorPrint)
             ApplyOperatorPrint( );
@@ -340,19 +340,19 @@ public sealed class SheetSession
         if (opts.HasHeaderRow)
             StyleHeader(headerRow, firstCol, colCount);
 
-        if (opts.CreateExcelTable && opts.HasHeaderRow && lastRow >= headerRow && !_sheet.Tables.Any())
+        if (opts is { CreateExcelTable: true, HasHeaderRow: true } && lastRow >= headerRow && !_sheet.Tables.Any())
         {
             var name = UniqueTableName(ExcelNames.SanitizeTable(tableName, Name + "Table"));
             var table = range.CreateTable(name);
             table.ShowRowStripes = true;
             table.Theme = ExcelTableStyles.Resolve(opts.TableStyle ?? _book.TableStyle);
         }
-        else if (opts.AutoFilter && opts.HasHeaderRow)
+        else if (opts is { AutoFilter: true, HasHeaderRow: true })
         {
             range.SetAutoFilter();
         }
 
-        if (opts.FreezeHeader && opts.HasHeaderRow && headerRow == 1)
+        if (opts is { FreezeHeader: true, HasHeaderRow: true } && headerRow == 1)
             _sheet.SheetView.FreezeRows(1);
 
         if (opts.Autosize)

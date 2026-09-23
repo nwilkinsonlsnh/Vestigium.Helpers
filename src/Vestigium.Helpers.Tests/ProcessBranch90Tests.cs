@@ -23,7 +23,7 @@ public sealed class ProcessBranch90Tests
             FileName = Path.Combine(Environment.SystemDirectory, "ping.exe"),
             WorkingDirectory = Path.Combine(Path.GetTempPath(), "no-dir-" + Guid.NewGuid().ToString("N")),
             CreateNoWindow = true,
-            RedirectStandardIO = true
+            RedirectStandardIo = true
         });
         Assert.False(badDir.Ok);
 
@@ -102,7 +102,7 @@ public sealed class ProcessBranch90Tests
             FileName = Path.Combine(Environment.SystemDirectory, "ping.exe"),
             Arguments = "-n 30 127.0.0.1",
             CreateNoWindow = true,
-            RedirectStandardIO = true
+            RedirectStandardIo = true
         });
         Assert.True(ping.Ok, ping.Message);
         try

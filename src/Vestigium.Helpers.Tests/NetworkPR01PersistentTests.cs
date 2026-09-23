@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR01PersistentTests
+public sealed class NetworkPr01PersistentTests
 {
     [Fact]
     public void PR01_010_persistent_delete_access_denied_is_typed()

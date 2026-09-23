@@ -52,7 +52,7 @@ public static class XmlHelper
         var name = string.IsNullOrWhiteSpace(stem)
             ? $"vestigium-Xml-{stamp}"
             : stem.Trim();
-        return XmlIO.ResolveExportFile(DefaultExportDirectory(), name);
+        return XmlIo.ResolveExportFile(DefaultExportDirectory(), name);
     }
 
     public static XDocument Parse(string xml, XmlReadOptions? options = null)
@@ -64,7 +64,7 @@ public static class XmlHelper
             var text = HelperGuard.NotBlank(xml, nameof(xml));
             var opts = options ?? new XmlReadOptions();
             GuardSize(text.Length, opts);
-            var (document, _) = XmlIO.LoadDocument(text, opts);
+            var (document, _) = XmlIo.LoadDocument(text, opts);
             HelperLog.Information(
                 app,
                 VestigiumStatus.Success,
@@ -97,7 +97,7 @@ public static class XmlHelper
             var detected = XmlEncoding.Detect(bytes, opts.Charset);
             LogEncoding(detected);
             var text = XmlEncoding.Decode(bytes, detected);
-            var (document, _) = XmlIO.LoadDocument(text, opts);
+            var (document, _) = XmlIo.LoadDocument(text, opts);
             HelperLog.Information(
                 app,
                 VestigiumStatus.Success,
@@ -153,21 +153,21 @@ public static class XmlHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
         try
         {
-            var bytes = XmlIO.ReadAllBytes(target);
+            var bytes = XmlIo.ReadAllBytes(target);
             var sessionOptions = options ?? new XmlSessionOptions();
             var read = ToReadOptions(sessionOptions);
             GuardSize(bytes.Length, read);
             var detected = XmlEncoding.Detect(bytes, sessionOptions.Charset);
             LogEncoding(detected);
             var text = XmlEncoding.Decode(bytes, detected);
-            var parts = XmlIO.SplitDocuments(text);
+            var parts = XmlIo.SplitDocuments(text);
             if (parts.Count > 1)
             {
                 HelperLog.Reject($"Open requires a single well-formed document; use OpenMulti documents={parts.Count}");
                 throw new XmlException($"Open requires a single well-formed document; use OpenMulti. documents={parts.Count}");
             }
 
-            var (document, doctype) = XmlIO.LoadDocument(text, read);
+            var (document, doctype) = XmlIo.LoadDocument(text, read);
             HelperLog.Information(
                 app,
                 VestigiumStatus.Success,
@@ -199,7 +199,7 @@ public static class XmlHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Multi, "OpenMulti", "path=" + target);
         try
         {
-            var bytes = XmlIO.ReadAllBytes(target);
+            var bytes = XmlIo.ReadAllBytes(target);
             var sessionOptions = options ?? new XmlSessionOptions();
             var read = new XmlReadOptions
             {
@@ -211,7 +211,7 @@ public static class XmlHelper
             var detected = XmlEncoding.Detect(bytes, sessionOptions.Charset);
             LogEncoding(detected);
             var text = XmlEncoding.Decode(bytes, detected);
-            var loaded = XmlIO.LoadMany(text, read);
+            var loaded = XmlIo.LoadMany(text, read);
             HelperLog.Information(
                 app,
                 VestigiumStatus.Success,
@@ -240,7 +240,7 @@ public static class XmlHelper
     public static XmlSession OpenExport(string stem, XmlSessionOptions? options = null)
     {
         var name = HelperGuard.NotBlank(stem, nameof(stem));
-        var target = XmlIO.ResolveExportFile(DefaultExportDirectory(), name);
+        var target = XmlIo.ResolveExportFile(DefaultExportDirectory(), name);
         return Open(target, options);
     }
 
@@ -253,7 +253,7 @@ public static class XmlHelper
         {
             var doc = HelperGuard.NotNull(document, nameof(document));
             var opts = options ?? new XmlWriteOptions();
-            var bytes = XmlIO.Write(target, doc, doctype: null, opts);
+            var bytes = XmlIo.Write(target, doc, doctype: null, opts);
             HelperLog.Information(
                 app,
                 VestigiumStatus.Success,

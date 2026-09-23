@@ -78,11 +78,11 @@ public sealed class ShareCampaign
         {
             switch (o)
             {
-                case { Mode: ShareCampaignMode.Default } when o.PlannedSize is null:
+                case { Mode: ShareCampaignMode.Default, PlannedSize: null }:
                     HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard),
                         "planned size missing");
                     throw new ArgumentException("Default mode requires PlannedSize.", nameof(o.PlannedSize));
-                case { Mode: ShareCampaignMode.Advanced } when o.SourceAnalysis is null:
+                case { Mode: ShareCampaignMode.Advanced, SourceAnalysis: null }:
                     HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard),
                         "analysis missing");
                     throw new ArgumentException("Advanced mode requires SourceAnalysis.", nameof(o.SourceAnalysis));

@@ -16,7 +16,7 @@ public sealed class ControlLimitsTests
         Assert.Equal(3 * series.Full.StdDev!.Value, limits.Upper - limits.Center, 6);
         Assert.Equal(3 * series.Full.StdDev!.Value, limits.Center - limits.Lower, 6);
         Assert.Equal(0, limits.OutOfControlCount);
-        Assert.True(limits.Upper > 13.2 && limits.Upper < 13.3);
+        Assert.True(limits.Upper is > 13.2 and < 13.3);
     }
 
     [Fact]

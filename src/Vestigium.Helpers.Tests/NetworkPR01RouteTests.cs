@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR01RouteTests
+public sealed class NetworkPr01RouteTests
 {
     [Fact]
     public void PR01_005_missing_interface_does_not_use_index_1()

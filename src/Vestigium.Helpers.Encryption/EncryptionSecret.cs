@@ -50,7 +50,7 @@ public sealed class EncryptionSecret : IDisposable
         if (kdf != 1)
             throw new NotSupportedException("kdf");
 
-        return _passphrase is null ? throw new CryptographicException("The envelope is corrupt.") : Argon2idKdf.Derive(_passphrase, salt, memMiB, iter, par);
+        return _passphrase is null ? throw new CryptographicException("The envelope is corrupt.") : Argon2IdKdf.Derive(_passphrase, salt, memMiB, iter, par);
     }
 
     public void Dispose()

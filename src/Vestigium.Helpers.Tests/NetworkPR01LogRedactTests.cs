@@ -2,7 +2,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR01LogRedactTests
+public sealed class NetworkPr01LogRedactTests
 {
     [Fact]
     public void PR01_009_directory_prefix_is_stripped()

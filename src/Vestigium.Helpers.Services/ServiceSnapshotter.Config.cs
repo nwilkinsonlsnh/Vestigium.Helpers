@@ -47,7 +47,7 @@ internal static partial class ServiceSnapshotter
             }
 
             info.DelayedAutoStart = QueryDelayed(service);
-            if (info.DelayedAutoStart == true && info.StartType == ServiceStartType.Automatic)
+            if (info is { DelayedAutoStart: true, StartType: ServiceStartType.Automatic })
                 info.StartType = ServiceStartType.AutomaticDelayed;
 
             FillSidAndPrivileges(service, info);
@@ -138,7 +138,7 @@ internal static partial class ServiceSnapshotter
                 info.FailureRebootMessage = ServiceNative.PtrToString(actions.RebootMsg);
                 info.FailureCommand = ServiceNative.PtrToString(actions.Command);
                 var list = new List<ServiceFailureAction>();
-                if (actions.Actions != 0 && actions.Count > 0 && actions.Count < 16)
+                if (actions.Actions != 0 && actions.Count is > 0 and < 16)
                 {
                     var stride = Marshal.SizeOf<ServiceNative.ScAction>();
                     for (var i = 0; i < actions.Count; i++)

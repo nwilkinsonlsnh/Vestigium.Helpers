@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR03PlannerTests
+public sealed class NetworkPr03PlannerTests
 {
     [Fact]
     public void PR03_004_many_tiny_plus_huge_includes_metadata_and_huge()
@@ -17,8 +17,8 @@ public sealed class NetworkPR03PlannerTests
             Bucket(FileIoBucket.Huge, 10, hugeBytes, 300L * 1024 * 1024));
 
         var plan = NetworkHelper.PlanShareProbe(analysis);
-        Assert.Contains(plan.Probes, p => p.IsMetadata && p.Workload == "ManySmall" && p.ProbeCount == 256 && p.ProbeBytes == 4096);
-        Assert.Contains(plan.Probes, p => p.Bucket == FileIoBucket.Huge && p.ProbeBytes == 64L * 1024 * 1024);
+        Assert.Contains(plan.Probes, p => p is { IsMetadata: true, Workload: "ManySmall", ProbeCount: 256, ProbeBytes: 4096 });
+        Assert.Contains(plan.Probes, p => p is { Bucket: FileIoBucket.Huge, ProbeBytes: 64L * 1024 * 1024 });
         Assert.Equal(tinyBytes + hugeBytes, plan.PlannedBytes);
     }
 

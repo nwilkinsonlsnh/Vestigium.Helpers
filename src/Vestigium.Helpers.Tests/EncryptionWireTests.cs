@@ -465,7 +465,7 @@ public sealed class EncryptionWireTests
         using var namedOut = new MemoryStream();
         EncryptionHelper.SealFile(named, namedOut, secret, originalFileName: "plain.bin");
         namedOut.Position = 0;
-        Assert.Equal("plain.bin", EncryptionHelper.Peek(namedOut) is { } info && info.HasHiddenOriginalName
+        Assert.Equal("plain.bin", EncryptionHelper.Peek(namedOut) is { HasHiddenOriginalName: true }
             ? EncryptionHelper.RevealOriginalFileName(
                 WriteTemp(dir, "anon.aes", namedOut.ToArray()), secret)
             : "plain.bin");

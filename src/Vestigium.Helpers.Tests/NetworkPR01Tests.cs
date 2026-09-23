@@ -4,7 +4,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR01Tests : IDisposable
+public sealed class NetworkPr01Tests : IDisposable
 {
     private const string SampleMac = "00:1A:2B:3C:4D:5E";
 

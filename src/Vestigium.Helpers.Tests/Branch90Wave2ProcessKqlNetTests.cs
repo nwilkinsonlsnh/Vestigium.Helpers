@@ -54,7 +54,7 @@ public sealed class Branch90Wave2ProcessKqlNetTests
             FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
             Arguments = "/c exit 0",
             CreateNoWindow = true,
-            RedirectStandardIO = true,
+            RedirectStandardIo = true,
             Verb = "open",
             Environment = new Dictionary<string, string> { ["VEST_B90"] = "1" }
         });

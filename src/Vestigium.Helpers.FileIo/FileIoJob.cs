@@ -200,7 +200,7 @@ public sealed partial class FileIoJob
         var deleted = 0;
         if (Verb == FileIoVerb.Mirror && _options.Purge && !_cancelled)
             deleted += PurgeDest();
-        if (_options.PruneEmptyDirectories && !_options.AuditMode && !_cancelled && Directory.Exists(Destination))
+        if (_options is { PruneEmptyDirectories: true, AuditMode: false } && !_cancelled && Directory.Exists(Destination))
         {
             var n = FileIoHelper.PruneEmptyDirectories(Destination);
             if (n > 0)

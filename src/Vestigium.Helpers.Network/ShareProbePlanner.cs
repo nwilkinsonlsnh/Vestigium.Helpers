@@ -76,21 +76,21 @@ internal static class ShareProbePlanner
 
     private static long ClampMedian(decimal? median)
     {
-        var raw = median is { } m && m > 0 ? (long)decimal.Round(m, MidpointRounding.AwayFromZero) : MinProbeBytes;
+        var raw = median is { } m and > 0 ? (long)decimal.Round(m, MidpointRounding.AwayFromZero) : MinProbeBytes;
         return Math.Clamp(raw, MinProbeBytes, MaxStepBytes);
     }
 
     private static void FitBudget(List<ShareProbeStep> steps, long maxBytes)
     {
-        while (Cost(steps) > maxBytes && steps.Exists(s => !s.IsMetadata && s.ProbeCount > 1))
+        while (Cost(steps) > maxBytes && steps.Exists(s => s is { IsMetadata: false, ProbeCount: > 1 }))
         {
-            var i = steps.FindIndex(s => !s.IsMetadata && s.ProbeCount > 1);
+            var i = steps.FindIndex(s => s is { IsMetadata: false, ProbeCount: > 1 });
             steps[i] = Clone(steps[i], count: 1);
         }
 
         while (Cost(steps) > maxBytes)
         {
-            var drop = steps.FindIndex(s => !s.IsMetadata && s.Bucket is FileIoBucket.Tiny or FileIoBucket.Small or FileIoBucket.Medium);
+            var drop = steps.FindIndex(s => s is { IsMetadata: false, Bucket: FileIoBucket.Tiny or FileIoBucket.Small or FileIoBucket.Medium });
             if (drop < 0)
                 drop = steps.FindIndex(s => s.IsMetadata);
             if (drop < 0)

@@ -2,7 +2,7 @@ using Vestigium.Helpers.Analytics;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class AnalyticsPR02Tests
+public sealed class AnalyticsPr02Tests
 {
     [Fact]
     public void PR02_001_computed_limit_lists_are_frozen()

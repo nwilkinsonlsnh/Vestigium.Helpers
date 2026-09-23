@@ -242,7 +242,7 @@ public sealed class DnsWireTests
             });
         tcp.Stop();
         Assert.True(result.UsedTcp || result.Answers.Count > 0, result.Rcode.ToString());
-        if (result.UsedTcp && result.Answers.Count > 0)
+        if (result is { UsedTcp: true, Answers.Count: > 0 })
             Assert.Equal("8.8.4.4", result.Answers[0].Data);
     }
 

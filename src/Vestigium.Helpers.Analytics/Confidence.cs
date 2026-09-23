@@ -169,26 +169,26 @@ public sealed class ConfidenceReport
             return ConfidenceInterval.Undefined("Mean", level.Value, "Student t", stats.Mean);
 
         var n = stats.Count;
-        if (populationSize is { } N)
+        if (populationSize is { } n)
         {
-            if (N < 1)
+            if (n < 1)
             {
                 AnalyticsLog.Error(
                     AnalyticsEvents.ConfidenceRejectedPopulation,
                     VestigiumStatus.Failed,
                     AnalyticsCatalog.Subcategories.Confidence,
                     "rejected population size",
-                    properties: AnalyticsLog.Props(("reason", "N<1"), ("N", N.ToString())));
+                    properties: AnalyticsLog.Props(("reason", "N<1"), ("N", n.ToString())));
                 throw new ArgumentOutOfRangeException(nameof(populationSize), "Population size must be at least 1.");
             }
-            if (n > N)
+            if (n > n)
             {
                 AnalyticsLog.Error(
                     AnalyticsEvents.ConfidenceRejectedPopulation,
                     VestigiumStatus.Failed,
                     AnalyticsCatalog.Subcategories.Confidence,
                     "rejected population size",
-                    properties: AnalyticsLog.Props(("reason", "n>N"), ("n", n.ToString()), ("N", N.ToString())));
+                    properties: AnalyticsLog.Props(("reason", "n>N"), ("n", n.ToString()), ("N", n.ToString())));
                 throw new ArgumentOutOfRangeException(nameof(populationSize), "Sample count cannot exceed population size.");
             }
         }

@@ -26,18 +26,14 @@ internal static class ProcessImageReader
             if (stream.Length < 64)
                 return ProcessImageType.Unknown;
             var header = new byte[64];
-            if (stream.Read(header, 0, 64) < 64)
-                return ProcessImageType.Unknown;
-            if (header[0] != (byte)'M' || header[1] != (byte)'Z')
+            if (stream.Read(header, 0, 64) < 64 || header[0] != (byte)'M' || header[1] != (byte)'Z')
                 return ProcessImageType.Unknown;
             var pe = BitConverter.ToInt32(header, 60);
             if (pe < 0 || pe + 6 > stream.Length)
                 return ProcessImageType.Unknown;
             stream.Position = pe;
             var sig = new byte[6];
-            if (stream.Read(sig, 0, 6) < 6)
-                return ProcessImageType.Unknown;
-            if (sig[0] != (byte)'P' || sig[1] != (byte)'E')
+            if (stream.Read(sig, 0, 6) < 6 || sig[0] != (byte)'P' || sig[1] != (byte)'E')
                 return ProcessImageType.Unknown;
             var machine = BitConverter.ToUInt16(sig, 4);
             return machine switch

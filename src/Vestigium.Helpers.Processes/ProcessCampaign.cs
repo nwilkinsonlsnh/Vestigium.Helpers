@@ -13,7 +13,7 @@ public sealed class ProcessCampaign : IDisposable
     public const int MaxMatchesCap = 256;
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly object _file = new();
+    private readonly Lock _file = new();
     private readonly ProcessDeltaMap _deltas = new();
     private readonly Dictionary<int, IReadOnlyDictionary<string, object?>> _tickExtras = [];
     private int _disposed;

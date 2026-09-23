@@ -2,7 +2,7 @@ using Vestigium.Helpers.FileIo;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR03FileIoDoorTests
+public sealed class NetworkPr03FileIoDoorTests
 {
     [Fact]
     public void PR03_001_analyze_directory_matches_v15()

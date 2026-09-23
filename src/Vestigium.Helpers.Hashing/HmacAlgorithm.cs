@@ -10,7 +10,7 @@ public enum HmacAlgorithm
     Sha256 = 1,
     Sha384 = 2,
     Sha512 = 3,
-    Sha3_256 = 4,
-    Sha3_384 = 5,
-    Sha3_512 = 6,
+    Sha3256 = 4,
+    Sha3384 = 5,
+    Sha3512 = 6,
 }

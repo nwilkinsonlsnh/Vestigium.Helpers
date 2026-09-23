@@ -14,7 +14,7 @@ internal sealed class SystemGpuSample
 
 internal static class ProcessGpuCatalog
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
     private static DateTimeOffset _next;
     private static Dictionary<int, ProcessGpuSample> _byPid = [];
     private static SystemGpuSample _system = new();
@@ -23,7 +23,7 @@ internal static class ProcessGpuCatalog
     internal static ProcessGpuSample ForPid(int pid)
     {
         Refresh();
-        return _byPid.TryGetValue(pid, out var sample) ? sample : default;
+        return _byPid.GetValueOrDefault(pid);
     }
 
     internal static SystemGpuSample System()

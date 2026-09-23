@@ -3,7 +3,7 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR02Tests
+public sealed class NetworkPr02Tests
 {
     private static NetworkRouteChange TestNet()
         => new()

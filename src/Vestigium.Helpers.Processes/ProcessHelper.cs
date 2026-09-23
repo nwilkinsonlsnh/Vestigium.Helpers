@@ -34,7 +34,7 @@ public static partial class ProcessHelper
     public static ProcessInfo? Get(int pid, ProcessDetailLevel level = ProcessDetailLevel.Full)
     {
         HelperGuard.InRange(pid, 1, nameof(pid));
-        var app = HelperLog.AppIds.Processes;
+        const string app = HelperLog.AppIds.Processes;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "Get", "pid=" + pid);
         var row = ProcessSnapshotter.CapturePid(pid, level);
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, row is null ? $"Get pid={pid} gone" : $"Get pid={pid} name={row.Name}");
@@ -68,12 +68,7 @@ public static partial class ProcessHelper
 
         var app = HelperLog.AppIds.Processes;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "Search", $"mode={mode} max={maxResults}");
-        var hits = new List<ProcessInfo>();
-        foreach (var row in ProcessSnapshotter.Capture(level))
-        {
-            if (Matches(row, needle, mode, fields))
-                hits.Add(row);
-        }
+        var hits = ProcessSnapshotter.Capture(level).Where(row => Matches(row, needle, mode, fields)).ToList();
 
         var taken = ProcessSearchSort.TakeStable(hits, maxResults);
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"Search mode={mode} hits={taken.Count} max={maxResults}");
@@ -166,18 +161,11 @@ public static partial class ProcessHelper
         return interval;
     }
 
-    private static bool Matches(ProcessInfo row, string term, ProcessSearchMode mode, ProcessSearchFields fields)
-    {
-        if (fields.HasFlag(ProcessSearchFields.Name) && Compare(row.Name, term, mode))
-            return true;
-        if (fields.HasFlag(ProcessSearchFields.ImagePath) && Compare(row.ImagePath, term, mode))
-            return true;
-        if (fields.HasFlag(ProcessSearchFields.CommandLine) && Compare(row.CommandLine, term, mode))
-            return true;
-        if (fields.HasFlag(ProcessSearchFields.WindowTitle) && Compare(row.WindowTitle, term, mode))
-            return true;
-        return false;
-    }
+    private static bool Matches(ProcessInfo row, string term, ProcessSearchMode mode, ProcessSearchFields fields) =>
+        ((fields & ProcessSearchFields.Name) != 0 && Compare(row.Name, term, mode)) ||
+        ((fields & ProcessSearchFields.ImagePath) != 0 && Compare(row.ImagePath, term, mode)) ||
+        ((fields & ProcessSearchFields.CommandLine) != 0 && Compare(row.CommandLine, term, mode)) ||
+        ((fields & ProcessSearchFields.WindowTitle) != 0 && Compare(row.WindowTitle, term, mode));
 
     private static bool Compare(string? value, string term, ProcessSearchMode mode)
     {

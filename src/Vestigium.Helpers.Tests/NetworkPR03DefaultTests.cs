@@ -2,11 +2,11 @@ using Vestigium.Helpers.Network;
 
 namespace Vestigium.Helpers.Tests;
 
-public sealed class NetworkPR03DefaultTests : IDisposable
+public sealed class NetworkPr03DefaultTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-default-" + Guid.NewGuid().ToString("N"));
 
-    public NetworkPR03DefaultTests()
+    public NetworkPr03DefaultTests()
     {
         Directory.CreateDirectory(_root);
         NetworkTestHooks.CampaignRoot = _root;
