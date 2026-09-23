@@ -203,11 +203,14 @@ internal static partial class FileIoLog
             || value.Contains("-----", StringComparison.Ordinal))
             return true;
         var t = value.Trim();
-        if (t.Length >= 32 && t.All(Uri.IsHexDigit))
-            return true;
-        if (t.Length >= 44 && RegexBase64().IsMatch(t))
-            return true;
-        return false;
+        switch (t.Length)
+        {
+            case >= 32 when t.All(Uri.IsHexDigit):
+            case >= 44 when RegexBase64().IsMatch(t):
+                return true;
+            default:
+                return false;
+        }
     }
 
     public static string Safe(string? message)

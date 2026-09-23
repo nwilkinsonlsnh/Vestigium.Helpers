@@ -25,17 +25,15 @@ internal static class FileIoProbeEngine
             else
                 Array.Clear(buffer);
 
-            using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileIoJob.StreamBufferSize))
+            using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, FileIoJob.StreamBufferSize);
+            var remaining = size.Bytes;
+            while (remaining > 0)
             {
-                var remaining = size.Bytes;
-                while (remaining > 0)
-                {
-                    var n = (int)Math.Min(buffer.Length, remaining);
-                    stream.Write(buffer, 0, n);
-                    remaining -= n;
-                }
-                stream.Flush(true);
+                var n = (int)Math.Min(buffer.Length, remaining);
+                stream.Write(buffer, 0, n);
+                remaining -= n;
             }
+            stream.Flush(true);
         }
         finally
         {

@@ -11,14 +11,6 @@ public static class FileIoMask
     {
         if (string.IsNullOrEmpty(name) || masks is null || masks.Count == 0)
             return false;
-        foreach (var mask in masks)
-        {
-            if (string.IsNullOrWhiteSpace(mask))
-                continue;
-            var body = Regex.Escape(mask).Replace("\\*", ".*").Replace("\\?", ".");
-            if (Regex.IsMatch(name, "^" + body + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-                return true;
-        }
-        return false;
+        return (from mask in masks where !string.IsNullOrWhiteSpace(mask) select Regex.Escape(mask).Replace("\\*", ".*").Replace("\\?", ".")).Any(body => Regex.IsMatch(name, "^" + body + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
     }
 }

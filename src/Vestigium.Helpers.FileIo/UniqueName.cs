@@ -25,9 +25,7 @@ public static partial class UniqueName
         if (num.Success)
             return new Spec(false, num.Groups[1].Length);
         var alpha = AlphaPattern().Match(p);
-        if (alpha.Success)
-            return new Spec(true, alpha.Groups[1].Length);
-        throw new ArgumentException("UniqueNamePattern must be .#…##### or A#…A#####.", nameof(pattern));
+        return alpha.Success ? new Spec(true, alpha.Groups[1].Length) : throw new ArgumentException("UniqueNamePattern must be .#…##### or A#…A#####.", nameof(pattern));
     }
 
     public static string? Next(IReadOnlyList<string> existing, string originalName, string pattern)
@@ -41,32 +39,15 @@ public static partial class UniqueName
         if (!spec.Alpha)
         {
             var re = new Regex("^" + Regex.Escape(stem) + @"\.(\d+)" + Regex.Escape(ext) + "$");
-            var max = 0;
-            foreach (var n in existing)
-            {
-                var m = re.Match(n);
-                if (m.Success)
-                    max = Math.Max(max, int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture));
-            }
+            var max = (from n in existing select re.Match(n) into m where m.Success select int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).Prepend(0).Max();
             var cap = (int)Math.Pow(10, spec.Width) - 1;
             var next = max + 1;
-            if (next > cap)
-                return null;
-            return $"{stem}.{next.ToString(System.Globalization.CultureInfo.InvariantCulture).PadLeft(spec.Width, '0')}{ext}";
+            return next > cap ? null : $"{stem}.{next.ToString(System.Globalization.CultureInfo.InvariantCulture).PadLeft(spec.Width, '0')}{ext}";
         }
 
         var alphaRe = new Regex("^" + Regex.Escape(stem) + @"\.([A-Z])(\d{" + spec.Width + "})" + Regex.Escape(ext) + "$");
-        var best = 0;
         var per = (int)Math.Pow(10, spec.Width) - 1;
-        foreach (var n in existing)
-        {
-            var m = alphaRe.Match(n);
-            if (!m.Success)
-                continue;
-            var letter = m.Groups[1].Value[0] - 64;
-            var numVal = int.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
-            best = Math.Max(best, (letter - 1) * per + numVal);
-        }
+        var best = (from n in existing select alphaRe.Match(n) into m where m.Success let letter = m.Groups[1].Value[0] - 64 let numVal = int.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) select (letter - 1) * per + numVal).Prepend(0).Max();
         var nextAlpha = best + 1;
         if (nextAlpha > 26 * per)
             return null;

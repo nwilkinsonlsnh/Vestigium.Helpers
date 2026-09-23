@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.FileIo;
 
 public sealed partial class FileIoJob
 {
-    async Task ReconAsync(CancellationToken token)
+    private async Task ReconAsync(CancellationToken token)
     {
         try
         {
@@ -63,7 +63,7 @@ public sealed partial class FileIoJob
         }
     }
 
-    void WalkDirectory(string dir, int depth, ConcurrentQueue<(string Path, int Depth)> dirs, int[] walking)
+    private void WalkDirectory(string dir, int depth, ConcurrentQueue<(string Path, int Depth)> dirs, int[] walking)
     {
         IEnumerable<string> entries;
         try
@@ -106,7 +106,7 @@ public sealed partial class FileIoJob
         }
     }
 
-    void OfferFile(string path, string rel)
+    private void OfferFile(string path, string rel)
     {
         FileInfo info;
         try
@@ -143,7 +143,7 @@ public sealed partial class FileIoJob
             Emit();
     }
 
-    async Task ConsumeAsync(ConcurrentDictionary<string, string> destIndex, CancellationToken token)
+    private async Task ConsumeAsync(ConcurrentDictionary<string, string> destIndex, CancellationToken token)
     {
         var tasks = new List<Task>();
         foreach (var row in BucketTable)
@@ -154,7 +154,7 @@ public sealed partial class FileIoJob
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    async Task TakeAsync(FileIoBucket bucket, ConcurrentDictionary<string, string> destIndex, CancellationToken token)
+    private async Task TakeAsync(FileIoBucket bucket, ConcurrentDictionary<string, string> destIndex, CancellationToken token)
     {
         while (!_cancelled && !token.IsCancellationRequested)
         {
@@ -196,7 +196,7 @@ public sealed partial class FileIoJob
         }
     }
 
-    async Task HandleAsync(WorkItem item, ConcurrentDictionary<string, string> destIndex, CancellationToken token)
+    private async Task HandleAsync(WorkItem item, ConcurrentDictionary<string, string> destIndex, CancellationToken token)
     {
         var retries = Math.Max(0, _options.RetryCount);
         for (var attempt = 0; attempt <= retries; attempt++)
@@ -229,9 +229,9 @@ public sealed partial class FileIoJob
         }
     }
 
-    Task DoDeleteAsync(WorkItem item)
+    private Task DoDeleteAsync(WorkItem item)
     {
-        var sub = FileIoLog.Subcategories.Delete;
+        const string sub = FileIoLog.Subcategories.Delete;
         if (_options.AuditMode)
         {
             FileIoLog.Decision(sub, "WouldDelete", JobId, FileIoLog.Props(("path", item.SourcePath), ("size", item.Size.ToString())));

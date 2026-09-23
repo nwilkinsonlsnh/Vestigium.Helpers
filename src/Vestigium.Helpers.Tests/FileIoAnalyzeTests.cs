@@ -16,7 +16,7 @@ public sealed class FileIoAnalyzeTests
     [Fact]
     public void Size_2048_MB_is_SI_not_binary()
     {
-        var size = FileIoSize.From(2048, FileIoSizeUnit.MB);
+        var size = FileIoSize.From(2048, FileIoSizeUnit.Mb);
         Assert.Equal(2_048_000_000L, size.Bytes);
         Assert.Contains("GB", size.Display, StringComparison.Ordinal);
         Assert.NotEqual(FileIoSize.From(2, FileIoSizeUnit.GiB).Bytes, size.Bytes);
@@ -25,11 +25,11 @@ public sealed class FileIoAnalyzeTests
     [Fact]
     public void Size_caller_sets_TB_GB_MB()
     {
-        Assert.Equal(1_000_000_000_000L, FileIoSize.From(1, FileIoSizeUnit.TB).Bytes);
-        Assert.Equal(500_000_000L, FileIoSize.From(500, FileIoSizeUnit.MB).Bytes);
-        Assert.Equal(14L * 1_000_000_000_000L, FileIoSize.From(14, FileIoSizeUnit.TB).Bytes);
+        Assert.Equal(1_000_000_000_000L, FileIoSize.From(1, FileIoSizeUnit.Tb).Bytes);
+        Assert.Equal(500_000_000L, FileIoSize.From(500, FileIoSizeUnit.Mb).Bytes);
+        Assert.Equal(14L * 1_000_000_000_000L, FileIoSize.From(14, FileIoSizeUnit.Tb).Bytes);
         Assert.Equal(1_024, FileIoSize.From(1, FileIoSizeUnit.KiB).Bytes);
-        Assert.Equal(1_000, FileIoSize.From(1, FileIoSizeUnit.KB).Bytes);
+        Assert.Equal(1_000, FileIoSize.From(1, FileIoSizeUnit.Kb).Bytes);
         Assert.Equal(1, FileIoSize.From(1, FileIoSizeUnit.Byte).Bytes);
         Assert.Equal("100 B", FileIoSize.FromBytes(100).Display);
     }
@@ -37,7 +37,7 @@ public sealed class FileIoAnalyzeTests
     [Fact]
     public void Size_rejects_negative_and_overflow()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => FileIoSize.From(-1, FileIoSizeUnit.MB));
+        Assert.Throws<ArgumentOutOfRangeException>(() => FileIoSize.From(-1, FileIoSizeUnit.Mb));
         Assert.Throws<ArgumentOutOfRangeException>(() => FileIoSize.From(decimal.MaxValue, FileIoSizeUnit.TiB));
         Assert.Equal("0 B", FileIoSize.Normalize(-3));
     }

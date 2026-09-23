@@ -5,13 +5,13 @@ namespace Vestigium.Helpers.FileIo;
 public enum FileIoSizeUnit
 {
     Byte = 0,
-    KB = 1,
+    Kb = 1,
     KiB = 2,
-    MB = 3,
+    Mb = 3,
     MiB = 4,
-    GB = 5,
+    Gb = 5,
     GiB = 6,
-    TB = 7,
+    Tb = 7,
     TiB = 8
 }
 
@@ -36,13 +36,10 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         {
             var factor = Factor(unit);
             var bytesDec = decimal.Round(value * factor, 0, MidpointRounding.AwayFromZero);
-            if (bytesDec > long.MaxValue)
-            {
-                FileIoLog.Failed(FileIoLog.Subcategories.Job, "Size overflow");
-                throw new ArgumentOutOfRangeException(nameof(value), "Size does not fit in 64-bit bytes.");
-            }
+            if (bytesDec <= long.MaxValue) return new FileIoSize((long)bytesDec, value, unit);
+            FileIoLog.Failed(FileIoLog.Subcategories.Job, "Size overflow");
+            throw new ArgumentOutOfRangeException(nameof(value), "Size does not fit in 64-bit bytes.");
 
-            return new FileIoSize((long)bytesDec, value, unit);
         }
         catch (OverflowException)
         {
@@ -57,13 +54,13 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         => unit switch
         {
             FileIoSizeUnit.Byte => 1,
-            FileIoSizeUnit.KB => 1_000,
+            FileIoSizeUnit.Kb => 1_000,
             FileIoSizeUnit.KiB => 1_024,
-            FileIoSizeUnit.MB => 1_000_000,
+            FileIoSizeUnit.Mb => 1_000_000,
             FileIoSizeUnit.MiB => 1_048_576,
-            FileIoSizeUnit.GB => 1_000_000_000,
+            FileIoSizeUnit.Gb => 1_000_000_000,
             FileIoSizeUnit.GiB => 1_073_741_824,
-            FileIoSizeUnit.TB => 1_000_000_000_000,
+            FileIoSizeUnit.Tb => 1_000_000_000_000,
             FileIoSizeUnit.TiB => 1_099_511_627_776,
             _ => throw new ArgumentOutOfRangeException(nameof(unit))
         };
@@ -72,7 +69,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
     {
         if (bytes < 0) bytes = 0;
 
-        var iec = new (long Size, FileIoSizeUnit Unit)[]
+        var iec = new (long Size, FileIoSizeUnit Unit)[ ]
         {
             (Factor(FileIoSizeUnit.TiB), FileIoSizeUnit.TiB),
             (Factor(FileIoSizeUnit.GiB), FileIoSizeUnit.GiB),
@@ -82,15 +79,15 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         foreach (var (size, unit) in iec)
         {
             if (bytes >= size && bytes % size == 0 && bytes / size < 1024)
-                return Format(bytes / size, unit);
+                return Format((decimal)bytes / size, unit);
         }
 
-        var si = new (long Size, FileIoSizeUnit Unit)[]
+        var si = new (long Size, FileIoSizeUnit Unit)[ ]
         {
-            (Factor(FileIoSizeUnit.TB), FileIoSizeUnit.TB),
-            (Factor(FileIoSizeUnit.GB), FileIoSizeUnit.GB),
-            (Factor(FileIoSizeUnit.MB), FileIoSizeUnit.MB),
-            (Factor(FileIoSizeUnit.KB), FileIoSizeUnit.KB),
+            (Factor(FileIoSizeUnit.Tb), FileIoSizeUnit.Tb),
+            (Factor(FileIoSizeUnit.Gb), FileIoSizeUnit.Gb),
+            (Factor(FileIoSizeUnit.Mb), FileIoSizeUnit.Mb),
+            (Factor(FileIoSizeUnit.Kb), FileIoSizeUnit.Kb),
         };
         foreach (var (size, unit) in si)
         {
@@ -101,7 +98,7 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         return Format(bytes, FileIoSizeUnit.Byte);
     }
 
-    static string Format(decimal value, FileIoSizeUnit unit)
+    private static string Format(decimal value, FileIoSizeUnit unit)
     {
         var text = value == decimal.Truncate(value)
             ? decimal.Truncate(value).ToString(CultureInfo.InvariantCulture)
