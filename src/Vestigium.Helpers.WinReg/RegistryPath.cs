@@ -7,13 +7,10 @@ internal static class RegistryPath
     public static string Normalize(string? key)
     {
         var text = key ?? string.Empty;
-        if (text.Contains('/'))
-        {
-            HelperLog.Reject("key contains /");
-            throw new ArgumentException("Registry key paths use backslash, not slash.", nameof(key));
-        }
+        if (!text.Contains('/')) return text.Trim().TrimStart('\\');
+        HelperLog.Reject("key contains /");
+        throw new ArgumentException("Registry key paths use backslash, not slash.", nameof(key));
 
-        return text.Trim().TrimStart('\\');
     }
 
     public static string Leaf(string path)

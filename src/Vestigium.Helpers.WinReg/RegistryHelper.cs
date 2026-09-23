@@ -173,7 +173,7 @@ public static partial class RegistryHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.WinReg;
+        const string app = HelperLog.AppIds.WinReg;
         HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Inventory, "Opening HKCU\\Software.");
         _ = Local.GetKey(RegistryHiveKind.CurrentUser, "Software", RegistryViewKind.Default, RegistryDetailLevel.Identity);
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, "Registry probe complete. Identity=" + Identity);

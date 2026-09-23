@@ -86,10 +86,9 @@ public sealed partial class RegistryJournal
             Directory.CreateDirectory(dir);
         using var writer = new StreamWriter(path, false, new UTF8Encoding(false));
         writer.WriteLine(header);
-        foreach (var batch in batches)
+        foreach (var line in batches.SelectMany(batch => batch.AllLines))
         {
-            foreach (var line in batch.AllLines)
-                writer.WriteLine(line);
+            writer.WriteLine(line);
         }
     }
 

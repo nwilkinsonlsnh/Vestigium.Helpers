@@ -77,11 +77,12 @@ internal static class RegistryRegFile
     public static string ReadAllText(string path)
     {
         var bytes = File.ReadAllBytes(path);
-        if (bytes is [0xFF, 0xFE, ..])
-            return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
-        if (bytes is [0xEF, 0xBB, 0xBF, ..])
-            return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
-        return Encoding.ASCII.GetString(bytes);
+        return bytes switch
+        {
+            [0xFF, 0xFE, ..] => Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2),
+            [0xEF, 0xBB, 0xBF, ..] => Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3),
+            _ => Encoding.ASCII.GetString(bytes)
+        };
     }
 
     public static List<string> PhysicalLines(string text)
@@ -256,13 +257,14 @@ internal static class RegistryRegFile
     {
         for (var i = start; i < text.Length; i++)
         {
-            if (text[i] == '\\')
+            switch (text[i])
             {
-                i++;
-                continue;
+                case '\\':
+                    i++;
+                    continue;
+                case '"':
+                    return i;
             }
-            if (text[i] == '"')
-                return i;
         }
         return -1;
     }

@@ -9,9 +9,7 @@ public sealed partial class RegistryClient
     internal string? SnapshotTree(RegistryHiveKind hive, string path, RegistryViewKind view)
     {
         var nodes = new List<Dictionary<string, object?>>();
-        if (!Walk(hive, path, view, nodes))
-            return null;
-        return JsonSerializer.Serialize(nodes);
+        return !Walk(hive, path, view, nodes) ? null : JsonSerializer.Serialize(nodes);
     }
 
     internal RegistryWriteResult RestoreTree(string json, RegistryHiveKind hive, RegistryViewKind view = RegistryViewKind.Default)
@@ -60,12 +58,7 @@ public sealed partial class RegistryClient
             ["d"] = PackValue(v)
         }).ToList();
         nodes.Add(new Dictionary<string, object?> { ["p"] = path, ["v"] = values });
-        foreach (var child in snap.SubKeyNames)
-        {
-            if (!Walk(hive, path + "\\" + child, view, nodes))
-                return false;
-        }
-        return true;
+        return snap.SubKeyNames.All(child => Walk(hive, path + "\\" + child, view, nodes));
     }
 
     private static string PackValue(RegistryValueInfo value) => value.Type switch

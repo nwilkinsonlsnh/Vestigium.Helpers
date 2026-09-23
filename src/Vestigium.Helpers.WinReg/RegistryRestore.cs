@@ -25,13 +25,12 @@ internal static class RegistryRestore
             return client.Import(snapshot, confirm: true, progress: progress, cancel: cancel, journal: journal);
         }
 
-        if (first.Contains("vest-regidx/1", StringComparison.Ordinal))
-        {
-            journal?.EnsureBatch("restore-index");
-            return ApplyIndex(client, snapshot, journal, progress, cancel);
-        }
+        if (!first.Contains("vest-regidx/1", StringComparison.Ordinal))
+            return new RegistryWriteResult(RegistryWriteStatus.InvalidPath, RegistryHiveKind.CurrentUser, snapshot,
+                null, "not a .reg or vest-regidx/1");
+        journal?.EnsureBatch("restore-index");
+        return ApplyIndex(client, snapshot, journal, progress, cancel);
 
-        return new RegistryWriteResult(RegistryWriteStatus.InvalidPath, RegistryHiveKind.CurrentUser, snapshot, null, "not a .reg or vest-regidx/1");
     }
 
     private static RegistryWriteResult ApplyIndex(

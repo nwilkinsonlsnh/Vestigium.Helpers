@@ -5,7 +5,7 @@ public sealed partial class RegistryJournal
     public const int MaxPayloadBytes = 64 * 1024;
 
     public RegistryWriteResult EnsureBatch(string kind = "crud")
-        => _openBatch is null ? BeginBatch(kind) : new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, Path, null, _openBatch);
+        => OpenBatchId is null ? BeginBatch(kind) : new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, Path, null, OpenBatchId);
 
     public RegistryWriteResult RecordValue(
         string op,
@@ -33,13 +33,11 @@ public sealed partial class RegistryJournal
         _ = EnsureBatch();
         var row = Base(op, hive, path, null);
         row["existed"] = existed;
-        if (beforeTree is not null)
-        {
-            if (System.Text.Encoding.UTF8.GetByteCount(beforeTree) <= MaxPayloadBytes * 4)
-                row["beforeTree"] = Seal(beforeTree);
-            else
-                row["beforeOmitted"] = true;
-        }
+        if (beforeTree is null) return AppendMut(row);
+        if (System.Text.Encoding.UTF8.GetByteCount(beforeTree) <= MaxPayloadBytes * 4)
+            row["beforeTree"] = Seal(beforeTree);
+        else
+            row["beforeOmitted"] = true;
         return AppendMut(row);
     }
 
@@ -109,8 +107,6 @@ public sealed partial class RegistryJournal
         };
         if (text is null)
             return null;
-        if (System.Text.Encoding.UTF8.GetByteCount(text) > MaxPayloadBytes)
-            return null;
-        return text;
+        return System.Text.Encoding.UTF8.GetByteCount(text) > MaxPayloadBytes ? null : text;
     }
 }

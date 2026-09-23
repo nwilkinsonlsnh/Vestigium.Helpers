@@ -11,7 +11,6 @@ public sealed partial class RegistryJournal : IDisposable
     public const int MaxMutations = 100_000;
 
     private readonly StreamWriter _writer;
-    private string? _openBatch;
     private int _seq;
     private int _total;
     private bool _disposed;
@@ -25,7 +24,8 @@ public sealed partial class RegistryJournal : IDisposable
 
     public string Path { get; }
     public bool Protect { get; }
-    public string? OpenBatchId => _openBatch;
+    public string? OpenBatchId { get; private set; }
+
     public int MutationCount => _total;
 
     public static RegistryJournal? Create(
@@ -162,10 +162,10 @@ public sealed partial class RegistryJournal : IDisposable
 
     public RegistryWriteResult BeginBatch(string kind, string? label = null)
     {
-        if (_openBatch is not null)
+        if (OpenBatchId is not null)
             return Denied(Path, "batch already open");
         var id = Guid.NewGuid().ToString("N")[..12];
-        _openBatch = id;
+        OpenBatchId = id;
         _seq = 0;
         Write(new Dictionary<string, object?>
         {
@@ -180,39 +180,39 @@ public sealed partial class RegistryJournal : IDisposable
 
     public RegistryWriteResult CommitBatch(string status = "committed")
     {
-        if (_openBatch is null)
+        if (OpenBatchId is null)
             return Denied(Path, "no open batch");
         Write(new Dictionary<string, object?>
         {
             ["rec"] = "batch-end",
-            ["id"] = _openBatch,
+            ["id"] = OpenBatchId,
             ["status"] = status,
             ["muts"] = _seq
         });
-        _openBatch = null;
+        OpenBatchId = null;
         return new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, Path, null, status);
     }
 
     internal RegistryWriteResult AppendMut(Dictionary<string, object?> row)
     {
-        if (_openBatch is null)
+        if (OpenBatchId is null)
             return Denied(Path, "no open batch");
         if (_total >= MaxMutations)
             return Denied(Path, "MaxMutations cap is " + MaxMutations);
         _seq++;
         _total++;
         row["rec"] = "mut";
-        row["batch"] = _openBatch;
+        row["batch"] = OpenBatchId;
         row["seq"] = _seq;
         Write(row);
-        return new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, Path, null, _openBatch);
+        return new RegistryWriteResult(RegistryWriteStatus.Ok, RegistryHiveKind.CurrentUser, Path, null, OpenBatchId);
     }
 
     public void Dispose()
     {
         if (_disposed)
             return;
-        if (_openBatch is not null)
+        if (OpenBatchId is not null)
             _ = CommitBatch("aborted");
         _writer.Dispose();
         _disposed = true;

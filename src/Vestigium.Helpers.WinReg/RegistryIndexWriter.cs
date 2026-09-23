@@ -140,9 +140,7 @@ internal static class RegistryIndexWriter
             return path;
         if (path.Equals(root, StringComparison.OrdinalIgnoreCase))
             return string.Empty;
-        if (path.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase))
-            return path[(root.Length + 1)..];
-        return path;
+        return path.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase) ? path[(root.Length + 1)..] : path;
     }
 
     internal static string Hash(RegistryValueInfo value)

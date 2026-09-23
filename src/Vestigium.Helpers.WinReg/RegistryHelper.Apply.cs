@@ -27,11 +27,9 @@ public static partial class RegistryHelper
         try
         {
             journal.BeginBatch("edits", edits.Label);
-            foreach (var op in edits.Ops)
+            foreach (var result in edits.Ops.Select(op => Run(op, journal)).Where(result => result.Status != RegistryWriteStatus.Ok))
             {
-                var result = Run(op, journal);
-                if (result.Status != RegistryWriteStatus.Ok)
-                    return result;
+                return result;
             }
 
             journal.CommitBatch();

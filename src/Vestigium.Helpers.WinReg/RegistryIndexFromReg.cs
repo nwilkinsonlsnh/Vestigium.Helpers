@@ -97,11 +97,8 @@ internal static class RegistryIndexFromReg
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var keyCount = 0;
-        foreach (var path in keys)
+        foreach (var relative in keys.Select(path => RegistryIndexWriter.Relative(root, path)).Where(relative => seen.Add(relative)))
         {
-            var relative = RegistryIndexWriter.Relative(root, path);
-            if (!seen.Add(relative))
-                continue;
             keyCount++;
             WriteObj(writer, new Dictionary<string, object?> { ["rec"] = "key", ["path"] = relative });
         }

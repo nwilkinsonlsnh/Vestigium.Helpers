@@ -151,18 +151,14 @@ internal static class RegistryComparer
     private static int Drop(IndexFile file, string[] prefixes)
     {
         var dropped = 0;
-        foreach (var key in file.Keys.ToList())
+        foreach (var key in file.Keys.ToList().Where(key => IsIgnored(key, prefixes)))
         {
-            if (!IsIgnored(key, prefixes))
-                continue;
             file.Keys.Remove(key);
             dropped++;
         }
 
-        foreach (var id in file.Values.Keys.ToList())
+        foreach (var id in file.Values.Keys.ToList().Where(id => IsIgnored(file.Values[id].Path, prefixes)))
         {
-            if (!IsIgnored(file.Values[id].Path, prefixes))
-                continue;
             file.Values.Remove(id);
             dropped++;
         }
@@ -281,9 +277,7 @@ internal static class RegistryComparer
             return "SubsetRight";
         if (coverageRight >= SubsetCoverage)
             return "SubsetLeft";
-        if (relatedness < UnrelatedCeiling)
-            return "Unrelated";
-        return "Weak";
+        return relatedness < UnrelatedCeiling ? "Unrelated" : "Weak";
     }
 
     internal static IndexFile LoadIndex(string path)
@@ -298,25 +292,27 @@ internal static class RegistryComparer
             if (!root.TryGetProperty("rec", out var rec))
                 continue;
             var kind = rec.GetString();
-            if (kind == "header")
+            switch (kind)
             {
-                if (root.TryGetProperty("schema", out var schema) && schema.GetString() != RegistryIndexWriter.Schema)
+                case "header" when root.TryGetProperty("schema", out var schema) && schema.GetString() != RegistryIndexWriter.Schema:
                     throw new ArgumentException("Not a vest-regidx/1 index.", nameof(path));
-                file.Machine = Str(root, "machine");
-                file.Hive = Str(root, "hive");
-                file.Path = Str(root, "path");
-                file.View = Str(root, "view");
-                file.CapturedAt = Str(root, "capturedAt");
-                file.Source = Str(root, "source");
-            }
-            else if (kind == "key")
-            {
-                file.Keys.Add(Str(root, "path"));
-            }
-            else if (kind == "value")
-            {
-                var item = new IndexValue(Str(root, "path"), Str(root, "name"), Str(root, "type"), Str(root, "hash"), Str(root, "text"));
-                file.Values[item.Id] = item;
+                case "header":
+                    file.Machine = Str(root, "machine");
+                    file.Hive = Str(root, "hive");
+                    file.Path = Str(root, "path");
+                    file.View = Str(root, "view");
+                    file.CapturedAt = Str(root, "capturedAt");
+                    file.Source = Str(root, "source");
+                    break;
+                case "key":
+                    file.Keys.Add(Str(root, "path"));
+                    break;
+                case "value":
+                {
+                    var item = new IndexValue(Str(root, "path"), Str(root, "name"), Str(root, "type"), Str(root, "hash"), Str(root, "text"));
+                    file.Values[item.Id] = item;
+                    break;
+                }
             }
         }
         return file;
