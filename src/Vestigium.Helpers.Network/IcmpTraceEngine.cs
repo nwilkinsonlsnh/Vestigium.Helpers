@@ -16,7 +16,7 @@ internal static class IcmpTraceEngine
         return new NetworkJob<IcmpTraceResult>(jobId, "icmpTrace", (token, progress) => RunAsync(jobId, host, o, token, progress));
     }
 
-    static void Guard(IcmpTraceOptions o)
+    private static void Guard(IcmpTraceOptions o)
     {
         if (o.MaxHops is < 1 or > 64)
         {
@@ -38,7 +38,7 @@ internal static class IcmpTraceEngine
         }
     }
 
-    static async Task<IcmpTraceResult> RunAsync(
+    private static async Task<IcmpTraceResult> RunAsync(
         string jobId,
         string target,
         IcmpTraceOptions options,

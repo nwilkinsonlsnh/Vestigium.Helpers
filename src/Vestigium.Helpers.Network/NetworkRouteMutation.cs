@@ -11,11 +11,11 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NetworkRouteMutation
 {
-    const uint ErrorAccessDenied = 5;
-    const uint ErrorInvalidParameter = 87;
-    const uint ErrorNotFound = 1168;
-    const int ProtoNetMgmt = 3;
-    const int TypeIndirect = 4;
+    private const uint ErrorAccessDenied = 5;
+    private const uint ErrorInvalidParameter = 87;
+    private const uint ErrorNotFound = 1168;
+    private const int ProtoNetMgmt = 3;
+    private const int TypeIndirect = 4;
 
     public static void Add(NetworkRouteChange change)
     {
@@ -98,7 +98,7 @@ internal static class NetworkRouteMutation
         NetworkLog.Success(HelperLog.Subcategories.Route, $"RemoveRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway}");
     }
 
-    static MibIpForwardRow BindV4(NetworkRouteChange change, NetworkRouteSpec spec)
+    private static MibIpForwardRow BindV4(NetworkRouteChange change, NetworkRouteSpec spec)
     {
         int ifIndex;
         if (change.InterfaceIndex is { } specified)
@@ -167,7 +167,7 @@ internal static class NetworkRouteMutation
     internal static int FirstIpv4Index()
         => ResolveInterfaceIndex(null, TryFirstIpv4Index());
 
-    static uint ToUint(IPAddress ip)
+    private static uint ToUint(IPAddress ip)
         => BitConverter.ToUInt32(ip.GetAddressBytes(), 0);
 
     internal static NetworkRouteDenied LinuxWriteDenied(string verb)
@@ -195,7 +195,7 @@ internal static class NetworkRouteMutation
     }
 
     [SupportedOSPlatform("windows")]
-    static void WritePersistent(NetworkRouteChange change)
+    private static void WritePersistent(NetworkRouteChange change)
     {
         try
         {
@@ -211,7 +211,7 @@ internal static class NetworkRouteMutation
     }
 
     [SupportedOSPlatform("windows")]
-    static void DeletePersistent(NetworkRouteChange change)
+    private static void DeletePersistent(NetworkRouteChange change)
     {
         try
         {
@@ -228,7 +228,7 @@ internal static class NetworkRouteMutation
         => $"{change.Destination},{Ipv4Prefix.MaskFromPrefix(change.PrefixLength)},{change.Gateway},{Math.Max(1, change.Metric)}";
 
     [StructLayout(LayoutKind.Sequential)]
-    struct MibIpForwardRow
+    private struct MibIpForwardRow
     {
         public uint dwForwardDest;
         public uint dwForwardMask;
@@ -247,11 +247,11 @@ internal static class NetworkRouteMutation
     }
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint CreateIpForwardEntry(ref MibIpForwardRow row);
+    private static extern uint CreateIpForwardEntry(ref MibIpForwardRow row);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint SetIpForwardEntry(ref MibIpForwardRow row);
+    private static extern uint SetIpForwardEntry(ref MibIpForwardRow row);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint DeleteIpForwardEntry(ref MibIpForwardRow row);
+    private static extern uint DeleteIpForwardEntry(ref MibIpForwardRow row);
 }

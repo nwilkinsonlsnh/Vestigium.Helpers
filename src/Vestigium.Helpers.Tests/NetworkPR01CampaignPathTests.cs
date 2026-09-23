@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR01CampaignPathTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "vest-pr01-camp-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "vest-pr01-camp-" + Guid.NewGuid().ToString("N"));
 
     public NetworkPR01CampaignPathTests()
     {

@@ -8,7 +8,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class DnsWireTests
 {
-    const ushort Id = 0x1234;
+    private const ushort Id = 0x1234;
 
     [Fact]
     public void EncodeQuery_then_parse_A_answer()
@@ -316,7 +316,7 @@ public sealed class DnsWireTests
         Assert.True(result.Rcode is DnsRcode.NoError or DnsRcode.NxDomain);
     }
 
-    static DnsLookupResult One(DnsRecordType type, byte[] rdata)
+    private static DnsLookupResult One(DnsRecordType type, byte[] rdata)
         => DnsClient.Parse(
             "example.test",
             type,
@@ -326,7 +326,7 @@ public sealed class DnsWireTests
             TimeSpan.Zero,
             Id);
 
-    static byte[] Answer(
+    private static byte[] Answer(
         ushort id,
         string qname,
         DnsRecordType qtype,
@@ -366,14 +366,14 @@ public sealed class DnsWireTests
         return ms.ToArray();
     }
 
-    static byte[] EncodeName(string name)
+    private static byte[] EncodeName(string name)
     {
         using var ms = new MemoryStream();
         WriteName(ms, name);
         return ms.ToArray();
     }
 
-    static void WriteName(MemoryStream ms, string name)
+    private static void WriteName(MemoryStream ms, string name)
     {
         foreach (var label in name.Split('.', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -384,13 +384,13 @@ public sealed class DnsWireTests
         ms.WriteByte(0);
     }
 
-    static void WriteU16(MemoryStream ms, ushort value)
+    private static void WriteU16(MemoryStream ms, ushort value)
     {
         ms.WriteByte((byte)(value >> 8));
         ms.WriteByte((byte)value);
     }
 
-    static byte[] Concat(ReadOnlySpan<byte> a, byte[] b)
+    private static byte[] Concat(ReadOnlySpan<byte> a, byte[] b)
     {
         var n = new byte[a.Length + b.Length];
         a.CopyTo(n);
@@ -398,7 +398,7 @@ public sealed class DnsWireTests
         return n;
     }
 
-    static async Task ReadExact(Stream stream, byte[] buffer, CancellationToken token)
+    private static async Task ReadExact(Stream stream, byte[] buffer, CancellationToken token)
     {
         var read = 0;
         while (read < buffer.Length)

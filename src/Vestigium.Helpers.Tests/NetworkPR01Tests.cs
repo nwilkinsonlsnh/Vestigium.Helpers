@@ -6,7 +6,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR01Tests : IDisposable
 {
-    const string SampleMac = "00:1A:2B:3C:4D:5E";
+    private const string SampleMac = "00:1A:2B:3C:4D:5E";
 
     public void Dispose() => NetworkTestHooks.Reset();
 
@@ -247,10 +247,10 @@ public sealed class NetworkPR01Tests : IDisposable
         Assert.False(DnsClient.IsExpectedDnsPeer(null, server, 53));
     }
 
-    sealed class StubOuiHandler : HttpMessageHandler
+    private sealed class StubOuiHandler : HttpMessageHandler
     {
-        readonly HttpStatusCode _status;
-        readonly string _body;
+        private readonly HttpStatusCode _status;
+        private readonly string _body;
 
         public StubOuiHandler(HttpStatusCode status, string body)
         {

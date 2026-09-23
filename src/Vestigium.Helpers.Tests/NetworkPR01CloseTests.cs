@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR01CloseTests
 {
-    static readonly string[] Required =
+    private static readonly string[] Required =
     [
         "PR01_001_custom_registry_http_is_rejected",
         "PR01_001_custom_registry_without_allow_is_rejected",

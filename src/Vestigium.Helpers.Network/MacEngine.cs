@@ -124,7 +124,7 @@ internal static class MacEngine
         }
     }
 
-    static async Task<string> ReadLimitedAsync(HttpResponseMessage response, CancellationToken cancel)
+    private static async Task<string> ReadLimitedAsync(HttpResponseMessage response, CancellationToken cancel)
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancel).ConfigureAwait(false);
         var buffer = new byte[OuiLookupGuard.MaxBodyBytes];
@@ -140,7 +140,7 @@ internal static class MacEngine
         return Encoding.UTF8.GetString(buffer, 0, read);
     }
 
-    static MacAddress FromOctets(IReadOnlyList<byte> octets)
+    private static MacAddress FromOctets(IReadOnlyList<byte> octets)
     {
         if (octets.Count is not (6 or 8))
         {
@@ -181,7 +181,7 @@ internal static class MacEngine
         return new MacAddress(kind, copy, colon, hyphen, cisco, bare, integer, multicast, local, broadcast, unspecified, oui, eui64, link);
     }
 
-    static byte[] Expand48(IReadOnlyList<byte> mac48)
+    private static byte[] Expand48(IReadOnlyList<byte> mac48)
         =>
         [
             (byte)(mac48[0] ^ 0x02),
@@ -194,7 +194,7 @@ internal static class MacEngine
             mac48[5]
         ];
 
-    static string LinkLocal(IReadOnlyList<byte> eui64)
+    private static string LinkLocal(IReadOnlyList<byte> eui64)
     {
         var bytes = new byte[16];
         bytes[0] = 0xFE;
@@ -204,7 +204,7 @@ internal static class MacEngine
         return new IPAddress(bytes).ToString();
     }
 
-    static string Join(IReadOnlyList<byte> octets, char sep)
+    private static string Join(IReadOnlyList<byte> octets, char sep)
     {
         var sb = new StringBuilder(octets.Count * 3);
         for (var i = 0; i < octets.Count; i++)
@@ -215,7 +215,7 @@ internal static class MacEngine
         return sb.ToString();
     }
 
-    static string Cisco(IReadOnlyList<byte> octets)
+    private static string Cisco(IReadOnlyList<byte> octets)
     {
         var bare = Convert.ToHexString(octets.ToArray());
         var parts = new List<string>();
@@ -224,7 +224,7 @@ internal static class MacEngine
         return string.Join('.', parts);
     }
 
-    static byte[] ReadOctets(string raw)
+    private static byte[] ReadOctets(string raw)
     {
         if (IPAddress.TryParse(raw, out var ip) && ip.AddressFamily == AddressFamily.InterNetworkV6)
         {
@@ -260,13 +260,13 @@ internal static class MacEngine
         return Convert.FromHexString(digits);
     }
 
-    static byte[] FromIntGuess(ulong value, int hexDigits)
+    private static byte[] FromIntGuess(ulong value, int hexDigits)
     {
         var kind = hexDigits > 12 || value > (1UL << 48) - 1 ? EuiKind.Eui64 : EuiKind.Eui48;
         return FromInteger(value, kind).Octets.ToArray();
     }
 
-    static void Bad(string raw)
+    private static void Bad(string raw)
     {
         HelperLog.Reject(HelperLog.AppIds.Network, "Address", nameof(Parse), "unparsable");
         throw new ArgumentException($"'{raw}' is not an EUI-48, EUI-64, integer, or IPv6 interface id.");

@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR02Tests
 {
-    static NetworkRouteChange TestNet()
+    private static NetworkRouteChange TestNet()
         => new()
         {
             Destination = "192.0.2.0",

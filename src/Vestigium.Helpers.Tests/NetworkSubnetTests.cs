@@ -151,6 +151,6 @@ public sealed class NetworkSubnetTests
         Assert.Equal("192.168.11.0", next!.Network);
     }
 
-    static System.Numerics.BigInteger BigIntegerPower(int two, int exp)
+    private static System.Numerics.BigInteger BigIntegerPower(int two, int exp)
         => System.Numerics.BigInteger.One << exp;
 }

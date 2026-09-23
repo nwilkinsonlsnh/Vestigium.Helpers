@@ -15,7 +15,7 @@ public sealed partial class FileIoJob
     public const int HugeWatermark = 32;
     public static readonly TimeSpan MaxLead = TimeSpan.FromSeconds(180);
 
-    static readonly (FileIoBucket Id, string Name, long Max, int Workers)[] BucketTable =
+    private static readonly (FileIoBucket Id, string Name, long Max, int Workers)[] BucketTable =
     [
         (FileIoBucket.Tiny, "Tiny", 256L * 1024, 8),
         (FileIoBucket.Small, "Small", 4L * 1024 * 1024, 4),
@@ -213,7 +213,7 @@ public sealed partial class FileIoJob
         return Finish(status, deleted);
     }
 
-    FileIoJobResult Finish(string status, int deleted)
+    private FileIoJobResult Finish(string status, int deleted)
     {
         Progress.Phase = "Done";
         Progress.ReconComplete = true;
@@ -249,7 +249,7 @@ public sealed partial class FileIoJob
         };
     }
 
-    void RememberDest(string destPath, string relativePath, ConcurrentDictionary<string, string> destIndex)
+    private void RememberDest(string destPath, string relativePath, ConcurrentDictionary<string, string> destIndex)
     {
         if (!_options.CopyOnlyUniqueContent || _options.AuditMode)
             return;

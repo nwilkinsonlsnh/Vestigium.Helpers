@@ -36,7 +36,7 @@ internal static class NetworkLinuxTables
         return rows;
     }
 
-    static void ReadIpv4Routes(List<NetworkRoute> rows)
+    private static void ReadIpv4Routes(List<NetworkRoute> rows)
     {
         var path = NetworkTestHooks.ProcPath("/proc/net/route");
         if (!File.Exists(path))
@@ -48,7 +48,7 @@ internal static class NetworkLinuxTables
         }
     }
 
-    static void ReadIpv6Routes(List<NetworkRoute> rows)
+    private static void ReadIpv6Routes(List<NetworkRoute> rows)
     {
         var path = NetworkTestHooks.ProcPath("/proc/net/ipv6_route");
         if (!File.Exists(path))

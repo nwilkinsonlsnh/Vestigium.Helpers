@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR05CloseTests
 {
-    static readonly string[] Required =
+    private static readonly string[] Required =
     [
         "PR05_001_persist_key_has_single_separators",
         "PR05_001_mutation_uses_route_keys",

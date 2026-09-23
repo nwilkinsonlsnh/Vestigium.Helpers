@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR03EstimateTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-est-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-est-" + Guid.NewGuid().ToString("N"));
 
     public NetworkPR03EstimateTests()
     {
@@ -69,7 +69,7 @@ public sealed class NetworkPR03EstimateTests : IDisposable
         Assert.Equal(expectedMeta.TotalSeconds, result.MetadataDuration.TotalSeconds, 3);
     }
 
-    static FileIoBucketCensus Census(FileIoBucket id, int files, long bytes, long median)
+    private static FileIoBucketCensus Census(FileIoBucket id, int files, long bytes, long median)
         => new()
         {
             Id = id,

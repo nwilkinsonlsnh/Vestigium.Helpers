@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Network;
 
 public sealed class IcmpEchoCampaign
 {
-    IcmpEchoCampaign(string campaignId, IcmpEchoCampaignOptions options)
+    private IcmpEchoCampaign(string campaignId, IcmpEchoCampaignOptions options)
     {
         CampaignId = campaignId;
         Options = options;
@@ -177,7 +177,7 @@ public sealed class IcmpEchoCampaign
         return new IcmpEchoCampaignResult(CampaignId, NetworkJobStatus.Success, run, missed, skipped, echoes, resultsPath);
     }
 
-    static IcmpEchoCampaignOptions Guard(IcmpEchoCampaignOptions? options)
+    private static IcmpEchoCampaignOptions Guard(IcmpEchoCampaignOptions? options)
     {
         var o = options ?? throw new ArgumentNullException(nameof(options));
         HelperGuard.NotBlank(o.Target, nameof(o.Target));
@@ -219,14 +219,14 @@ public sealed class IcmpEchoCampaign
         return o;
     }
 
-    static TimeZoneInfo ResolveZone(string? id)
+    private static TimeZoneInfo ResolveZone(string? id)
     {
         if (string.IsNullOrWhiteSpace(id))
             return TimeZoneInfo.Local;
         return TimeZoneInfo.FindSystemTimeZoneById(id);
     }
 
-    string ResolveResultsPath()
+    private string ResolveResultsPath()
     {
         if (!string.IsNullOrWhiteSpace(Options.ResultsPath))
             return CampaignPaths.Confine(Options.ResultsPath, nameof(Options.ResultsPath));
@@ -245,7 +245,7 @@ public sealed class IcmpEchoCampaign
         return Path.Combine(root, CampaignId + ".jsonl");
     }
 
-    static void WriteRecipe(string path, string campaignId, IcmpEchoCampaignOptions options)
+    private static void WriteRecipe(string path, string campaignId, IcmpEchoCampaignOptions options)
     {
         CampaignPaths.EnsureDirectoryUnderRoot(path);
         JsonHelper.WriteFile(path, new CampaignRecipe
@@ -261,7 +261,7 @@ public sealed class IcmpEchoCampaign
         }, new JsonWriteOptions { WriteIndented = true, Collision = JsonCollision.Overwrite });
     }
 
-    static IcmpEchoOptions CloneEcho(IcmpEchoOptions source)
+    private static IcmpEchoOptions CloneEcho(IcmpEchoOptions source)
         => new()
         {
             Count = source.Count,
@@ -274,7 +274,7 @@ public sealed class IcmpEchoCampaign
             AllowBurst = source.AllowBurst
         };
 
-    sealed class CampaignRecipe
+    private sealed class CampaignRecipe
     {
         public string CampaignId { get; set; } = "";
         public string Target { get; set; } = "";
@@ -298,7 +298,7 @@ public sealed class IcmpEchoCampaign
             };
     }
 
-    sealed class CampaignWindowDto
+    private sealed class CampaignWindowDto
     {
         public string LocalTime { get; set; } = "";
         public int Count { get; set; }

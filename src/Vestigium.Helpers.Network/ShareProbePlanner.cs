@@ -64,7 +64,7 @@ internal static class ShareProbePlanner
         };
     }
 
-    static bool NeedsMetadata(FileIoDirectoryAnalysis source)
+    private static bool NeedsMetadata(FileIoDirectoryAnalysis source)
     {
         if (source.FileCount <= 0)
             return false;
@@ -75,19 +75,19 @@ internal static class ShareProbePlanner
                && tinySmallBytes * 100 / Math.Max(source.TotalBytes, 1) <= 20;
     }
 
-    static int CountFiles(FileIoDirectoryAnalysis source, FileIoBucket id)
+    private static int CountFiles(FileIoDirectoryAnalysis source, FileIoBucket id)
         => source.Buckets.FirstOrDefault(b => b.Id == id)?.FileCount ?? 0;
 
-    static long CountBytes(FileIoDirectoryAnalysis source, FileIoBucket id)
+    private static long CountBytes(FileIoDirectoryAnalysis source, FileIoBucket id)
         => source.Buckets.FirstOrDefault(b => b.Id == id)?.TotalBytes ?? 0;
 
-    static long ClampMedian(decimal? median)
+    private static long ClampMedian(decimal? median)
     {
         var raw = median is { } m && m > 0 ? (long)decimal.Round(m, MidpointRounding.AwayFromZero) : MinProbeBytes;
         return Math.Clamp(raw, MinProbeBytes, MaxStepBytes);
     }
 
-    static void FitBudget(List<ShareProbeStep> steps, long maxBytes)
+    private static void FitBudget(List<ShareProbeStep> steps, long maxBytes)
     {
         while (Cost(steps) > maxBytes && steps.Exists(s => !s.IsMetadata && s.ProbeCount > 1))
         {
@@ -106,10 +106,10 @@ internal static class ShareProbePlanner
         }
     }
 
-    static long Cost(IEnumerable<ShareProbeStep> steps)
+    private static long Cost(IEnumerable<ShareProbeStep> steps)
         => steps.Sum(s => s.ProbeBytes * (long)s.ProbeCount);
 
-    static ShareProbeStep Clone(ShareProbeStep step, int count)
+    private static ShareProbeStep Clone(ShareProbeStep step, int count)
         => new()
         {
             Workload = step.Workload,

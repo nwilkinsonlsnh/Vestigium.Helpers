@@ -344,7 +344,7 @@ public sealed partial class FileIoJob
         return full.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ? full[(fullRoot.Length + 1)..] : Path.GetFileName(path);
     }
 
-    static IEnumerable<string> SafeEnumerateFiles(string root)
+    private static IEnumerable<string> SafeEnumerateFiles(string root)
     {
         if (!Directory.Exists(root))
             yield break;

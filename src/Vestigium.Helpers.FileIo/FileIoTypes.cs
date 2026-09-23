@@ -49,7 +49,7 @@ public sealed class FileIoShredRecipe
 
     internal string[] Passes { get; }
 
-    FileIoShredRecipe(string passes) => Passes = passes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private FileIoShredRecipe(string passes) => Passes = passes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     public override string ToString() => string.Join(",", Passes);
 }

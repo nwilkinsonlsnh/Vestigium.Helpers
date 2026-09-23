@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR04Ipv6RouteTests
 {
-    static NetworkRouteChange DocV6() => new()
+    private static NetworkRouteChange DocV6() => new()
     {
         Destination = "2001:db8:1::",
         PrefixLength = 64,

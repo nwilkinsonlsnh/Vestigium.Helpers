@@ -371,7 +371,7 @@ public sealed class ClosedXmlBranchTests
         Assert.True(Rewrite("worksheets/sheet1.xml").Length > 0);
     }
 
-    static SheetChart MakeChart(string sheet, string title, CxChartKind kind, bool twoSeries = false)
+    private static SheetChart MakeChart(string sheet, string title, CxChartKind kind, bool twoSeries = false)
     {
         var series = new List<CxChartSeries>
         {
@@ -392,7 +392,7 @@ public sealed class ClosedXmlBranchTests
         };
     }
 
-    static string TempXlsx()
+    private static string TempXlsx()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumClosedXmlTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);

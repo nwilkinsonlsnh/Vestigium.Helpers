@@ -6,7 +6,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkBranchSweepTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "vest-sweep-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "vest-sweep-" + Guid.NewGuid().ToString("N"));
 
     public NetworkBranchSweepTests()
     {
@@ -244,20 +244,20 @@ public sealed class NetworkBranchSweepTests : IDisposable
         _ = NetworkHelper.Ping("127.0.0.1");
     }
 
-    sealed class StubHandler : HttpMessageHandler
+    private sealed class StubHandler : HttpMessageHandler
     {
-        readonly HttpResponseMessage _response;
+        private readonly HttpResponseMessage _response;
         public StubHandler(HttpResponseMessage response) => _response = response;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(_response);
     }
 
-    sealed class ThrowingHandler : HttpMessageHandler
+    private sealed class ThrowingHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => throw new HttpRequestException("boom");
     }
 
-    static HttpResponseMessage Ok(string body)
+    private static HttpResponseMessage Ok(string body)
         => new(System.Net.HttpStatusCode.OK) { Content = new StringContent(body) };
 }

@@ -85,7 +85,7 @@ internal static class OuiRegistry
         return hex.Substring(0, 2) + ":" + hex.Substring(2, 2) + ":" + hex.Substring(4, 2);
     }
 
-    static string? ExtractJson(string line, string name)
+    private static string? ExtractJson(string line, string name)
     {
         var key = "\"" + name + "\"";
         var i = line.IndexOf(key, StringComparison.OrdinalIgnoreCase);

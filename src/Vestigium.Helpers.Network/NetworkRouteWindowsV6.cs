@@ -7,8 +7,8 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NetworkRouteWindowsV6
 {
-    const uint ErrorNotFound = 1168;
-    const int ProtoNetMgmt = 3;
+    private const uint ErrorNotFound = 1168;
+    private const int ProtoNetMgmt = 3;
 
     [SupportedOSPlatform("windows")]
     public static void Add(NetworkRouteSpec spec) => Apply(spec, create: true, replace: false);
@@ -20,7 +20,7 @@ internal static class NetworkRouteWindowsV6
     public static void Remove(NetworkRouteSpec spec) => Apply(spec, create: false, replace: false);
 
     [SupportedOSPlatform("windows")]
-    static void Apply(NetworkRouteSpec spec, bool create, bool replace)
+    private static void Apply(NetworkRouteSpec spec, bool create, bool replace)
     {
         InitializeIpForwardEntry(out var row);
         row.InterfaceIndex = spec.InterfaceIndex;
@@ -45,10 +45,10 @@ internal static class NetworkRouteWindowsV6
             throw NetworkRouteMutation.Denied(replace ? "ChangeRoute" : "AddRoute", code);
     }
 
-    static IpAddressPrefix Prefix(IPAddress address, byte length)
+    private static IpAddressPrefix Prefix(IPAddress address, byte length)
         => new() { Prefix = Inet(address), PrefixLength = length };
 
-    static SockaddrInet Inet(IPAddress address)
+    private static SockaddrInet Inet(IPAddress address)
     {
         var row = new SockaddrInet();
         var bytes = address.GetAddressBytes();
@@ -85,7 +85,7 @@ internal static class NetworkRouteWindowsV6
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct SockaddrInet
+    private struct SockaddrInet
     {
         public ushort Family;
         public ushort Port;
@@ -96,7 +96,7 @@ internal static class NetworkRouteWindowsV6
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct IpAddressPrefix
+    private struct IpAddressPrefix
     {
         public SockaddrInet Prefix;
         public byte PrefixLength;
@@ -104,7 +104,7 @@ internal static class NetworkRouteWindowsV6
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct MibIpForwardRow2
+    private struct MibIpForwardRow2
     {
         public ulong InterfaceLuid;
         public int InterfaceIndex;
@@ -126,14 +126,14 @@ internal static class NetworkRouteWindowsV6
     }
 
     [DllImport("iphlpapi.dll")]
-    static extern void InitializeIpForwardEntry(out MibIpForwardRow2 row);
+    private static extern void InitializeIpForwardEntry(out MibIpForwardRow2 row);
 
     [DllImport("iphlpapi.dll")]
-    static extern uint CreateIpForwardEntry2(ref MibIpForwardRow2 row);
+    private static extern uint CreateIpForwardEntry2(ref MibIpForwardRow2 row);
 
     [DllImport("iphlpapi.dll")]
-    static extern uint SetIpForwardEntry2(ref MibIpForwardRow2 row);
+    private static extern uint SetIpForwardEntry2(ref MibIpForwardRow2 row);
 
     [DllImport("iphlpapi.dll")]
-    static extern uint DeleteIpForwardEntry2(ref MibIpForwardRow2 row);
+    private static extern uint DeleteIpForwardEntry2(ref MibIpForwardRow2 row);
 }

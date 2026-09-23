@@ -106,14 +106,11 @@ internal static class BandwidthEngine
         }
 
         long botHits = 0;
-        if (q.BotRows is not null)
+        foreach (var row in q.BotRows)
         {
-            foreach (var row in q.BotRows)
-            {
-                if (row.Hits < 0)
-                    throw new ArgumentOutOfRangeException(nameof(query), "Bot hits cannot be negative.");
-                botHits += row.Hits;
-            }
+            if (row.Hits < 0)
+                throw new ArgumentOutOfRangeException(nameof(query), "Bot hits cannot be negative.");
+            botHits += row.Hits;
         }
 
         var totalHits = q.HumanHits + botHits;
@@ -146,7 +143,7 @@ internal static class BandwidthEngine
             _ => 2_592_000
         };
 
-    static decimal BitsPerUnit(DataUnit unit)
+    private static decimal BitsPerUnit(DataUnit unit)
         => unit switch
         {
             DataUnit.Bit => 1m,
@@ -170,7 +167,7 @@ internal static class BandwidthEngine
             _ => throw new ArgumentOutOfRangeException(nameof(unit))
         };
 
-    static string Format(decimal bits, DataUnit unit)
+    private static string Format(decimal bits, DataUnit unit)
     {
         var value = bits / BitsPerUnit(unit);
         var text = value == decimal.Truncate(value)
@@ -179,7 +176,7 @@ internal static class BandwidthEngine
         return text + " " + Symbol(unit);
     }
 
-    static string Symbol(DataUnit unit)
+    private static string Symbol(DataUnit unit)
         => unit switch
         {
             DataUnit.Bit => "b",
@@ -203,7 +200,7 @@ internal static class BandwidthEngine
             _ => unit.ToString()
         };
 
-    static string Label(BandwidthBasis basis)
+    private static string Label(BandwidthBasis basis)
         => basis switch
         {
             BandwidthBasis.Day => "1 day",

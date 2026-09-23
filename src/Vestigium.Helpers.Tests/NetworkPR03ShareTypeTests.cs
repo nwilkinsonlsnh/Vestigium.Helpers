@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR03ShareTypeTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-share-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-share-" + Guid.NewGuid().ToString("N"));
 
     public NetworkPR03ShareTypeTests()
     {

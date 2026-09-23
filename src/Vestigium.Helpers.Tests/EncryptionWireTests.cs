@@ -7,7 +7,7 @@ namespace Vestigium.Helpers.Tests;
 [Collection("Logger")]
 public sealed class EncryptionWireTests
 {
-    static byte[] Key32()
+    private static byte[] Key32()
     {
         var key = new byte[32];
         key[0] = 7;
@@ -15,7 +15,7 @@ public sealed class EncryptionWireTests
         return key;
     }
 
-    static byte[] TrailerBody(byte alg = 1, byte kdf = 0, ushort flags = 0, IReadOnlyList<RsaWrapRecord>? wraps = null)
+    private static byte[] TrailerBody(byte alg = 1, byte kdf = 0, ushort flags = 0, IReadOnlyList<RsaWrapRecord>? wraps = null)
     {
         using var ms = new MemoryStream();
         return Trailer.Write(
@@ -556,7 +556,7 @@ public sealed class EncryptionWireTests
         Assert.False(EncryptionAudit.LooksLikeSecret("ok+/=-_"));
     }
 
-    static string WriteTemp(string dir, string name, byte[] blob)
+    private static string WriteTemp(string dir, string name, byte[] blob)
     {
         var path = Path.Combine(dir, name);
         File.WriteAllBytes(path, blob);

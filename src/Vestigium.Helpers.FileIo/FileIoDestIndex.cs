@@ -11,7 +11,7 @@ namespace Vestigium.Helpers.FileIo;
 /// </summary>
 internal static class FileIoDestIndex
 {
-    static readonly JsonSerializerOptions Json = new()
+    private static readonly JsonSerializerOptions Json = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

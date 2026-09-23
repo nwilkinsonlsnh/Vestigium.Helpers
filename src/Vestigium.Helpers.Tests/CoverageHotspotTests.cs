@@ -487,7 +487,7 @@ public sealed class CoverageHotspotTests
         Assert.True(buffer.Length > 0);
     }
 
-    static byte[] Key32()
+    private static byte[] Key32()
     {
         var key = new byte[32];
         key[0] = 7;
@@ -495,9 +495,9 @@ public sealed class CoverageHotspotTests
         return key;
     }
 
-    sealed class ForwardOnlyStream : Stream
+    private sealed class ForwardOnlyStream : Stream
     {
-        readonly MemoryStream _inner;
+        private readonly MemoryStream _inner;
         public ForwardOnlyStream(byte[] data) => _inner = new MemoryStream(data);
         public override bool CanRead => true;
         public override bool CanSeek => false;

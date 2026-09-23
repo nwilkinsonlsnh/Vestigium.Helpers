@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR01OuiFileTests : IDisposable
 {
-    readonly string _dir = Path.Combine(Path.GetTempPath(), "vest-pr01-oui-" + Guid.NewGuid().ToString("N"));
+    private readonly string _dir = Path.Combine(Path.GetTempPath(), "vest-pr01-oui-" + Guid.NewGuid().ToString("N"));
 
     public NetworkPR01OuiFileTests()
     {
@@ -37,7 +37,7 @@ public sealed class NetworkPR01OuiFileTests : IDisposable
         Assert.Equal("Acme", map["00:11:22"]);
     }
 
-    string WriteSmall(string name, string text)
+    private string WriteSmall(string name, string text)
     {
         var path = Path.Combine(_dir, name);
         File.WriteAllText(path, text);

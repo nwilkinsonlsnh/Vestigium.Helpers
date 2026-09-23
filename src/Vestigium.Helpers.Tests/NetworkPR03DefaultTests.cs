@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR03DefaultTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-default-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-default-" + Guid.NewGuid().ToString("N"));
 
     public NetworkPR03DefaultTests()
     {

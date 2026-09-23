@@ -43,7 +43,7 @@ internal static class NetworkLog
     internal static string FileName(string path)
         => FileNameOnly(path);
 
-    static string RedactToken(string token)
+    private static string RedactToken(string token)
     {
         var eq = token.IndexOf('=');
         if (eq > 0 && eq < token.Length - 1)
@@ -69,7 +69,7 @@ internal static class NetworkLog
         return false;
     }
 
-    static string FileNameOnly(string value)
+    private static string FileNameOnly(string value)
     {
         try
         {

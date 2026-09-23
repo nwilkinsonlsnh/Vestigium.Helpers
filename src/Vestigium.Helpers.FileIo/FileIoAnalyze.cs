@@ -111,7 +111,7 @@ internal static class FileIoAnalyzeEngine
         };
     }
 
-    static void Walk(
+    private static void Walk(
         string dir,
         int depth,
         FileIoAnalyzeOptions options,

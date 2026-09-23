@@ -23,9 +23,9 @@ public sealed class NetworkProgress
 
 public sealed class NetworkJob<TResult>
 {
-    readonly Func<CancellationToken, IProgress<NetworkProgress>?, Task<TResult>> _run;
-    readonly CancellationTokenSource _cts = new();
-    int _started;
+    private readonly Func<CancellationToken, IProgress<NetworkProgress>?, Task<TResult>> _run;
+    private readonly CancellationTokenSource _cts = new();
+    private int _started;
 
     internal NetworkJob(
         string jobId,

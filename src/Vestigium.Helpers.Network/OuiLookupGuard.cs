@@ -120,7 +120,7 @@ internal static class OuiLookupGuard
         return true;
     }
 
-    static void RejectResolvedPrivate(string host)
+    private static void RejectResolvedPrivate(string host)
     {
         if (IPAddress.TryParse(host.Trim('[').Trim(']'), out _))
             return;

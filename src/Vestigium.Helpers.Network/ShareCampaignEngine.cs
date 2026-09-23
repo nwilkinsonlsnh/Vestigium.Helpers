@@ -94,17 +94,17 @@ internal static class ShareCampaignEngine
             disclaimer, measured, BandwidthEngine.From((decimal)(fallback * 8d), DataUnit.Bit), declared, payload, metadata);
     }
 
-    static string ShareLabel(ShareCampaignOptions options)
+    private static string ShareLabel(ShareCampaignOptions options)
         => Path.GetFileName(options.Target.Directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
-    static IReadOnlyList<double> CollectDefaultRates(ShareCampaignOptions options, CancellationToken cancellation)
+    private static IReadOnlyList<double> CollectDefaultRates(ShareCampaignOptions options, CancellationToken cancellation)
     {
         if (NetworkTestHooks.ProbeBytesPerSecond is { Count: > 0 } injected)
             return injected;
         return WriteProbes(options.Target.Directory, options.ProbeBytes, options.ProbeCount, options.IncludeReadProbe, cancellation);
     }
 
-    static IReadOnlyList<double> CollectStepRates(ShareCampaignOptions options, ShareProbeStep step, CancellationToken cancellation)
+    private static IReadOnlyList<double> CollectStepRates(ShareCampaignOptions options, ShareProbeStep step, CancellationToken cancellation)
     {
         var key = step.IsMetadata ? "ManySmall" : step.Workload;
         if (NetworkTestHooks.ProbeRatesByWorkload is { } map && map.TryGetValue(key, out var injected) && injected.Count > 0)
@@ -115,7 +115,7 @@ internal static class ShareCampaignEngine
         return WriteProbes(options.Target.Directory, step.ProbeBytes, step.ProbeCount, options.IncludeReadProbe, cancellation);
     }
 
-    static List<double> WriteProbes(string directory, long bytes, int count, bool includeRead, CancellationToken cancellation)
+    private static List<double> WriteProbes(string directory, long bytes, int count, bool includeRead, CancellationToken cancellation)
     {
         var size = FileIoSize.FromBytes(bytes);
         var rates = new List<double>(count);
@@ -131,7 +131,7 @@ internal static class ShareCampaignEngine
         return rates;
     }
 
-    static double P95BytesPerSecond(IEnumerable<double> samples)
+    private static double P95BytesPerSecond(IEnumerable<double> samples)
     {
         var list = samples.Where(v => v > 0 && double.IsFinite(v)).Select(v => (decimal)(v * 8d)).ToArray();
         if (list.Length == 0)
@@ -140,10 +140,10 @@ internal static class ShareCampaignEngine
         return (double)(bill.Rate.Bits / 8m);
     }
 
-    static TimeSpan Scale(TimeSpan duration, double efficiency)
+    private static TimeSpan Scale(TimeSpan duration, double efficiency)
         => TimeSpan.FromTicks((long)Math.Round(duration.Ticks / efficiency, MidpointRounding.AwayFromZero));
 
-    static void WriteJsonl(
+    private static void WriteJsonl(
         string resultsPath,
         string campaignId,
         string mode,
@@ -159,7 +159,7 @@ internal static class ShareCampaignEngine
         CampaignJsonl.AppendCampaign(resultsPath, new { kind = "campaignEnd", campaignId, measuredSeconds = measured.TotalSeconds, recordedUtc = NetworkTestHooks.Now() });
     }
 
-    static string ResolveResults(string campaignId, ShareCampaignOptions options)
+    private static string ResolveResults(string campaignId, ShareCampaignOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.ResultsPath))
             return CampaignPaths.Confine(options.ResultsPath, nameof(options.ResultsPath));

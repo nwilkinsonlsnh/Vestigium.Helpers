@@ -85,7 +85,7 @@ public sealed class NetworkMacTests
         Assert.Equal("00:1A:2B", mac.Oui24);
     }
 
-    sealed class HangOuiHandler : HttpMessageHandler
+    private sealed class HangOuiHandler : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {

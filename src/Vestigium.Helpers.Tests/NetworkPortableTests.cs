@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPortableTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "VestigiumNetworkHarden", Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "VestigiumNetworkHarden", Guid.NewGuid().ToString("N"));
 
     public NetworkPortableTests()
     {

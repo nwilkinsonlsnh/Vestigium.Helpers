@@ -5,7 +5,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR04CloseTests
 {
-    static readonly string[] Required =
+    private static readonly string[] Required =
     [
         "PR04_001_network_has_no_charts_reference",
         "PR04_002_packed_oui_resolves_cisco",

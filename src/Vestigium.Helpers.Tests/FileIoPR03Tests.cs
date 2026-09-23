@@ -164,7 +164,7 @@ public sealed class FileIoPR03Tests
         }
     }
 
-    static (string Src, string Dst) Tree()
+    private static (string Src, string Dst) Tree()
     {
         var root = Path.Combine(Path.GetTempPath(), "VestigiumFileIoPR03", Guid.NewGuid().ToString("N"));
         var src = Path.Combine(root, "src");

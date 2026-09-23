@@ -61,7 +61,7 @@ internal static class DnsClient
         return results;
     }
 
-    static string PrepareQuestion(string name, DnsRecordType type)
+    private static string PrepareQuestion(string name, DnsRecordType type)
     {
         if (type != DnsRecordType.Ptr)
             return name.Trim().TrimEnd('.');
@@ -73,7 +73,7 @@ internal static class DnsClient
         return name.Trim().TrimEnd('.');
     }
 
-    static string ToIp6Arpa(IPAddress ip)
+    private static string ToIp6Arpa(IPAddress ip)
     {
         var bytes = ip.GetAddressBytes();
         var parts = new List<string>(32);
@@ -86,7 +86,7 @@ internal static class DnsClient
         return string.Join('.', parts) + ".ip6.arpa";
     }
 
-    static async Task<DnsLookupResult> OsLookupAsync(
+    private static async Task<DnsLookupResult> OsLookupAsync(
         string question,
         DnsLookupOptions options,
         Stopwatch started,
@@ -118,7 +118,7 @@ internal static class DnsClient
         }
     }
 
-    static async Task<DnsLookupResult> WireLookupAsync(
+    private static async Task<DnsLookupResult> WireLookupAsync(
         string question,
         DnsLookupOptions options,
         Stopwatch started,
@@ -152,11 +152,10 @@ internal static class DnsClient
             var (udp, truncated) = await UdpExchangeAsync(serverIp, options.Port, query, options.Timeout, token).ConfigureAwait(false);
             var usedTcp = false;
             var message = udp;
-            if (truncated || (udp.Length >= 4 && (udp[2] & 0x02) != 0))
-            {
-                message = await TcpExchangeAsync(serverIp, options.Port, query, options.Timeout, token).ConfigureAwait(false);
-                usedTcp = true;
-            }
+            if (!truncated && (udp.Length < 4 || (udp[2] & 0x02) == 0))
+                return Parse(question, options.Type, server, message, usedTcp, started.Elapsed, expectedId: id);
+            message = await TcpExchangeAsync(serverIp, options.Port, query, options.Timeout, token).ConfigureAwait(false);
+            usedTcp = true;
 
             return Parse(question, options.Type, server, message, usedTcp, started.Elapsed, expectedId: id);
         }
@@ -179,7 +178,7 @@ internal static class DnsClient
         }
     }
 
-    static string? FirstOsDnsServer()
+    private static string? FirstOsDnsServer()
     {
         try
         {
@@ -211,7 +210,7 @@ internal static class DnsClient
         return ms.ToArray();
     }
 
-    static void WriteName(MemoryStream ms, string name)
+    private static void WriteName(MemoryStream ms, string name)
     {
         foreach (var label in name.Split('.', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -229,7 +228,7 @@ internal static class DnsClient
         return AddressesEqual(ip.Address, server);
     }
 
-    static bool AddressesEqual(IPAddress left, IPAddress right)
+    private static bool AddressesEqual(IPAddress left, IPAddress right)
     {
         if (left.Equals(right))
             return true;
@@ -240,7 +239,7 @@ internal static class DnsClient
         return false;
     }
 
-    static async Task<(byte[] Data, bool Truncated)> UdpExchangeAsync(
+    private static async Task<(byte[] Data, bool Truncated)> UdpExchangeAsync(
         IPAddress server,
         int port,
         byte[] query,
@@ -277,7 +276,7 @@ internal static class DnsClient
         }
     }
 
-    static async Task<byte[]> TcpExchangeAsync(
+    private static async Task<byte[]> TcpExchangeAsync(
         IPAddress server,
         int port,
         byte[] query,
@@ -307,7 +306,7 @@ internal static class DnsClient
         return body;
     }
 
-    static async Task ReadExactAsync(Stream stream, byte[] buffer, CancellationToken token)
+    private static async Task ReadExactAsync(Stream stream, byte[] buffer, CancellationToken token)
     {
         var read = 0;
         while (read < buffer.Length)
@@ -357,7 +356,7 @@ internal static class DnsClient
         return new DnsLookupResult(question, type, server, rcode, truncated, usedTcp, elapsed, answers);
     }
 
-    static bool TryReadRecord(byte[] message, ref int offset, out DnsRecord record)
+    private static bool TryReadRecord(byte[] message, ref int offset, out DnsRecord record)
     {
         record = new DnsRecord(DnsRecordType.A, "", 0, "");
         var name = ReadName(message, ref offset, 0);
@@ -378,7 +377,7 @@ internal static class DnsClient
         return true;
     }
 
-    static string DecodeRdata(DnsRecordType type, byte[] message, int offset, int length)
+    private static string DecodeRdata(DnsRecordType type, byte[] message, int offset, int length)
     {
         try
         {
@@ -402,7 +401,7 @@ internal static class DnsClient
         }
     }
 
-    static string DecodeTxt(byte[] message, int offset, int length)
+    private static string DecodeTxt(byte[] message, int offset, int length)
     {
         var end = offset + length;
         var parts = new List<string>();
@@ -418,13 +417,13 @@ internal static class DnsClient
         return string.Join("", parts);
     }
 
-    static string ReadNameAt(byte[] message, int offset)
+    private static string ReadNameAt(byte[] message, int offset)
     {
         var pos = offset;
         return ReadName(message, ref pos, 0);
     }
 
-    static string ReadName(byte[] message, ref int offset, int depth)
+    private static string ReadName(byte[] message, ref int offset, int depth)
     {
         if (depth > 10 || offset >= message.Length)
             return string.Empty;
@@ -459,7 +458,7 @@ internal static class DnsClient
         return string.Join('.', labels.Where(l => l.Length > 0));
     }
 
-    static void SkipName(byte[] message, ref int offset, int depth)
+    private static void SkipName(byte[] message, ref int offset, int depth)
     {
         ReadName(message, ref offset, depth);
     }

@@ -7,9 +7,9 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NetworkWindowsTables
 {
-    const int AfInet = 2;
-    const int TcpTableOwnerPidAll = 5;
-    const int UdpTableOwnerPid = 1;
+    private const int AfInet = 2;
+    private const int TcpTableOwnerPidAll = 5;
+    private const int UdpTableOwnerPid = 1;
 
     public static IReadOnlyDictionary<(TransportProtocol, int, int), int> GetOwnerPids()
     {
@@ -67,7 +67,7 @@ internal static class NetworkWindowsTables
         return rows;
     }
 
-    static IEnumerable<(int Local, int Remote, int Pid)> ReadTcpOwners()
+    private static IEnumerable<(int Local, int Remote, int Pid)> ReadTcpOwners()
     {
         var size = 0;
         GetExtendedTcpTable(IntPtr.Zero, ref size, true, AfInet, TcpTableOwnerPidAll, 0);
@@ -95,7 +95,7 @@ internal static class NetworkWindowsTables
         }
     }
 
-    static IEnumerable<(int Local, int Pid)> ReadUdpOwners()
+    private static IEnumerable<(int Local, int Pid)> ReadUdpOwners()
     {
         var size = 0;
         GetExtendedUdpTable(IntPtr.Zero, ref size, true, AfInet, UdpTableOwnerPid, 0);
@@ -122,7 +122,7 @@ internal static class NetworkWindowsTables
         }
     }
 
-    static IEnumerable<NetworkRoute> ReadIpv4Routes()
+    private static IEnumerable<NetworkRoute> ReadIpv4Routes()
     {
         var size = 0;
         GetIpForwardTable(IntPtr.Zero, ref size, true);
@@ -170,14 +170,14 @@ internal static class NetworkWindowsTables
         }
     }
 
-    static string ReadIpv4(nint ptr)
+    private static string ReadIpv4(nint ptr)
     {
         var raw = Marshal.ReadInt32(ptr);
         var bytes = BitConverter.GetBytes(unchecked((uint)raw));
         return new IPAddress(bytes).ToString();
     }
 
-    static string? ReadMac(nint ptr, int length)
+    private static string? ReadMac(nint ptr, int length)
     {
         if (length <= 0)
             return null;
@@ -188,13 +188,13 @@ internal static class NetworkWindowsTables
         return string.Join(":", bytes.Take(6).Select(b => b.ToString("X2")));
     }
 
-    static int PortFromNetwork(int networkOrder)
+    private static int PortFromNetwork(int networkOrder)
     {
         var bytes = BitConverter.GetBytes(networkOrder);
         return (bytes[0] << 8) | bytes[1];
     }
 
-    static string? InterfaceName(int index)
+    private static string? InterfaceName(int index)
     {
         try
         {
@@ -220,14 +220,14 @@ internal static class NetworkWindowsTables
     };
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint GetExtendedTcpTable(nint table, ref int size, bool order, int family, int tableClass, uint reserved);
+    private static extern uint GetExtendedTcpTable(nint table, ref int size, bool order, int family, int tableClass, uint reserved);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint GetExtendedUdpTable(nint table, ref int size, bool order, int family, int tableClass, uint reserved);
+    private static extern uint GetExtendedUdpTable(nint table, ref int size, bool order, int family, int tableClass, uint reserved);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint GetIpForwardTable(nint table, ref int size, bool order);
+    private static extern uint GetIpForwardTable(nint table, ref int size, bool order);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
-    static extern uint GetIpNetTable(nint table, ref int size, bool order);
+    private static extern uint GetIpNetTable(nint table, ref int size, bool order);
 }

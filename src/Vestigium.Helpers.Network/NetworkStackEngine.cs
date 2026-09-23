@@ -83,7 +83,7 @@ internal static class NetworkStackEngine
         return NetworkLinuxTables.GetNeighbors();
     }
 
-    static NetworkConnection MapTcp(TcpConnectionInformation c)
+    private static NetworkConnection MapTcp(TcpConnectionInformation c)
     {
         var local = c.LocalEndPoint;
         var remote = c.RemoteEndPoint;
@@ -99,7 +99,7 @@ internal static class NetworkStackEngine
             null);
     }
 
-    static NetworkConnection MapListener(TransportProtocol protocol, IPEndPoint ep, string state)
+    private static NetworkConnection MapListener(TransportProtocol protocol, IPEndPoint ep, string state)
         => new(
             protocol,
             ep.AddressFamily,
@@ -111,7 +111,7 @@ internal static class NetworkStackEngine
             null,
             null);
 
-    static TcpStatisticsSnapshot MapTcp(TcpStatistics s)
+    private static TcpStatisticsSnapshot MapTcp(TcpStatistics s)
         => new(
             s.ConnectionsAccepted,
             s.ConnectionsInitiated,
@@ -123,10 +123,10 @@ internal static class NetworkStackEngine
             s.SegmentsSent,
             s.ErrorsReceived);
 
-    static UdpStatisticsSnapshot MapUdp(UdpStatistics s)
+    private static UdpStatisticsSnapshot MapUdp(UdpStatistics s)
         => new(s.DatagramsReceived, s.DatagramsSent, s.IncomingDatagramsDiscarded, s.IncomingDatagramsWithErrors);
 
-    static void EnrichPids(List<NetworkConnection> rows)
+    private static void EnrichPids(List<NetworkConnection> rows)
     {
         IReadOnlyDictionary<(TransportProtocol, int, int), int>? map = null;
         try

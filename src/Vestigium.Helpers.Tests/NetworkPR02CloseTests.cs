@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR02CloseTests
 {
-    static readonly string[] Required =
+    private static readonly string[] Required =
     [
         "PR02_002_linux_add_route_is_network_route_denied",
         "PR02_002_windows_add_route_without_admin_is_denied",

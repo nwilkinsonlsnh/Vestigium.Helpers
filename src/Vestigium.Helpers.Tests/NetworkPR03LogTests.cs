@@ -4,9 +4,9 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkPR03LogTests : IDisposable
 {
-    readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-log-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "pr03-log-" + Guid.NewGuid().ToString("N"));
 
-    static readonly string[] Forbidden =
+    private static readonly string[] Forbidden =
     [
         "password", "passwd", "credential", "secret", "connectionstring", "pwd="
     ];

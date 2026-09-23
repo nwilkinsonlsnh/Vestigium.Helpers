@@ -6,14 +6,14 @@ internal static class OuiPacked
 {
     public const string ResourceName = "Vestigium.Helpers.Network.Data.oui-snapshot.txt";
 
-    static readonly Lazy<IReadOnlyDictionary<string, string>> Cache = new(Load);
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> Cache = new(Load);
 
     public static IReadOnlyDictionary<string, string> Registry() => Cache.Value;
 
     public static OuiLookupResult Lookup(string macOrOui)
         => OuiRegistry.Lookup(macOrOui, Registry());
 
-    static IReadOnlyDictionary<string, string> Load()
+    private static IReadOnlyDictionary<string, string> Load()
     {
         var assembly = typeof(OuiPacked).Assembly;
         using var stream = assembly.GetManifestResourceStream(ResourceName)

@@ -39,7 +39,7 @@ public sealed class NetworkPR03PlannerTests
         Assert.Equal(2, large.ProbeCount);
     }
 
-    static FileIoDirectoryAnalysis Analysis(int files, long total, params FileIoBucketCensus[] buckets)
+    private static FileIoDirectoryAnalysis Analysis(int files, long total, params FileIoBucketCensus[] buckets)
         => new()
         {
             Path = "source",
@@ -51,7 +51,7 @@ public sealed class NetworkPR03PlannerTests
             Buckets = buckets
         };
 
-    static FileIoBucketCensus Bucket(FileIoBucket id, int files, long bytes, long median)
+    private static FileIoBucketCensus Bucket(FileIoBucket id, int files, long bytes, long median)
         => new()
         {
             Id = id,

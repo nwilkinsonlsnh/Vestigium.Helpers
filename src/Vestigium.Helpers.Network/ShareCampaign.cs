@@ -8,7 +8,7 @@ public sealed class ShareCampaign
     public const string DefaultDisclaimer =
         "Linear scale from a sequential write probe (default 64 MiB × 4). Many-small-file trees need Advanced.";
 
-    ShareCampaign(string campaignId, ShareCampaignOptions options)
+    private ShareCampaign(string campaignId, ShareCampaignOptions options)
     {
         CampaignId = campaignId;
         Options = options;
@@ -100,7 +100,7 @@ public sealed class ShareCampaign
         return o;
     }
 
-    static void WriteRecipe(string path, string campaignId, ShareCampaignOptions options)
+    private static void WriteRecipe(string path, string campaignId, ShareCampaignOptions options)
     {
         CampaignPaths.EnsureDirectoryUnderRoot(path);
         JsonHelper.WriteFile(path, new ShareRecipe
@@ -118,7 +118,7 @@ public sealed class ShareCampaign
         }, new JsonWriteOptions { WriteIndented = true, Collision = JsonCollision.Overwrite });
     }
 
-    sealed class ShareRecipe
+    private sealed class ShareRecipe
     {
         public string CampaignId { get; set; } = "";
         public string ShareDirectory { get; set; } = "";

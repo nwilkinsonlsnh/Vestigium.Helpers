@@ -7,37 +7,37 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NetworkRouteNetlink
 {
-    const int AfNetlink = 16;
-    const int AfInet = 2;
-    const int AfInet6 = 10;
-    const int SockRaw = 3;
-    const int SockCloexec = 0x80000;
-    const int NetlinkRoute = 0;
-    const ushort RtmNewRoute = 24;
-    const ushort RtmDelRoute = 25;
-    const ushort NlmsgError = 2;
-    const ushort NlmFRequest = 0x01;
-    const ushort NlmFAck = 0x04;
-    const ushort NlmFReplace = 0x100;
-    const ushort NlmFExcl = 0x200;
-    const ushort NlmFCreate = 0x400;
-    const byte RtnUnicast = 1;
-    const byte RtProtStatic = 4;
-    const byte RtScopeUniverse = 0;
-    const byte RtTableMain = 254;
-    const ushort RtaDst = 1;
-    const ushort RtaOif = 4;
-    const ushort RtaGateway = 5;
-    const ushort RtaPriority = 6;
-    const int Eperm = 1;
-    const int Eacces = 13;
-    const int Enetunreach = 101;
+    private const int AfNetlink = 16;
+    private const int AfInet = 2;
+    private const int AfInet6 = 10;
+    private const int SockRaw = 3;
+    private const int SockCloexec = 0x80000;
+    private const int NetlinkRoute = 0;
+    private const ushort RtmNewRoute = 24;
+    private const ushort RtmDelRoute = 25;
+    private const ushort NlmsgError = 2;
+    private const ushort NlmFRequest = 0x01;
+    private const ushort NlmFAck = 0x04;
+    private const ushort NlmFReplace = 0x100;
+    private const ushort NlmFExcl = 0x200;
+    private const ushort NlmFCreate = 0x400;
+    private const byte RtnUnicast = 1;
+    private const byte RtProtStatic = 4;
+    private const byte RtScopeUniverse = 0;
+    private const byte RtTableMain = 254;
+    private const ushort RtaDst = 1;
+    private const ushort RtaOif = 4;
+    private const ushort RtaGateway = 5;
+    private const ushort RtaPriority = 6;
+    private const int Eperm = 1;
+    private const int Eacces = 13;
+    private const int Enetunreach = 101;
 
     public static void Add(NetworkRouteChange change) => Apply(change, create: true, replace: false);
     public static void Change(NetworkRouteChange change) => Apply(change, create: true, replace: true);
     public static void Remove(NetworkRouteChange change) => Apply(change, create: false, replace: false);
 
-    static void Apply(NetworkRouteChange change, bool create, bool replace)
+    private static void Apply(NetworkRouteChange change, bool create, bool replace)
     {
         if (!OperatingSystem.IsLinux())
             throw NetworkRouteMutation.LinuxWriteDenied(nameof(Apply));
@@ -58,7 +58,7 @@ internal static class NetworkRouteNetlink
         Send(payload, create ? nameof(Add) : nameof(Remove));
     }
 
-    static byte[] Build(NetworkRouteSpec spec, ushort type, ushort flags, int ifIndex)
+    private static byte[] Build(NetworkRouteSpec spec, ushort type, ushort flags, int ifIndex)
     {
         var family = (byte)(spec.IsIPv6 ? AfInet6 : AfInet);
         var body = new List<byte>(96);
@@ -85,7 +85,7 @@ internal static class NetworkRouteNetlink
         return bytes;
     }
 
-    static void AddAttr(List<byte> body, ushort type, byte[] value)
+    private static void AddAttr(List<byte> body, ushort type, byte[] value)
     {
         var len = (ushort)(4 + value.Length);
         body.AddRange(BitConverter.GetBytes(len));
@@ -95,7 +95,7 @@ internal static class NetworkRouteNetlink
             body.Add(0);
     }
 
-    static void Send(byte[] payload, string verb)
+    private static void Send(byte[] payload, string verb)
     {
         var fd = socket(AfNetlink, SockRaw | SockCloexec, NetlinkRoute);
         if (fd < 0)
@@ -139,7 +139,7 @@ internal static class NetworkRouteNetlink
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    struct SockaddrNl
+    private struct SockaddrNl
     {
         public ushort nl_family;
         public ushort nl_pad;
@@ -148,17 +148,17 @@ internal static class NetworkRouteNetlink
     }
 
     [DllImport("libc", SetLastError = true)]
-    static extern int socket(int domain, int type, int protocol);
+    private static extern int socket(int domain, int type, int protocol);
 
     [DllImport("libc", SetLastError = true)]
-    static extern int bind(int fd, ref SockaddrNl addr, uint addrlen);
+    private static extern int bind(int fd, ref SockaddrNl addr, uint addrlen);
 
     [DllImport("libc", SetLastError = true)]
-    static extern int close(int fd);
+    private static extern int close(int fd);
 
     [DllImport("libc", SetLastError = true)]
-    static extern int send(int fd, byte[] buf, int len, int flags);
+    private static extern int send(int fd, byte[] buf, int len, int flags);
 
     [DllImport("libc", SetLastError = true)]
-    static extern int recv(int fd, byte[] buf, int len, int flags);
+    private static extern int recv(int fd, byte[] buf, int len, int flags);
 }

@@ -8,8 +8,8 @@ namespace Vestigium.Helpers.Network;
 
 internal static class CampaignJsonl
 {
-    static readonly JsonWriteOptions Compact = new() { WriteIndented = false };
-    static readonly ConcurrentDictionary<string, object> Gates = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly JsonWriteOptions Compact = new() { WriteIndented = false };
+    private static readonly ConcurrentDictionary<string, object> Gates = new(StringComparer.OrdinalIgnoreCase);
 
     public static void AppendCampaign(string path, object record)
     {
@@ -26,10 +26,10 @@ internal static class CampaignJsonl
         WriteLine(path, record);
     }
 
-    static object Gate(string path)
+    private static object Gate(string path)
         => Gates.GetOrAdd(Path.GetFullPath(path), _ => new object());
 
-    static void WriteLine(string path, object record)
+    private static void WriteLine(string path, object record)
     {
         var line = JsonHelper.ToJson(record, Compact);
         if (line.IndexOfAny(['\r', '\n']) >= 0)
@@ -79,7 +79,7 @@ internal static class CampaignJsonl
                     continue;
                 var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                 foreach (var prop in obj)
-                    row[prop.Key] = prop.Value is null ? null : prop.Value.ToJsonString();
+                    row[prop.Key] = prop.Value?.ToJsonString();
                 rows.Add(row);
             }
 
@@ -89,28 +89,15 @@ internal static class CampaignJsonl
 
     public static bool HasTerminalWindow(IReadOnlyList<Dictionary<string, object?>> rows, string campaignId, string date, string localTime)
     {
-        foreach (var row in rows)
-        {
-            if (!KindIs(row, "windowSummary") && !KindIs(row, "windowMissed"))
-                continue;
-            if (!string.Equals(Get(row, "campaignId")?.Trim('"'), campaignId, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (!string.Equals(Get(row, "date")?.Trim('"'), date, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (!string.Equals(Get(row, "localTime")?.Trim('"'), localTime, StringComparison.OrdinalIgnoreCase))
-                continue;
-            return true;
-        }
-
-        return false;
+        return (from row in rows where KindIs(row, "windowSummary") || KindIs(row, "windowMissed") where string.Equals(Get(row, "campaignId")?.Trim('"'), campaignId, StringComparison.OrdinalIgnoreCase) where string.Equals(Get(row, "date")?.Trim('"'), date, StringComparison.OrdinalIgnoreCase) select row).Any(row => string.Equals(Get(row, "localTime")?.Trim('"'), localTime, StringComparison.OrdinalIgnoreCase));
     }
 
     public static bool HasKind(IReadOnlyList<Dictionary<string, object?>> rows, string campaignId, string kind)
         => rows.Any(r => KindIs(r, kind) && string.Equals(Get(r, "campaignId")?.Trim('"'), campaignId, StringComparison.OrdinalIgnoreCase));
 
-    static bool KindIs(Dictionary<string, object?> row, string kind)
+    private static bool KindIs(Dictionary<string, object?> row, string kind)
         => string.Equals(Get(row, "kind")?.Trim('"'), kind, StringComparison.OrdinalIgnoreCase);
 
-    static string? Get(Dictionary<string, object?> row, string key)
+    private static string? Get(Dictionary<string, object?> row, string key)
         => row.TryGetValue(key, out var value) ? value?.ToString() : null;
 }

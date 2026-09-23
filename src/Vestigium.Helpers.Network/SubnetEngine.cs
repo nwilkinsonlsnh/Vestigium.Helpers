@@ -218,7 +218,7 @@ internal static class SubnetEngine
         return FromNetwork(block.Family, next, block.PrefixLength, null);
     }
 
-    static PrefixPlan Split(PrefixBlock parent, int childPrefix, SubnetQuery query, string rule)
+    private static PrefixPlan Split(PrefixBlock parent, int childPrefix, SubnetQuery query, string rule)
     {
         var width = Width(parent.Family);
         var extra = childPrefix - parent.PrefixLength;
@@ -233,13 +233,13 @@ internal static class SubnetEngine
         return new PrefixPlan(parent, rule, childPrefix, total, rows, []);
     }
 
-    static PrefixBlock Describe(IPAddress ip, int prefix, string? original)
+    private static PrefixBlock Describe(IPAddress ip, int prefix, string? original)
     {
         EnsurePrefix(ip.AddressFamily, prefix);
         return FromNetwork(ip.AddressFamily, ToInt(ip) & PrefixMask(Width(ip.AddressFamily), prefix), prefix, original);
     }
 
-    static PrefixBlock FromNetwork(AddressFamily family, BigInteger network, int prefix, string? original)
+    private static PrefixBlock FromNetwork(AddressFamily family, BigInteger network, int prefix, string? original)
     {
         var width = Width(family);
         var size = BigInteger.One << (width - prefix);
@@ -294,7 +294,7 @@ internal static class SubnetEngine
         return new PrefixBlock(family, original, networkIp.ToString(), prefix, mask, wildcard, broadcast, firstUsable, lastUsable, size, usable, hostRoute, p2p, BinaryMask(family, prefix), ClassOf(networkIp), KindOf(networkIp), ptr);
     }
 
-    static int PrefixForHosts(PrefixBlock parent, int hosts, bool countNetworkAndBroadcast)
+    private static int PrefixForHosts(PrefixBlock parent, int hosts, bool countNetworkAndBroadcast)
     {
         var width = Width(parent.Family);
         for (var prefix = width; prefix >= parent.PrefixLength; prefix--)
@@ -306,7 +306,7 @@ internal static class SubnetEngine
         return parent.PrefixLength;
     }
 
-    static BigInteger Usable(AddressFamily family, int prefix, bool countAll)
+    private static BigInteger Usable(AddressFamily family, int prefix, bool countAll)
     {
         var size = BigInteger.One << (Width(family) - prefix);
         if (family == AddressFamily.InterNetworkV6 || countAll || prefix >= 31)
@@ -314,7 +314,7 @@ internal static class SubnetEngine
         return size - 2;
     }
 
-    static List<PrefixBlock> GreedyRemainders(AddressFamily family, BigInteger start, BigInteger end, int maxList)
+    private static List<PrefixBlock> GreedyRemainders(AddressFamily family, BigInteger start, BigInteger end, int maxList)
     {
         var rows = new List<PrefixBlock>();
         var width = Width(family);
@@ -340,7 +340,7 @@ internal static class SubnetEngine
         return rows;
     }
 
-    static SubnetQuery Query(SubnetQuery? query)
+    private static SubnetQuery Query(SubnetQuery? query)
     {
         var q = query ?? new SubnetQuery();
         if (q.MaxList < 1)
@@ -351,7 +351,7 @@ internal static class SubnetEngine
         return q;
     }
 
-    static (IPAddress ip, int prefix) ParseCidr(string cidr)
+    private static (IPAddress ip, int prefix) ParseCidr(string cidr)
     {
         var text = HelperGuard.NotBlank(cidr, nameof(cidr)).Trim();
         var slash = text.LastIndexOf('/');
@@ -370,7 +370,7 @@ internal static class SubnetEngine
         return (ip, prefix);
     }
 
-    static IPAddress ParseIp(string address)
+    private static IPAddress ParseIp(string address)
     {
         var text = HelperGuard.NotBlank(address, nameof(address)).Trim();
         if (!IPAddress.TryParse(text, out var ip))
@@ -381,7 +381,7 @@ internal static class SubnetEngine
         return ip;
     }
 
-    static void EnsurePrefix(AddressFamily family, int prefix)
+    private static void EnsurePrefix(AddressFamily family, int prefix)
     {
         var max = Width(family);
         if (prefix < 0 || prefix > max)
@@ -391,13 +391,13 @@ internal static class SubnetEngine
         }
     }
 
-    static void TooSmall(PrefixBlock parent, string rule)
+    private static void TooSmall(PrefixBlock parent, string rule)
     {
         HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(TooSmall), $"{rule} parent={parent.Network}/{parent.PrefixLength}");
         throw new InvalidOperationException($"Parent {parent.Network}/{parent.PrefixLength} cannot satisfy {rule}.");
     }
 
-    static TraditionalClass ClassOf(IPAddress ip)
+    private static TraditionalClass ClassOf(IPAddress ip)
     {
         if (ip.AddressFamily != AddressFamily.InterNetwork)
             return TraditionalClass.None;
@@ -409,7 +409,7 @@ internal static class SubnetEngine
         return TraditionalClass.E;
     }
 
-    static AddressKind KindOf(IPAddress ip)
+    private static AddressKind KindOf(IPAddress ip)
     {
         if (ip.AddressFamily == AddressFamily.InterNetworkV6)
             return Kind6(ip);
@@ -434,7 +434,7 @@ internal static class SubnetEngine
         return kind;
     }
 
-    static AddressKind Kind6(IPAddress ip)
+    private static AddressKind Kind6(IPAddress ip)
     {
         var kind = AddressKind.None;
         if (ip.IsIPv4MappedToIPv6) kind |= AddressKind.Ipv4Mapped;
@@ -450,9 +450,9 @@ internal static class SubnetEngine
         return kind;
     }
 
-    static int Width(AddressFamily family) => family == AddressFamily.InterNetwork ? 32 : 128;
+    private static int Width(AddressFamily family) => family == AddressFamily.InterNetwork ? 32 : 128;
 
-    static int BitsForCount(int count)
+    private static int BitsForCount(int count)
     {
         var bits = 0;
         var slots = 1;
@@ -464,30 +464,30 @@ internal static class SubnetEngine
         return bits;
     }
 
-    static BigInteger AlignUp(BigInteger value, BigInteger size)
+    private static BigInteger AlignUp(BigInteger value, BigInteger size)
     {
         var rem = value % size;
         return rem == 0 ? value : value + (size - rem);
     }
 
-    static BigInteger PrefixMask(int width, int prefix)
+    private static BigInteger PrefixMask(int width, int prefix)
     {
         if (prefix <= 0) return BigInteger.Zero;
         if (prefix >= width) return (BigInteger.One << width) - 1;
         return ((BigInteger.One << prefix) - 1) << (width - prefix);
     }
 
-    static BigInteger ToInt(IPAddress ip) => new(ip.GetAddressBytes(), isUnsigned: true, isBigEndian: true);
+    private static BigInteger ToInt(IPAddress ip) => new(ip.GetAddressBytes(), isUnsigned: true, isBigEndian: true);
 
-    static uint ToUint(IPAddress ip)
+    private static uint ToUint(IPAddress ip)
     {
         var b = ip.GetAddressBytes();
         return ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3];
     }
 
-    static byte[] ToBytes4(uint value) => [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
+    private static byte[] ToBytes4(uint value) => [(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
 
-    static IPAddress ToIp(AddressFamily family, BigInteger value)
+    private static IPAddress ToIp(AddressFamily family, BigInteger value)
     {
         var width = Width(family);
         var raw = value.ToByteArray(isUnsigned: true, isBigEndian: true);
@@ -497,9 +497,9 @@ internal static class SubnetEngine
         return new IPAddress(bytes);
     }
 
-    static string Format(IPAddress ip) => ip.ToString();
+    private static string Format(IPAddress ip) => ip.ToString();
 
-    static string BinaryMask(AddressFamily family, int prefix)
+    private static string BinaryMask(AddressFamily family, int prefix)
     {
         var width = Width(family);
         var bits = new string('1', prefix) + new string('0', width - prefix);
@@ -508,11 +508,11 @@ internal static class SubnetEngine
         return string.Join(':', Chunk(bits, 16));
     }
 
-    static IEnumerable<string> Chunk(string bits, int size)
+    private static IEnumerable<string> Chunk(string bits, int size)
     {
         for (var i = 0; i < bits.Length; i += size)
             yield return bits.Substring(i, size);
     }
 
-    static string Subcat() => "Subnet";
+    private static string Subcat() => "Subnet";
 }

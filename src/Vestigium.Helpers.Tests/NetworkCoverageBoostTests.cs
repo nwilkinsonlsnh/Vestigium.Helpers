@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class NetworkCoverageBoostTests : IDisposable
 {
-    readonly string _proc;
+    private readonly string _proc;
 
     public NetworkCoverageBoostTests()
     {

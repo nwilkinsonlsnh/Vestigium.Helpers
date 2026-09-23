@@ -28,7 +28,7 @@ internal static class IcmpEchoEngine
         });
     }
 
-    static void Guard(IcmpEchoOptions o)
+    private static void Guard(IcmpEchoOptions o)
     {
         if (o.Count < 0)
         {
@@ -98,7 +98,7 @@ internal static class IcmpEchoEngine
             "Continuous jobs require an Interval of at least 200 ms unless AllowBurst is set.");
     }
 
-    static async Task<IcmpEchoResult> RunAsync(
+    private static async Task<IcmpEchoResult> RunAsync(
         string jobId,
         string target,
         IcmpEchoOptions options,
@@ -214,7 +214,7 @@ internal static class IcmpEchoEngine
         }
     }
 
-    static async Task<IcmpEchoReply> SendOnceAsync(
+    private static async Task<IcmpEchoReply> SendOnceAsync(
         Ping ping, string target, byte[] buffer, int timeoutMs, PingOptions pingOptions, int sequence, CancellationToken token)
     {
         try
@@ -252,7 +252,7 @@ internal static class IcmpEchoEngine
         }
     }
 
-    static IcmpEchoReply Map(PingReply reply, int sequence, bool payloadRestricted)
+    private static IcmpEchoReply Map(PingReply reply, int sequence, bool payloadRestricted)
     {
         var status = MapStatus(reply.Status);
         var address = MapAddress(reply.Address);
