@@ -6,7 +6,7 @@ namespace Vestigium.Helpers.FileIo;
 
 public sealed partial class FileIoJob
 {
-    async Task DoCopyAsync(WorkItem item, ConcurrentDictionary<string, string> destIndex, CancellationToken token)
+    private async Task DoCopyAsync(WorkItem item, ConcurrentDictionary<string, string> destIndex, CancellationToken token)
     {
         var destIsDir = !_sourceIsFile || Directory.Exists(Destination);
         var destPath = destIsDir ? Path.Combine(Destination, item.RelativePath) : Destination;
@@ -93,7 +93,7 @@ public sealed partial class FileIoJob
         NoteRate(item.Size);
     }
 
-    async Task CopyStreamAsync(string source, string dest, CancellationToken token, bool resume, bool deleteOnCancel)
+    private async Task CopyStreamAsync(string source, string dest, CancellationToken token, bool resume, bool deleteOnCancel)
     {
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(StreamBufferSize);
         try
@@ -118,12 +118,10 @@ public sealed partial class FileIoJob
             {
                 await dst.WriteAsync(buffer.AsMemory(0, read), token).ConfigureAwait(false);
                 await GateAsync().ConfigureAwait(false);
-                if (_cancelled || token.IsCancellationRequested)
-                {
-                    await dst.DisposeAsync().ConfigureAwait(false);
-                    DropOwnedDest(dest, deleteOnCancel);
-                    return;
-                }
+                if (!_cancelled && !token.IsCancellationRequested) continue;
+                await dst.DisposeAsync().ConfigureAwait(false);
+                DropOwnedDest(dest, deleteOnCancel);
+                return;
             }
         }
         catch (OperationCanceledException)
@@ -137,14 +135,14 @@ public sealed partial class FileIoJob
         }
     }
 
-    static void DropOwnedDest(string dest, bool deleteOnCancel)
+    private static void DropOwnedDest(string dest, bool deleteOnCancel)
     {
         if (!deleteOnCancel)
             return;
         try { File.Delete(dest); } catch (IOException) { }
     }
 
-    int PurgeDest()
+    private int PurgeDest()
     {
         if (!Directory.Exists(Destination) || !Directory.Exists(Source))
             return 0;
@@ -170,19 +168,19 @@ public sealed partial class FileIoJob
         return n;
     }
 
-    async Task GateAsync()
+    private async Task GateAsync()
     {
         while (_paused && !_cancelled)
             await Task.Delay(15, CancellationToken.None).ConfigureAwait(false);
     }
 
-    void Emit()
+    private void Emit()
     {
         _options.Progress?.Report(Progress);
         ProgressChanged?.Invoke(this, Progress);
     }
 
-    void MaybeProgressLog()
+    private void MaybeProgressLog()
     {
         var now = DateTimeOffset.UtcNow;
         if (now - _lastProgressLog < TimeSpan.FromSeconds(15))
@@ -196,7 +194,7 @@ public sealed partial class FileIoJob
             ("certainty", Progress.CertaintyPercent.ToString())));
     }
 
-    void Skip(WorkItem item)
+    private void Skip(WorkItem item)
     {
         lock (_gate)
         {
@@ -209,7 +207,7 @@ public sealed partial class FileIoJob
         Emit();
     }
 
-    void Fail(WorkItem item, string reason)
+    private void Fail(WorkItem item, string reason)
     {
         lock (_gate)
         {
@@ -217,18 +215,25 @@ public sealed partial class FileIoJob
             Progress.Buckets[(int)item.Bucket].Failed++;
         }
         var failProps = FileIoLog.Props(("path", item.SourcePath), ("reason", reason));
-        if (reason == "NameCap")
-            FileIoLog.NameCap(VerbSub(), JobId, failProps);
-        else if (reason == "Unauthorized")
-            FileIoLog.ItemUnauthorized(VerbSub(), JobId, failProps);
-        else if (reason == "InUse")
-            FileIoLog.ItemInUse(VerbSub(), JobId, failProps);
-        else
-            FileIoLog.Failed(VerbSub(), reason, JobId, failProps);
+        switch (reason)
+        {
+            case "NameCap":
+                FileIoLog.NameCap(VerbSub(), JobId, failProps);
+                break;
+            case "Unauthorized":
+                FileIoLog.ItemUnauthorized(VerbSub(), JobId, failProps);
+                break;
+            case "InUse":
+                FileIoLog.ItemInUse(VerbSub(), JobId, failProps);
+                break;
+            default:
+                FileIoLog.Failed(VerbSub(), reason, JobId, failProps);
+                break;
+        }
         Emit();
     }
 
-    void Done(WorkItem item)
+    private void Done(WorkItem item)
     {
         lock (_gate)
         {
@@ -241,7 +246,7 @@ public sealed partial class FileIoJob
         Emit();
     }
 
-    void Observe(WorkItem item, string outcome, TimeSpan? elapsed = null)
+    private void Observe(WorkItem item, string outcome, TimeSpan? elapsed = null)
     {
         double? durationMs = null;
         double? rate = null;
@@ -259,20 +264,19 @@ public sealed partial class FileIoJob
             outcome));
     }
 
-    void NoteRate(long bytes)
+    private void NoteRate(long bytes)
     {
         var now = DateTimeOffset.UtcNow;
         var dt = Math.Max(0.001, (now - _lastRateAt).TotalSeconds);
         Progress.RateBytesPerSec = _options.AuditMode ? 0 : (long)(bytes / dt);
         _lastRateAt = now;
-        if (Progress.CertaintyPercent == 100 && Progress.BytesFound > Progress.BytesDone && Progress.RateBytesPerSec > 0)
-        {
-            var remain = Progress.BytesFound - Progress.BytesDone;
-            Progress.EtaUtc = now.AddSeconds(remain / (double)Progress.RateBytesPerSec);
-        }
+        if (Progress.CertaintyPercent != 100 || Progress.BytesFound <= Progress.BytesDone ||
+            Progress.RateBytesPerSec <= 0) return;
+        var remain = Progress.BytesFound - Progress.BytesDone;
+        Progress.EtaUtc = now.AddSeconds(remain / (double)Progress.RateBytesPerSec);
     }
 
-    string VerbSub() => Verb switch
+    private string VerbSub() => Verb switch
     {
         FileIoVerb.Move => FileIoLog.Subcategories.Move,
         FileIoVerb.Delete => FileIoLog.Subcategories.Delete,
@@ -280,7 +284,7 @@ public sealed partial class FileIoJob
         _ => FileIoLog.Subcategories.Copy,
     };
 
-    string VerbLabel() => Verb switch
+    private string VerbLabel() => Verb switch
     {
         FileIoVerb.Move => "Move",
         FileIoVerb.Delete => "Delete",
@@ -324,7 +328,7 @@ public sealed partial class FileIoJob
         return new CollisionPlan(destPath, false, false, false, true);
     }
 
-    static bool Masked(string name, IReadOnlyList<string> masks)
+    private static bool Masked(string name, IReadOnlyList<string> masks)
     {
         foreach (var mask in masks)
         {
@@ -341,9 +345,7 @@ public sealed partial class FileIoJob
         var full = Path.GetFullPath(path);
         if (full.Equals(fullRoot, StringComparison.OrdinalIgnoreCase))
             return "";
-        if (full.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            return full[(fullRoot.Length + 1)..];
-        return Path.GetFileName(path);
+        return full.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ? full[(fullRoot.Length + 1)..] : Path.GetFileName(path);
     }
 
     static IEnumerable<string> SafeEnumerateFiles(string root)
