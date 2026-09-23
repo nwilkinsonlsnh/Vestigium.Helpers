@@ -224,6 +224,64 @@ public static class JsonHelper
         }
     }
 
+    public static JsonNode Parse(ReadOnlySpan<byte> utf8Json)
+    {
+        const string app = HelperLog.AppIds.Json;
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Document, "ParseSpan");
+        try
+        {
+            if (utf8Json.IsEmpty)
+            {
+                HelperLog.Reject("json is blank");
+                throw new ArgumentException("Value is required.", nameof(utf8Json));
+            }
+
+            if (utf8Json.Length >= 3 && utf8Json[0] == 0xEF && utf8Json[1] == 0xBB && utf8Json[2] == 0xBF)
+            {
+                HelperLog.Reject("json has a BOM");
+                throw new JsonException("RFC 8259 JSON must be UTF-8 without a BOM.");
+            }
+
+            JsonNode? node;
+            try
+            {
+                node = JsonNode.Parse(utf8Json, JsonCodec.NodeOptions, JsonCodec.DocumentOptions);
+            }
+            catch (JsonException)
+            {
+                HelperLog.Reject("json is not RFC 8259");
+                throw;
+            }
+
+            if (node is null)
+            {
+                HelperLog.Reject("json is JSON null");
+                throw new JsonException("RFC 8259 JSON null is not a document root for Parse.");
+            }
+
+            var kind = node is JsonObject ? "object" : node is JsonArray ? "array" : "value";
+            HelperLog.Information(
+                app,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Document,
+                $"ParseSpan kind={kind} bytes={utf8Json.Length}");
+            return node;
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (JsonException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
     public static JsonSession Create(string? path = null, JsonSessionOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
