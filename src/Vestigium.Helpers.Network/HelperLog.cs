@@ -60,7 +60,7 @@ internal static class HelperLog
         string appId,
         string subcategory,
         string method,
-        string reason,
+        string? reason,
         string? correlationId = null,
         Exception? exception = null)
         => Error(appId, VestigiumStatus.Failed, subcategory, Line("reject", method, reason, correlationId), exception);
@@ -68,13 +68,13 @@ internal static class HelperLog
     public static void Debug(string appId, VestigiumStatus status, string subcategory, string message, Exception? exception = null)
         => Write(appId, VestigiumLogLevel.Debug, status, subcategory, message, exception);
 
-    public static void Information(string appId, VestigiumStatus status, string subcategory, string message, Exception? exception = null)
+    public static void Information(string appId, VestigiumStatus status, string subcategory, string? message, Exception? exception = null)
         => Write(appId, VestigiumLogLevel.Information, status, subcategory, message, exception);
 
-    public static void Warning(string appId, VestigiumStatus status, string subcategory, string message, Exception? exception = null)
+    public static void Warning(string appId, VestigiumStatus status, string subcategory, string? message, Exception? exception = null)
         => Write(appId, VestigiumLogLevel.Warning, status, subcategory, message, exception);
 
-    public static void Error(string appId, VestigiumStatus status, string subcategory, string message, Exception? exception = null)
+    public static void Error(string appId, VestigiumStatus status, string subcategory, string? message, Exception? exception = null)
         => Write(appId, VestigiumLogLevel.Error, status, subcategory, message, exception);
 
     public static string Line(string verb, string method, string? detail, string? correlationId)

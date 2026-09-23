@@ -11,7 +11,7 @@ public sealed class NetworkPR01LogRedactTests
         Assert.Equal("recipe.json", NetworkLog.FileName("/var/lib/vestigium/network/campaigns/recipe.json"));
         Assert.Equal("share.jsonl", NetworkLog.FileName(@"\\filesrv\camp\share.jsonl"));
 
-        var windows = NetworkLog.Redact("recipePath not found path=C:\\Temp\\missing.json");
+        var windows = NetworkLog.Redact(@"recipePath not found path=C:\Temp\missing.json");
         Assert.Equal("recipePath not found path=missing.json", windows);
         Assert.DoesNotContain(@"C:\", windows);
 

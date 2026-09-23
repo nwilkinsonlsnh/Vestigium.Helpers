@@ -54,7 +54,7 @@ public sealed class NetworkPR03LogTests : IDisposable
         Assert.Contains("windowSummary", jsonl, StringComparison.Ordinal);
         Assert.Contains("campaignEnd", jsonl, StringComparison.Ordinal);
         Assert.Contains("dept-share", jsonl, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(_root.Replace("\\", "\\\\"), jsonl, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(_root.Replace("\\", @"\\"), jsonl, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

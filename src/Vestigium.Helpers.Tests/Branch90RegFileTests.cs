@@ -34,7 +34,7 @@ public sealed class Branch90RegFileTests : IDisposable
     [Fact]
     public void Parse_headers_values_continuations_encodings()
     {
-        Assert.True(RegistryRegFile.TryParseKeyHeader("[HKEY_CURRENT_USER\\Software\\X]", out var hive, out var path, out var del));
+        Assert.True(RegistryRegFile.TryParseKeyHeader(@"[HKEY_CURRENT_USER\Software\X]", out var hive, out var path, out var del));
         Assert.Equal(RegistryHiveKind.CurrentUser, hive);
         Assert.False(del);
         Assert.True(RegistryRegFile.TryParseKeyHeader("[-HKEY_LOCAL_MACHINE]", out hive, out path, out del));

@@ -267,9 +267,9 @@ internal static class RegistryRegFile
         return -1;
     }
 
-    private static string Escape(string text) => text.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string text) => text.Replace("\\", @"\\").Replace("\"", "\\\"");
 
-    private static string Unescape(string text) => text.Replace("\\\"", "\"").Replace("\\\\", "\\");
+    private static string Unescape(string text) => text.Replace("\\\"", "\"").Replace(@"\\", "\\");
 
     private static string ToDword(object? data)
     {

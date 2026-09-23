@@ -181,7 +181,7 @@ public sealed partial class RegistryClient
             || p.StartsWith("SAM\\", StringComparison.Ordinal)
             || p.StartsWith("SECURITY\\", StringComparison.Ordinal)
             || p == "SOFTWARE\\MICROSOFT"
-            || p.StartsWith("SOFTWARE\\MICROSOFT\\", StringComparison.Ordinal);
+            || p.StartsWith(@"SOFTWARE\MICROSOFT\", StringComparison.Ordinal);
     }
 
     private static bool TypesMatch(RegistryValueKind kind, object? data) => kind switch

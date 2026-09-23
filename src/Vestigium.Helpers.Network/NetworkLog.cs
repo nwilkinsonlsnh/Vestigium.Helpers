@@ -46,27 +46,22 @@ internal static class NetworkLog
     private static string RedactToken(string token)
     {
         var eq = token.IndexOf('=');
-        if (eq > 0 && eq < token.Length - 1)
-        {
-            var key = token[..(eq + 1)];
-            var value = token[(eq + 1)..];
-            return LooksLikePath(value) ? key + FileNameOnly(value) : token;
-        }
+        if (eq <= 0 || eq >= token.Length - 1) return LooksLikePath(token) ? FileNameOnly(token) : token;
+        var key = token[..(eq + 1)];
+        var value = token[(eq + 1)..];
+        return LooksLikePath(value) ? key + FileNameOnly(value) : token;
 
-        return LooksLikePath(token) ? FileNameOnly(token) : token;
     }
 
     internal static bool LooksLikePath(string value)
     {
         if (string.IsNullOrEmpty(value) || value.Length < 3)
             return false;
-        if (value.StartsWith("\\\\", StringComparison.Ordinal))
+        if (value.StartsWith(@"\\", StringComparison.Ordinal))
             return true;
         if (char.IsLetter(value[0]) && value[1] == ':' && (value[2] is '\\' or '/'))
             return true;
-        if (value[0] == '/' && value.IndexOf('/', 1) >= 0)
-            return true;
-        return false;
+        return value[0] == '/' && value.IndexOf('/', 1) >= 0;
     }
 
     private static string FileNameOnly(string value)
