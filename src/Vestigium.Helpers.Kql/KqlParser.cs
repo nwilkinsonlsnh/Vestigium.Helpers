@@ -122,30 +122,34 @@ internal sealed class KqlParser
 
         var field = _current;
         Advance();
-        if (_current.Kind == KqlTokenKind.In)
-            return ParseIn(field, negated: false);
-        if (_current.Kind == KqlTokenKind.Between)
-            return ParseBetween(field);
-        if (_current.Kind == KqlTokenKind.Not)
+        switch (_current)
         {
-            var not = _current;
-            Advance();
-            if (_current.Kind == KqlTokenKind.In)
-                return ParseIn(field, negated: true);
-            if (_current.Kind == KqlTokenKind.Like)
+            case { Kind: KqlTokenKind.In }:
+                return ParseIn(field, negated: false);
+            case { Kind: KqlTokenKind.Between }:
+                return ParseBetween(field);
+            case { Kind: KqlTokenKind.Not }:
             {
+                var not = _current;
                 Advance();
-                return new KqlComparisonExpression
+                switch (_current)
                 {
-                    Field = field.Text,
-                    Op = KqlCompareOp.NotLike,
-                    Value = ReadLiteral(),
-                    Line = field.Line,
-                    Column = field.Column
-                };
+                    case { Kind: KqlTokenKind.In }:
+                        return ParseIn(field, negated: true);
+                    case { Kind: KqlTokenKind.Like }:
+                        Advance();
+                        return new KqlComparisonExpression
+                        {
+                            Field = field.Text,
+                            Op = KqlCompareOp.NotLike,
+                            Value = ReadLiteral(),
+                            Line = field.Line,
+                            Column = field.Column
+                        };
+                    default:
+                        throw new KqlParseException(not.Line, not.Column, "expected LIKE or IN after NOT");
+                }
             }
-
-            throw new KqlParseException(not.Line, not.Column, "expected LIKE or IN after NOT");
         }
 
         var op = ReadCompareOp();
@@ -158,6 +162,7 @@ internal sealed class KqlParser
             Line = field.Line,
             Column = field.Column
         };
+
     }
 
     private KqlInExpression ParseIn(KqlToken field, bool negated)
@@ -166,8 +171,7 @@ internal sealed class KqlParser
         if (_current.Kind != KqlTokenKind.LParen)
             throw Error(_current, "expected '(' after IN");
         Advance();
-        var values = new List<KqlLiteral>();
-        values.Add(ReadLiteral());
+        var values = new List<KqlLiteral> { ReadLiteral() };
         while (_current.Kind == KqlTokenKind.Comma)
         {
             Advance();
@@ -240,29 +244,27 @@ internal sealed class KqlParser
     private KqlLiteral ReadLiteral()
     {
         var token = _current;
-        switch (token.Kind)
+        switch (token)
         {
-            case KqlTokenKind.String:
+            case { Kind: KqlTokenKind.String }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.String, Value = token.Text };
-            case KqlTokenKind.Number:
+            case { Kind: KqlTokenKind.Number }:
                 Advance();
                 if (token.Text.Contains('.')
                     && double.TryParse(token.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var real))
                     return new KqlLiteral { Type = KqlType.Number, Value = real };
-                if (long.TryParse(token.Text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var whole))
-                    return new KqlLiteral { Type = KqlType.Integer, Value = whole };
-                throw Error(token, "invalid number");
-            case KqlTokenKind.True:
+                return long.TryParse(token.Text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var whole) ? new KqlLiteral { Type = KqlType.Integer, Value = whole } : throw Error(token, "invalid number");
+            case { Kind: KqlTokenKind.True }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.Boolean, Value = true };
-            case KqlTokenKind.False:
+            case { Kind: KqlTokenKind.False }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.Boolean, Value = false };
-            case KqlTokenKind.TimeSpan:
+            case { Kind: KqlTokenKind.TimeSpan }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.TimeSpan, Value = ParseTimeSpan(token.Text) };
-            case KqlTokenKind.Eof:
+            case { Kind: KqlTokenKind.Eof }:
                 throw new KqlParseException(token.Line, token.Column, "expected value");
             default:
                 throw Error(token, "expected value");

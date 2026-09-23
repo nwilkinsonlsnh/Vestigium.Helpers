@@ -1,12 +1,9 @@
 namespace Vestigium.Helpers.Kql;
 
-public sealed class KqlRow : IKqlRow
+public sealed class KqlRow(KqlSession session) : IKqlRow
 {
-    private readonly KqlSession _session;
+    private readonly KqlSession _session = session ?? throw new ArgumentNullException(nameof(session));
     private readonly Dictionary<string, KqlValue> _values = new(StringComparer.OrdinalIgnoreCase);
-
-    public KqlRow(KqlSession session)
-        => _session = session ?? throw new ArgumentNullException(nameof(session));
 
     public KqlRow Set(string name, object? value)
     {

@@ -27,23 +27,26 @@ public readonly struct KqlValue
 
     public static KqlValue From(object? value)
     {
-        if (value is null)
-            return Unknown;
-        if (value is string s)
-            return string.IsNullOrWhiteSpace(s) ? Unknown : new(false, KqlType.String, s);
         return value switch
         {
-            bool b => new(false, KqlType.Boolean, b),
-            TimeSpan t => new(false, KqlType.TimeSpan, t),
-            DateTimeOffset d => new(false, KqlType.DateTime, d),
-            DateTime d => new(false, KqlType.DateTime, new DateTimeOffset(d)),
-            byte or sbyte or short or ushort or int or uint or long or ulong =>
-                new(false, KqlType.Integer, Convert.ToInt64(value, System.Globalization.CultureInfo.InvariantCulture)),
-            float or double or decimal =>
-                new(false, KqlType.Number, Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture)),
-            _ => string.IsNullOrWhiteSpace(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture))
-                ? Unknown
-                : new(false, KqlType.String, Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture))
+            null => Unknown,
+            string s => string.IsNullOrWhiteSpace(s) ? Unknown : new KqlValue(false, KqlType.String, s),
+            _ => value switch
+            {
+                bool b => new KqlValue(false, KqlType.Boolean, b),
+                TimeSpan t => new KqlValue(false, KqlType.TimeSpan, t),
+                DateTimeOffset d => new KqlValue(false, KqlType.DateTime, d),
+                DateTime d => new KqlValue(false, KqlType.DateTime, new DateTimeOffset(d)),
+                byte or sbyte or short or ushort or int or uint or long or ulong => new KqlValue(false, KqlType.Integer,
+                    Convert.ToInt64(value, System.Globalization.CultureInfo.InvariantCulture)),
+                float or double or decimal => new KqlValue(false, KqlType.Number,
+                    Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture)),
+                _ => string.IsNullOrWhiteSpace(Convert.ToString(value,
+                    System.Globalization.CultureInfo.InvariantCulture))
+                    ? Unknown
+                    : new KqlValue(false, KqlType.String,
+                        Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture))
+            }
         };
     }
 }

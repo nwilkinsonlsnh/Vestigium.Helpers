@@ -21,14 +21,12 @@ public sealed class KqlSession : IDisposable
             if (dot >= 0 && dot < field.Canonical.Length - 1)
             {
                 var shortName = field.Canonical[(dot + 1)..];
-                if (!_lookup.ContainsKey(shortName))
-                    _lookup[shortName] = field;
+                _lookup.TryAdd(shortName, field);
             }
 
             foreach (var alias in field.Aliases)
             {
-                if (!_lookup.ContainsKey(alias))
-                    _lookup[alias] = field;
+                _lookup.TryAdd(alias, field);
             }
         }
 
