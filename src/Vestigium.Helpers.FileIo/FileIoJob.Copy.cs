@@ -315,31 +315,27 @@ public sealed partial class FileIoJob
     {
         if (!exists)
             return new CollisionPlan(destPath, false, false, false, false);
-        if (collision == FileIoCollision.Skip)
-            return new CollisionPlan(destPath, true, false, false, false);
-        if (collision == FileIoCollision.UniqueName)
+        switch (collision)
         {
-            var next = UniqueName.Next(existingNames, sourceFileName, uniqueNamePattern);
-            if (next is null)
-                return new CollisionPlan(destPath, false, true, false, false);
-            return new CollisionPlan(Path.Combine(parent, next), false, false, true, false);
+            case FileIoCollision.Skip:
+                return new CollisionPlan(destPath, true, false, false, false);
+            case FileIoCollision.UniqueName:
+            {
+                var next = UniqueName.Next(existingNames, sourceFileName, uniqueNamePattern);
+                return next is null ? new CollisionPlan(destPath, false, true, false, false) : new CollisionPlan(Path.Combine(parent, next), false, false, true, false);
+            }
+            case FileIoCollision.Overwrite:
+            default:
+                return new CollisionPlan(destPath, false, false, false, true);
         }
-
-        return new CollisionPlan(destPath, false, false, false, true);
     }
 
     private static bool Masked(string name, IReadOnlyList<string> masks)
     {
-        foreach (var mask in masks)
-        {
-            var body = Regex.Escape(mask).Replace("\\*", ".*").Replace("\\?", ".");
-            if (Regex.IsMatch(name, "^" + body + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-                return true;
-        }
-        return false;
+        return masks.Select(mask => Regex.Escape(mask).Replace("\\*", ".*").Replace("\\?", ".")).Any(body => Regex.IsMatch(name, "^" + body + "$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
     }
 
-    static string Rel(string root, string path)
+    private static string Rel(string root, string path)
     {
         var fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var full = Path.GetFullPath(path);
@@ -375,5 +371,5 @@ public sealed partial class FileIoJob
         }
     }
 
-    readonly record struct WorkItem(string SourcePath, string RelativePath, long Size, FileIoBucket Bucket, DateTime WriteTimeUtc, FileAttributes Attributes);
+    private readonly record struct WorkItem(string SourcePath, string RelativePath, long Size, FileIoBucket Bucket, DateTime WriteTimeUtc, FileAttributes Attributes);
 }
