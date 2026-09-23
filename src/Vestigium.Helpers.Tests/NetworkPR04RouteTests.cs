@@ -58,7 +58,7 @@ public sealed class NetworkPR04RouteTests
     [Fact]
     public void PR04_003_ipv6_print_stays()
     {
-        Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.IPv6));
+        Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.Pv6));
         Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.All));
     }
 }

@@ -42,7 +42,7 @@ public sealed class NetworkPR02RouteFamilyTests
     [Fact]
     public void PR02_006_ipv6_print_does_not_throw()
     {
-        var rows = NetworkHelper.GetRoutes(RouteFamily.IPv6);
+        var rows = NetworkHelper.GetRoutes(RouteFamily.Pv6);
         Assert.NotNull(rows);
     }
 }

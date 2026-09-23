@@ -81,8 +81,8 @@ internal static class OuiRegistry
         var hex = new string(oui.Where(Uri.IsHexDigit).ToArray());
         if (hex.Length < 6)
             return hex.ToUpperInvariant();
-        hex = hex.Substring(0, 6).ToUpperInvariant();
-        return hex.Substring(0, 2) + ":" + hex.Substring(2, 2) + ":" + hex.Substring(4, 2);
+        hex = hex[..6].ToUpperInvariant();
+        return hex[..2] + ":" + hex.Substring(2, 2) + ":" + hex.Substring(4, 2);
     }
 
     private static string? ExtractJson(string line, string name)

@@ -109,7 +109,7 @@ public sealed class XmlSession : IDisposable
         return Query(query).Count;
     }
 
-    public void SetText(string pathOrXPath, string value)
+    public void SetText(string pathOrXPath, string? value)
     {
         ThrowIfDisposed();
         using var scope = HelperLog.Begin(App, HelperLog.Subcategories.Query, "SetText", "path=" + pathOrXPath, SessionId);
@@ -135,7 +135,7 @@ public sealed class XmlSession : IDisposable
         }
     }
 
-    public void SetAttribute(string pathOrXPath, string attributeName, string value)
+    public void SetAttribute(string pathOrXPath, string attributeName, string? value)
     {
         ThrowIfDisposed();
         var name = HelperGuard.NotBlank(attributeName, nameof(attributeName));

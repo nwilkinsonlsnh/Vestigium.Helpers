@@ -49,7 +49,7 @@ internal static class DnsClient
     }
 
     public static async Task<IReadOnlyList<DnsLookupResult>> LookupManyAsync(
-        IEnumerable<string> names,
+        IEnumerable<string>? names,
         DnsLookupOptions? options,
         CancellationToken token)
     {

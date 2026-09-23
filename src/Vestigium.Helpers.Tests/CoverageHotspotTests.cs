@@ -97,8 +97,8 @@ public sealed class CoverageHotspotTests
         Assert.Equal("10.0.0.0,255.0.0.0,10.0.0.1,1", persist);
         Assert.True(NetworkRouteMutation.FirstIpv4Index() >= 1);
 
-        Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.IPv4));
-        Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.IPv6));
+        Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.Pv4));
+        Assert.NotNull(NetworkHelper.GetRoutes(RouteFamily.Pv6));
         var listening = NetworkHelper.GetConnections(new NetworkConnectionQuery { ListeningOnly = true });
         Assert.All(listening, c => Assert.Equal("Listen", c.State));
         var established = NetworkHelper.GetConnections(new NetworkConnectionQuery { EstablishedOnly = true });

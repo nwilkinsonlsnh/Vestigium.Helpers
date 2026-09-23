@@ -11,8 +11,8 @@ public enum TransportProtocol
 public enum RouteFamily
 {
     All,
-    IPv4,
-    IPv6
+    Pv4,
+    Pv6
 }
 
 public sealed record NetworkConnectionQuery(

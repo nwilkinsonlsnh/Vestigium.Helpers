@@ -35,7 +35,7 @@ internal readonly struct KqlToken(KqlTokenKind kind, string text, int line, int 
     public int Column { get; } = column;
 }
 
-internal sealed class KqlLexer(string text)
+internal sealed class KqlLexer(string? text)
 {
     private readonly string _text = text ?? string.Empty;
     private int _index;

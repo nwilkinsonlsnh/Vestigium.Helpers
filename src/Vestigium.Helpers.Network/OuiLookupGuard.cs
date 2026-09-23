@@ -72,52 +72,88 @@ internal static class OuiLookupGuard
             || string.Equals(host, "metadata.google.internal", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        if (IPAddress.TryParse(host.Trim('[').Trim(']'), out var ip))
-            return IsBlockedAddress(ip);
-
-        return false;
+        return IPAddress.TryParse(host.Trim('[').Trim(']'), out var ip) && IsBlockedAddress(ip);
     }
 
     public static bool IsBlockedAddress(IPAddress ip)
     {
-        if (IPAddress.IsLoopback(ip))
+        while (true)
+        {
+            if (IPAddress.IsLoopback(ip)) return true;
+            if (ip.IsIPv4MappedToIPv6)
+            {
+                ip = ip.MapToIPv4();
+                continue;
+            }
+
+            switch (ip.AddressFamily)
+            {
+                case AddressFamily.InterNetwork:
+                {
+                    var b = ip.GetAddressBytes();
+                    switch (b[0])
+                    {
+                        case 10:
+                        case 127:
+                        case 0:
+                        case 169 when b[1] == 254:
+                            return true;
+                    }
+
+                    if (b[0] == 192 && b[1] == 168) return true;
+                    if (b[0] == 172 && b[1] >= 16 && b[1] <= 31) return true;
+                    return b[0] switch
+                    {
+                        100 when b[1] >= 64 && b[1] <= 127 => true,
+                        _ => false
+                    };
+                }
+                case AddressFamily.InterNetworkV6 when ip.IsIPv6LinkLocal:
+                    return true;
+                case AddressFamily.InterNetworkV6:
+                {
+                    var bytes = ip.GetAddressBytes();
+                    if (bytes[0] == 0xFD && bytes[1] == 0x00 && bytes[2] == 0xEC && bytes[3] == 0x02) return true;
+                    if ((bytes[0] & 0xFE) == 0xFC) return true;
+                    return false;
+                }
+                case AddressFamily.Unknown:
+                case AddressFamily.Unspecified:
+                case AddressFamily.Unix:
+                case AddressFamily.ImpLink:
+                case AddressFamily.Pup:
+                case AddressFamily.Chaos:
+                case AddressFamily.Ipx:
+                case AddressFamily.Iso:
+                case AddressFamily.Ecma:
+                case AddressFamily.DataKit:
+                case AddressFamily.Ccitt:
+                case AddressFamily.Sna:
+                case AddressFamily.DecNet:
+                case AddressFamily.DataLink:
+                case AddressFamily.Lat:
+                case AddressFamily.HyperChannel:
+                case AddressFamily.AppleTalk:
+                case AddressFamily.NetBios:
+                case AddressFamily.VoiceView:
+                case AddressFamily.FireFox:
+                case AddressFamily.Banyan:
+                case AddressFamily.Atm:
+                case AddressFamily.Cluster:
+                case AddressFamily.Ieee12844:
+                case AddressFamily.Irda:
+                case AddressFamily.NetworkDesigners:
+                case AddressFamily.Max:
+                case AddressFamily.Packet:
+                case AddressFamily.ControllerAreaNetwork:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
             return true;
-        if (ip.IsIPv4MappedToIPv6)
-            return IsBlockedAddress(ip.MapToIPv4());
-
-        if (ip.AddressFamily == AddressFamily.InterNetwork)
-        {
-            var b = ip.GetAddressBytes();
-            if (b[0] == 10)
-                return true;
-            if (b[0] == 127)
-                return true;
-            if (b[0] == 0)
-                return true;
-            if (b[0] == 169 && b[1] == 254)
-                return true;
-            if (b[0] == 192 && b[1] == 168)
-                return true;
-            if (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
-                return true;
-            if (b[0] == 100 && b[1] >= 64 && b[1] <= 127)
-                return true;
-            return false;
+            break;
         }
-
-        if (ip.AddressFamily == AddressFamily.InterNetworkV6)
-        {
-            if (ip.IsIPv6LinkLocal)
-                return true;
-            var bytes = ip.GetAddressBytes();
-            if (bytes[0] == 0xFD && bytes[1] == 0x00 && bytes[2] == 0xEC && bytes[3] == 0x02)
-                return true;
-            if ((bytes[0] & 0xFE) == 0xFC)
-                return true;
-            return false;
-        }
-
-        return true;
     }
 
     private static void RejectResolvedPrivate(string host)
@@ -135,10 +171,8 @@ internal static class OuiLookupGuard
             return;
         }
 
-        if (addresses.Any(IsBlockedAddress))
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "resolved private");
-            throw new ArgumentException("OUI registry host resolves to a blocked address.", nameof(OuiLookupOptions.RegistryUrl));
-        }
+        if (!addresses.Any(IsBlockedAddress)) return;
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "resolved private");
+        throw new ArgumentException("OUI registry host resolves to a blocked address.", nameof(OuiLookupOptions.RegistryUrl));
     }
 }

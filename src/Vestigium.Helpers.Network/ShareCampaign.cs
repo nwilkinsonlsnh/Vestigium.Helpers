@@ -74,30 +74,30 @@ public sealed class ShareCampaign
             throw new ArgumentOutOfRangeException(nameof(o.ProbeCount), "ProbeCount must be between 1 and 16.");
         }
 
-        if (o.Mode == ShareCampaignMode.Default && o.ProbeBytes * (long)o.ProbeCount > o.MaxProbeBytes)
+        if (o.Mode != ShareCampaignMode.Default || o.ProbeBytes * (long)o.ProbeCount <= o.MaxProbeBytes)
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "probe budget");
-            throw new ArgumentException("ProbeBytes × ProbeCount cannot exceed MaxProbeBytes.", nameof(o.MaxProbeBytes));
+            switch (o)
+            {
+                case { Mode: ShareCampaignMode.Default } when o.PlannedSize is null:
+                    HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard),
+                        "planned size missing");
+                    throw new ArgumentException("Default mode requires PlannedSize.", nameof(o.PlannedSize));
+                case { Mode: ShareCampaignMode.Advanced } when o.SourceAnalysis is null:
+                    HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard),
+                        "analysis missing");
+                    throw new ArgumentException("Advanced mode requires SourceAnalysis.", nameof(o.SourceAnalysis));
+            }
+
+            if (!string.IsNullOrWhiteSpace(o.RecipePath))
+                o.RecipePath = CampaignPaths.Confine(o.RecipePath, nameof(o.RecipePath));
+            if (!string.IsNullOrWhiteSpace(o.ResultsPath))
+                o.ResultsPath = CampaignPaths.Confine(o.ResultsPath, nameof(o.ResultsPath));
+
+            return o;
         }
 
-        if (o.Mode == ShareCampaignMode.Default && o.PlannedSize is null)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "planned size missing");
-            throw new ArgumentException("Default mode requires PlannedSize.", nameof(o.PlannedSize));
-        }
-
-        if (o.Mode == ShareCampaignMode.Advanced && o.SourceAnalysis is null)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "analysis missing");
-            throw new ArgumentException("Advanced mode requires SourceAnalysis.", nameof(o.SourceAnalysis));
-        }
-
-        if (!string.IsNullOrWhiteSpace(o.RecipePath))
-            o.RecipePath = CampaignPaths.Confine(o.RecipePath, nameof(o.RecipePath));
-        if (!string.IsNullOrWhiteSpace(o.ResultsPath))
-            o.ResultsPath = CampaignPaths.Confine(o.ResultsPath, nameof(o.ResultsPath));
-
-        return o;
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Guard), "probe budget");
+        throw new ArgumentException("ProbeBytes × ProbeCount cannot exceed MaxProbeBytes.", nameof(o.MaxProbeBytes));
     }
 
     private static void WriteRecipe(string path, string campaignId, ShareCampaignOptions options)
@@ -163,13 +163,10 @@ internal static class SharePaths
             throw new ArgumentException("Share directory is not a valid path.", paramName, ex);
         }
 
-        if (!string.IsNullOrWhiteSpace(NetworkTestHooks.ShareRoot)
-            && !CampaignPaths.IsUnder(full, NetworkTestHooks.ShareRoot))
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Confine), "share escape");
-            throw new ArgumentException("Share directory must stay under the allowed share root.", paramName);
-        }
+        if (string.IsNullOrWhiteSpace(NetworkTestHooks.ShareRoot)
+            || CampaignPaths.IsUnder(full, NetworkTestHooks.ShareRoot)) return full;
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Share, nameof(Confine), "share escape");
+        throw new ArgumentException("Share directory must stay under the allowed share root.", paramName);
 
-        return full;
     }
 }

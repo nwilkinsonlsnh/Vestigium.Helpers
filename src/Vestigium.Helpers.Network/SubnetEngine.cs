@@ -36,13 +36,11 @@ internal static class SubnetEngine
             throw new ArgumentException("Dotted subnet masks are IPv4 only.", nameof(dottedMask));
         }
 
-        if (!IPAddress.TryParse(dottedMask, out var mask) || mask.AddressFamily != AddressFamily.InterNetwork)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(DescribeMask), "mask unparsable");
-            throw new ArgumentException("Subnet mask is not a valid IPv4 address.", nameof(dottedMask));
-        }
+        if (IPAddress.TryParse(dottedMask, out var mask) && mask.AddressFamily == AddressFamily.InterNetwork)
+            return Describe(ip, Ipv4Prefix.PrefixFromMask(mask), Format(ip));
+        HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(DescribeMask), "mask unparsable");
+        throw new ArgumentException("Subnet mask is not a valid IPv4 address.", nameof(dottedMask));
 
-        return Describe(ip, Ipv4Prefix.PrefixFromMask(mask), Format(ip));
     }
 
     public static PrefixPlan PlanByHosts(string parentCidr, int minimumHosts, SubnetQuery? query)
@@ -78,19 +76,17 @@ internal static class SubnetEngine
     {
         var parent = Describe(parentCidr);
         var q = Query(query);
-        if (childPrefix < parent.PrefixLength || childPrefix > Width(parent.Family))
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(SplitPrefix), $"child={childPrefix} parent={parent.PrefixLength}");
-            throw new ArgumentOutOfRangeException(nameof(childPrefix), "Child prefix must be between the parent prefix and the address width.");
-        }
+        if (childPrefix >= parent.PrefixLength && childPrefix <= Width(parent.Family))
+            return Split(parent, childPrefix, q, $"split=/{childPrefix}");
+        HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(SplitPrefix), $"child={childPrefix} parent={parent.PrefixLength}");
+        throw new ArgumentOutOfRangeException(nameof(childPrefix), "Child prefix must be between the parent prefix and the address width.");
 
-        return Split(parent, childPrefix, q, $"split=/{childPrefix}");
     }
 
     public static PrefixPlan SplitByCount(string parentCidr, int count, SubnetQuery? query)
         => PlanByNetworks(parentCidr, count, query);
 
-    public static PrefixPlan PackVlsm(string parentCidr, IReadOnlyList<int> hostNeeds, SubnetQuery? query)
+    public static PrefixPlan PackVlsm(string parentCidr, IReadOnlyList<int>? hostNeeds, SubnetQuery? query)
     {
         if (hostNeeds is null || hostNeeds.Count == 0)
         {
@@ -158,9 +154,7 @@ internal static class SubnetEngine
 
     public static PrefixBlock Summarize(IEnumerable<string> cidrs)
     {
-        var blocks = new List<PrefixBlock>();
-        foreach (var cidr in cidrs)
-            blocks.Add(Describe(cidr));
+        var blocks = cidrs.Select(cidr => Describe(cidr)).ToList();
         if (blocks.Count == 0)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(Summarize), "empty set");
@@ -213,9 +207,7 @@ internal static class SubnetEngine
         var start = ToInt(ParseIp(block.Network));
         var size = BigInteger.One << (width - block.PrefixLength);
         var next = start + size;
-        if (next >= (BigInteger.One << width))
-            return null;
-        return FromNetwork(block.Family, next, block.PrefixLength, null);
+        return next >= (BigInteger.One << width) ? null : FromNetwork(block.Family, next, block.PrefixLength, null);
     }
 
     private static PrefixPlan Split(PrefixBlock parent, int childPrefix, SubnetQuery query, string rule)
@@ -249,32 +241,29 @@ internal static class SubnetEngine
         string? mask = null, wildcard = null, broadcast = null, firstUsable, lastUsable;
         BigInteger usable;
         var hostRoute = prefix == width;
-        var p2p = family == AddressFamily.InterNetwork && prefix == 31 || family == AddressFamily.InterNetworkV6 && prefix == 127;
+        var p2P = family == AddressFamily.InterNetwork && prefix == 31 || family == AddressFamily.InterNetworkV6 && prefix == 127;
 
         if (family == AddressFamily.InterNetwork)
         {
             mask = Ipv4Prefix.MaskFromPrefix(prefix);
-            if (prefix == 0)
-                wildcard = "255.255.255.255";
-            else
-                wildcard = new IPAddress(ToBytes4(~ToUint(IPAddress.Parse(mask)))).ToString();
+            wildcard = prefix == 0 ? "255.255.255.255" : new IPAddress(ToBytes4(~ToUint(IPAddress.Parse(mask)))).ToString();
             broadcast = lastIp.ToString();
-            if (prefix <= 30)
+            switch (prefix)
             {
-                firstUsable = ToIp(family, network + 1).ToString();
-                lastUsable = ToIp(family, last - 1).ToString();
-                usable = size - 2;
-            }
-            else if (prefix == 31)
-            {
-                firstUsable = networkIp.ToString();
-                lastUsable = lastIp.ToString();
-                usable = 2;
-            }
-            else
-            {
-                firstUsable = lastUsable = networkIp.ToString();
-                usable = 1;
+                case <= 30:
+                    firstUsable = ToIp(family, network + 1).ToString();
+                    lastUsable = ToIp(family, last - 1).ToString();
+                    usable = size - 2;
+                    break;
+                case 31:
+                    firstUsable = networkIp.ToString();
+                    lastUsable = lastIp.ToString();
+                    usable = 2;
+                    break;
+                default:
+                    firstUsable = lastUsable = networkIp.ToString();
+                    usable = 1;
+                    break;
             }
         }
         else
@@ -285,13 +274,50 @@ internal static class SubnetEngine
         }
 
         string? ptr = null;
-        if (family == AddressFamily.InterNetwork && prefix == 24)
+        switch (family)
         {
-            var b = networkIp.GetAddressBytes();
-            ptr = $"{b[2]}.{b[1]}.{b[0]}.in-addr.arpa";
+            case AddressFamily.InterNetwork when prefix == 24:
+            {
+                var b = networkIp.GetAddressBytes();
+                ptr = $"{b[2]}.{b[1]}.{b[0]}.in-addr.arpa";
+                break;
+            }
+            case AddressFamily.Unknown:
+            case AddressFamily.Unspecified:
+            case AddressFamily.Unix:
+            case AddressFamily.ImpLink:
+            case AddressFamily.Pup:
+            case AddressFamily.Chaos:
+            case AddressFamily.Ipx:
+            case AddressFamily.Iso:
+            case AddressFamily.Ecma:
+            case AddressFamily.DataKit:
+            case AddressFamily.Ccitt:
+            case AddressFamily.Sna:
+            case AddressFamily.DecNet:
+            case AddressFamily.DataLink:
+            case AddressFamily.Lat:
+            case AddressFamily.HyperChannel:
+            case AddressFamily.AppleTalk:
+            case AddressFamily.NetBios:
+            case AddressFamily.VoiceView:
+            case AddressFamily.FireFox:
+            case AddressFamily.Banyan:
+            case AddressFamily.Atm:
+            case AddressFamily.InterNetworkV6:
+            case AddressFamily.Cluster:
+            case AddressFamily.Ieee12844:
+            case AddressFamily.Irda:
+            case AddressFamily.NetworkDesigners:
+            case AddressFamily.Max:
+            case AddressFamily.Packet:
+            case AddressFamily.ControllerAreaNetwork:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(family), family, null);
         }
 
-        return new PrefixBlock(family, original, networkIp.ToString(), prefix, mask, wildcard, broadcast, firstUsable, lastUsable, size, usable, hostRoute, p2p, BinaryMask(family, prefix), ClassOf(networkIp), KindOf(networkIp), ptr);
+        return new PrefixBlock(family, original, networkIp.ToString(), prefix, mask, wildcard, broadcast, firstUsable, lastUsable, size, usable, hostRoute, p2P, BinaryMask(family, prefix), ClassOf(networkIp), KindOf(networkIp), ptr);
     }
 
     private static int PrefixForHosts(PrefixBlock parent, int hosts, bool countNetworkAndBroadcast)
@@ -343,12 +369,14 @@ internal static class SubnetEngine
     private static SubnetQuery Query(SubnetQuery? query)
     {
         var q = query ?? new SubnetQuery();
-        if (q.MaxList < 1)
+        switch (q.MaxList)
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(Query), $"MaxList={q.MaxList}");
-            throw new ArgumentOutOfRangeException(nameof(query), "MaxList must be at least 1.");
+            case < 1:
+                HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(Query), $"MaxList={q.MaxList}");
+                throw new ArgumentOutOfRangeException(nameof(query), "MaxList must be at least 1.");
+            default:
+                return q;
         }
-        return q;
     }
 
     private static (IPAddress ip, int prefix) ParseCidr(string cidr)
@@ -373,22 +401,17 @@ internal static class SubnetEngine
     private static IPAddress ParseIp(string address)
     {
         var text = HelperGuard.NotBlank(address, nameof(address)).Trim();
-        if (!IPAddress.TryParse(text, out var ip))
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(ParseIp), "unparsable");
-            throw new ArgumentException("Address is not a valid IP.", nameof(address));
-        }
-        return ip;
+        if (IPAddress.TryParse(text, out var ip)) return ip;
+        HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(ParseIp), "unparsable");
+        throw new ArgumentException("Address is not a valid IP.", nameof(address));
     }
 
     private static void EnsurePrefix(AddressFamily family, int prefix)
     {
         var max = Width(family);
-        if (prefix < 0 || prefix > max)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(EnsurePrefix), $"prefix={prefix}");
-            throw new ArgumentOutOfRangeException(nameof(prefix), $"Prefix must be 0–{max}.");
-        }
+        if (prefix >= 0 && prefix <= max) return;
+        HelperLog.Reject(HelperLog.AppIds.Network, Subcat(), nameof(EnsurePrefix), $"prefix={prefix}");
+        throw new ArgumentOutOfRangeException(nameof(prefix), $"Prefix must be 0–{max}.");
     }
 
     private static void TooSmall(PrefixBlock parent, string rule)
@@ -402,35 +425,53 @@ internal static class SubnetEngine
         if (ip.AddressFamily != AddressFamily.InterNetwork)
             return TraditionalClass.None;
         var o = ip.GetAddressBytes()[0];
-        if (o <= 127) return TraditionalClass.A;
-        if (o <= 191) return TraditionalClass.B;
-        if (o <= 223) return TraditionalClass.C;
-        if (o <= 239) return TraditionalClass.D;
-        return TraditionalClass.E;
+        return o switch
+        {
+            <= 127 => TraditionalClass.A,
+            <= 191 => TraditionalClass.B,
+            <= 223 => TraditionalClass.C,
+            <= 239 => TraditionalClass.D,
+            _ => TraditionalClass.E
+        };
     }
 
     private static AddressKind KindOf(IPAddress ip)
     {
         if (ip.AddressFamily == AddressFamily.InterNetworkV6)
             return Kind6(ip);
+
         var v = ToUint(ip);
-        var kind = AddressKind.None;
-        if (v == 0) kind |= AddressKind.Unspecified;
-        if (v == 0xFFFFFFFFu) kind |= AddressKind.Broadcast;
-        if ((v & 0xFF000000) == 0x7F000000) kind |= AddressKind.Loopback;
-        if ((v & 0xF0000000) == 0xE0000000) kind |= AddressKind.Multicast;
-        if ((v & 0xFFFF0000) == 0xA9FE0000) kind |= AddressKind.LinkLocal;
-        if ((v & 0xFFC00000) == 0x64400000) kind |= AddressKind.Cgnat;
-        if ((v & 0xFF000000) == 0x0A000000) kind |= AddressKind.Rfc1918;
-        if ((v & 0xFFF00000) == 0xAC100000) kind |= AddressKind.Rfc1918;
-        if ((v & 0xFFFF0000) == 0xC0A80000) kind |= AddressKind.Rfc1918;
-        if ((v & 0xFFFFFF00) == 0xC0000200) kind |= AddressKind.Documentation;
-        if ((v & 0xFFFFFF00) == 0xC6336400) kind |= AddressKind.Documentation;
-        if ((v & 0xFFFFFF00) == 0xCB007100) kind |= AddressKind.Documentation;
-        if ((v & 0xFFFFFF00) == 0xC0000000) kind |= AddressKind.Documentation;
-        if ((v & 0xFFFE0000) == 0xC6120000) kind |= AddressKind.Benchmark;
+
+        // Map mutually exclusive CIDR ranges. 
+        // It short-circuits, preventing unnecessary bitwise operations once matched.
+        var kind = v switch
+        {
+            0 => AddressKind.Unspecified,
+            0xFFFFFFFFu => AddressKind.Broadcast,
+
+            _ when (v & 0xF0000000) == 0xE0000000 => AddressKind.Multicast,
+            _ when (v & 0xFF000000) == 0x7F000000 => AddressKind.Loopback,
+
+            // RFC1918: 10.x.x.x/8, 172.16.x.x/12, 192.168.x.x/16
+            _ when (v & 0xFF000000) == 0x0A000000 => AddressKind.Rfc1918,
+            _ when (v & 0xFFF00000) == 0xAC100000 => AddressKind.Rfc1918,
+            _ when (v & 0xFFFF0000) == 0xC0A80000 => AddressKind.Rfc1918,
+
+            _ when (v & 0xFFFF0000) == 0xA9FE0000 => AddressKind.LinkLocal,
+            _ when (v & 0xFFC00000) == 0x64400000 => AddressKind.Cgnat,
+            _ when (v & 0xFFFE0000) == 0xC6120000 => AddressKind.Benchmark,
+
+            // Group all identical masks using the 'or' pattern
+            _ when (v & 0xFFFFFF00) is 0xC0000200 or 0xC6336400 or 0xCB007100 or 0xC0000000
+                => AddressKind.Documentation,
+
+            _ => AddressKind.None
+        };
+
+        // Append Unicast if the address is not explicitly non-unicast
         if ((kind & (AddressKind.Multicast | AddressKind.Broadcast | AddressKind.Unspecified)) == 0)
             kind |= AddressKind.Unicast;
+
         return kind;
     }
 

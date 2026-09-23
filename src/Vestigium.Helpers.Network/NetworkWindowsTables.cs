@@ -24,7 +24,7 @@ internal static class NetworkWindowsTables
     public static IReadOnlyList<NetworkRoute> GetRoutes(RouteFamily family)
     {
         var rows = new List<NetworkRoute>();
-        if (family is RouteFamily.All or RouteFamily.IPv4)
+        if (family is RouteFamily.All or RouteFamily.Pv4)
             rows.AddRange(ReadIpv4Routes());
         return rows;
     }
@@ -183,9 +183,7 @@ internal static class NetworkWindowsTables
             return null;
         var bytes = new byte[Math.Min(length, 8)];
         Marshal.Copy(ptr, bytes, 0, bytes.Length);
-        if (bytes.All(b => b == 0))
-            return null;
-        return string.Join(":", bytes.Take(6).Select(b => b.ToString("X2")));
+        return bytes.All(b => b == 0) ? null : string.Join(":", bytes.Take(6).Select(b => b.ToString("X2")));
     }
 
     private static int PortFromNetwork(int networkOrder)

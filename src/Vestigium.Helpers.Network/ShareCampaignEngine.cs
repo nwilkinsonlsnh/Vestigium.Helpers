@@ -55,17 +55,14 @@ internal static class ShareCampaignEngine
             throw new InvalidOperationException("Advanced estimate needs at least one payload probe rate.");
 
         double payloadSeconds = 0;
-        if (analysis.Buckets is not null)
+        foreach (var bucket in analysis.Buckets)
         {
-            foreach (var bucket in analysis.Buckets)
-            {
-                if (bucket.TotalBytes <= 0)
-                    continue;
-                var bps = rates.TryGetValue(bucket.Name, out var samples) && samples.Count > 0
-                    ? P95BytesPerSecond(samples)
-                    : fallback;
-                payloadSeconds += bucket.TotalBytes / bps / options.Efficiency;
-            }
+            if (bucket.TotalBytes <= 0)
+                continue;
+            var bps = rates.TryGetValue(bucket.Name, out var samples) && samples.Count > 0
+                ? P95BytesPerSecond(samples)
+                : fallback;
+            payloadSeconds += bucket.TotalBytes / bps / options.Efficiency;
         }
 
         var payload = TimeSpan.FromSeconds(payloadSeconds);

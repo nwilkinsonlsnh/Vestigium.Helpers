@@ -20,25 +20,18 @@ internal static class ShareProbePlanner
         var steps = new List<ShareProbeStep>();
         var total = Math.Max(source.TotalBytes, 1);
 
-        if (source.Buckets is not null)
-        {
-            foreach (var bucket in source.Buckets.OrderBy(b => b.Id))
+        steps.AddRange(from bucket in source.Buckets.OrderBy(b => b.Id)
+            where bucket.FileCount > 0 && bucket.TotalBytes >= o.BucketFloorBytes
+            let size = ClampMedian(bucket.Sizes.Median)
+            let count = bucket.TotalBytes * 100 / total >= 20 ? 2 : 1
+            select new ShareProbeStep
             {
-                if (bucket.FileCount <= 0 || bucket.TotalBytes < o.BucketFloorBytes)
-                    continue;
-
-                var size = ClampMedian(bucket.Sizes.Median);
-                var count = bucket.TotalBytes * 100 / total >= 20 ? 2 : 1;
-                steps.Add(new ShareProbeStep
-                {
-                    Workload = bucket.Name,
-                    Bucket = bucket.Id,
-                    ProbeBytes = size,
-                    ProbeCount = count,
-                    IsMetadata = false
-                });
-            }
-        }
+                Workload = bucket.Name,
+                Bucket = bucket.Id,
+                ProbeBytes = size,
+                ProbeCount = count,
+                IsMetadata = false
+            });
 
         if (NeedsMetadata(source))
         {

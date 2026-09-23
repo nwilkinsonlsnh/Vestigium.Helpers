@@ -54,7 +54,7 @@ public sealed class XmlSearch
             CaseInsensitive = caseInsensitive
         };
 
-    public static XmlSearch XPath(string xpath, params XmlNs[] ns)
+    public static XmlSearch XPath(string xpath, params XmlNs[]? ns)
         => new("xpath")
         {
             XPathText = HelperGuard.NotBlank(xpath, nameof(xpath)),

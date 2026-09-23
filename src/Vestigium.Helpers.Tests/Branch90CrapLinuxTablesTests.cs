@@ -48,8 +48,8 @@ public sealed class Branch90CrapLinuxTablesTests : IDisposable
         var neighbors = NetworkLinuxTables.GetNeighbors();
         Assert.True(neighbors.Count >= 3);
 
-        Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.IPv4));
-        Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.IPv6));
+        Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.Pv4));
+        Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.Pv6));
         Assert.NotEmpty(NetworkLinuxTables.GetRoutes(RouteFamily.All));
 
         Assert.Equal("Reachable", NetworkLinuxTables.NeighborState(0x02));

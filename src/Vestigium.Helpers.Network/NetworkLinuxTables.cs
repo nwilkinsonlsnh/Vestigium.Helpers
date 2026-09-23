@@ -14,9 +14,9 @@ internal static class NetworkLinuxTables
     public static IReadOnlyList<NetworkRoute> GetRoutes(RouteFamily family)
     {
         var rows = new List<NetworkRoute>();
-        if (family is RouteFamily.All or RouteFamily.IPv4)
+        if (family is RouteFamily.All or RouteFamily.Pv4)
             ReadIpv4Routes(rows);
-        if (family is RouteFamily.All or RouteFamily.IPv6)
+        if (family is RouteFamily.All or RouteFamily.Pv6)
             ReadIpv6Routes(rows);
         return rows;
     }

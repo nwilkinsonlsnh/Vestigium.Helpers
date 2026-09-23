@@ -43,9 +43,9 @@ public sealed class NetworkCoverageBoostTests : IDisposable
     public void Linux_tables_parse_proc_fixtures()
     {
         Assert.Empty(NetworkLinuxTables.GetOwnerPids());
-        var v4 = NetworkLinuxTables.GetRoutes(RouteFamily.IPv4);
+        var v4 = NetworkLinuxTables.GetRoutes(RouteFamily.Pv4);
         Assert.Contains(v4, r => r.InterfaceName == "eth0");
-        var v6 = NetworkLinuxTables.GetRoutes(RouteFamily.IPv6);
+        var v6 = NetworkLinuxTables.GetRoutes(RouteFamily.Pv6);
         Assert.NotEmpty(v6);
         var all = NetworkLinuxTables.GetRoutes(RouteFamily.All);
         Assert.True(all.Count >= v4.Count);
@@ -68,8 +68,8 @@ public sealed class NetworkCoverageBoostTests : IDisposable
     public void Linux_tables_real_proc_or_empty_without_hook()
     {
         NetworkTestHooks.ProcRoot = null;
-        _ = NetworkLinuxTables.GetRoutes(RouteFamily.IPv4);
-        _ = NetworkLinuxTables.GetRoutes(RouteFamily.IPv6);
+        _ = NetworkLinuxTables.GetRoutes(RouteFamily.Pv4);
+        _ = NetworkLinuxTables.GetRoutes(RouteFamily.Pv6);
         _ = NetworkLinuxTables.GetNeighbors();
         _ = NetworkLinuxTables.GetOwnerPids();
     }

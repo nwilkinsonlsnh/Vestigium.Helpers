@@ -37,7 +37,7 @@ public sealed class NetworkPhase6Tests
         if (!OperatingSystem.IsWindows())
             return;
 
-        var gateway = NetworkHelper.GetRoutes(RouteFamily.IPv4)
+        var gateway = NetworkHelper.GetRoutes(RouteFamily.Pv4)
             .FirstOrDefault(r => r.Destination is "0.0.0.0" or "0.0.0.0/0")?.Gateway
             ?? "127.0.0.1";
 
