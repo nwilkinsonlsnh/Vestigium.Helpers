@@ -55,7 +55,7 @@ public sealed class AnalyticsLoggingTests
                 AnalyticsCatalog.Register(cfg);
             });
 
-            var series = NumericSeries.From(new[] { 10.0, 10.1, 9.9, 10.2, 9.8, 100.0 }, "spike");
+            var series = NumericSeries.From([10.0, 10.1, 9.9, 10.2, 9.8, 100.0], "spike");
             var limits = series.ControlLimits(k: 1);
             Assert.True(limits.OutOfControlCount > 0);
             VestigiumLogger.Flush();
@@ -75,7 +75,7 @@ public sealed class AnalyticsLoggingTests
     [Fact]
     public void Construct_without_host_does_not_throw()
     {
-        var series = NumericSeries.From(new[] { 1.0, 2.0, 3.0 });
+        var series = NumericSeries.From([1.0, 2.0, 3.0]);
         Assert.Equal(3, series.Count);
     }
 }

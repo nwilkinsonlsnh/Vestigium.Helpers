@@ -122,7 +122,7 @@ public static partial class ChartView
             return From(new ChartSpec
             {
                 Kind = ChartKind.Scatter,
-                Series = [new ChartSeries { X = x.ToArray(), Y = [.. y] }],
+                Series = [new ChartSeries { X = [.. x], Y = [.. y] }],
                 Options = With(options, trend: trend)
             });
 
@@ -216,7 +216,7 @@ public static partial class ChartView
             Limits = limits,
             RunRules = options?.RunRules,
             Spec = options?.Spec,
-            Series = [new ChartSeries { Y = values.ToArray() }],
+            Series = [new ChartSeries { Y = [.. values] }],
             Options = options
         });
     }

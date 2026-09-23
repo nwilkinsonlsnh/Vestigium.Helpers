@@ -64,7 +64,7 @@ public sealed class KqlBranchExtraTests
     [Fact]
     public void Create_empty_packs_defaults_to_process()
     {
-        using var session = KqlHelper.Create(new KqlOptions { Packs = Array.Empty<KqlPack>() });
+        using var session = KqlHelper.Create(new KqlOptions { Packs = [] });
         Assert.True(session.TryGetField("PID", out _));
     }
 

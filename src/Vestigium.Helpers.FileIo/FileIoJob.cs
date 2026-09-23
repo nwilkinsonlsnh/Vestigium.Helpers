@@ -220,7 +220,7 @@ public sealed partial class FileIoJob
         if (Progress.ReconComplete)
             Progress.CertaintyPercent = 100;
         Emit();
-        var stats = FileIoJobStats.From(_observations.ToArray(), DateTimeOffset.UtcNow - _started, Progress.BytesDone);
+        var stats = FileIoJobStats.From([.. _observations], DateTimeOffset.UtcNow - _started, Progress.BytesDone);
         FileIoLog.StatsFinalize(JobId, FileIoLog.Props(("jobId", JobId), ("line", stats.FormatLine(JobId))));
         var endProps = FileIoLog.Props(
             ("jobId", JobId),

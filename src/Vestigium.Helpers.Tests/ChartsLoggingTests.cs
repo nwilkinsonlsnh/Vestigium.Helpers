@@ -29,7 +29,7 @@ public sealed class ChartsLoggingTests
             });
 
             Assert.Throws<ArgumentException>(() =>
-                ChartView.Scatter(new[] { 1d, 2d }, new[] { 1d }));
+                ChartView.Scatter([1d, 2d], [1d]));
             VestigiumLogger.Flush();
             Assert.Contains(VestigiumLogger.RecentJsonLines, line => line.Contains("\"EVENTID\":16530"));
         }
@@ -56,7 +56,7 @@ public sealed class ChartsLoggingTests
                 AnalyticsCatalog.Register(cfg);
             });
 
-            var series = NumericSeries.From(new[] { 1.0, 2.0, 3.0 });
+            var series = NumericSeries.From([1.0, 2.0, 3.0]);
             var bad = new ControlLimits { Center = 10, Upper = 5, Lower = 0 };
             Assert.Throws<ArgumentException>(() => ChartView.Control(series, bad));
             VestigiumLogger.Flush();
@@ -72,7 +72,7 @@ public sealed class ChartsLoggingTests
     public void Reject_without_host_does_not_throw_logger()
     {
         var ex = Record.Exception(() =>
-            ChartView.Scatter(new[] { 1d }, new[] { 1d, 2d }));
+            ChartView.Scatter([1d], [1d, 2d]));
         Assert.IsType<ArgumentException>(ex);
     }
 }

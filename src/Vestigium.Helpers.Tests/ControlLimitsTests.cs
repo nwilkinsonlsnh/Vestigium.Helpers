@@ -7,7 +7,7 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Mean_plus_k_sigma_on_one_to_nine()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, "odd");
+        var series = NumericSeries.From([1, 2, 3, 4, 5, 6, 7, 8, 9], "odd");
         var limits = series.ControlLimits();
 
         Assert.Equal(ControlLimitMethod.MeanPlusKSigma, limits.Method);
@@ -22,7 +22,7 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Mean_plus_k_sigma_swallows_a_single_spike_on_small_n()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 1000 });
+        var series = NumericSeries.From([1, 2, 3, 4, 5, 6, 7, 8, 9, 1000]);
         var limits = series.ControlLimits(ControlLimitMethod.MeanPlusKSigma, k: 3);
         Assert.Equal(0, limits.OutOfControlCount);
         Assert.False(limits.IsOutOfControl(1000));
@@ -36,7 +36,7 @@ public sealed class ControlLimitsTests
         var series = NumericSeries.From(values, "tight");
         var limits = series.ControlLimits();
         Assert.Equal(1, limits.OutOfControlCount);
-        Assert.Equal(new[] { 25 }, limits.OutOfControlIndexes);
+        Assert.Equal([25], limits.OutOfControlIndexes);
         Assert.True(limits.IsOutOfControl(40.2));
         Assert.False(limits.IsOutOfControl(12));
     }
@@ -45,7 +45,7 @@ public sealed class ControlLimitsTests
     public void Moving_range_flags_a_spike_that_three_sigma_swallows()
     {
         var series = NumericSeries.From(
-            new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 14.2, 40.2 },
+            [12.4, 11.9, 13.1, 12.0, 18.7, 12.2, 12.5, 11.8, 14.2, 40.2],
             "rtt-ms");
         var sigma = series.ControlLimits();
         var mr = series.ControlLimits(ControlLimitMethod.MovingRange);
@@ -58,7 +58,7 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Moving_range_uses_encounter_order_and_e2()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, "odd");
+        var series = NumericSeries.From([1, 2, 3, 4, 5, 6, 7, 8, 9], "odd");
         var limits = series.ControlLimits(ControlLimitMethod.MovingRange);
 
         Assert.Equal(ControlLimitMethod.MovingRange, limits.Method);
@@ -70,7 +70,7 @@ public sealed class ControlLimitsTests
         Assert.Equal(5 + ControlLimits.E2Span2, limits.Upper, 10);
         Assert.Equal(5 - ControlLimits.E2Span2, limits.Lower, 10);
         Assert.Equal(4, limits.OutOfControlCount);
-        Assert.Equal(new[] { 0, 1, 7, 8 }, limits.OutOfControlIndexes);
+        Assert.Equal([0, 1, 7, 8], limits.OutOfControlIndexes);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Floor_clamps_lcl()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+        var series = NumericSeries.From([1, 2, 3, 4, 5, 6, 7, 8, 9]);
         var limits = series.ControlLimits(ControlLimitMethod.MeanPlusKSigma, k: 3, floor: 0);
         Assert.Equal(0, limits.Lower);
         Assert.Equal(0, limits.Floor);
@@ -98,7 +98,7 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Rejects_k_not_positive_and_malformed_caller_band()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3 });
+        var series = NumericSeries.From([1, 2, 3]);
         Assert.Throws<ArgumentOutOfRangeException>(() => series.ControlLimits(k: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => series.TryControlLimits(out _, k: 0));
         Assert.Throws<ArgumentException>(() => ControlLimits.FromCaller(5, 4, 1));
@@ -109,7 +109,7 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Constant_series_cannot_form_sigma_or_mr_limits()
     {
-        var series = NumericSeries.From(new[] { 5, 5, 5 });
+        var series = NumericSeries.From([5, 5, 5]);
         Assert.Throws<InvalidOperationException>(() => series.ControlLimits());
         Assert.Throws<InvalidOperationException>(() =>
             series.ControlLimits(ControlLimitMethod.MovingRange));
@@ -134,12 +134,12 @@ public sealed class ControlLimitsTests
     [Fact]
     public void Try_is_false_on_empty_q4_and_n_of_one()
     {
-        var degenerate = NumericSeries.From(new[] { 5, 5, 5 });
+        var degenerate = NumericSeries.From([5, 5, 5]);
         Assert.False(degenerate.Q4.TryControlLimits(out var q4));
         Assert.Null(q4);
         Assert.Throws<InvalidOperationException>(() => degenerate.Q4.ControlLimits());
 
-        var one = NumericSeries.From(new[] { 7 });
+        var one = NumericSeries.From([7]);
         Assert.False(one.TryControlLimits(out var limits));
         Assert.Null(limits);
         Assert.Throws<InvalidOperationException>(() => one.ControlLimits());

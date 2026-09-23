@@ -85,7 +85,7 @@ public sealed class HmacKey : IDisposable
     public static HmacKey FromBytes(ReadOnlySpan<byte> bytes, HmacKeySize? required = null)
     {
         ValidateLength(bytes.Length, required, nameof(bytes));
-        return new HmacKey(bytes.ToArray());
+        return new HmacKey([.. bytes]);
     }
 
     public string ToHexLower()

@@ -33,12 +33,9 @@ internal readonly record struct NetworkRouteSpec(
         }
 
         var spec = new NetworkRouteSpec(dest, gw, change.PrefixLength, change.InterfaceIndex ?? 0, Math.Max(1, change.Metric));
-        if (spec.IsDefault)
-        {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Parse), "default route");
-            throw new NetworkRouteDenied("Default route write is not offered.");
-        }
+        if (!spec.IsDefault) return spec;
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(Parse), "default route");
+        throw new NetworkRouteDenied("Default route write is not offered.");
 
-        return spec;
     }
 }

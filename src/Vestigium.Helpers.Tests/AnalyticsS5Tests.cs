@@ -10,7 +10,7 @@ public sealed class AnalyticsS5Tests
         var fences = ControlLimits.FromCaller(12, 30, 0);
         var scored = fences.Against([12m, 12m, 40m]);
 
-        Assert.Equal(new[] { 2 }, scored.OutOfControlIndexes);
+        Assert.Equal([2], scored.OutOfControlIndexes);
         Assert.Equal(1, scored.OutOfControlCount);
         Assert.Equal(12, scored.Center);
         Assert.Equal(30, scored.Upper);
@@ -58,7 +58,7 @@ public sealed class AnalyticsS5Tests
     [Fact]
     public void Percentile_rank_empty_q4_throws()
     {
-        var series = NumericSeries.From(new[] { 5, 5, 5 });
+        var series = NumericSeries.From([5, 5, 5]);
         Assert.Throws<InvalidOperationException>(() => series.Q4.PercentileRank(5m));
     }
 }

@@ -20,7 +20,7 @@ public sealed class AnalyticsPR05Tests
     [Fact]
     public void PR05_002_undefined_mean_interval_is_not_drawn_as_numbers()
     {
-        var report = NumericSeries.From(new[] { 5 }).Confidence(0.95);
+        var report = NumericSeries.From([5]).Confidence(0.95);
         Assert.False(report.Mean.IsDefined);
     }
 }

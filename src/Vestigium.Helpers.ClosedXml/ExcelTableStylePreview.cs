@@ -38,7 +38,7 @@ public sealed class ExcelTableStylePreview
     public static IReadOnlyList<ExcelTableStylePreview> All { get; } = Build();
 
     public static IReadOnlyList<ExcelTableStylePreview> In(string group) =>
-        All.Where(p => p.Group.Equals(group, StringComparison.OrdinalIgnoreCase)).ToArray();
+        [.. All.Where(p => p.Group.Equals(group, StringComparison.OrdinalIgnoreCase))];
 
     public static ExcelTableStylePreview Of(string? id)
     {

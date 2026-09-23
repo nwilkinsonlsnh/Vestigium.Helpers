@@ -169,7 +169,7 @@ public sealed class CoverageHotspotTests
         Assert.True(unique.HasUniqueMode);
         Assert.Equal(1m, unique.Mode);
 
-        var spread = FrequencyTable.Build(Enumerable.Range(1, 20).Select(i => (decimal)i).ToArray(), 10m, 1m, 20m);
+        var spread = FrequencyTable.Build([.. Enumerable.Range(1, 20).Select(i => (decimal)i)], 10m, 1m, 20m);
         Assert.True(spread.Histogram.Count >= 2);
         Assert.Equal(spread.Histogram.Count, spread.HistogramTrend().Count);
         Assert.Equal(spread.Histogram.Count, spread.Pareto().Count);
@@ -480,7 +480,7 @@ public sealed class CoverageHotspotTests
 
         using var book = WorkbookHelper.Create("Summary", "ClosedXml");
         book.IncludeCharts = false;
-        WorkbookHelper.WriteSeries(book, NumericSeries.From(new[] { 1, 2, 3, 4, 5 }, "seq"), prefix: null, populationSize: null);
+        WorkbookHelper.WriteSeries(book, NumericSeries.From([1, 2, 3, 4, 5], "seq"), prefix: null, populationSize: null);
         Assert.Contains("Summary", book.SheetNames);
         using var buffer = new MemoryStream();
         book.SaveTo(buffer);

@@ -134,7 +134,7 @@ internal static class RegistryComparer
             LeftOnly = leftOnly,
             RightOnly = rightOnly,
             OutputPath = output,
-            Deltas = deltas.Take(RegistryCompareSummary.MaxDeltas).ToList()
+            Deltas = [.. deltas.Take(RegistryCompareSummary.MaxDeltas)]
         };
     }
 

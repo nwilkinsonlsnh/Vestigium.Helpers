@@ -34,7 +34,7 @@ internal static class CsvCodec
 
         var sb = new StringBuilder();
         if (options.HasHeaderRow)
-            WriteRecord(sb, table.Headers.Select(h => (object?)h).ToArray(), width, options, rowIndex: -1);
+            WriteRecord(sb, [.. table.Headers.Select(h => (object?)h)], width, options, rowIndex: -1);
 
         var i = 0;
         foreach (var row in table.Rows)
@@ -81,7 +81,7 @@ internal static class CsvCodec
         }
         else
         {
-            headers = Enumerable.Range(1, width).Select(n => "F" + n).ToArray();
+            headers = [.. Enumerable.Range(1, width).Select(n => "F" + n)];
         }
 
         var rows = new List<IReadOnlyList<object?>>(Math.Max(0, records.Count - start));
@@ -238,7 +238,7 @@ internal static class CsvCodec
 
     private static List<string> Trim(List<string> fields, CsvOptions options)
     {
-        return !options.TrimFields ? fields : fields.Select(f => f.Trim()).ToList();
+        return !options.TrimFields ? fields : [.. fields.Select(f => f.Trim())];
     }
 
     private static CsvFormatException Fail(int line, string message)

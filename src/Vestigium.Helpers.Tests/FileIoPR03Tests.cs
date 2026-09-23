@@ -15,7 +15,7 @@ public sealed class FileIoPR03Tests
     public void NameCap_does_not_overwrite_original_dest()
     {
         Assert.Null(UniqueName.Next(
-            Enumerable.Range(0, 100).Select(i => i == 0 ? "report.txt" : $"report.{i:00}.txt").ToArray(),
+            [.. Enumerable.Range(0, 100).Select(i => i == 0 ? "report.txt" : $"report.{i:00}.txt")],
             "report.txt",
             ".##"));
 

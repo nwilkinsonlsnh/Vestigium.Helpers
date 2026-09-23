@@ -26,7 +26,7 @@ public sealed class AnalyticsPR04NelsonTests
     [Fact]
     public void PR04_007_wiggle_has_no_western_electric_one_through_four()
     {
-        var report = NumericSeries.From(new[] { 5, 4, 6, 5, 4, 6, 5, 4, 6 }).RunRules();
+        var report = NumericSeries.From([5, 4, 6, 5, 4, 6, 5, 4, 6]).RunRules();
         Assert.DoesNotContain(report.Hits, h => (int)h.Rule <= 4);
     }
 }

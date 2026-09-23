@@ -22,7 +22,7 @@ public sealed class SheetTable
         return new SheetTable
         {
             Headers = headers,
-            Rows = rows as IReadOnlyList<IReadOnlyList<object?>> ?? rows.ToArray(),
+            Rows = rows as IReadOnlyList<IReadOnlyList<object?>> ?? [.. rows],
             Name = name
         };
     }

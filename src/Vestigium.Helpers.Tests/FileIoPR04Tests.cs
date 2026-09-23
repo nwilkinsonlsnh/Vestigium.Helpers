@@ -74,7 +74,7 @@ public sealed class FileIoPR04Tests
         Assert.True(FileIoMask.Matches("foo.tmp", ["*.tmp"]));
         Assert.False(FileIoMask.Matches("notatmp.txt", ["*.tmp"]));
         Assert.True(FileIoMask.Matches("REPORT.TMP", ["*.tmp"]));
-        Assert.False(FileIoMask.Matches("a.txt", Array.Empty<string>()));
+        Assert.False(FileIoMask.Matches("a.txt", []));
     }
 
     [Fact]

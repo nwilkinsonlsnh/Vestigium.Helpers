@@ -96,7 +96,7 @@ internal static class ProcessKiller
         HelperGuard.InRange(confirm.MaxResults, 1, nameof(confirm.MaxResults));
         HelperGuard.Require(confirm.MaxResults <= KillConfirm.Cap, nameof(confirm.MaxResults), "KillSearch cap is 16.");
         var hits = ProcessHelper.Search(search.Term, search.Mode, search.Fields, ProcessDetailLevel.Identity, confirm.MaxResults);
-        return hits.Select(row => Kill(row.Pid, force: true)).ToArray();
+        return [.. hits.Select(row => Kill(row.Pid, force: true))];
     }
 
     private static ProcessKillResult Finish(int pid, ProcessKillStatus status, bool force, string? message)

@@ -34,8 +34,8 @@ public sealed class DnsWireTests
         var txt = One(DnsRecordType.Txt, Concat([(byte)"hello".Length], Encoding.UTF8.GetBytes("hello")));
         Assert.Equal("hello", txt.Answers[0].Data);
         var multi = One(DnsRecordType.Txt, Concat(
-            Concat([(byte)"ab".Length], "ab"u8.ToArray()),
-            Concat([(byte)"cd".Length], "cd"u8.ToArray())));
+            Concat([(byte)"ab".Length], [.. "ab"u8]),
+            Concat([(byte)"cd".Length], [.. "cd"u8])));
         Assert.Equal("abcd", multi.Answers[0].Data);
         var soa = One(DnsRecordType.Soa, EncodeName("ns.example.test"));
         Assert.False(string.IsNullOrWhiteSpace(soa.Answers[0].Data));

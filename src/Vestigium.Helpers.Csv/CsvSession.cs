@@ -76,7 +76,7 @@ public sealed class CsvSession : IDisposable
             SessionId, CsvLog.Props(("via", "AppendRows")), AppId);
         try
         {
-            var extra = rows as IReadOnlyList<IReadOnlyList<object?>> ?? rows.ToArray();
+            var extra = rows as IReadOnlyList<IReadOnlyList<object?>> ?? [.. rows];
             var combined = new List<IReadOnlyList<object?>>(_table.Rows.Count + extra.Count);
             combined.AddRange(_table.Rows);
             combined.AddRange(extra);

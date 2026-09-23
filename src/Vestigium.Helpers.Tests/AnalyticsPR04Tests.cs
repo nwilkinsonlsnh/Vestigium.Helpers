@@ -7,7 +7,7 @@ public sealed class AnalyticsPR04Tests
     [Fact]
     public void PR04_001_rejects_empty_p_and_gamma()
     {
-        var q4 = NumericSeries.From(new[] { 5, 5, 5 }).Q4;
+        var q4 = NumericSeries.From([5, 5, 5]).Q4;
         var empty = Assert.Throws<InvalidOperationException>(() => q4.PercentileInterval(0.95));
         Assert.Equal(Quantiles.EmptySliceMessage, empty.Message);
 
@@ -114,7 +114,7 @@ public sealed class AnalyticsPR04Tests
     [Fact]
     public void PR04_005_constant_is_empty_and_count_is_guarded()
     {
-        var empty = NumericSeries.From(new[] { 5, 5, 5 }).PdfPoints();
+        var empty = NumericSeries.From([5, 5, 5]).PdfPoints();
         Assert.Empty(empty);
 
         var series = NumericSeries.From(Enumerable.Range(1, 9));

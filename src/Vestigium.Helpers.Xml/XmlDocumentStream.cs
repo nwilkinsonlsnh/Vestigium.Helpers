@@ -9,7 +9,7 @@ public sealed class XmlDocumentStream : IReadOnlyList<XmlSession>, IDisposable
 
     internal XmlDocumentStream(IEnumerable<XmlSession> sessions, string path)
     {
-        _sessions = sessions.ToArray();
+        _sessions = [.. sessions];
         Path = path;
     }
 

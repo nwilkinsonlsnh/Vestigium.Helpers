@@ -31,7 +31,8 @@ public sealed class EncryptionSecret : IDisposable
 
     public static EncryptionSecret FromKey(ReadOnlySpan<byte> key32)
     {
-        return key32.Length != 32 ? throw new ArgumentException("Raw keys must be 32 bytes.", nameof(key32)) : new EncryptionSecret(key32.ToArray());
+        return key32.Length != 32 ? throw new ArgumentException("Raw keys must be 32 bytes.", nameof(key32)) : new EncryptionSecret(
+            [.. key32]);
     }
 
     internal byte[] DeriveContentKey(byte kdf, byte[] salt, byte memMiB, byte iter, byte par)

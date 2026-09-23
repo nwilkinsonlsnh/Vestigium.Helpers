@@ -19,13 +19,15 @@ public static partial class ProcessHelper
         var root = ProcessCampaign.Root();
         if (!Directory.Exists(root))
             return [];
-        return Directory.GetDirectories(root)
-            .Where(dir => File.Exists(Path.Combine(dir, "recipe.json")))
-            .Select(Path.GetFileName)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Cast<string>()
-            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        return
+        [
+            .. Directory.GetDirectories(root)
+                .Where(dir => File.Exists(Path.Combine(dir, "recipe.json")))
+                .Select(Path.GetFileName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Cast<string>()
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+        ];
     }
 
     public static ProcessCampaign LoadCampaign(string name)

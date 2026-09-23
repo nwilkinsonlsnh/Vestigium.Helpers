@@ -159,8 +159,8 @@ internal static partial class ServiceSnapshotter
         if (controller is null) return;
         try
         {
-            info.DependsOn = controller.ServicesDependedOn.Select(s => s.ServiceName).ToArray();
-            info.DependedBy = controller.DependentServices.Select(s => s.ServiceName).ToArray();
+            info.DependsOn = [.. controller.ServicesDependedOn.Select(s => s.ServiceName)];
+            info.DependedBy = [.. controller.DependentServices.Select(s => s.ServiceName)];
         }
         catch
         {

@@ -257,7 +257,7 @@ internal static class MacEngine
     private static byte[] FromIntGuess(ulong value, int hexDigits)
     {
         var kind = hexDigits > 12 || value > (1UL << 48) - 1 ? EuiKind.Eui64 : EuiKind.Eui48;
-        return FromInteger(value, kind).Octets.ToArray();
+        return [.. FromInteger(value, kind).Octets];
     }
 
     private static void Bad(string raw)

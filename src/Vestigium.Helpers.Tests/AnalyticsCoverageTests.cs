@@ -9,12 +9,12 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void NumberConvert_accepts_float_half_and_decimal()
     {
-        var fromFloat = NumericSeries.From(new[] { 1.5f, 2.5f }, "f");
+        var fromFloat = NumericSeries.From([1.5f, 2.5f], "f");
         Assert.Equal(2, fromFloat.Count);
         Assert.Equal(2.0, fromFloat.Full.Mean);
-        var fromHalf = NumericSeries.From(new[] { (Half)1, (Half)3 }, "h");
+        var fromHalf = NumericSeries.From([(Half)1, (Half)3], "h");
         Assert.Equal(2d, fromHalf.Full.Mean);
-        var fromDecimal = NumericSeries.From(new[] { 1.25m, 2.75m }, "d");
+        var fromDecimal = NumericSeries.From([1.25m, 2.75m], "d");
         Assert.Equal(2.0, fromDecimal.Full.Mean);
         Assert.Equal(1.25m, NumberConvert.ToDecimal(1.25m, 0));
     }
@@ -22,19 +22,19 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void NumberConvert_rejects_non_finite_float_half_and_overflow()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From(new[] { 1f, float.NaN }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From(new[] { float.PositiveInfinity }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From(new[] { Half.NaN }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From(new[] { Half.PositiveInfinity }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From([1f, float.NaN]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From([float.PositiveInfinity]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From([Half.NaN]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From([Half.PositiveInfinity]));
         var tooBig = BigInteger.Parse("79228162514264337593543950336");
-        var overflow = Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From(new[] { tooBig }));
+        var overflow = Assert.Throws<ArgumentOutOfRangeException>(() => NumericSeries.From([tooBig]));
         Assert.Contains("decimal", overflow.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Quantiles_reject_empty_and_p_outside_unit_interval()
     {
-        var empty = Assert.Throws<InvalidOperationException>(() => Quantiles.Inclusive(Array.Empty<decimal>(), 0.5));
+        var empty = Assert.Throws<InvalidOperationException>(() => Quantiles.Inclusive([], 0.5));
         Assert.Equal(Quantiles.EmptySliceMessage, empty.Message);
         Assert.Throws<ArgumentOutOfRangeException>(() => Quantiles.Inclusive([1m, 2m], -0.01));
         Assert.Throws<ArgumentOutOfRangeException>(() => Quantiles.Inclusive([1m, 2m], 1.01));
@@ -58,7 +58,7 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void NamedPercentiles_on_an_empty_slice_throws()
     {
-        var series = NumericSeries.From(new[] { 5, 5, 5 });
+        var series = NumericSeries.From([5, 5, 5]);
         Assert.True(series.Q2.IsEmpty);
         Assert.Equal(0, series.Q2.Count);
         Assert.Null(series.Q2.Mean);
@@ -80,9 +80,9 @@ public sealed class AnalyticsCoverageTests
         Assert.NotNull(needed);
         Assert.True(needed >= 2);
 
-        var flat = NumericSeries.From(new[] { 5, 5, 5 });
+        var flat = NumericSeries.From([5, 5, 5]);
         Assert.Null(flat.SampleSizeForMeanMargin(0.1));
-        var singleton = NumericSeries.From(new[] { 7 });
+        var singleton = NumericSeries.From([7]);
         Assert.Null(singleton.SampleSizeForMeanMargin(0.1));
         Assert.Null(singleton.MeanPValue(7));
         Assert.Null(singleton.MeanConfidenceLevelContaining(7));
@@ -106,7 +106,7 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void Singleton_confidence_defines_median_not_mean()
     {
-        var series = NumericSeries.From(new[] { 7 });
+        var series = NumericSeries.From([7]);
         var ci = series.Confidence();
         Assert.False(ci.Mean.IsDefined);
         Assert.True(ci.Median.IsDefined);
@@ -120,7 +120,7 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void ProportionAtLeast_counts_the_threshold()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5 });
+        var series = NumericSeries.From([1, 2, 3, 4, 5]);
         var above = series.ProportionAbove(3m);
         var atLeast = series.ProportionAtLeast(3m);
         Assert.Equal(0.4, above.Estimate);
@@ -152,7 +152,7 @@ public sealed class AnalyticsCoverageTests
         Assert.Equal(t0.AddSeconds(2), window.EndExclusive);
         Assert.Equal(SeriesWindowKind.CallerSupplied, window.Kind);
 
-        var valuesOnly = NumericSeries.From(new[] { 1, 2, 3 });
+        var valuesOnly = NumericSeries.From([1, 2, 3]);
         Assert.Equal(SeriesWindowKind.None, valuesOnly.Window.Kind);
         Assert.Empty(valuesOnly.TimeSeriesPoints());
     }
@@ -181,7 +181,7 @@ public sealed class AnalyticsCoverageTests
     [Fact]
     public void Empty_slice_control_limits_and_confidence_stay_defined_as_empty()
     {
-        var series = NumericSeries.From(new[] { 5, 5, 5 });
+        var series = NumericSeries.From([5, 5, 5]);
         Assert.Throws<InvalidOperationException>(() => series.Q2.ControlLimits());
         var ci = series.Q2.Confidence();
         Assert.False(ci.Mean.IsDefined);
@@ -210,9 +210,9 @@ public sealed class AnalyticsCoverageTests
         Assert.Throws<ArgumentException>(() =>
             NumericSeries.FromObservations(obs, t0.AddMinutes(1), t0, "bad"));
         Assert.Throws<ArgumentException>(() =>
-            NumericSeries.FromObservations(Array.Empty<Observation>(), "empty"));
+            NumericSeries.FromObservations([], "empty"));
 
-        var series = NumericSeries.From(new[] { 3, 1, 2 }, "pts");
+        var series = NumericSeries.From([3, 1, 2], "pts");
         Assert.Equal(new[] { 3d, 1d, 2d }, series.SampleOrderPoints().Select(p => p.Y).ToArray());
         Assert.Equal(new[] { 1d, 2d, 3d }, series.SortedPoints().Select(p => p.Y).ToArray());
         Assert.NotEmpty(series.HistogramRelativePoints());
@@ -224,15 +224,15 @@ public sealed class AnalyticsCoverageTests
         Assert.Throws<ArgumentOutOfRangeException>(() => series.ControlLimits(k: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => series.ControlLimits(k: -1));
         Assert.Throws<ArgumentException>(() => series.ControlLimits(ControlLimitMethod.CallerSupplied));
-        var floorClamp = NumericSeries.From(new[] { 1, 2, 3 }).ControlLimits(k: 3, floor: 0);
+        var floorClamp = NumericSeries.From([1, 2, 3]).ControlLimits(k: 3, floor: 0);
         Assert.Equal(0, floorClamp.Lower);
 
-        var flat = NumericSeries.From(new[] { 7, 7, 7, 7 }, "flat");
+        var flat = NumericSeries.From([7, 7, 7, 7], "flat");
         Assert.NotEmpty(flat.Full.Frequency.Histogram);
         Assert.Equal(7m, flat.Full.Frequency.Mode);
-        var distinct = NumericSeries.From(new[] { 1, 2, 3, 4 }, "distinct");
+        var distinct = NumericSeries.From([1, 2, 3, 4], "distinct");
         Assert.Null(distinct.Full.Frequency.Mode);
-        var unique = NumericSeries.From(new[] { 1, 1, 2, 3 }, "mode");
+        var unique = NumericSeries.From([1, 1, 2, 3], "mode");
         Assert.Equal(1m, unique.Full.Frequency.Mode);
         Assert.True(unique.Full.Frequency.HasUniqueMode);
         Assert.Equal(0, FrequencyTable.Empty.DistinctCount);

@@ -20,7 +20,7 @@ public sealed class AnalyticsPR03Tests
         var spec = SpecLimits.From(0, 30);
         var scored = spec.Against([12m, 12m, 40m, 0m, 30m]);
 
-        Assert.Equal(new[] { 2 }, scored.OutsideIndexes);
+        Assert.Equal([2], scored.OutsideIndexes);
         Assert.Equal(1, scored.OutsideCount);
         Assert.True(scored.IsOutside(40));
         Assert.False(scored.IsOutside(0));
@@ -32,11 +32,11 @@ public sealed class AnalyticsPR03Tests
     public void PR03_001_one_sided_and_empty_input()
     {
         var usl = SpecLimits.From(upper: 10).Against([9m, 11m]);
-        Assert.Equal(new[] { 1 }, usl.OutsideIndexes);
+        Assert.Equal([1], usl.OutsideIndexes);
         Assert.Null(usl.Lower);
 
         var lsl = SpecLimits.From(lower: 5).Against([4m, 5m]);
-        Assert.Equal(new[] { 0 }, lsl.OutsideIndexes);
+        Assert.Equal([0], lsl.OutsideIndexes);
         Assert.Null(lsl.Upper);
 
         var empty = SpecLimits.From(0, 1).Against([]);
@@ -91,7 +91,7 @@ public sealed class AnalyticsPR03Tests
         Assert.NotNull(usl.Ppu);
         Assert.Equal(usl.Ppu, usl.Ppk);
 
-        var constant = NumericSeries.From(new[] { 5, 5, 5 }).Capability(SpecLimits.From(0, 10));
+        var constant = NumericSeries.From([5, 5, 5]).Capability(SpecLimits.From(0, 10));
         Assert.Null(constant.Pp);
         Assert.Null(constant.Ppk);
         Assert.Null(constant.Cp);
@@ -148,9 +148,9 @@ public sealed class AnalyticsPR03Tests
     [Fact]
     public void PR03_004_capability_carries_frozen_outside_spec_indexes()
     {
-        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 40 });
+        var series = NumericSeries.From([1, 2, 3, 4, 5, 6, 7, 8, 40]);
         var cap = series.Capability(SpecLimits.From(0, 15));
-        Assert.Equal(new[] { 8 }, cap.Spec.OutsideIndexes);
+        Assert.Equal([8], cap.Spec.OutsideIndexes);
         Assert.Equal(1, cap.Spec.OutsideCount);
         Assert.True(((IList<int>)cap.Spec.OutsideIndexes).IsReadOnly);
         Assert.Throws<ArgumentNullException>(() => series.Capability(null!));
@@ -168,7 +168,7 @@ public sealed class AnalyticsPR03Tests
     [Fact]
     public void PR03_005_quiet_series_has_no_western_electric_hits()
     {
-        var report = NumericSeries.From(new[] { 5, 4, 6, 5, 4, 6, 5, 4, 6 }).RunRules();
+        var report = NumericSeries.From([5, 4, 6, 5, 4, 6, 5, 4, 6]).RunRules();
         Assert.DoesNotContain(report.Hits, h => (int)h.Rule <= 4);
         Assert.Equal(ControlLimitMethod.MeanPlusKSigma, report.Limits.Method);
     }
@@ -188,7 +188,7 @@ public sealed class AnalyticsPR03Tests
     [Fact]
     public void PR03_006_eight_on_one_side()
     {
-        var report = NumericSeries.From(new[] { 10, 10, 10, 10, 10, 10, 10, 10, 0 }).RunRules();
+        var report = NumericSeries.From([10, 10, 10, 10, 10, 10, 10, 10, 0]).RunRules();
         var rule4 = Assert.Single(report.Hits.Where(h => h.Rule == WesternElectricRule.EightOnOneSideOfCenter));
         Assert.Equal(Enumerable.Range(0, 8), rule4.Indexes);
     }
@@ -197,7 +197,7 @@ public sealed class AnalyticsPR03Tests
     public void PR03_006_constant_series_refuses_like_limits()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            NumericSeries.From(new[] { 5, 5, 5 }).RunRules());
+            NumericSeries.From([5, 5, 5]).RunRules());
         Assert.Contains("standard deviation", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

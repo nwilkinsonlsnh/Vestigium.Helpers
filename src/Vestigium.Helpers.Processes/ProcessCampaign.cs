@@ -108,7 +108,7 @@ public sealed class ProcessCampaign : IDisposable
         var truncated = hits.Count > Recipe.MaxMatches;
         if (truncated)
         {
-            hits = hits.Take(Recipe.MaxMatches).ToArray();
+            hits = [.. hits.Take(Recipe.MaxMatches)];
             if (!_loggedTruncated)
             {
                 HelperLog.Warning(
@@ -339,7 +339,7 @@ public sealed class ProcessCampaign : IDisposable
             Fields = recipe.Fields == 0 ? ProcessWatchFields.All : recipe.Fields,
             IncludeSystemCounters = recipe.IncludeSystemCounters,
             SampleInterval = recipe.SampleInterval,
-            Windows = recipe.Windows.ToArray(),
+            Windows = [.. recipe.Windows],
             TimeZoneId = string.IsNullOrWhiteSpace(recipe.TimeZoneId) ? TimeZoneInfo.Local.Id : recipe.TimeZoneId,
             MaxMatches = recipe.MaxMatches
         };

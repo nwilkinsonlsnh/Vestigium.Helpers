@@ -427,7 +427,7 @@ public sealed class WorkbookSessionTests
         book.AddSheet("B");
         book.AddSheet("C");
         book.ReorderSheets("C", "A");
-        Assert.Equal(new[] { "C", "A", "B" }, book.SheetNames);
+        Assert.Equal(["C", "A", "B"], book.SheetNames);
         book.MoveSheet("B", 1);
         Assert.Equal("B", book.SheetNames[0]);
     }

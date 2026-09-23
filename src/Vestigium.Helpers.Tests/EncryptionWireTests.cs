@@ -51,7 +51,7 @@ public sealed class EncryptionWireTests
         Assert.Equal(Envelope.FrameSize, header.FrameSize);
 
         using var argon = new MemoryStream();
-        Envelope.WriteHeader(argon, 1, 1, 64, 3, 1, Enumerable.Repeat((byte)3, 16).ToArray(), new byte[12], 1);
+        Envelope.WriteHeader(argon, 1, 1, 64, 3, 1, [.. Enumerable.Repeat((byte)3, 16)], new byte[12], 1);
         argon.Position = 0;
         var kdfHeader = Envelope.ReadHeader(argon);
         Assert.Equal(1, kdfHeader.Kdf);
@@ -170,7 +170,7 @@ public sealed class EncryptionWireTests
         {
             WrapAlg = EncryptionRsaKey.WrapAlgOaepSha256,
             KeyBits = 2048,
-            Thumbprint = Enumerable.Repeat((byte)0xAB, 32).ToArray(),
+            Thumbprint = [.. Enumerable.Repeat((byte)0xAB, 32)],
             WrappedKey = [1, 2, 3, 4]
         };
         var encoded = Trailer.EncodeWraps([wrap]);
@@ -356,7 +356,7 @@ public sealed class EncryptionWireTests
     public void Helper_error_paths_unknown_length_and_ring()
     {
         using var secret = EncryptionSecret.FromKey(Key32());
-        using var wrong = EncryptionSecret.FromKey(Enumerable.Repeat((byte)1, 32).ToArray());
+        using var wrong = EncryptionSecret.FromKey([.. Enumerable.Repeat((byte)1, 32)]);
         using var pass = EncryptionSecret.FromPassphrase("gallery-demo-only");
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumEncWire", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -461,7 +461,7 @@ public sealed class EncryptionWireTests
         Assert.ThrowsAny<Exception>(() => EncryptionHelper.SealFile(src, deadDest, [dead]));
         Assert.False(File.Exists(deadDest));
 
-        using var named = new MemoryStream("x"u8.ToArray());
+        using var named = new MemoryStream([.. "x"u8]);
         using var namedOut = new MemoryStream();
         EncryptionHelper.SealFile(named, namedOut, secret, originalFileName: "plain.bin");
         namedOut.Position = 0;
@@ -471,7 +471,7 @@ public sealed class EncryptionWireTests
             : "plain.bin");
 
         var noName = Path.Combine(dir, "noname.aes");
-        using (var s = new MemoryStream("z"u8.ToArray()))
+        using (var s = new MemoryStream([.. "z"u8]))
         using (var d = File.Create(noName))
             EncryptionHelper.SealFile(s, d, secret);
         var dirDest = Path.Combine(dir, "outdir") + Path.DirectorySeparatorChar;
@@ -534,8 +534,8 @@ public sealed class EncryptionWireTests
         var flags = new TrailerFields { Flags = Trailer.FlagUnknownLength };
         Assert.True(flags.UnknownLength);
         Assert.False(flags.HasHiddenName);
-        Assert.True(new TrailerFields { Sha256 = Enumerable.Repeat((byte)1, 32).ToArray() }.Sha256Filled);
-        Assert.True(new TrailerFields { HmacSha256 = Enumerable.Repeat((byte)2, 32).ToArray() }.HmacFilled);
+        Assert.True(new TrailerFields { Sha256 = [.. Enumerable.Repeat((byte)1, 32)] }.Sha256Filled);
+        Assert.True(new TrailerFields { HmacSha256 = [.. Enumerable.Repeat((byte)2, 32)] }.HmacFilled);
         Assert.True(new TrailerFields { Flags = 8 }.Sha256Filled);
         Assert.True(new TrailerFields { Flags = 16 }.HmacFilled);
         Assert.True(new TrailerFields { Wraps = [new RsaWrapRecord { Thumbprint = new byte[32], WrappedKey = [1] }] }.HasRsaWrap);

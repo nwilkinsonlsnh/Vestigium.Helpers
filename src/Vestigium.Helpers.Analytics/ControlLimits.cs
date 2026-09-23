@@ -132,7 +132,7 @@ public sealed class ControlLimits
     /// <param name="encounterOrder">Values in process order. Null or empty yields count 0.</param>
     public ControlLimits Against(IReadOnlyList<decimal>? encounterOrder)
     {
-        var values = encounterOrder ?? Array.Empty<decimal>();
+        var values = encounterOrder ?? [];
         var outside = new List<int>();
         for (var i = 0; i < values.Count; i++)
         {

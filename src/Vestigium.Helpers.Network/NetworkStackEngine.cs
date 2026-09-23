@@ -19,16 +19,13 @@ internal static class NetworkStackEngine
             var props = IPGlobalProperties.GetIPGlobalProperties();
             if (query.Protocol is null or TransportProtocol.Tcp)
             {
-                foreach (var c in props.GetActiveTcpConnections())
-                    rows.Add(MapTcp(c));
-                foreach (var ep in props.GetActiveTcpListeners())
-                    rows.Add(MapListener(TransportProtocol.Tcp, ep, "Listen"));
+                rows.AddRange(props.GetActiveTcpConnections().Select(c => MapTcp(c)));
+                rows.AddRange(props.GetActiveTcpListeners().Select(ep => MapListener(TransportProtocol.Tcp, ep, "Listen")));
             }
 
             if (query.Protocol is null or TransportProtocol.Udp)
             {
-                foreach (var ep in props.GetActiveUdpListeners())
-                    rows.Add(MapListener(TransportProtocol.Udp, ep, "Listen"));
+                rows.AddRange(props.GetActiveUdpListeners().Select(ep => MapListener(TransportProtocol.Udp, ep, "Listen")));
             }
         }
         catch (NetworkInformationException)
@@ -42,9 +39,12 @@ internal static class NetworkStackEngine
             filtered = filtered.Where(r => string.Equals(r.State, "Listen", StringComparison.OrdinalIgnoreCase));
         if (query.EstablishedOnly)
             filtered = filtered.Where(r => string.Equals(r.State, "Established", StringComparison.OrdinalIgnoreCase));
-        return filtered
-            .DistinctBy(r => $"{r.Protocol}|{r.LocalAddress}|{r.LocalPort}|{r.RemoteAddress}|{r.RemotePort}|{r.State}")
-            .ToArray();
+        return
+        [
+            .. filtered
+                .DistinctBy(r =>
+                    $"{r.Protocol}|{r.LocalAddress}|{r.LocalPort}|{r.RemoteAddress}|{r.RemotePort}|{r.State}")
+        ];
     }
 
     public static NetworkStackStatistics GetStatistics()
@@ -71,16 +71,12 @@ internal static class NetworkStackEngine
 
     public static IReadOnlyList<NetworkRoute> GetRoutes(RouteFamily family)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return NetworkWindowsTables.GetRoutes(family);
-        return NetworkLinuxTables.GetRoutes(family);
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? NetworkWindowsTables.GetRoutes(family) : NetworkLinuxTables.GetRoutes(family);
     }
 
     public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return NetworkWindowsTables.GetNeighbors();
-        return NetworkLinuxTables.GetNeighbors();
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? NetworkWindowsTables.GetNeighbors() : NetworkLinuxTables.GetNeighbors();
     }
 
     private static NetworkConnection MapTcp(TcpConnectionInformation c)

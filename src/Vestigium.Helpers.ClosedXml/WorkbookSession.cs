@@ -66,7 +66,7 @@ public sealed class WorkbookSession : IDisposable
     }
 
     public IReadOnlyList<string> SheetNames =>
-        Workbook.Worksheets.OrderBy(w => w.Position).Select(w => w.Name).ToArray();
+        [.. Workbook.Worksheets.OrderBy(w => w.Position).Select(w => w.Name)];
 
     public IReadOnlyList<string> NamedRanges
     {

@@ -36,7 +36,7 @@ internal static class OuiRegistry
                 continue;
             }
 
-            var parts = line.Split(new[] { ',', '\t', '|', ';' }, 2, StringSplitOptions.TrimEntries);
+            var parts = line.Split([',', '\t', '|', ';'], 2, StringSplitOptions.TrimEntries);
             if (parts.Length < 2)
                 continue;
             map[Normalize(parts[0])] = parts[1];
