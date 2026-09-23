@@ -273,48 +273,14 @@ internal static class SubnetEngine
             usable = size;
         }
 
+        // PTR is only filled for IPv4 /24. Other IPv4 prefixes and IPv6 stay null.
+        // Do not switch exhaustively on AddressFamily: InterNetwork with prefix != 24
+        // is valid and must not throw.
         string? ptr = null;
-        switch (family)
+        if (family == AddressFamily.InterNetwork && prefix == 24)
         {
-            case AddressFamily.InterNetwork when prefix == 24:
-            {
-                var b = networkIp.GetAddressBytes();
-                ptr = $"{b[2]}.{b[1]}.{b[0]}.in-addr.arpa";
-                break;
-            }
-            case AddressFamily.Unknown:
-            case AddressFamily.Unspecified:
-            case AddressFamily.Unix:
-            case AddressFamily.ImpLink:
-            case AddressFamily.Pup:
-            case AddressFamily.Chaos:
-            case AddressFamily.Ipx:
-            case AddressFamily.Iso:
-            case AddressFamily.Ecma:
-            case AddressFamily.DataKit:
-            case AddressFamily.Ccitt:
-            case AddressFamily.Sna:
-            case AddressFamily.DecNet:
-            case AddressFamily.DataLink:
-            case AddressFamily.Lat:
-            case AddressFamily.HyperChannel:
-            case AddressFamily.AppleTalk:
-            case AddressFamily.NetBios:
-            case AddressFamily.VoiceView:
-            case AddressFamily.FireFox:
-            case AddressFamily.Banyan:
-            case AddressFamily.Atm:
-            case AddressFamily.InterNetworkV6:
-            case AddressFamily.Cluster:
-            case AddressFamily.Ieee12844:
-            case AddressFamily.Irda:
-            case AddressFamily.NetworkDesigners:
-            case AddressFamily.Max:
-            case AddressFamily.Packet:
-            case AddressFamily.ControllerAreaNetwork:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(family), family, null);
+            var b = networkIp.GetAddressBytes();
+            ptr = $"{b[2]}.{b[1]}.{b[0]}.in-addr.arpa";
         }
 
         return new PrefixBlock(family, original, networkIp.ToString(), prefix, mask, wildcard, broadcast, firstUsable, lastUsable, size, usable, hostRoute, p2P, BinaryMask(family, prefix), ClassOf(networkIp), KindOf(networkIp), ptr);

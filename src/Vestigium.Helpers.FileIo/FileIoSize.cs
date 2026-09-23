@@ -103,7 +103,20 @@ public readonly record struct FileIoSize(long Bytes, decimal InputValue, FileIoS
         var text = value == decimal.Truncate(value)
             ? decimal.Truncate(value).ToString(CultureInfo.InvariantCulture)
             : value.ToString("0.###", CultureInfo.InvariantCulture);
-        var symbol = unit == FileIoSizeUnit.Byte ? "B" : unit.ToString();
-        return text + " " + symbol;
+        return text + " " + Symbol(unit);
     }
+
+    private static string Symbol(FileIoSizeUnit unit) => unit switch
+    {
+        FileIoSizeUnit.Byte => "B",
+        FileIoSizeUnit.Kb => "KB",
+        FileIoSizeUnit.KiB => "KiB",
+        FileIoSizeUnit.Mb => "MB",
+        FileIoSizeUnit.MiB => "MiB",
+        FileIoSizeUnit.Gb => "GB",
+        FileIoSizeUnit.GiB => "GiB",
+        FileIoSizeUnit.Tb => "TB",
+        FileIoSizeUnit.TiB => "TiB",
+        _ => unit.ToString()
+    };
 }
