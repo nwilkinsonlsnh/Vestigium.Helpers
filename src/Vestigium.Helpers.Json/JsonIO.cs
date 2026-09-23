@@ -39,6 +39,7 @@ internal static class JsonIo
     {
         using var stream = OpenRead(path);
         RejectBom(stream);
+        var terminated = EndsWithNewline(stream);
         using var reader = new StreamReader(stream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false, StreamBufferSize);
         var records = new JsonArray();
         var index = 0;
@@ -46,14 +47,20 @@ internal static class JsonIo
         {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
+
             JsonNode? node;
             try
             {
                 node = JsonNode.Parse(line, JsonCodec.NodeOptions, JsonCodec.DocumentOptions);
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
-                HelperLog.Reject($"jsonl line is not RFC 8259 index={index}");
+                var truncated = !terminated && reader.EndOfStream;
+                HelperLog.Reject(truncated
+                    ? $"jsonl line is truncated index={index}"
+                    : $"jsonl line is not RFC 8259 index={index}");
+                if (truncated)
+                    throw new JsonException($"JSONL last line is truncated at index {index}.", ex);
                 throw;
             }
 
@@ -114,6 +121,18 @@ internal static class JsonIo
         HelperLog.Reject("export path escaped the export folder");
         throw new ArgumentException("Export stem must stay under the export folder.", nameof(stem));
 
+    }
+
+    private static bool EndsWithNewline(Stream stream)
+    {
+        if (!stream.CanSeek || stream.Length == 0)
+            return true;
+
+        var mark = stream.Position;
+        stream.Seek(-1, SeekOrigin.End);
+        var last = stream.ReadByte();
+        stream.Position = mark;
+        return last == '\n';
     }
 
     private static FileStream OpenRead(string path)

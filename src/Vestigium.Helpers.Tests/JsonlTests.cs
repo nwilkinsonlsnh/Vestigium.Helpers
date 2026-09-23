@@ -77,7 +77,28 @@ public sealed class JsonlTests : IDisposable
 
         var bad = Path.Combine(_root, "truncated.jsonl");
         File.WriteAllText(bad, "{\"code\":\"ok\"}\n{\"code\":");
-        Assert.ThrowsAny<JsonException>(() => JsonHelper.OpenJsonl(bad));
+        var ex = Assert.ThrowsAny<JsonException>(() => JsonHelper.OpenJsonl(bad));
+        Assert.Contains("truncated", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Three_good_lines_without_trailing_newline_still_open()
+    {
+        var path = Path.Combine(_root, "no-final-nl.jsonl");
+        File.WriteAllText(path, "{\"n\":1}\n{\"n\":2}\n{\"n\":3}", new UTF8Encoding(false));
+        using var doc = JsonHelper.OpenJsonl(path);
+        Assert.Equal(3, doc.RecordCount);
+        Assert.Equal(3, doc.Get<int>("[2].n"));
+    }
+
+    [Fact]
+    public void Three_good_lines_plus_chopped_brace_does_not_return_a_session()
+    {
+        var path = Path.Combine(_root, "chopped.jsonl");
+        File.WriteAllText(path, "{\"n\":1}\n{\"n\":2}\n{\"n\":3}\n{", new UTF8Encoding(false));
+        var ex = Assert.ThrowsAny<JsonException>(() => JsonHelper.OpenJsonl(path));
+        Assert.Contains("truncated", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(File.Exists(path));
     }
 
     [Fact]
