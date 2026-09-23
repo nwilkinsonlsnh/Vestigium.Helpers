@@ -21,7 +21,7 @@ public static partial class ServiceHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.Services;
+        const string app = HelperLog.AppIds.Services;
         HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Inventory, "Enumerating service-control surface.");
         var rows = List(ServiceDetailLevel.Identity);
         TryGet("EventLog", out _);
@@ -35,7 +35,7 @@ public static partial class ServiceHelper
         ServiceListScope scope = ServiceListScope.Visible,
         bool joinProcess = false)
     {
-        var app = HelperLog.AppIds.Services;
+        const string app = HelperLog.AppIds.Services;
         using var scopeLog = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "List", $"{level}/{kind}/{scope}");
         var rows = ServiceSnapshotter.Capture(level, kind, scope, joinProcess);
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, $"List n={rows.Count} scope={scope}");
@@ -50,7 +50,7 @@ public static partial class ServiceHelper
     public static ServiceInfo? Get(string name, ServiceDetailLevel level = ServiceDetailLevel.Full, bool joinProcess = true)
     {
         var key = HelperGuard.NotBlank(name, nameof(name));
-        var app = HelperLog.AppIds.Services;
+        const string app = HelperLog.AppIds.Services;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Inventory, "Get", key);
         var row = ServiceSnapshotter.CaptureName(key, level, joinProcess);
         HelperLog.Information(app, VestigiumStatus.Success, HelperLog.Subcategories.Inventory, row is null ? $"Get {key} gone" : $"Get {key} status={row.Status}");
@@ -198,28 +198,27 @@ public static partial class ServiceHelper
 
     internal static TimeSpan RequireInterval(TimeSpan interval)
     {
-        if (interval < MinWatchInterval || interval > MaxWatchInterval)
-        {
-            HelperLog.Reject($"interval={interval}");
-            throw new ArgumentOutOfRangeException(nameof(interval), "Watcher interval must be 250 ms through 60 s.");
-        }
+        if (interval >= MinWatchInterval && interval <= MaxWatchInterval) return interval;
+        HelperLog.Reject($"interval={interval}");
+        throw new ArgumentOutOfRangeException(nameof(interval), "Watcher interval must be 250 ms through 60 s.");
 
-        return interval;
     }
 
     private static bool Matches(ServiceInfo row, string term, ServiceSearchMode mode, ServiceSearchFields fields)
     {
-        if (fields.HasFlag(ServiceSearchFields.Name) && Compare(row.Name, term, mode))
+        if ((fields & ServiceSearchFields.Name) != 0 && Compare(row.Name, term, mode))
             return true;
-        if (fields.HasFlag(ServiceSearchFields.DisplayName) && Compare(row.DisplayName, term, mode))
+
+        if ((fields & ServiceSearchFields.DisplayName) != 0 && Compare(row.DisplayName, term, mode))
             return true;
-        if (fields.HasFlag(ServiceSearchFields.Description) && Compare(row.Description, term, mode))
+
+        if ((fields & ServiceSearchFields.Description) != 0 && Compare(row.Description, term, mode))
             return true;
-        if (fields.HasFlag(ServiceSearchFields.ImagePath) && Compare(row.ImagePath, term, mode))
+
+        if ((fields & ServiceSearchFields.ImagePath) != 0 && Compare(row.ImagePath, term, mode))
             return true;
-        if (fields.HasFlag(ServiceSearchFields.Account) && Compare(row.Account, term, mode))
-            return true;
-        return false;
+
+        return (fields & ServiceSearchFields.Account) != 0 && Compare(row.Account, term, mode);
     }
 
     private static bool Compare(string? value, string term, ServiceSearchMode mode)

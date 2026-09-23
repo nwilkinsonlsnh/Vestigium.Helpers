@@ -24,13 +24,7 @@ internal static class ServiceTreeWalker
         HashSet<string> seen,
         int depth)
     {
-        if (!seen.Add(node.Name))
-        {
-            node.AmbiguousDependency = true;
-            return new ServiceTree { Root = node, Children = [] };
-        }
-
-        if (depth >= MaxDepth || seen.Count >= MaxNodes)
+        if (!seen.Add(node.Name) || depth >= MaxDepth || seen.Count >= MaxNodes)
         {
             node.AmbiguousDependency = true;
             return new ServiceTree { Root = node, Children = [] };

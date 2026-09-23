@@ -11,7 +11,7 @@ public sealed class ServiceCampaign : IDisposable
     public const int MaxMatchesCap = 256;
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly object _file = new();
+    private readonly Lock _file = new();
     private int _disposed;
     private HashSet<string> _open = new(StringComparer.OrdinalIgnoreCase);
     private bool _loggedTruncated;
@@ -130,24 +130,7 @@ public sealed class ServiceCampaign : IDisposable
         var stamp = now.ToString("o");
         var windows = string.Join(",", open.Select(name => JsonSerializer.Serialize(name)));
         var lines = new List<string>(hits.Count);
-        foreach (var row in hits)
-        {
-            lines.Add(
-                "{" +
-                "\"kind\":\"service\"," +
-                "\"campaign\":" + JsonSerializer.Serialize(CampaignId) + "," +
-                "\"windows\":[" + windows + "]," +
-                "\"ts\":" + JsonSerializer.Serialize(stamp) + "," +
-                "\"name\":" + JsonSerializer.Serialize(row.Name) + "," +
-                "\"displayName\":" + JsonSerializer.Serialize(row.DisplayName) + "," +
-                "\"status\":" + JsonSerializer.Serialize(row.Status.ToString()) + "," +
-                "\"startType\":" + JsonSerializer.Serialize(row.StartType?.ToString()) + "," +
-                "\"pid\":" + (row.Pid?.ToString() ?? "null") + "," +
-                "\"account\":" + JsonSerializer.Serialize(row.Account) + "," +
-                "\"imagePath\":" + JsonSerializer.Serialize(row.ImagePath) + "," +
-                "\"hidden\":" + (row.IsHidden ? "true" : "false") +
-                "}");
-        }
+        lines.AddRange(hits.Select(row => "{" + "\"kind\":\"service\"," + "\"campaign\":" + JsonSerializer.Serialize(CampaignId) + "," + "\"windows\":[" + windows + "]," + "\"ts\":" + JsonSerializer.Serialize(stamp) + "," + "\"name\":" + JsonSerializer.Serialize(row.Name) + "," + "\"displayName\":" + JsonSerializer.Serialize(row.DisplayName) + "," + "\"status\":" + JsonSerializer.Serialize(row.Status.ToString()) + "," + "\"startType\":" + JsonSerializer.Serialize(row.StartType?.ToString()) + "," + "\"pid\":" + (row.Pid?.ToString() ?? "null") + "," + "\"account\":" + JsonSerializer.Serialize(row.Account) + "," + "\"imagePath\":" + JsonSerializer.Serialize(row.ImagePath) + "," + "\"hidden\":" + (row.IsHidden ? "true" : "false") + "}"));
 
         lock (_file)
         {
@@ -253,9 +236,7 @@ public sealed class ServiceCampaign : IDisposable
 
     internal static string Root()
     {
-        if (!string.IsNullOrWhiteSpace(ServiceTestHooks.CampaignRoot))
-            return Path.GetFullPath(ServiceTestHooks.CampaignRoot);
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Vestigium", "Services", "Campaigns");
+        return !string.IsNullOrWhiteSpace(ServiceTestHooks.CampaignRoot) ? Path.GetFullPath(ServiceTestHooks.CampaignRoot) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Vestigium", "Services", "Campaigns");
     }
 
     internal static void WriteRecipe(string folder, ServiceCampaignRecipe recipe)

@@ -44,10 +44,8 @@ internal static class ServiceMachine
         return true;
     }
 
-    private sealed class Pop : IDisposable
+    private sealed class Pop(string? prior) : IDisposable
     {
-        private readonly string? _prior;
-        public Pop(string? prior) => _prior = prior;
-        public void Dispose() => Current.Value = _prior;
+        public void Dispose() => Current.Value = prior;
     }
 }
