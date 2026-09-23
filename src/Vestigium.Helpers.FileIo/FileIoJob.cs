@@ -24,24 +24,24 @@ public sealed partial class FileIoJob
         (FileIoBucket.Huge, "Huge", long.MaxValue, 1),
     ];
 
-    readonly FileIoJobOptions _options;
-    readonly bool _sourceIsFile;
-    readonly ConcurrentQueue<WorkItem>[] _queues;
-    readonly ConcurrentDictionary<string, byte> _created = new(StringComparer.OrdinalIgnoreCase);
-    readonly ConcurrentBag<FileIoTransferObservation> _observations = [];
-    readonly object _gate = new();
-    readonly CancellationTokenSource _cts = new();
-    TaskCompletionSource? _pauseWait;
-    TaskCompletionSource? _reconDone;
-    DateTimeOffset _started = DateTimeOffset.UtcNow;
-    DateTimeOffset _lastRateAt = DateTimeOffset.UtcNow;
-    DateTimeOffset _lastProgressLog = DateTimeOffset.MinValue;
-    volatile bool _reconComplete;
-    volatile bool _paused;
-    volatile bool _cancelled;
-    int _walked;
+    private readonly FileIoJobOptions _options;
+    private readonly bool _sourceIsFile;
+    private readonly ConcurrentQueue<WorkItem>[] _queues;
+    private readonly ConcurrentDictionary<string, byte> _created = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentBag<FileIoTransferObservation> _observations = [];
+    private readonly object _gate = new();
+    private readonly CancellationTokenSource _cts = new();
+    private TaskCompletionSource? _pauseWait;
+    private TaskCompletionSource? _reconDone;
+    private DateTimeOffset _started = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastRateAt = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastProgressLog = DateTimeOffset.MinValue;
+    private volatile bool _reconComplete;
+    private volatile bool _paused;
+    private volatile bool _cancelled;
+    private int _walked;
 
-    FileIoJob(FileIoVerb verb, string source, string destination, FileIoJobOptions options, bool sourceIsFile)
+    private FileIoJob(FileIoVerb verb, string source, string destination, FileIoJobOptions options, bool sourceIsFile)
     {
         Verb = verb;
         Source = source;
@@ -51,7 +51,7 @@ public sealed partial class FileIoJob
         JobId = "fio-" + FileIoLog.NewId();
         Options = options;
         Progress = new FileIoProgress { JobId = JobId };
-        _queues = [new(), new(), new(), new(), new()];
+        _queues = [new ConcurrentQueue<WorkItem>(), new ConcurrentQueue<WorkItem>(), new ConcurrentQueue<WorkItem>(), new ConcurrentQueue<WorkItem>(), new ConcurrentQueue<WorkItem>()];
     }
 
     public string JobId { get; }
