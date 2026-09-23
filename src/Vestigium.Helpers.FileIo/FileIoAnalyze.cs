@@ -49,11 +49,14 @@ internal static class FileIoBuckets
 {
     public static FileIoBucket For(long bytes)
     {
-        if (bytes <= 256L * 1024) return FileIoBucket.Tiny;
-        if (bytes <= 4L * 1024 * 1024) return FileIoBucket.Small;
-        if (bytes <= 32L * 1024 * 1024) return FileIoBucket.Medium;
-        if (bytes <= 256L * 1024 * 1024) return FileIoBucket.Large;
-        return FileIoBucket.Huge;
+        return bytes switch
+        {
+            <= 256L * 1024 => FileIoBucket.Tiny,
+            <= 4L * 1024 * 1024 => FileIoBucket.Small,
+            <= 32L * 1024 * 1024 => FileIoBucket.Medium,
+            <= 256L * 1024 * 1024 => FileIoBucket.Large,
+            _ => FileIoBucket.Huge
+        };
     }
 
     public static string Name(FileIoBucket bucket) => bucket.ToString();

@@ -165,20 +165,16 @@ public static class FileIoHelper
         return Path.Combine(IndexRoot(), hash + ".jsonl");
     }
 
-    static int Prune(string dir, bool isRoot)
+    private static int Prune(string dir, bool isRoot)
     {
-        var n = 0;
-        foreach (var child in Directory.GetDirectories(dir))
-            n += Prune(child, false);
-        if (!isRoot && Directory.GetFileSystemEntries(dir).Length == 0)
-        {
-            Directory.Delete(dir);
-            n++;
-        }
+        var n = Directory.GetDirectories(dir).Sum(child => Prune(child, false));
+        if (isRoot || Directory.GetFileSystemEntries(dir).Length != 0) return n;
+        Directory.Delete(dir);
+        n++;
         return n;
     }
 
-    static void Fill(byte[] buffer, string pass)
+    private static void Fill(byte[] buffer, string pass)
     {
         if (pass.Equals("Zero", StringComparison.OrdinalIgnoreCase))
             Array.Clear(buffer);

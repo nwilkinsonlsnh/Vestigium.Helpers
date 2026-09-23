@@ -114,12 +114,6 @@ public sealed class FileIoJobStats
     {
         var ms = Math.Max(0, elapsed.TotalMilliseconds);
         var jobRate = ms > 0 ? jobBytes * 1000.0 / ms : 0;
-        static IEnumerable<double> Sizes(IEnumerable<FileIoTransferObservation> rows)
-            => rows.Where(r => r.Outcome != "Fail").Select(r => (double)r.SizeBytes);
-        static IEnumerable<double> Rates(IEnumerable<FileIoTransferObservation> rows)
-            => rows.Where(r => r.RateBytesPerSec is > 0).Select(r => r.RateBytesPerSec!.Value);
-        static IEnumerable<double> Durations(IEnumerable<FileIoTransferObservation> rows)
-            => rows.Where(r => r.DurationMs is > 0).Select(r => r.DurationMs!.Value);
 
         var names = new[] { "Tiny", "Small", "Medium", "Large", "Huge" };
         var buckets = new FileIoBucketAnalytics[5];
@@ -149,17 +143,28 @@ public sealed class FileIoJobStats
             ObservationCount = observations.Count,
             TransferredCount = observations.Count(o => o.RateBytesPerSec is > 0),
         };
+
+        static IEnumerable<double> Durations(IEnumerable<FileIoTransferObservation> rows)
+            => rows.Where(r => r.DurationMs is > 0).Select(r => r.DurationMs!.Value);
+
+        static IEnumerable<double> Rates(IEnumerable<FileIoTransferObservation> rows)
+            => rows.Where(r => r.RateBytesPerSec is > 0).Select(r => r.RateBytesPerSec!.Value);
+
+        static IEnumerable<double> Sizes(IEnumerable<FileIoTransferObservation> rows)
+            => rows.Where(r => r.Outcome != "Fail").Select(r => (double)r.SizeBytes);
     }
 
     public string FormatLine(string jobId)
     {
-        string N(double? v) => v is { } d && double.IsFinite(d)
-            ? (Math.Abs(d) >= 100 ? Math.Round(d).ToString("0", CultureInfo.InvariantCulture) : d.ToString("0.00", CultureInfo.InvariantCulture))
-            : "—";
-        string D(decimal? v) => v is { } d ? N((double)d) : "—";
         return
             $"Stats job={jobId} sizes n={FileSizes.Count} mean={N(FileSizes.Mean)} P50={D(FileSizes.Median)} P95={D(FileSizes.P95)} " +
             $"highOutliers={FileSizes.HighOutlierCount} rates n={TransferRates.Count} meanBps={N(TransferRates.Mean)} P95Bps={D(TransferRates.P95)} " +
             $"jobBps={N(JobRateBytesPerSec)} elapsedMs={JobElapsedMs}";
+
+        static string D(decimal? v) => v is { } d ? N((double)d) : "—";
+
+        static string N(double? v) => v is { } d && double.IsFinite(d)
+            ? (Math.Abs(d) >= 100 ? Math.Round(d).ToString("0", CultureInfo.InvariantCulture) : d.ToString("0.00", CultureInfo.InvariantCulture))
+            : "—";
     }
 }
