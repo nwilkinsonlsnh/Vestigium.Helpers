@@ -155,37 +155,84 @@ internal static class HelperLog
 
     private static int EventId(VestigiumLogLevel level, string subcategory, string message)
     {
-        if (!string.Equals(subcategory, Subcategories.Probe, StringComparison.Ordinal))
-            return level switch
-            {
-                VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => JsonEvents.OperationEnter,
-                VestigiumLogLevel.Warning => JsonEvents.OperationWarning,
-                VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => JsonEvents.OperationFailed,
-                _ => JsonEvents.OperationComplete
-            };
-        return level switch
+        if (string.Equals(subcategory, Subcategories.Probe, StringComparison.Ordinal))
         {
-            VestigiumLogLevel.Debug when message.StartsWith("enter", StringComparison.Ordinal) => JsonEvents.ProbeEnter,
-            VestigiumLogLevel.Information => JsonEvents.ProbeComplete,
-            _ => level switch
+            if (level is VestigiumLogLevel.Debug && message.StartsWith("enter", StringComparison.Ordinal))
+                return JsonEvents.ProbeEnter;
+            if (level is VestigiumLogLevel.Information)
+                return JsonEvents.ProbeComplete;
+        }
+
+        return subcategory switch
+        {
+            Subcategories.Session => Map(level, JsonEvents.SessionEnter, JsonEvents.SessionComplete, JsonEvents.SessionFailed),
+            Subcategories.Document => Map(level, JsonEvents.DocumentEnter, JsonEvents.DocumentComplete, JsonEvents.DocumentFailed),
+            Subcategories.Query => Map(level, JsonEvents.QueryEnter, JsonEvents.QueryComplete, JsonEvents.QueryFailed),
+            Subcategories.Snapshot => Map(level, JsonEvents.SnapshotEnter, JsonEvents.SnapshotComplete, JsonEvents.GuardFailed),
+            Subcategories.Diff => Map(level, JsonEvents.DiffEnter, JsonEvents.DiffComplete, JsonEvents.GuardFailed),
+            Subcategories.Commit => Map(level, JsonEvents.CommitEnter, JsonEvents.CommitComplete, JsonEvents.GuardFailed),
+            Subcategories.Save => level switch
             {
-                VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => JsonEvents.OperationEnter,
-                VestigiumLogLevel.Warning => JsonEvents.OperationWarning,
-                VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => JsonEvents.OperationFailed,
-                _ => JsonEvents.OperationComplete
-            }
+                VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => JsonEvents.SaveEnter,
+                VestigiumLogLevel.Warning => JsonEvents.SaveWarning,
+                VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => JsonEvents.SaveFailed,
+                _ => JsonEvents.SaveComplete
+            },
+            Subcategories.Jsonl => Map(level, JsonEvents.JsonlEnter, JsonEvents.JsonlComplete, JsonEvents.JsonlFailed),
+            Subcategories.Guard => level is VestigiumLogLevel.Warning
+                ? JsonEvents.OperationWarning
+                : JsonEvents.GuardFailed,
+            Subcategories.Probe => Fallback(level),
+            _ => Fallback(level)
         };
     }
+
+    private static int Map(VestigiumLogLevel level, int enter, int complete, int failed)
+        => level switch
+        {
+            VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => enter,
+            VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => failed,
+            VestigiumLogLevel.Warning => JsonEvents.OperationWarning,
+            _ => complete
+        };
+
+    private static int Fallback(VestigiumLogLevel level)
+        => level switch
+        {
+            VestigiumLogLevel.Warning => JsonEvents.OperationWarning,
+            VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => JsonEvents.GuardFailed,
+            _ => JsonEvents.SessionComplete
+        };
 
     private static string CatalogMessage(int eventId) => eventId switch
     {
         JsonEvents.ProbeEnter => "enter Probe",
         JsonEvents.ProbeComplete => "probe complete",
-        JsonEvents.OperationEnter => "enter operation",
-        JsonEvents.OperationComplete => "operation complete",
-        JsonEvents.OperationFailed => "operation failed",
+        JsonEvents.SessionEnter => "enter session",
+        JsonEvents.SessionComplete => "session complete",
+        JsonEvents.SessionFailed => "session failed",
+        JsonEvents.DocumentEnter => "enter document",
+        JsonEvents.DocumentComplete => "document complete",
+        JsonEvents.DocumentFailed => "document failed",
+        JsonEvents.QueryEnter => "enter query",
+        JsonEvents.QueryComplete => "query complete",
+        JsonEvents.QueryFailed => "query failed",
+        JsonEvents.SnapshotEnter => "enter snapshot",
+        JsonEvents.SnapshotComplete => "snapshot complete",
+        JsonEvents.DiffEnter => "enter diff",
+        JsonEvents.DiffComplete => "diff complete",
+        JsonEvents.CommitEnter => "enter commit",
+        JsonEvents.CommitComplete => "commit complete",
+        JsonEvents.SaveEnter => "enter save",
+        JsonEvents.SaveComplete => "save complete",
+        JsonEvents.SaveWarning => "save warning",
+        JsonEvents.SaveFailed => "save failed",
+        JsonEvents.JsonlEnter => "enter jsonl",
+        JsonEvents.JsonlComplete => "jsonl complete",
+        JsonEvents.JsonlFailed => "jsonl failed",
+        JsonEvents.GuardFailed => "guard failed",
         JsonEvents.OperationWarning => "operation warning",
-        _ => "operation complete"
+        _ => "session complete"
     };
 
     private sealed record ScopeState(
