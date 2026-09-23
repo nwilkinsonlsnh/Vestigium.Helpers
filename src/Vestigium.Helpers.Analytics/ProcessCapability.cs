@@ -115,9 +115,9 @@ public sealed class ProcessCapability
         if (sigma is not > 0 || mean is not { } xbar)
             return default;
 
-        double? lower = spec.Lower is { } lsl ? (xbar - lsl) / (3d * sigma) : null;
-        double? upper = spec.Upper is { } usl ? (usl - xbar) / (3d * sigma) : null;
-        double? two = spec.Lower is { } lo && spec.Upper is { } hi
+        var lower = spec.Lower is { } lsl ? (xbar - lsl) / (3d * sigma) : null;
+        var upper = spec.Upper is { } usl ? (usl - xbar) / (3d * sigma) : null;
+        var two = spec.Lower is { } lo && spec.Upper is { } hi
             ? (hi - lo) / (6d * sigma)
             : null;
         return new CapabilitySides(two, lower, upper, MinDefined(lower, upper));

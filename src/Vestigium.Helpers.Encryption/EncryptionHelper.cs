@@ -540,10 +540,10 @@ public static class EncryptionHelper
         var (length, unknown) = ResolvePlaintextLength(source, plaintextLength);
 
         var algByte = (byte)alg;
-        byte kdf = secret.IsPassphrase ? (byte)1 : (byte)0;
-        byte kdfMem = kdf == 1 ? Argon2idKdf.MemoryMiB : (byte)0;
-        byte kdfIter = kdf == 1 ? Argon2idKdf.Iterations : (byte)0;
-        byte kdfPar = kdf == 1 ? Argon2idKdf.Parallelism : (byte)0;
+        var kdf = secret.IsPassphrase ? (byte)1 : (byte)0;
+        var kdfMem = kdf == 1 ? Argon2idKdf.MemoryMiB : (byte)0;
+        var kdfIter = kdf == 1 ? Argon2idKdf.Iterations : (byte)0;
+        var kdfPar = kdf == 1 ? Argon2idKdf.Parallelism : (byte)0;
         var salt = kdf == 1 ? RandomNumberGenerator.GetBytes(16) : new byte[16];
         var fileNonce = new byte[12];
         RandomNumberGenerator.Fill(fileNonce.AsSpan(0, 8));
@@ -692,7 +692,7 @@ public static class EncryptionHelper
                 throw new NotSupportedException("alg");
             source.Position = origin;
             Envelope.ReadHeader(source);
-            ulong remaining = trailer.PlaintextLength;
+            var remaining = trailer.PlaintextLength;
             for (uint i = 0; i < frameCount; i++)
             {
                 var n = remaining == 0 ? 0 : (int)Math.Min(Envelope.FrameSize, remaining);

@@ -339,7 +339,7 @@ public sealed class DnsWireTests
     {
         using var ms = new MemoryStream();
         WriteU16(ms, id);
-        ushort flags = (ushort)(0x8000 | (truncated ? 0x0200 : 0) | (rcode & 0xF));
+        var flags = (ushort)(0x8000 | (truncated ? 0x0200 : 0) | (rcode & 0xF));
         WriteU16(ms, flags);
         WriteU16(ms, 1);
         WriteU16(ms, (ushort)answers);

@@ -36,7 +36,7 @@ internal static class ServiceTreeWalker
             return new ServiceTree { Root = node, Children = [] };
         }
 
-        IEnumerable<string> names = direction switch
+        var names = direction switch
         {
             ServiceTreeDirection.DependedBy => node.DependedBy,
             ServiceTreeDirection.Both => node.DependsOn.Concat(node.DependedBy),

@@ -133,7 +133,7 @@ public sealed class EncryptionRsaKey : IDisposable
         if (bits is < MinBits or > MaxBits)
             throw new CryptographicException("The envelope is corrupt.");
         var spki = rsa.ExportSubjectPublicKeyInfo();
-        byte[]? pkcs8 = includePrivate ? rsa.ExportPkcs8PrivateKey() : null;
+        var pkcs8 = includePrivate ? rsa.ExportPkcs8PrivateKey() : null;
         return new EncryptionRsaKey(rsa, spki, pkcs8, bits);
     }
 }

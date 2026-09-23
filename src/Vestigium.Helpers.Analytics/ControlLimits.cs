@@ -276,7 +276,7 @@ public sealed class ControlLimits
             throw new InvalidOperationException("Cannot compute control limits without a mean.");
         }
 
-        double center = mean.Value;
+        var center = mean.Value;
         double upper;
         double lower;
         double? mrBar = null;

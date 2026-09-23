@@ -41,7 +41,7 @@ internal static class RegistryRestore
         IProgress<RegistryCompareProgress>? progress,
         CancellationToken cancel)
     {
-        RegistryHiveKind hive = RegistryHiveKind.CurrentUser;
+        var hive = RegistryHiveKind.CurrentUser;
         var root = "";
         var view = RegistryViewKind.Default;
         var applied = 0;

@@ -122,13 +122,14 @@ internal static class NetworkRouteMutation
     {
         if (callerIndex is { } specified)
         {
-            if (specified < 1)
+            switch (specified)
             {
-                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(ResolveInterfaceIndex), $"ifIndex={specified}");
-                throw new ArgumentOutOfRangeException(nameof(NetworkRouteChange.InterfaceIndex), "InterfaceIndex must be 1 or greater.");
+                case < 1:
+                    HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(ResolveInterfaceIndex), $"ifIndex={specified}");
+                    throw new ArgumentOutOfRangeException(nameof(NetworkRouteChange.InterfaceIndex), "InterfaceIndex must be 1 or greater.");
+                default:
+                    return specified;
             }
-
-            return specified;
         }
 
         if (discoveredIndex is { } found && found >= 1)

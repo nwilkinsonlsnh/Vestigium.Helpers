@@ -56,7 +56,7 @@ internal static class ProcessFullReader
             var status = NativeMethods.NtQueryProcessBasicInfo(
                 vm,
                 NativeMethods.ProcessBasicInformationClass,
-                out NativeMethods.ProcessBasicInfo info,
+                out var info,
                 Marshal.SizeOf<NativeMethods.ProcessBasicInfo>(),
                 out _);
             if (status != 0 || info.PebBaseAddress == 0)
@@ -251,7 +251,7 @@ internal static class ProcessFullReader
         var status = NativeMethods.NtQueryProcessProtection(
             handle,
             NativeMethods.ProcessProtectionInformationClass,
-            out NativeMethods.ProcessProtectionInfo info,
+            out var info,
             Marshal.SizeOf<NativeMethods.ProcessProtectionInfo>(),
             out _);
         if (status != 0)

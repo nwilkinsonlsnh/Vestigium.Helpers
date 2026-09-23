@@ -461,7 +461,7 @@ public sealed class XmlSession : IDisposable
     private static string ElementPath(XElement el)
     {
         var parts = new List<string>();
-        XElement? cur = el;
+        var cur = el;
         while (cur is not null)
         {
             var name = cur.Name.LocalName;

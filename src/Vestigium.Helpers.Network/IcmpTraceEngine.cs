@@ -52,7 +52,7 @@ internal static class IcmpTraceEngine
         var hops = new List<IcmpTraceHop>();
         var protocol = options.PreferUdp ? ProbeProtocol.Udp : ProbeProtocol.Icmp;
         var reached = false;
-        string? resolved = IPAddress.TryParse(target, out var parsed) ? parsed.ToString() : null;
+        var resolved = IPAddress.TryParse(target, out var parsed) ? parsed.ToString() : null;
         var timeoutMs = Math.Clamp((int)options.Timeout.TotalMilliseconds, IcmpEchoOptions.MinTimeoutMs, IcmpEchoOptions.MaxTimeoutMs);
         var buffer = new byte[Math.Clamp(options.BufferSize, 0, IcmpEchoOptions.MaxBufferSize)];
 

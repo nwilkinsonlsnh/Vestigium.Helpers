@@ -47,8 +47,8 @@ internal static class NetworkRouteNetlink
         if (ifIndex < 1)
             throw new ArgumentException("Linux route write requires InterfaceIndex.", nameof(change.InterfaceIndex));
 
-        ushort flags = (ushort)(NlmFRequest | NlmFAck);
-        ushort type = create ? RtmNewRoute : RtmDelRoute;
+        var flags = (ushort)(NlmFRequest | NlmFAck);
+        var type = create ? RtmNewRoute : RtmDelRoute;
         if (create && replace)
             flags |= (ushort)(NlmFCreate | NlmFReplace);
         else if (create)

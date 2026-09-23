@@ -48,7 +48,7 @@ internal static class ProcessThreadReader
         }
 
         var rows = new List<ThreadInfo>(raw.Count);
-        IReadOnlyList<(string Name, nint Base, int Size)> modules = includeStack ? ReadModules(process) : [];
+        var modules = includeStack ? ReadModules(process) : [];
         foreach (ProcessThread thread in raw)
         {
             try { rows.Add(Read(pid, thread, includeStack, modules)); }

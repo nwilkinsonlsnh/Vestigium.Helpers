@@ -18,7 +18,7 @@ internal static partial class ServiceSnapshotter
             ? Array.Empty<RawRow>()
             : ReadHidden(visibleNames);
 
-        IEnumerable<RawRow> rows = scope switch
+        var rows = scope switch
         {
             ServiceListScope.Visible => visible.Values,
             ServiceListScope.Hidden => hidden,
@@ -199,8 +199,8 @@ internal static partial class ServiceSnapshotter
         var availability = new List<ServiceFieldAvailability>();
         var status = ServiceStatus.Unknown;
         int? pid = null;
-        ServiceControls accepted = ServiceControls.None;
-        bool canPause = false;
+        var accepted = ServiceControls.None;
+        var canPause = false;
         int? exit = null;
         int? specific = null;
         int? checkpoint = null;

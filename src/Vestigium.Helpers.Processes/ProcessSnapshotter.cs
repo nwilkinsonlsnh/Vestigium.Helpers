@@ -217,7 +217,7 @@ internal static class ProcessSnapshotter
         var status = NativeMethods.NtQueryProcessBasicInfo(
             handle,
             NativeMethods.ProcessBasicInformationClass,
-            out NativeMethods.ProcessBasicInfo info,
+            out var info,
             Marshal.SizeOf<NativeMethods.ProcessBasicInfo>(),
             out _);
         if (status != 0)
