@@ -79,7 +79,7 @@ internal static class PasswordHash
     private static void ValidatePassword(string password)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
-        if (password.Length < PasswordMin || password.Length > PasswordMax)
+        if (password.Length is < PasswordMin or > PasswordMax)
             throw new ArgumentException($"Password must be {PasswordMin}–{PasswordMax} characters.", nameof(password));
     }
 

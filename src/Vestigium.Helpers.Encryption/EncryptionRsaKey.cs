@@ -130,7 +130,7 @@ public sealed class EncryptionRsaKey : IDisposable
     private static EncryptionRsaKey FromRsa(RSA rsa, bool includePrivate)
     {
         var bits = rsa.KeySize;
-        if (bits < MinBits || bits > MaxBits)
+        if (bits is < MinBits or > MaxBits)
             throw new CryptographicException("The envelope is corrupt.");
         var spki = rsa.ExportSubjectPublicKeyInfo();
         byte[]? pkcs8 = includePrivate ? rsa.ExportPkcs8PrivateKey() : null;

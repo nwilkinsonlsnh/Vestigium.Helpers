@@ -31,7 +31,7 @@ internal static class IcmpTraceEngine
         }
 
         var timeoutMs = o.Timeout.TotalMilliseconds;
-        if (timeoutMs < IcmpEchoOptions.MinTimeoutMs || timeoutMs > IcmpEchoOptions.MaxTimeoutMs)
+        if (timeoutMs is < IcmpEchoOptions.MinTimeoutMs or > IcmpEchoOptions.MaxTimeoutMs)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"TimeoutMs={timeoutMs:0}");
             throw new ArgumentOutOfRangeException(nameof(o.Timeout), "Timeout must be between 10 ms and 60 s.");

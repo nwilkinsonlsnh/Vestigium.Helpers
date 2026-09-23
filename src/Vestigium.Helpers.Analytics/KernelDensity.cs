@@ -11,14 +11,24 @@ public readonly record struct DensityPoint(double X, double Y);
 /// </summary>
 public static class KernelDensity
 {
+    /// <summary>
+    /// Gets the default number of points for the PDF.
+    /// </summary>
     public const int DefaultCount = 64;
+
+    /// <summary>
+    /// Gets the maximum number of points for the PDF.
+    /// </summary>
     public const int MaxCount = 512;
+    /// <summary>
+    /// Gets the Silverman bandwidth factor.
+    /// </summary>
     public const double Silverman = 1.06;
 
     public static IReadOnlyList<DensityPoint> PdfPoints(this SeriesSlice slice, int count = DefaultCount)
     {
         ArgumentNullException.ThrowIfNull(slice);
-        if (count < 1 || count > MaxCount)
+        if (count is < 1 or > MaxCount)
         {
             AnalyticsLog.Error(
                 AnalyticsEvents.LimitsRejected,
@@ -49,12 +59,7 @@ public static class KernelDensity
         for (var i = 0; i < count; i++)
         {
             var x = count == 1 ? 0.5 * (lo + hi) : lo + (hi - lo) * i / (count - 1);
-            double sum = 0;
-            foreach (var raw in slice.Values)
-            {
-                var u = (x - (double)raw) / h;
-                sum += Math.Exp(-0.5 * u * u) * invSqrt2Pi;
-            }
+            var sum = slice.Values.Select(raw => (x - (double)raw) / h).Select(u => Math.Exp(-0.5 * u * u) * invSqrt2Pi).Sum();
 
             points[i] = new DensityPoint(x, inv * sum);
         }

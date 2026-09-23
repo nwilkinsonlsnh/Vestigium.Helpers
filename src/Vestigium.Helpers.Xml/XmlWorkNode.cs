@@ -48,7 +48,7 @@ public sealed class XmlWorkNode
             return true;
         }
 
-        value = default;
+        value = false;
         return false;
     }
 

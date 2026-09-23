@@ -445,7 +445,7 @@ internal static class SubnetEngine
         if (b[0] == 0xFE && (b[1] & 0xC0) == 0x80) kind |= AddressKind.LinkLocal;
         if ((b[0] & 0xFE) == 0xFC) kind |= AddressKind.UniqueLocal;
         if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0D && b[3] == 0xB8) kind |= AddressKind.Documentation;
-        if (kind == AddressKind.None || kind == AddressKind.Ipv4Mapped)
+        if (kind is AddressKind.None or AddressKind.Ipv4Mapped)
             kind |= AddressKind.GlobalUnicast;
         return kind;
     }

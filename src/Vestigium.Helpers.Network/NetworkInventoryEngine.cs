@@ -24,15 +24,7 @@ internal static class NetworkInventoryEngine
         {
         }
 
-        var adapters = new List<NetworkAdapter>();
-        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
-        {
-            if (!query.IncludeDown && nic.OperationalStatus != OperationalStatus.Up)
-                continue;
-            if (!Matches(nic, query))
-                continue;
-            adapters.Add(Map(nic));
-        }
+        var adapters = (from nic in NetworkInterface.GetAllNetworkInterfaces() where query.IncludeDown || nic.OperationalStatus == OperationalStatus.Up where Matches(nic, query) select Map(nic)).ToList();
 
         return new WorkstationNetwork(
             host,
@@ -67,13 +59,11 @@ internal static class NetworkInventoryEngine
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(query.Id)
-            && !string.Equals(nic.Id, query.Id, StringComparison.OrdinalIgnoreCase))
+        return string.IsNullOrWhiteSpace(query.Id) switch
         {
-            return false;
-        }
-
-        return true;
+            false when !string.Equals(nic.Id, query.Id, StringComparison.OrdinalIgnoreCase) => false,
+            _ => true
+        };
     }
 
     private static NetworkAdapter Map(NetworkInterface nic)
@@ -249,9 +239,11 @@ internal static class NetworkInventoryEngine
         try
         {
             var bytes = nic.GetPhysicalAddress().GetAddressBytes();
-            if (bytes.Length == 0)
-                return null;
-            return string.Join(":", bytes.Select(b => b.ToString("X2")));
+            return bytes.Length switch
+            {
+                0 => null,
+                _ => string.Join(":", bytes.Select(b => b.ToString("X2")))
+            };
         }
         catch (NetworkInformationException)
         {

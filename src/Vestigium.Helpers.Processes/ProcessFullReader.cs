@@ -110,7 +110,7 @@ internal static class ProcessFullReader
 
     private static byte[]? ReadBytes(nint handle, nint address, int size)
     {
-        if (size <= 0 || size > 64 * 1024)
+        if (size is <= 0 or > 64 * 1024)
             return null;
         var buffer = new byte[size];
         if (!NativeMethods.ReadProcessMemory(handle, address, buffer, size, out var read) || read.ToInt64() != size)

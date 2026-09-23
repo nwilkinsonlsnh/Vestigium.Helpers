@@ -183,7 +183,7 @@ public static partial class HashingHelper
 
     private static void EnsureShakeOutput(int outputLength)
     {
-        if (outputLength < ShakeMinOutput || outputLength > ShakeMaxOutput)
+        if (outputLength is < ShakeMinOutput or > ShakeMaxOutput)
             throw new ArgumentOutOfRangeException(nameof(outputLength), "SHAKE output is 1–1024 bytes.");
     }
 }

@@ -224,7 +224,7 @@ internal static class CsvCodec
         sb.Append("\r\n");
     }
 
-    private static bool IsTextual(object? value) => value is string || value is not (
+    private static bool IsTextual(object? value) => value is string or not (
         null or bool or byte or sbyte or short or ushort or int or uint
         or long or ulong or decimal or float or double or DateTime or DateTimeOffset or TimeSpan);
 

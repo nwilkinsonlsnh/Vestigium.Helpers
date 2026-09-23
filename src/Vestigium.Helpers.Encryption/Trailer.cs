@@ -285,7 +285,7 @@ internal static class Trailer
         if (region.Length == 0)
             return [];
         var count = region[0];
-        if (count == 0 || count > MaxWraps)
+        if (count is 0 or > MaxWraps)
             throw new CryptographicException("The envelope is corrupt.");
         var list = new List<RsaWrapRecord>(count);
         var o = 1;

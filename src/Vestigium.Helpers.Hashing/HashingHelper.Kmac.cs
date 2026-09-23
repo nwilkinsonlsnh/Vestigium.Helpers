@@ -225,7 +225,7 @@ public static partial class HashingHelper
 
     private static void EnsureKmacOutput(int outputLength)
     {
-        if (outputLength < KmacMinOutput || outputLength > KmacMaxOutput)
+        if (outputLength is < KmacMinOutput or > KmacMaxOutput)
             throw new ArgumentOutOfRangeException(nameof(outputLength), "KMAC output is 16–1024 bytes.");
     }
 }

@@ -48,9 +48,7 @@ internal static class MacEngine
 
     public static MacAddress ToModifiedEui64(MacAddress mac)
     {
-        if (mac.Kind == EuiKind.Eui64)
-            return mac;
-        return FromOctets(Expand48(mac.Octets));
+        return mac.Kind == EuiKind.Eui64 ? mac : FromOctets(Expand48(mac.Octets));
     }
 
     public static MacAddress ToEui48(MacAddress mac)
@@ -154,9 +152,7 @@ internal static class MacEngine
         var hyphen = Join(copy, '-');
         var bare = Convert.ToHexString(copy);
         var cisco = Cisco(copy);
-        ulong integer = 0;
-        foreach (var b in copy)
-            integer = (integer << 8) | b;
+        var integer = copy.Aggregate<byte, ulong>(0, (current, b) => (current << 8) | b);
 
         var first = copy[0];
         var multicast = (first & 0x01) != 0;
@@ -246,10 +242,8 @@ internal static class MacEngine
             return FromIntGuess(dec, 0);
 
         var hex = new StringBuilder();
-        foreach (var ch in trimmed)
+        foreach (var ch in trimmed.Where(ch => ch is not (':' or '-' or '.' or ' ')))
         {
-            if (ch is ':' or '-' or '.' or ' ')
-                continue;
             hex.Append(ch);
         }
 

@@ -70,7 +70,7 @@ internal static class NetworkLinuxTables
 
     internal static bool TryParseNeighbor(string line, out NetworkNeighbor neighbor)
     {
-        neighbor = default!;
+        neighbor = null!;
         var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 6)
             return false;
@@ -85,7 +85,7 @@ internal static class NetworkLinuxTables
 
     internal static bool TryParseIpv4Route(string line, out NetworkRoute route)
     {
-        route = default!;
+        route = null!;
         var parts = line.Split('\t', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 8)
             parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -103,7 +103,7 @@ internal static class NetworkLinuxTables
 
     internal static bool TryParseIpv6Route(string line, out NetworkRoute route)
     {
-        route = default!;
+        route = null!;
         var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 10)
             return false;
@@ -116,9 +116,7 @@ internal static class NetworkLinuxTables
 
     internal static string HexIpv4(string hex)
     {
-        if (!uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value))
-            return "0.0.0.0";
-        return new IPAddress(Ipv4Bytes(value, BitConverter.IsLittleEndian)).ToString();
+        return !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value) ? "0.0.0.0" : new IPAddress(Ipv4Bytes(value, BitConverter.IsLittleEndian)).ToString();
     }
 
     internal static byte[] Ipv4Bytes(uint value, bool littleEndian)

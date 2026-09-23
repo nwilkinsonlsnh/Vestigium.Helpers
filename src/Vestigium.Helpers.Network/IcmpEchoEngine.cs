@@ -37,7 +37,7 @@ internal static class IcmpEchoEngine
         }
 
         var timeoutMs = o.Timeout.TotalMilliseconds;
-        if (timeoutMs < IcmpEchoOptions.MinTimeoutMs || timeoutMs > IcmpEchoOptions.MaxTimeoutMs)
+        if (timeoutMs is < IcmpEchoOptions.MinTimeoutMs or > IcmpEchoOptions.MaxTimeoutMs)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"TimeoutMs={timeoutMs:0}");
             throw new ArgumentOutOfRangeException(nameof(o.Timeout), "Timeout must be between 10 ms and 60 s.");
@@ -49,7 +49,7 @@ internal static class IcmpEchoEngine
             throw new ArgumentOutOfRangeException(nameof(o.Interval), "Interval cannot be negative.");
         }
 
-        if (o.BufferSize < IcmpEchoOptions.MinBufferSize || o.BufferSize > IcmpEchoOptions.MaxBufferSize)
+        if (o.BufferSize is < IcmpEchoOptions.MinBufferSize or > IcmpEchoOptions.MaxBufferSize)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"BufferSize={o.BufferSize}");
             throw new ArgumentOutOfRangeException(nameof(o.BufferSize), "BufferSize must be between 1 and 65500.");
@@ -208,6 +208,10 @@ internal static class IcmpEchoEngine
             case NetworkJobStatus.Cancelled:
                 NetworkLog.Warning(HelperLog.Subcategories.Icmp, line);
                 break;
+            case NetworkJobStatus.Pending:
+            case NetworkJobStatus.Running:
+            case NetworkJobStatus.Failed:
+            case NetworkJobStatus.TimedOut:
             default:
                 NetworkLog.Failed(HelperLog.Subcategories.Icmp, line);
                 break;

@@ -223,7 +223,7 @@ internal static class ProcessSnapshotter
         if (status != 0)
             return null;
         var parent = info.InheritedFromUniqueProcessId.ToInt64();
-        if (parent < 0 || parent > int.MaxValue)
+        if (parent is < 0 or > int.MaxValue)
             return null;
         return (int)parent;
     }

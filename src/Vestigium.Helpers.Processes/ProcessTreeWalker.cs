@@ -20,7 +20,7 @@ internal static class ProcessTreeWalker
         var childrenOf = new Dictionary<int, List<ProcessInfo>>();
         foreach (var row in byPid.Values)
         {
-            if (row.ParentPid is not int parent || parent <= 0)
+            if (row.ParentPid is not (int parent and > 0))
                 continue;
             if (!childrenOf.TryGetValue(parent, out var list))
             {
