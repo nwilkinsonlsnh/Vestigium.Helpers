@@ -112,10 +112,13 @@ internal static class XmlEncoding
         if (string.IsNullOrWhiteSpace(name))
             return null;
         var n = name.Trim().ToLowerInvariant().Replace('_', '-');
-        if (n is "utf8") return "utf-8";
-        if (n is "utf16" or "utf-16" or "utf-16le" or "unicode") return "utf-16le";
-        if (n is "utf-16be") return "utf-16be";
-        return n;
+        return n switch
+        {
+            "utf8" => "utf-8",
+            "utf16" or "utf-16" or "utf-16le" or "unicode" => "utf-16le",
+            "utf-16be" => "utf-16be",
+            _ => n
+        };
     }
 
     internal static Encoding ForName(string name)

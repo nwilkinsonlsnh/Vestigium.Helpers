@@ -1,16 +1,10 @@
 namespace Vestigium.Helpers.Xml;
 
-public sealed class XmlMediaType : IEquatable<XmlMediaType>
+public sealed class XmlMediaType(string type, string? charset = "utf-8") : IEquatable<XmlMediaType>
 {
-    public XmlMediaType(string type, string? charset = "utf-8")
-    {
-        Type = Normalize(type);
-        Charset = string.IsNullOrWhiteSpace(charset) ? null : charset.Trim();
-    }
+    public string Type { get; } = Normalize(type);
 
-    public string Type { get; }
-
-    public string? Charset { get; }
+    public string? Charset { get; } = string.IsNullOrWhiteSpace(charset) ? null : charset.Trim();
 
     public static XmlMediaType ApplicationXml { get; } = new("application/xml", "utf-8");
 
@@ -45,18 +39,18 @@ public sealed class XmlMediaType : IEquatable<XmlMediaType>
 
     public static XmlMediaType Guess(string? hint, bool looksLikeDtd)
     {
-        if (!string.IsNullOrWhiteSpace(hint) && IsXmlFamily(hint))
+        switch (string.IsNullOrWhiteSpace(hint))
         {
-            var type = Normalize(hint);
-            if (type == "text/xml")
-                type = "application/xml";
-            return new XmlMediaType(type, "utf-8");
+            case false when hint != null && IsXmlFamily(hint):
+            {
+                var type = Normalize(hint);
+                if (type == "text/xml")
+                    type = "application/xml";
+                return new XmlMediaType(type, "utf-8");
+            }
+            default:
+                return looksLikeDtd ? new XmlMediaType("application/xml-dtd", "utf-8") : ApplicationXml;
         }
-
-        if (looksLikeDtd)
-            return new XmlMediaType("application/xml-dtd", "utf-8");
-
-        return ApplicationXml;
     }
 
     private static string Normalize(string mediaType)

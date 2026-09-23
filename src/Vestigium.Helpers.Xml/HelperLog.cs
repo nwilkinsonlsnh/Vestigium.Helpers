@@ -157,16 +157,15 @@ internal static class HelperLog
     private sealed record ScopeState(
         string AppId, string Subcategory, string Method, string? CorrelationId, ScopeState? Parent);
 
-    private sealed class PopScope : IDisposable
+    private sealed class PopScope(ScopeState? parent) : IDisposable
     {
-        private readonly ScopeState? _parent;
         private int _done;
-        public PopScope(ScopeState? parent) => _parent = parent;
+
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _done, 1) == 1)
                 return;
-            Scope.Value = _parent;
+            Scope.Value = parent;
         }
     }
 }

@@ -37,19 +37,18 @@ public sealed class XmlWorkNode
         var raw = Pick(attribute);
         if (bool.TryParse(raw, out value))
             return true;
-        if (raw is "1" or "true" or "True")
+        switch (raw)
         {
-            value = true;
-            return true;
+            case "1" or "true" or "True":
+                value = true;
+                return true;
+            case "0" or "false" or "False":
+                value = false;
+                return true;
+            default:
+                value = false;
+                return false;
         }
-        if (raw is "0" or "false" or "False")
-        {
-            value = false;
-            return true;
-        }
-
-        value = false;
-        return false;
     }
 
     public bool TryGetGuid(string? attribute, out Guid value)

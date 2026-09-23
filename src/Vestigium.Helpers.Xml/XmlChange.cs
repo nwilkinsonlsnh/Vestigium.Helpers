@@ -1,19 +1,12 @@
 namespace Vestigium.Helpers.Xml;
 
-public sealed class XmlChange
+public sealed class XmlChange(string op, string path, string localName)
 {
-    public XmlChange(string op, string path, string localName)
-    {
-        Op = op;
-        Path = path;
-        LocalName = localName;
-    }
+    public string Op { get; } = op;
 
-    public string Op { get; }
+    public string Path { get; } = path;
 
-    public string Path { get; }
-
-    public string LocalName { get; }
+    public string LocalName { get; } = localName;
 
     public override string ToString() => Op + " " + Path;
 }

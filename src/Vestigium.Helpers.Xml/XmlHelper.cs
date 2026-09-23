@@ -20,7 +20,7 @@ public static class XmlHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Probe, "Probe");
         HelperLog.Information(app, VestigiumStatus.Pending, HelperLog.Subcategories.Probe, "Building a demo XML document.");
         _ = Parse("<probe identity=\"Vestigium.Helpers.Xml\"/>");
@@ -37,11 +37,9 @@ public static class XmlHelper
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         if (string.IsNullOrWhiteSpace(desktop))
             desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        if (string.IsNullOrWhiteSpace(desktop))
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
-        }
+        if (!string.IsNullOrWhiteSpace(desktop)) return Path.Combine(desktop, "Vestigium", "Exports", "Xml");
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        desktop = Path.Combine(string.IsNullOrWhiteSpace(home) ? "." : home, "Desktop");
 
         return Path.Combine(desktop, "Vestigium", "Exports", "Xml");
     }
@@ -57,7 +55,7 @@ public static class XmlHelper
 
     public static XDocument Parse(string xml, XmlReadOptions? options = null)
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Document, "Parse");
         try
         {
@@ -83,7 +81,7 @@ public static class XmlHelper
 
     public static XDocument Parse(Stream stream, XmlReadOptions? options = null)
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Document, "ParseStream");
         try
         {
@@ -116,7 +114,7 @@ public static class XmlHelper
 
     public static XmlSession Create(string? path = null, XmlSessionOptions? options = null)
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         var sessionId = HelperLog.NewId();
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Create", $"session={sessionId}", sessionId);
         try
@@ -147,7 +145,7 @@ public static class XmlHelper
 
     public static XmlSession Open(string path, XmlSessionOptions? options = null)
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         var sessionId = HelperLog.NewId();
         var target = Path.GetFullPath(HelperGuard.FileExists(path, nameof(path)));
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
@@ -194,7 +192,7 @@ public static class XmlHelper
 
     public static XmlDocumentStream OpenMulti(string path, XmlSessionOptions? options = null)
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         var target = Path.GetFullPath(HelperGuard.FileExists(path, nameof(path)));
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Multi, "OpenMulti", "path=" + target);
         try
@@ -246,7 +244,7 @@ public static class XmlHelper
 
     public static void WriteFile(string path, XDocument document, XmlWriteOptions? options = null)
     {
-        var app = HelperLog.AppIds.Xml;
+        const string app = HelperLog.AppIds.Xml;
         var target = Path.GetFullPath(HelperGuard.NotBlank(path, nameof(path)));
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Save, "WriteFile", "path=" + target);
         try

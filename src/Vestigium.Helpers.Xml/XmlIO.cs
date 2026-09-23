@@ -48,15 +48,12 @@ internal static class XmlIo
         }
 
         using var reader = XmlReader.Create(new StringReader(remainder), SafeReaderSettings(options));
-        var load = LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo;
+        const LoadOptions load = LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo;
         var document = XDocument.Load(reader, load);
-        if (document.Root is null)
-        {
-            HelperLog.Reject("document has no root");
-            throw new XmlException("XML document has no root.");
-        }
+        if (document.Root is not null) return (document, doctype);
+        HelperLog.Reject("document has no root");
+        throw new XmlException("XML document has no root.");
 
-        return (document, doctype);
     }
 
     internal static List<(XDocument Document, string? Doctype)> LoadMany(string text, XmlReadOptions options)
@@ -89,12 +86,10 @@ internal static class XmlIo
                 HelperLog.Subcategories.Multi,
                 $"skipped unparseable documents={skipped}");
         }
-        if (list.Count == 0)
-        {
-            HelperLog.Reject("stream has no xml documents");
-            throw new XmlException("XML stream has no documents.");
-        }
-        return list;
+
+        if (list.Count != 0) return list;
+        HelperLog.Reject("stream has no xml documents");
+        throw new XmlException("XML stream has no documents.");
     }
 
     internal static List<string> SplitDocuments(string source)
@@ -217,14 +212,12 @@ internal static class XmlIo
         }
 
         var xml = builder.ToString();
-        if (doctype is not null)
-        {
-            var declEnd = xml.IndexOf("?>", StringComparison.Ordinal);
-            if (declEnd >= 0)
-                xml = xml[..(declEnd + 2)] + Environment.NewLine + doctype + xml[(declEnd + 2)..];
-            else
-                xml = doctype + Environment.NewLine + xml;
-        }
+        if (doctype is null) return xml;
+        var declEnd = xml.IndexOf("?>", StringComparison.Ordinal);
+        if (declEnd >= 0)
+            xml = xml[..(declEnd + 2)] + Environment.NewLine + doctype + xml[(declEnd + 2)..];
+        else
+            xml = doctype + Environment.NewLine + xml;
 
         return xml;
     }
@@ -253,8 +246,7 @@ internal static class XmlIo
     internal static string ResolveExportFile(string directory, string stem)
     {
         var file = stem.Trim();
-        foreach (var ch in Path.GetInvalidFileNameChars())
-            file = file.Replace(ch, '_');
+        file = Path.GetInvalidFileNameChars().Aggregate(file, (current, ch) => current.Replace(ch, '_'));
         if (file is "." or ".." || string.IsNullOrWhiteSpace(file))
         {
             HelperLog.Reject("stem is not a file name");
@@ -267,13 +259,11 @@ internal static class XmlIo
         var dest = Path.GetFullPath(Path.Combine(directory, file));
         var root = Path.GetFullPath(directory);
         var prefix = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
-        if (!dest.StartsWith(prefix, StringComparison.Ordinal) && !string.Equals(dest, root, StringComparison.Ordinal))
-        {
-            HelperLog.Reject("export path escaped the export folder");
-            throw new ArgumentException("Export stem must stay under the export folder.", nameof(stem));
-        }
+        if (dest.StartsWith(prefix, StringComparison.Ordinal) ||
+            string.Equals(dest, root, StringComparison.Ordinal)) return dest;
+        HelperLog.Reject("export path escaped the export folder");
+        throw new ArgumentException("Export stem must stay under the export folder.", nameof(stem));
 
-        return dest;
     }
 
     internal static byte[] ReadAllBytes(string path)
@@ -302,11 +292,9 @@ internal static class XmlIo
         }
         catch
         {
-            if (File.Exists(temp))
-            {
-                try { File.Delete(temp); }
-                catch (IOException) { }
-            }
+            if (!File.Exists(temp)) throw;
+            try { File.Delete(temp); }
+            catch (IOException) { }
             throw;
         }
     }
@@ -380,13 +368,13 @@ internal static class XmlIo
                     quote = null;
                 continue;
             }
-            if (p + 3 < text.Length && text.AsSpan(p, 4).SequenceEqual("<!--"))
+            if (p + 3 < text.Length && text.AsSpan(p, 4) is "<!--")
             {
                 inComment = true;
                 p += 3;
                 continue;
             }
-            if (p + 8 < text.Length && text.AsSpan(p, 9).SequenceEqual("<![CDATA["))
+            if (p + 8 < text.Length && text.AsSpan(p, 9) is "<![CDATA[")
             {
                 inCdata = true;
                 p += 8;

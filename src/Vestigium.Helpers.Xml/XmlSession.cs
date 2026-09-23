@@ -19,7 +19,7 @@ public sealed class XmlSession : IDisposable
     private XDocument _committed;
     private XDocument _saved;
     private XDocument? _snapshot;
-    private string? _doctype;
+    private readonly string? _doctype;
     private bool _disposed;
 
     internal XmlSession(
@@ -272,9 +272,7 @@ public sealed class XmlSession : IDisposable
     public string Save()
     {
         ThrowIfDisposed();
-        if (string.IsNullOrWhiteSpace(Path))
-            return SaveAs(XmlHelper.NewExportPath(), Options.Collision);
-        return WriteTree(_committed, Path, replaceInPlace: true, Options.Collision, working: false, "Save");
+        return string.IsNullOrWhiteSpace(Path) ? SaveAs(XmlHelper.NewExportPath(), Options.Collision) : WriteTree(_committed, Path, replaceInPlace: true, Options.Collision, working: false, "Save");
     }
 
     public string SaveWorking()
@@ -378,36 +376,34 @@ public sealed class XmlSession : IDisposable
         var hits = new List<XmlWorkNode>();
         foreach (var el in root.DescendantsAndSelf())
         {
-            if (q.Ancestor is not null && !el.Ancestors().Any(a => a.Name.LocalName == q.Ancestor))
+            if (q.Ancestor is not null && el.Ancestors().All(a => a.Name.LocalName != q.Ancestor))
                 continue;
 
-            if (q.Kind == "name")
+            switch (q.Kind)
             {
-                if (el.Name.LocalName != q.LocalName)
+                case "name" when el.Name.LocalName != q.LocalName:
+                case "name" when q.NamespaceUri is not null && el.Name.NamespaceName != q.NamespaceUri:
+                case "name" when q.Text is not null && !XmlSearch.Matches(ElementText(el), q.Text, q.Match, q.CaseInsensitive):
                     continue;
-                if (q.NamespaceUri is not null && el.Name.NamespaceName != q.NamespaceUri)
-                    continue;
-                if (q.Text is not null && !XmlSearch.Matches(ElementText(el), q.Text, q.Match, q.CaseInsensitive))
-                    continue;
-                hits.Add(ToWorkNode(el));
-                continue;
-            }
-
-            if (q.Kind == "text")
-            {
-                if (q.Text is not null && XmlSearch.Matches(ElementText(el), q.Text, q.Match, q.CaseInsensitive))
+                case "name":
                     hits.Add(ToWorkNode(el));
-                continue;
-            }
-
-            if (q.Kind == "attribute")
-            {
-                var attr = el.Attributes().FirstOrDefault(a => !a.IsNamespaceDeclaration && a.Name.LocalName == q.AttributeName);
-                if (attr is null)
                     continue;
-                if (q.AttributeValue is not null && !XmlSearch.Matches(attr.Value, q.AttributeValue, q.Match, q.CaseInsensitive))
+                case "text":
+                {
+                    if (q.Text is not null && XmlSearch.Matches(ElementText(el), q.Text, q.Match, q.CaseInsensitive))
+                        hits.Add(ToWorkNode(el));
                     continue;
-                hits.Add(ToWorkNode(el));
+                }
+                case "attribute":
+                {
+                    var attr = el.Attributes().FirstOrDefault(a => !a.IsNamespaceDeclaration && a.Name.LocalName == q.AttributeName);
+                    if (attr is null)
+                        continue;
+                    if (q.AttributeValue is not null && !XmlSearch.Matches(attr.Value, q.AttributeValue, q.Match, q.CaseInsensitive))
+                        continue;
+                    hits.Add(ToWorkNode(el));
+                    break;
+                }
             }
         }
 
@@ -477,9 +473,7 @@ public sealed class XmlSession : IDisposable
 
     private static string ElementText(XElement el)
     {
-        if (el.HasElements)
-            return string.Empty;
-        return (el.Value ?? string.Empty).Trim();
+        return el.HasElements ? string.Empty : (el.Value ?? string.Empty).Trim();
     }
 
     private static List<XmlChange> Compare(XDocument baseline, XDocument working)
