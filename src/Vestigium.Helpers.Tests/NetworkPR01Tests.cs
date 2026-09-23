@@ -247,18 +247,9 @@ public sealed class NetworkPR01Tests : IDisposable
         Assert.False(DnsClient.IsExpectedDnsPeer(null, server, 53));
     }
 
-    private sealed class StubOuiHandler : HttpMessageHandler
+    private sealed class StubOuiHandler(HttpStatusCode status, string body) : HttpMessageHandler
     {
-        private readonly HttpStatusCode _status;
-        private readonly string _body;
-
-        public StubOuiHandler(HttpStatusCode status, string body)
-        {
-            _status = status;
-            _body = body;
-        }
-
-        public string? Location { get; set; }
+        public string? Location { get; init; }
         public int Calls { get; private set; }
         public Uri? LastUri { get; private set; }
 
@@ -266,9 +257,9 @@ public sealed class NetworkPR01Tests : IDisposable
         {
             Calls++;
             LastUri = request.RequestUri;
-            var response = new HttpResponseMessage(_status)
+            var response = new HttpResponseMessage(status)
             {
-                Content = new StringContent(_body)
+                Content = new StringContent(body)
             };
             if (!string.IsNullOrWhiteSpace(Location))
                 response.Headers.Location = new Uri(Location, UriKind.Absolute);

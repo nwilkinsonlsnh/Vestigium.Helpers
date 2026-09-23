@@ -120,16 +120,16 @@ public sealed class ShareCampaign
 
     private sealed class ShareRecipe
     {
-        public string CampaignId { get; set; } = "";
-        public string ShareDirectory { get; set; } = "";
-        public string Mode { get; set; } = "Default";
-        public double Efficiency { get; set; } = 1;
-        public long MaxProbeBytes { get; set; }
-        public long ProbeBytes { get; set; } = 64L * 1024 * 1024;
-        public int ProbeCount { get; set; } = 4;
-        public decimal? PlannedBits { get; set; }
-        public decimal? DeclaredPipeBits { get; set; }
-        public string? ResultsPath { get; set; }
+        public string CampaignId { get; init; } = "";
+        public string ShareDirectory { get; init; } = "";
+        public string Mode { get; init; } = "Default";
+        public double Efficiency { get; init; } = 1;
+        public long MaxProbeBytes { get; init; }
+        public long ProbeBytes { get; init; } = 64L * 1024 * 1024;
+        public int ProbeCount { get; init; } = 4;
+        public decimal? PlannedBits { get; init; }
+        public decimal? DeclaredPipeBits { get; init; }
+        public string? ResultsPath { get; init; }
 
         public ShareCampaignOptions ToOptions()
             => new()

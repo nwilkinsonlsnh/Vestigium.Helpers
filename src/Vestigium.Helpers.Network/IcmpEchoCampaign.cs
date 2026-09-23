@@ -221,9 +221,7 @@ public sealed class IcmpEchoCampaign
 
     private static TimeZoneInfo ResolveZone(string? id)
     {
-        if (string.IsNullOrWhiteSpace(id))
-            return TimeZoneInfo.Local;
-        return TimeZoneInfo.FindSystemTimeZoneById(id);
+        return string.IsNullOrWhiteSpace(id) ? TimeZoneInfo.Local : TimeZoneInfo.FindSystemTimeZoneById(id);
     }
 
     private string ResolveResultsPath()
@@ -276,14 +274,14 @@ public sealed class IcmpEchoCampaign
 
     private sealed class CampaignRecipe
     {
-        public string CampaignId { get; set; } = "";
-        public string Target { get; set; } = "";
-        public string RangeStartDate { get; set; } = "";
-        public string RangeEndDate { get; set; } = "";
-        public string? TimeZoneId { get; set; }
-        public int GraceMinutes { get; set; } = 15;
-        public List<CampaignWindowDto> Windows { get; set; } = [];
-        public string? ResultsPath { get; set; }
+        public string CampaignId { get; init; } = "";
+        public string Target { get; init; } = "";
+        public string RangeStartDate { get; init; } = "";
+        public string RangeEndDate { get; init; } = "";
+        public string? TimeZoneId { get; init; }
+        public int GraceMinutes { get; init; } = 15;
+        public List<CampaignWindowDto> Windows { get; init; } = [];
+        public string? ResultsPath { get; init; }
 
         public IcmpEchoCampaignOptions ToOptions()
             => new()
@@ -300,7 +298,7 @@ public sealed class IcmpEchoCampaign
 
     private sealed class CampaignWindowDto
     {
-        public string LocalTime { get; set; } = "";
-        public int Count { get; set; }
+        public string LocalTime { get; init; } = "";
+        public int Count { get; init; }
     }
 }

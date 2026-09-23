@@ -230,13 +230,20 @@ internal static class DnsClient
 
     private static bool AddressesEqual(IPAddress left, IPAddress right)
     {
-        if (left.Equals(right))
-            return true;
-        if (left.IsIPv4MappedToIPv6)
-            return AddressesEqual(left.MapToIPv4(), right);
-        if (right.IsIPv4MappedToIPv6)
-            return AddressesEqual(left, right.MapToIPv4());
-        return false;
+        while (true)
+        {
+            if (left.Equals(right)) return true;
+            if (!left.IsIPv4MappedToIPv6)
+                return right.IsIPv4MappedToIPv6 switch
+                {
+                    true => AddressesEqual(left, right.MapToIPv4()),
+                    _ => false
+                };
+            left = left.MapToIPv4();
+            continue;
+
+            break;
+        }
     }
 
     private static async Task<(byte[] Data, bool Truncated)> UdpExchangeAsync(

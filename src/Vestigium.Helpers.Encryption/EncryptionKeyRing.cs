@@ -77,7 +77,7 @@ public sealed class EncryptionKeyRing : IDisposable
     private readonly List<EncryptionKeyRecord> _contacts = [];
     private bool _disposed;
 
-    public Guid RingId { get; private set; } = Guid.NewGuid();
+    public Guid RingId { get; private init; } = Guid.NewGuid();
     public string Title { get; private set; } = "Vestigium key ring";
     public IReadOnlyList<EncryptionKeyRecord> Pairs => _pairs;
     public IReadOnlyList<EncryptionKeyRecord> Contacts => _contacts;
@@ -467,33 +467,33 @@ public sealed class EncryptionKeyRing : IDisposable
 
     private sealed class RingDto
     {
-        public string Format { get; set; } = "";
-        public int FormatMajor { get; set; }
-        public int FormatMinor { get; set; }
-        public Guid RingId { get; set; }
-        public string Title { get; set; } = "";
-        public List<RecordDto>? Pairs { get; set; }
-        public List<RecordDto>? Contacts { get; set; }
+        public string Format { get; init; } = "";
+        public int FormatMajor { get; init; }
+        public int FormatMinor { get; init; }
+        public Guid RingId { get; init; }
+        public string Title { get; init; } = "";
+        public List<RecordDto>? Pairs { get; init; }
+        public List<RecordDto>? Contacts { get; init; }
     }
 
     private sealed class RecordDto
     {
-        public Guid Id { get; set; }
-        public string? Title { get; set; }
-        public string? Subject { get; set; }
-        public string? Description { get; set; }
-        public string? IssuedTo { get; set; }
-        public string? IssuedToKind { get; set; }
-        public string? Application { get; set; }
-        public string? Role { get; set; }
-        public string? Status { get; set; }
-        public DateTimeOffset? ExpiresUtc { get; set; }
-        public DateTimeOffset? StatusChangedUtc { get; set; }
+        public Guid Id { get; init; }
+        public string? Title { get; init; }
+        public string? Subject { get; init; }
+        public string? Description { get; init; }
+        public string? IssuedTo { get; init; }
+        public string? IssuedToKind { get; init; }
+        public string? Application { get; init; }
+        public string? Role { get; init; }
+        public string? Status { get; init; }
+        public DateTimeOffset? ExpiresUtc { get; init; }
+        public DateTimeOffset? StatusChangedUtc { get; init; }
         public int KeyBits { get; set; }
         public string? ThumbprintSha256 { get; set; }
-        public bool Escrow { get; set; }
-        public string? PublicSpki { get; set; }
-        public string? PrivatePkcs8 { get; set; }
+        public bool Escrow { get; init; }
+        public string? PublicSpki { get; init; }
+        public string? PrivatePkcs8 { get; init; }
     }
 
     private sealed class SlipDto

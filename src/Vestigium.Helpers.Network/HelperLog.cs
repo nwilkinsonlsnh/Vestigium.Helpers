@@ -122,20 +122,25 @@ internal static class HelperLog
 
     private static int EventId(VestigiumLogLevel level, string subcategory, string message)
     {
-        if (string.Equals(subcategory, Subcategories.Probe, StringComparison.Ordinal))
-        {
-            if (level == VestigiumLogLevel.Debug)
-                return NetworkEvents.ProbeEnter;
-            if (level == VestigiumLogLevel.Information)
-                return NetworkEvents.ProbeComplete;
-        }
-
+        if (!string.Equals(subcategory, Subcategories.Probe, StringComparison.Ordinal))
+            return level switch
+            {
+                VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => NetworkEvents.OperationEnter,
+                VestigiumLogLevel.Warning => NetworkEvents.OperationWarning,
+                VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => NetworkEvents.OperationFailed,
+                _ => NetworkEvents.OperationComplete
+            };
         return level switch
         {
-            VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => NetworkEvents.OperationEnter,
-            VestigiumLogLevel.Warning => NetworkEvents.OperationWarning,
-            VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => NetworkEvents.OperationFailed,
-            _ => NetworkEvents.OperationComplete
+            VestigiumLogLevel.Debug => NetworkEvents.ProbeEnter,
+            VestigiumLogLevel.Information => NetworkEvents.ProbeComplete,
+            _ => level switch
+            {
+                VestigiumLogLevel.Debug or VestigiumLogLevel.Verbose => NetworkEvents.OperationEnter,
+                VestigiumLogLevel.Warning => NetworkEvents.OperationWarning,
+                VestigiumLogLevel.Error or VestigiumLogLevel.Fatal => NetworkEvents.OperationFailed,
+                _ => NetworkEvents.OperationComplete
+            }
         };
     }
 
@@ -153,16 +158,15 @@ internal static class HelperLog
     private sealed record ScopeState(
         string AppId, string Subcategory, string Method, string? CorrelationId, ScopeState? Parent);
 
-    private sealed class PopScope : IDisposable
+    private sealed class PopScope(ScopeState? parent) : IDisposable
     {
-        private readonly ScopeState? _parent;
         private int _done;
-        public PopScope(ScopeState? parent) => _parent = parent;
+
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _done, 1) == 1)
                 return;
-            Scope.Value = _parent;
+            Scope.Value = parent;
         }
     }
 }

@@ -184,9 +184,9 @@ public sealed partial class RegistryJournal
 
     private sealed class BatchBlock
     {
-        public string Id { get; set; } = "";
+        public string Id { get; init; } = "";
         public string Status { get; set; } = "open";
-        public DateTime? StartedAt { get; set; }
+        public DateTime? StartedAt { get; init; }
         public bool FullyUndone { get; set; }
         public List<string> MutLines { get; } = [];
         public List<string> UndoLines { get; } = [];
