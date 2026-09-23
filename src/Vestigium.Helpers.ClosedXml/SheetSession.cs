@@ -282,7 +282,7 @@ public sealed class SheetSession
             throw new ArgumentException("Header is required.", nameof(header));
         var name = header.Trim();
         var col = FindHeaderColumn(name, headerRow, firstCol, lastCol);
-        if (col is not int column)
+        if (col is not { } column)
         {
             ClosedXmlLog.Error(ClosedXmlEvents.SheetRejected, ClosedXmlCatalog.Subcategories.Sheet, "rejected sheet",
                 correlationId: _book.SessionId, properties: ClosedXmlLog.Props(("header", name), ("reason", "missing-header"), ("sheet", Name)), appId: _book.AppId);

@@ -44,7 +44,7 @@ internal sealed class JsonPath
             {
                 case JsonArray array:
                 {
-                    if (segment.ArrayIndex is not int index || index < 0 || index >= array.Count)
+                    if (segment.ArrayIndex is not { } index || index < 0 || index >= array.Count)
                     {
                         node = null;
                         return false;
@@ -92,7 +92,7 @@ internal sealed class JsonPath
         {
             case JsonArray array:
             {
-                if (segment.ArrayIndex is not int index || index < 0 || index >= array.Count)
+                if (segment.ArrayIndex is not { } index || index < 0 || index >= array.Count)
                 {
                     HelperLog.Reject("cannot create array parents");
                     throw new InvalidOperationException("JSON path cannot create array parents.");

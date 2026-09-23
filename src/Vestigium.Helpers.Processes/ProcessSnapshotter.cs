@@ -89,7 +89,7 @@ internal static class ProcessSnapshotter
                 missing.Add(new FieldAvailability(ProcessField.ParentPid, Availability.Denied, "OpenProcess"));
             }
 
-            bool? parentAlive = parentPid is int ppid and > 0
+            bool? parentAlive = parentPid is { } ppid and > 0
                 ? livePids.Contains(ppid)
                 : parentPid is 0 ? true : null;
 

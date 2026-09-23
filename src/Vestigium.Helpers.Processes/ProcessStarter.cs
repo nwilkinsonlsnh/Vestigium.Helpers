@@ -154,8 +154,7 @@ internal static class ProcessStarter
 
     private static ProcessStartError MapStart(Exception ex) => ex switch
     {
-        FileNotFoundException => ProcessStartError.FileNotFound,
-        DirectoryNotFoundException => ProcessStartError.FileNotFound,
+        FileNotFoundException or DirectoryNotFoundException => ProcessStartError.FileNotFound,
         BadImageFormatException => ProcessStartError.InvalidImage,
         Win32Exception { NativeErrorCode: 2 or 3 } => ProcessStartError.FileNotFound,
         Win32Exception { NativeErrorCode: 5 } => ProcessStartError.AccessDenied,
@@ -169,7 +168,7 @@ internal static class ProcessStarter
     {
         var line = "Start file=" + Path.GetFileName(file);
         if (user is not null) line += " user=" + user;
-        if (pid is int value) line += " pid=" + value;
+        if (pid is { } value) line += " pid=" + value;
         if (error is { } err) line += " error=" + err;
         HelperLog.Information(
             HelperLog.AppIds.Processes,
@@ -186,7 +185,7 @@ internal static class ProcessStarter
             " domain=" + (string.IsNullOrWhiteSpace(credentials.Domain) ? "-" : credentials.Domain) +
             " loadProfile=" + credentials.LoadUserProfile +
             " logon=" + credentials.LogonFlags;
-        if (pid is int value) line += " pid=" + value;
+        if (pid is { } value) line += " pid=" + value;
         if (error is { } err) line += " error=" + err;
         if (logCommandLine)
             line += " args=set";

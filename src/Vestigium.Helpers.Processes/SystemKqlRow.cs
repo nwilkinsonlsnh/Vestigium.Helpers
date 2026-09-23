@@ -2,7 +2,7 @@ using Vestigium.Helpers.Kql;
 
 namespace Vestigium.Helpers.Processes;
 
-internal sealed class SystemKqlRow : IKqlRow
+internal sealed class SystemKqlRow(SystemCounters row) : IKqlRow
 {
     private static readonly Dictionary<string, Func<SystemCounters, KqlValue>> Fields =
         new(StringComparer.Ordinal)
@@ -54,12 +54,8 @@ internal sealed class SystemKqlRow : IKqlRow
             ["DISK.MappedFileWriteDelta"] = r => Maybe(r.MappedFileWriteDelta)
         };
 
-    private readonly SystemCounters _row;
-
-    public SystemKqlRow(SystemCounters row) => _row = row;
-
     public KqlValue Get(string canonical)
-        => Fields.TryGetValue(canonical, out var read) ? read(_row) : KqlValue.Unknown;
+        => Fields.TryGetValue(canonical, out var read) ? read(row) : KqlValue.Unknown;
 
     private static KqlValue Maybe<T>(T? value) where T : struct
         => value is { } present ? KqlValue.From(present) : KqlValue.Unknown;

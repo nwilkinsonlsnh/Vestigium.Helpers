@@ -96,14 +96,8 @@ internal sealed class ProcessQueryWatcher : IProcessQueryWatcher
                 throw fault;
             }
 
-            var hits = new List<ProcessInfo>();
             var rows = ProcessSnapshotter.Capture(_level);
-            foreach (var row in rows)
-            {
-                var extras = _deltas.Remember(row, Interval);
-                if (_query.Matches(new ProcessKqlRow(row, extras)))
-                    hits.Add(row);
-            }
+            var hits = (from row in rows let extras = _deltas.Remember(row, Interval) where _query.Matches(new ProcessKqlRow(row, extras)) select row).ToList();
 
             _deltas.Prune(rows.Select(item => item.Pid).ToHashSet());
             Sampled?.Invoke(this, new ProcessQuerySample

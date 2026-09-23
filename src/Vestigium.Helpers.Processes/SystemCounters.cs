@@ -39,17 +39,17 @@ public sealed class SystemCounters
     public long? CommitChange { get; init; }
     public double? CommitPeakToLimit { get; init; }
     public double? CommitCurrentToLimit { get; init; }
-    public long? CommitCurrentK => CommitCurrent is long value ? value / 1024 : null;
-    public long? CommitLimitK => CommitLimit is long value ? value / 1024 : null;
-    public long? CommitPeakK => CommitPeak is long value ? value / 1024 : null;
+    public long? CommitCurrentK => CommitCurrent is { } value ? value / 1024 : null;
+    public long? CommitLimitK => CommitLimit is { } value ? value / 1024 : null;
+    public long? CommitPeakK => CommitPeak is { } value ? value / 1024 : null;
     public long? PhysicalTotal { get; init; }
     public long? PhysicalAvailable { get; init; }
     public long? CacheWorkingSet { get; init; }
     public long? KernelWorkingSet { get; init; }
     public long? DriverWorkingSet { get; init; }
-    public long? PhysicalTotalK => PhysicalTotal is long value ? value / 1024 : null;
-    public long? PhysicalAvailableK => PhysicalAvailable is long value ? value / 1024 : null;
-    public long? CacheWorkingSetK => CacheWorkingSet is long value ? value / 1024 : null;
+    public long? PhysicalTotalK => PhysicalTotal is { } value ? value / 1024 : null;
+    public long? PhysicalAvailableK => PhysicalAvailable is { } value ? value / 1024 : null;
+    public long? CacheWorkingSetK => CacheWorkingSet is { } value ? value / 1024 : null;
     public long? PagedWorkingSet { get; init; }
     public long? PagedVirtual { get; init; }
     public long? PagedLimit { get; init; }
