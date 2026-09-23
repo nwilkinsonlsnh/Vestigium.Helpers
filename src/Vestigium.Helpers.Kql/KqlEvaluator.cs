@@ -93,11 +93,9 @@ internal static class KqlEvaluator
                 continue;
             }
 
-            if (relation == 0)
-            {
-                hit = true;
-                break;
-            }
+            if (relation != 0) continue;
+            hit = true;
+            break;
         }
 
         if (hit)
@@ -130,20 +128,17 @@ internal static class KqlEvaluator
             return lv.CompareTo(rv);
         }
 
-        if (left.Type == KqlType.String || right.Type == KqlType.String)
-        {
-            var ls = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-            var rs = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-            return string.Compare(ls, rs, StringComparison.OrdinalIgnoreCase);
-        }
+        if (left.Type != KqlType.String && right.Type != KqlType.String)
+            return left.Type switch
+            {
+                KqlType.Boolean when right.Value is bool rb && left.Raw is bool lb => lb.CompareTo(rb),
+                KqlType.TimeSpan when left.Raw is TimeSpan lt && right.Value is TimeSpan rt => lt.CompareTo(rt),
+                _ => Comparer<object>.Default.Compare(left.Raw, right.Value)
+            };
+        var ls = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var rs = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        return string.Compare(ls, rs, StringComparison.OrdinalIgnoreCase);
 
-        if (left.Type == KqlType.Boolean && right.Value is bool rb && left.Raw is bool lb)
-            return lb.CompareTo(rb);
-
-        if (left.Type == KqlType.TimeSpan && left.Raw is TimeSpan lt && right.Value is TimeSpan rt)
-            return lt.CompareTo(rt);
-
-        return Comparer<object>.Default.Compare(left.Raw, right.Value);
     }
 
     private static bool TryNumber(object? value, out double number)

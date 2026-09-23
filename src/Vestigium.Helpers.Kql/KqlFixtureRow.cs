@@ -1,12 +1,9 @@
 namespace Vestigium.Helpers.Kql;
 
 /// <summary>In-memory row for tests and the gallery until a host binds live data.</summary>
-public sealed class KqlFixtureRow : IKqlRow
+public sealed class KqlFixtureRow(KqlSession session) : IKqlRow
 {
-    private readonly KqlRow _inner;
-
-    public KqlFixtureRow(KqlSession session)
-        => _inner = new KqlRow(session);
+    private readonly KqlRow _inner = new(session);
 
     public KqlFixtureRow Set(string name, object? value)
     {

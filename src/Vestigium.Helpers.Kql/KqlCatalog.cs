@@ -13,28 +13,24 @@ internal static class KqlCatalog
             ? DefaultGroups(packs)
             : groups;
 
-        return All
-            .Where(field => field.Packs.Any(packs.Contains) && enabledGroups.HasFlag(field.Group))
-            .ToArray();
+        return
+        [
+            .. All
+                .Where(field => field.Packs.Any(packs.Contains) && enabledGroups.HasFlag(field.Group))
+        ];
     }
 
     internal static KqlGroups DefaultGroups(IReadOnlyList<KqlPack> packs)
     {
-        var groups = KqlGroups.None;
-        foreach (var pack in packs)
+        return packs.Aggregate(KqlGroups.None, (current, pack) => current | pack switch
         {
-            groups |= pack switch
-            {
-                KqlPack.Process => KqlGroups.Proc | KqlGroups.Cpu | KqlGroups.Mem | KqlGroups.Io | KqlGroups.Gpu,
-                KqlPack.Service => KqlGroups.Svc,
-                KqlPack.Thread => KqlGroups.Thr | KqlGroups.Cpu,
-                KqlPack.System => KqlGroups.Sys | KqlGroups.Cpu | KqlGroups.Mem | KqlGroups.Gpu | KqlGroups.Disk | KqlGroups.Io | KqlGroups.Net,
-                KqlPack.Adapter => KqlGroups.Gpu | KqlGroups.Net,
-                _ => KqlGroups.None
-            };
-        }
-
-        return groups;
+            KqlPack.Process => KqlGroups.Proc | KqlGroups.Cpu | KqlGroups.Mem | KqlGroups.Io | KqlGroups.Gpu,
+            KqlPack.Service => KqlGroups.Svc,
+            KqlPack.Thread => KqlGroups.Thr | KqlGroups.Cpu,
+            KqlPack.System => KqlGroups.Sys | KqlGroups.Cpu | KqlGroups.Mem | KqlGroups.Gpu | KqlGroups.Disk | KqlGroups.Io | KqlGroups.Net,
+            KqlPack.Adapter => KqlGroups.Gpu | KqlGroups.Net,
+            _ => KqlGroups.None
+        });
     }
 
     private static IReadOnlyList<KqlField> Build()

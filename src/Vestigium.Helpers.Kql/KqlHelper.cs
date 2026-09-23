@@ -10,7 +10,7 @@ public static class KqlHelper
 
     public static string Probe()
     {
-        var app = HelperLog.AppIds.Kql;
+        const string app = HelperLog.AppIds.Kql;
         HelperLog.Information(app, VestigiumStatus.Pending, app, "Describing the KQL filter catalog.");
         using var session = Create(KqlPack.Process);
         var compiled = Compile("PID == 0", session);
@@ -39,7 +39,7 @@ public static class KqlHelper
     public static KqlParseResult Parse(string text)
     {
         var result = KqlParser.Parse(text);
-        if (!result.Ok && result.Error is { } error)
+        if (result is { Ok: false, Error: { } error })
         {
             HelperLog.Warning(
                 HelperLog.AppIds.Kql,
