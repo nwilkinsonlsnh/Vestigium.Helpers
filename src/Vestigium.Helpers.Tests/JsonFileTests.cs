@@ -186,6 +186,18 @@ public sealed class JsonFileTests : IDisposable
     }
 
     [Fact]
+    public void Open_rejects_jsonl_path()
+    {
+        var path = Path.Combine(_root, "records.jsonl");
+        File.WriteAllText(path, "{\"n\":1}\n");
+        var ex = Assert.Throws<ArgumentException>(() => JsonHelper.Open(path));
+        Assert.Contains("OpenJsonl", ex.Message, StringComparison.Ordinal);
+        using var doc = JsonHelper.OpenJsonl(path);
+        Assert.Equal(JsonDocumentKind.Jsonl, doc.Kind);
+        Assert.Equal(1, doc.RecordCount);
+    }
+
+    [Fact]
     public void Parse_stream_rejects_document_over_cap()
     {
         JsonTestHooks.MaxDocumentBytes = 8;

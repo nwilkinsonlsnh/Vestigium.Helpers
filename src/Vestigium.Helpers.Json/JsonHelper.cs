@@ -342,6 +342,12 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
         try
         {
+            if (JsonIo.KindFromPath(target) == JsonDocumentKind.Jsonl)
+            {
+                HelperLog.Reject("Open is a single RFC 8259 document. Use OpenJsonl.");
+                throw new ArgumentException("Open is a single RFC 8259 document. Use OpenJsonl.", nameof(path));
+            }
+
             var node = JsonIo.Read(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(
