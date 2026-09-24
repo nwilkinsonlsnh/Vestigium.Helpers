@@ -7,10 +7,16 @@
     <Version>1.0.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>json;serialization;vestigium</PackageTags>
+    <PackageTags>json;serialization;jsonl;rfc8259;vestigium</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
@@ -18,11 +24,11 @@
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="README.md">
+    <None Include="README.md">
       <Pack>true</Pack>
       <PackagePath>\</PackagePath>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Content>
+    </None>
     <None Include="EventCatalog\json.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
