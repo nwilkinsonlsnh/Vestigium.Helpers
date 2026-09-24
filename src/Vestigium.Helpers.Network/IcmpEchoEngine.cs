@@ -30,6 +30,7 @@ internal static class IcmpEchoEngine
 
     private static void Guard(IcmpEchoOptions o)
     {
+        EgressBind.Validate(o.InterfaceIndex, o.SourceAddress);
         if (o.Count < 0)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"Count={o.Count} is below 0");
