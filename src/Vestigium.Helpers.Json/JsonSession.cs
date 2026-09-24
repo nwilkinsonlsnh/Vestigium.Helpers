@@ -6,8 +6,8 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Json;
 
 /// <summary>
-/// Owns one working tree and one committed tree. Not thread-safe — one session, one owner.
-/// Phase 5: Get/TryGet/Record are quiet; mutations, snapshot, diff, commit, and save are audited.
+/// One working tree and one committed tree. Not thread-safe: one session, one owner.
+/// Get, TryGet, and Record do not write HelperLog. Mutations, snapshot, diff, commit, and save do.
 /// </summary>
 public sealed class JsonSession : IDisposable
 {
@@ -36,18 +36,24 @@ public sealed class JsonSession : IDisposable
             $"created session={SessionId} kind={Kind} path={Path ?? "(new)"}");
     }
 
+    /// <summary>Opaque id written on session log lines.</summary>
     public string SessionId { get; }
 
+    /// <summary>Full path after Open or the first Save. Null for an unsaved Create.</summary>
     public string? Path { get; private set; }
 
+    /// <summary>JSON document or JSONL record list. Fixed for the life of the session.</summary>
     public JsonDocumentKind Kind { get; }
 
     internal JsonSessionOptions Options { get; }
 
+    /// <summary>Working tree differs from the last Commit.</summary>
     public bool HasUncommittedWork => !JsonNode.DeepEquals(_working, _committed);
 
+    /// <summary>Committed tree differs from the last successful Save.</summary>
     public bool HasUnsavedCommit => !JsonNode.DeepEquals(_committed, _saved);
 
+    /// <summary>Copy the committed tree as the Diff / Revert baseline.</summary>
     public void Snapshot()
     {
         ThrowIfDisposed();
@@ -56,6 +62,9 @@ public sealed class JsonSession : IDisposable
         HelperLog.Information(App, VestigiumStatus.Success, HelperLog.Subcategories.Snapshot, $"snapshot session={SessionId}");
     }
 
+    /// <summary>
+    /// Read a path from the working tree. Returns false on a miss or type mismatch. Does not log.
+    /// </summary>
     public bool TryGet<T>(string path, out T? value)
     {
         ThrowIfDisposed();
@@ -64,6 +73,10 @@ public sealed class JsonSession : IDisposable
         return parsed.TryEvaluate(_working, out var node) && TryConvert(node, out value);
     }
 
+    /// <summary>
+    /// Read a path from the working tree. Miss throws <see cref="KeyNotFoundException"/>.
+    /// Type mismatch throws <see cref="InvalidOperationException"/>. Does not log.
+    /// </summary>
     public T Get<T>(string path)
     {
         ThrowIfDisposed();
@@ -75,6 +88,7 @@ public sealed class JsonSession : IDisposable
         throw new InvalidOperationException($"JSON path could not be read as {typeof(T).Name}.");
     }
 
+    /// <summary>Assign a path on the working tree. Logs the path spelling, never the value.</summary>
     public void Set(string path, object? value)
     {
         ThrowIfDisposed();
@@ -105,6 +119,7 @@ public sealed class JsonSession : IDisposable
         }
     }
 
+    /// <summary>Append a cloned record on a JSONL session. JSON sessions throw.</summary>
     public void AppendRecord(JsonNode record)
     {
         ThrowIfDisposed();
@@ -120,6 +135,10 @@ public sealed class JsonSession : IDisposable
             $"AppendRecord index={array.Count - 1} session={SessionId}");
     }
 
+    /// <summary>
+    /// Clone the record at <paramref name="index"/>, or null when the index is past the end.
+    /// Negative index throws. Does not log.
+    /// </summary>
     public JsonNode? Record(int index)
     {
         ThrowIfDisposed();
@@ -131,6 +150,7 @@ public sealed class JsonSession : IDisposable
         return index >= array.Count ? null : array[index]?.DeepClone();
     }
 
+    /// <summary>Number of records on a JSONL session. JSON sessions throw.</summary>
     public int RecordCount
     {
         get
@@ -141,6 +161,7 @@ public sealed class JsonSession : IDisposable
         }
     }
 
+    /// <summary>Compare Snapshot-or-committed to working. Add, remove, replace only.</summary>
     public JsonPatch Diff()
     {
         ThrowIfDisposed();
@@ -155,6 +176,7 @@ public sealed class JsonSession : IDisposable
         return patch;
     }
 
+    /// <summary>Copy working onto committed. Does not write disk.</summary>
     public void Commit()
     {
         ThrowIfDisposed();
@@ -163,6 +185,7 @@ public sealed class JsonSession : IDisposable
         HelperLog.Information(App, VestigiumStatus.Success, HelperLog.Subcategories.Commit, $"Commit session={SessionId}");
     }
 
+    /// <summary>Replace working with Snapshot if present, otherwise committed.</summary>
     public void Revert()
     {
         ThrowIfDisposed();
@@ -171,6 +194,7 @@ public sealed class JsonSession : IDisposable
         HelperLog.Information(App, VestigiumStatus.Success, HelperLog.Subcategories.Commit, $"Revert session={SessionId}");
     }
 
+    /// <summary>Replace working with committed. Does not touch Snapshot.</summary>
     public void Cancel()
     {
         ThrowIfDisposed();
@@ -179,12 +203,18 @@ public sealed class JsonSession : IDisposable
         HelperLog.Information(App, VestigiumStatus.Success, HelperLog.Subcategories.Commit, $"Cancel session={SessionId}");
     }
 
+    /// <summary>
+    /// Write the committed tree to <see cref="Path"/>, or to a new export file when Path is unset.
+    /// </summary>
     public string Save()
     {
         ThrowIfDisposed();
         return string.IsNullOrWhiteSpace(Path) ? SaveAs(JsonHelper.NewExportPath(kind: Kind), Options.Collision) : WriteTree(_committed, Path, replaceInPlace: true, Options.Collision, working: false, "Save");
     }
 
+    /// <summary>
+    /// Write the working tree without Commit. Logs a Save warning. Hosts treat this as an escape hatch.
+    /// </summary>
     public string SaveWorking()
     {
         ThrowIfDisposed();
@@ -193,6 +223,7 @@ public sealed class JsonSession : IDisposable
         return WriteTree(_working, target, replace, Options.Collision, working: true, "SaveWorking");
     }
 
+    /// <summary>Write the committed tree to <paramref name="path"/> and point the session at it.</summary>
     public string SaveAs(string path, JsonCollision collision = JsonCollision.Fail)
     {
         ThrowIfDisposed();
@@ -201,6 +232,7 @@ public sealed class JsonSession : IDisposable
         return WriteTree(_committed, target, replace, collision, working: false, "SaveAs");
     }
 
+    /// <summary>Marks the session disposed. Does not write disk.</summary>
     public void Dispose()
     {
         if (_disposed)
