@@ -10,7 +10,7 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14525) |
-| Depends on | Json, Analytics, FileIo, `Vestigium.Logging` |
+| Depends on | `Vestigium.Helpers.Json` 1.0.1, `Vestigium.Helpers.Analytics` 1.0.1, `Vestigium.Helpers.FileIo` 1.1.1, `Vestigium.Logging` |
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/002%20--%20Requirements%20Document) |
 
@@ -36,7 +36,7 @@ var routes = NetworkHelper.GetRoutes();
 ## Surface
 
 | Call | Returns | Notes |
-|---|---|---|
+|---|---|
 | `GetWorkstation` / `GetAdapters` / `GetSnapshot` | inventory | Local stack. |
 | `IcmpEcho` / `IcmpTrace` | `NetworkJob<T>` | Then `RunAsync`. |
 | `LookupAsync` | DNS result | |

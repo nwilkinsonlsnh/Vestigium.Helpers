@@ -21,9 +21,9 @@
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Vestigium.Helpers.Json\Vestigium.Helpers.Json.csproj" />
-    <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
-    <ProjectReference Include="..\Vestigium.Helpers.FileIo\Vestigium.Helpers.FileIo.csproj" />
+    <PackageReference Include="Vestigium.Helpers.Json" Version="1.0.1" />
+    <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
+    <PackageReference Include="Vestigium.Helpers.FileIo" Version="1.1.1" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md">
