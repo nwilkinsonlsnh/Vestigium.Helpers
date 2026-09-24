@@ -17,7 +17,7 @@ This is not TCP connect, pathping, duration-per-window, Charts, Demo, Ubuntu CI,
 | 2 | PR07-02 | Windows IPv6 Change/Remove write the same Success line Add already writes. Deny path unchanged. | On branch |
 | 3 | PR07-03 | IPv6 IfIndex: caller `>= 1` or first up IPv6 NIC. Stop calling `TryFirstIpv4Index()` from the v6 write path. | On branch |
 | 4 | PR07-04 | `NetworkCatalog.Register` taxonomy includes `Share`, `Stats`, `Progress`. Keep existing names. | On branch |
-| 5 | PR07-05 | Fix `NetworkHelper` summary comment to Option C (Linux netlink, typed deny only on cap/ACL/default). | Open |
+| 5 | PR07-05 | Fix `NetworkHelper` summary comment to Option C (Linux netlink, typed deny only on cap/ACL/default). | On branch |
 | 6 | PR07-07 | Add `RouteDenied` 14530, `IcmpForbidden` 14535, `CampaignWindowMissed` 14540 to `NetworkEvents`, `network.json`, and `Rows`. Wire Reject/forbidden/missed lines to those IDs. | Open |
 | 7 | PR07-06 | Campaign recipe DTO grows an `echo` object. Write on Create. Read on Open. Absent object = current defaults. | Open |
 | 8 | PR07-08 | csproj + package README Version `1.0.1`. Sibling pins stay Json 1.0.1 / Analytics 1.0.1 / FileIo 1.1.1. Logging stays `$(VestigiumLoggingVersion)`. | Open |

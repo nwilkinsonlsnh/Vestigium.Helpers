@@ -140,6 +140,17 @@ public sealed class NetworkTraceAndRouteTests
         Assert.Contains("\"Progress\"", src, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void NetworkHelper_comment_matches_option_c()
+    {
+        var path = FindNetworkSource("NetworkHelper.cs");
+        Assert.True(path is not null, "NetworkHelper.cs not found walking up from BaseDirectory.");
+        var src = File.ReadAllText(path);
+        Assert.Contains("Linux IPv4 and IPv6 netlink", src, StringComparison.Ordinal);
+        Assert.Contains("Option C", src, StringComparison.Ordinal);
+        Assert.DoesNotContain("Linux writes throw typed denies", src, StringComparison.Ordinal);
+    }
+
     private static void Init()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumNetLog", Guid.NewGuid().ToString("N"));

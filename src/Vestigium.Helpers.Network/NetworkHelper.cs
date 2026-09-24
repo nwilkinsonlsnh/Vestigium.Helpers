@@ -7,7 +7,9 @@ namespace Vestigium.Helpers.Network;
 /// <summary>
 /// Workstation inventory and protocol jobs for diagnostic hosts.
 /// Logging is <see cref="HelperLog"/> → Vestigium.Logging JSONL (APPID Network).
-/// Route writes are explicit Windows IP Helper calls. Linux writes throw typed denies.
+/// Route writes are Option C: Windows IPv4 IP Helper plus HKLM persist, Windows IPv6
+/// <c>CreateIpForwardEntry2</c>, Linux IPv4 and IPv6 netlink. Typed deny only on missing
+/// admin / CAP_NET_ADMIN, ACL, or a default-route write. Never spawn route, ip, or netsh.
 /// </summary>
 public static class NetworkHelper
 {
