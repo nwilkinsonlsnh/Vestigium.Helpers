@@ -104,10 +104,13 @@ internal static class IcmpTraceEngine
         }
 
         var status = DecideStatus(token.IsCancellationRequested, reached, hops);
-
-        NetworkLog.Success(
-            HelperLog.Subcategories.Icmp,
-            $"{status} trace job={jobId} target={target} hops={hops.Count} reached={reached} protocol={protocol}");
+        var line = $"{status} trace job={jobId} target={target} hops={hops.Count} reached={reached} protocol={protocol}";
+        var forbidden = hops.SelectMany(h => h.Probes).Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden)
+            && hops.All(h => h.Address is null);
+        if (forbidden)
+            NetworkLog.IcmpForbidden(line);
+        else
+            IcmpEchoEngine.LogFinished(status, line);
 
         return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, hops.Count, hops);
     }

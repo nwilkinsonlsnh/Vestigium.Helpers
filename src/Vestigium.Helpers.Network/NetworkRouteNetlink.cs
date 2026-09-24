@@ -134,7 +134,10 @@ internal static class NetworkRouteNetlink
             : errno == Enetunreach
                 ? verb + " rejected. Gateway or interface is unreachable."
                 : verb + " failed. errno=" + errno;
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, message);
+        if (errno is Eperm or Eacces)
+            NetworkLog.RouteDenied(verb, message);
+        else
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, message);
         return new NetworkRouteDenied(message);
     }
 

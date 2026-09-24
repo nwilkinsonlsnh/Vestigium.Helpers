@@ -94,4 +94,78 @@ public sealed class IcmpEchoCampaignTests : IDisposable
         Assert.Contains("windowMissed", kinds);
         Assert.DoesNotContain("echo", kinds);
     }
+
+    [Fact]
+    public void Recipe_round_trips_echo_options()
+    {
+        var recipe = Path.Combine(_root, "echo-recipe.json");
+        var created = NetworkHelper.CreateEchoCampaign(new IcmpEchoCampaignOptions
+        {
+            Target = "127.0.0.1",
+            RangeStartDate = new DateOnly(2026, 9, 9),
+            RangeEndDate = new DateOnly(2026, 9, 30),
+            RecipePath = recipe,
+            Windows = [new EchoWindow(new TimeOnly(12, 0), 3)],
+            Echo = new IcmpEchoOptions
+            {
+                Count = 99,
+                Timeout = TimeSpan.FromMilliseconds(1500),
+                Interval = TimeSpan.FromMilliseconds(250),
+                BufferSize = 64,
+                Ttl = 32,
+                DontFragment = true,
+                MaxDuration = TimeSpan.FromSeconds(5),
+                AllowBurst = true
+            }
+        });
+
+        var text = File.ReadAllText(recipe);
+        Assert.Contains("\"timeoutMs\": 1500", text, StringComparison.Ordinal);
+        Assert.Contains("\"intervalMs\": 250", text, StringComparison.Ordinal);
+        Assert.Contains("\"bufferSize\": 64", text, StringComparison.Ordinal);
+        Assert.Contains("\"ttl\": 32", text, StringComparison.Ordinal);
+        Assert.Contains("\"dontFragment\": true", text, StringComparison.Ordinal);
+        Assert.Contains("\"maxDurationMs\": 5000", text, StringComparison.Ordinal);
+        Assert.Contains("\"allowBurst\": true", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"count\": 99", text, StringComparison.Ordinal);
+
+        var opened = NetworkHelper.OpenEchoCampaign(recipe);
+        Assert.Equal(created.CampaignId, opened.CampaignId);
+        Assert.Equal(TimeSpan.FromMilliseconds(1500), opened.Options.Echo.Timeout);
+        Assert.Equal(TimeSpan.FromMilliseconds(250), opened.Options.Echo.Interval);
+        Assert.Equal(64, opened.Options.Echo.BufferSize);
+        Assert.Equal(32, opened.Options.Echo.Ttl);
+        Assert.True(opened.Options.Echo.DontFragment);
+        Assert.Equal(TimeSpan.FromSeconds(5), opened.Options.Echo.MaxDuration);
+        Assert.True(opened.Options.Echo.AllowBurst);
+        Assert.Equal(IcmpEchoOptions.DefaultCount, opened.Options.Echo.Count);
+        Assert.Equal(3, opened.Options.Windows[0].Count);
+    }
+
+    [Fact]
+    public void Old_recipe_without_echo_opens_with_defaults()
+    {
+        var recipe = Path.Combine(_root, "old-recipe.json");
+        File.WriteAllText(recipe, """
+            {
+              "campaignId": "camp-old",
+              "target": "127.0.0.1",
+              "rangeStartDate": "2026-09-09",
+              "rangeEndDate": "2026-09-30",
+              "graceMinutes": 15,
+              "windows": [ { "localTime": "12:00", "count": 2 } ]
+            }
+            """);
+
+        var opened = NetworkHelper.OpenEchoCampaign(recipe);
+        Assert.Equal("camp-old", opened.CampaignId);
+        Assert.Equal(IcmpEchoOptions.DefaultTimeout, opened.Options.Echo.Timeout);
+        Assert.Equal(IcmpEchoOptions.DefaultInterval, opened.Options.Echo.Interval);
+        Assert.Equal(IcmpEchoOptions.DefaultBufferSize, opened.Options.Echo.BufferSize);
+        Assert.Equal(128, opened.Options.Echo.Ttl);
+        Assert.False(opened.Options.Echo.DontFragment);
+        Assert.Null(opened.Options.Echo.MaxDuration);
+        Assert.False(opened.Options.Echo.AllowBurst);
+        Assert.Equal(2, opened.Options.Windows[0].Count);
+    }
 }

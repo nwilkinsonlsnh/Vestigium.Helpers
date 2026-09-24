@@ -9,3 +9,4 @@ Live paper:
 - [`PR08/PR08 -- Implementation Plan.md`](PR08/PR08%20--%20Implementation%20Plan.md)
 
 PR01–PR06 live under `000 -- Archived/001 -- Implementation Plan/`.
+PR07 paper landed with this merge: [`PR07/PR07 -- Implementation Plan.md`](PR07/PR07%20--%20Implementation%20Plan.md).

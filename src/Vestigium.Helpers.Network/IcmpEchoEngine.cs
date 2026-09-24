@@ -178,7 +178,11 @@ internal static class IcmpEchoEngine
             min, max, avg,
             payloadRestricted, replies);
 
-        LogFinished(status, $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted}");
+        var line = $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted}";
+        if (protocolForbidden)
+            NetworkLog.IcmpForbidden(line);
+        else
+            LogFinished(status, line);
         return result;
     }
 

@@ -12,4 +12,7 @@ public static class NetworkEvents
     public const int OperationComplete = 14515;
     public const int OperationFailed = 14520;
     public const int OperationWarning = 14525;
+    public const int RouteDenied = 14530;
+    public const int IcmpForbidden = 14535;
+    public const int CampaignWindowMissed = 14540;
 }

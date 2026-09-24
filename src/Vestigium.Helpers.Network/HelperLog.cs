@@ -153,8 +153,38 @@ internal static class HelperLog
         NetworkEvents.OperationComplete => "operation complete",
         NetworkEvents.OperationFailed => "operation failed",
         NetworkEvents.OperationWarning => "operation warning",
+        NetworkEvents.RouteDenied => "route write denied",
+        NetworkEvents.IcmpForbidden => "ICMP not permitted",
+        NetworkEvents.CampaignWindowMissed => "campaign window missed",
         _ => "operation complete"
     };
+
+    public static void WriteEvent(
+        int eventId,
+        VestigiumLogLevel level,
+        VestigiumStatus status,
+        string subcategory,
+        string? message)
+    {
+        if (!VestigiumLogger.IsInitialized)
+            return;
+
+        VestigiumLog.Write(
+            eventId,
+            level,
+            Normalize(status),
+            Category,
+            subcategory,
+            CatalogMessage(eventId),
+            exception: null,
+            correlationId: CorrelationId,
+            properties: new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["appId"] = AppIds.Network,
+                ["detail"] = message ?? string.Empty
+            },
+            appId: NetworkCatalog.AppId);
+    }
 
     private sealed record ScopeState(
         string AppId, string Subcategory, string Method, string? CorrelationId, ScopeState? Parent);

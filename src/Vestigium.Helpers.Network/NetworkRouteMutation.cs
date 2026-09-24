@@ -29,8 +29,7 @@ internal static class NetworkRouteMutation
 
         if (spec.IsIPv6)
         {
-            if (spec.InterfaceIndex < 1)
-                spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
+            spec = BindV6Index(change, spec);
             NetworkRouteWindowsV6.Add(spec);
             NetworkLog.Success(HelperLog.Subcategories.Route, $"AddRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6");
             return;
@@ -57,9 +56,9 @@ internal static class NetworkRouteMutation
 
         if (spec.IsIPv6)
         {
-            if (spec.InterfaceIndex < 1)
-                spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
+            spec = BindV6Index(change, spec);
             NetworkRouteWindowsV6.Change(spec);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"ChangeRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6");
             return;
         }
 
@@ -84,9 +83,9 @@ internal static class NetworkRouteMutation
 
         if (spec.IsIPv6)
         {
-            if (spec.InterfaceIndex < 1)
-                spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
+            spec = BindV6Index(change, spec);
             NetworkRouteWindowsV6.Remove(spec);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"RemoveRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6");
             return;
         }
 
@@ -118,7 +117,18 @@ internal static class NetworkRouteMutation
         };
     }
 
-    internal static int ResolveInterfaceIndex(int? callerIndex, int? discoveredIndex)
+    private static NetworkRouteSpec BindV6Index(NetworkRouteChange change, NetworkRouteSpec spec)
+    {
+        if (spec.InterfaceIndex >= 1)
+            return spec;
+
+        return spec with
+        {
+            InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv6Index(), "IPv6")
+        };
+    }
+
+    internal static int ResolveInterfaceIndex(int? callerIndex, int? discoveredIndex, string family = "IPv4")
     {
         if (callerIndex is { } specified)
         {
@@ -136,7 +146,9 @@ internal static class NetworkRouteMutation
             return found;
 
         HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(ResolveInterfaceIndex), "interface required");
-        throw new ArgumentException("Route mutation requires InterfaceIndex when no up IPv4 interface is present.", nameof(NetworkRouteChange.InterfaceIndex));
+        throw new ArgumentException(
+            $"Route mutation requires InterfaceIndex when no up {family} interface is present.",
+            nameof(NetworkRouteChange.InterfaceIndex));
     }
 
     internal static int? TryFirstIpv4Index()
@@ -165,6 +177,32 @@ internal static class NetworkRouteMutation
         return null;
     }
 
+    internal static int? TryFirstIpv6Index()
+    {
+        try
+        {
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != OperationalStatus.Up || nic.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                    continue;
+                try
+                {
+                    var index = nic.GetIPProperties().GetIPv6Properties().Index;
+                    if (index >= 1)
+                        return index;
+                }
+                catch (NetworkInformationException)
+                {
+                }
+            }
+        }
+        catch (NetworkInformationException)
+        {
+        }
+
+        return null;
+    }
+
     internal static int FirstIpv4Index()
         => ResolveInterfaceIndex(null, TryFirstIpv4Index());
 
@@ -173,7 +211,7 @@ internal static class NetworkRouteMutation
 
     internal static NetworkRouteDenied LinuxWriteDenied(string verb)
     {
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, "Linux route write requires CAP_NET_ADMIN");
+        NetworkLog.RouteDenied(verb, "Linux route write requires CAP_NET_ADMIN");
         return new NetworkRouteDenied("Linux route write requires CAP_NET_ADMIN.");
     }
 
@@ -185,13 +223,16 @@ internal static class NetworkRouteMutation
             ErrorInvalidParameter => verb + " rejected. Destination, mask, gateway, or interface is invalid.",
             _ => verb + " failed. Win32=" + code
         };
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, message);
+        if (code == ErrorAccessDenied)
+            NetworkLog.RouteDenied(verb, message);
+        else
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, message);
         return new NetworkRouteDenied(message);
     }
 
     internal static NetworkRouteDenied PersistentAccessDenied(Exception ex)
     {
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(DeletePersistent), "persistent route access denied");
+        NetworkLog.RouteDenied(nameof(DeletePersistent), "persistent route access denied");
         return new NetworkRouteDenied("Persistent route requires write access to HKLM PersistentRoutes.", ex);
     }
 

@@ -1,25 +1,25 @@
 # Vestigium.Helpers.Network
 
-Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `ping.exe`. Not a charting package. Charts stay on the host.
+Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `ping.exe`. Not a plot package. This library will not grow a plot API.
 
 ## Identity
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Network` 1.0.0 |
+| Package | `Vestigium.Helpers.Network` 1.0.1 |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
-| EVENTID | Reserved 14500–14999 (used through 14525) |
+| EVENTID | Reserved 14500–14999 (used through 14540) |
 | Depends on | `Vestigium.Helpers.Json` 1.0.1, `Vestigium.Helpers.Analytics` 1.0.1, `Vestigium.Helpers.FileIo` 1.1.1, `Vestigium.Logging` |
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/002%20--%20Requirements%20Document) |
 
-Does not reference Charts. Packed OUI snapshot is offline and incomplete.
+Does not plot. Packed OUI snapshot is offline and incomplete.
 
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.0.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.0.1" />
 ```
 
 ```csharp

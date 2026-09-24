@@ -2,8 +2,8 @@
 
 **Document ID:** VEST-HLP-NETWORK-DSN-000  
 **Version:** 1.6  
-**Status:** Locked companion to SRS v1.6 + PR05.002  
-**Date:** 19 September 2026  
+**Status:** Locked companion to SRS v1.6 + PR07.009  
+**Date:** 24 September 2026  
 **Binding:** `Requirements_v1.6.md` wins on conflict
 
 This page records *why* the library is shaped this way. It does not add requirements.
@@ -28,12 +28,9 @@ host
        ├ MAC / OUI                       MacEngine + OuiLookupGuard + OuiPacked
        ├ bandwidth / P95                 BandwidthEngine + Analytics
        └ FileIo probes                   FileIoHelper.WriteProbe / AnalyzeDirectory
-
-host (optional)
-  → Vestigium.Helpers.Charts            plots Network numbers; not referenced here
 ```
 
-HTTP reachability is HttpIQ. A later scheduler package starts jobs. Plotting is the host.
+This library does not plot and will not grow a plot API.
 
 ---
 
@@ -50,11 +47,11 @@ HTTP reachability is HttpIQ. A later scheduler package starts jobs. Plotting is 
 | `NetworkTestHooks` internal | Plugins must not retarget ProgramData or `/proc`. |
 | OUI allowlist + no redirect | SSRF. Packed snapshot is offline and incomplete. |
 | DNS accept only the queried peer | UDP is connectionless. |
-| No guessed IfIndex `1` | Wrong NIC. Linux write requires an index. |
+| No guessed IfIndex `1` | Wrong NIC. Linux write requires an index. Windows IPv6 uses caller `>= 1` or first up IPv6 NIC. Never an IPv4 table index on a v6 write. |
 | Route write is Option C | Windows IPv4 IP Helper + HKLM persist (`NetworkRouteKeys`). Windows IPv6 `CreateIpForwardEntry2`. Linux netlink IPv4+IPv6. Cap/admin miss → `NetworkRouteDenied`. |
 | Default route is not offered | `0.0.0.0/0` and `::/0` must not come from this DLL. |
-| Prefix / MAC / bandwidth / share results are numbers | No plot control. |
-| No Charts reference | A host that wants a picture calls Charts. |
+| Prefix / MAC / bandwidth / share results are network facts | Addresses, RTTs, tables, prefixes. No plot type. |
+| No plot API | Never this library. Not a deferred feature. |
 | Share I/O is FileIo | Network does not open `FileStream`. No password field. |
 | Logging is sparse | APPID Network. No packet bytes. No credentials. |
 
@@ -89,7 +86,7 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | `NetworkRouteSpec.cs` / `NetworkRouteKeys.cs` | Parse + HKLM path |
 | `ShareCampaign*.cs` / `ShareProbePlanner.cs` | Share campaigns |
 | `OuiPacked.cs` / `_Data/oui-snapshot.txt` | Offline OUI stub |
-| `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. **Not Charts.** |
+| `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. No plot package. |
 
 ---
 
@@ -101,14 +98,15 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | PR01 | Security harden |
 | PR02 | Contract lock |
 | PR03 | Share campaigns. Demo skipped. |
-| PR04 | Packed OUI. Option C route write. No Charts. |
+| PR04 | Packed OUI. Option C route write. |
 | PR05.001–002 | Persist key. Requirements catch-up. |
+| PR07 | Trace finish log. IPv6 IfIndex. Echo recipe persist. Events 14530–14540. Package 1.0.1. |
 
 ---
 
 ## 7. Still out of this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Charts. Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4).
+Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4).
 
 ---
 
@@ -118,5 +116,6 @@ Scheduler package. HTTP reachability. Demo gallery. Charts. Repo portable test T
 |---|---|---|
 | 1.6 | 19 Sep 2026 | First standalone Design. |
 | 1.6 + PR02.001 | 19 Sep 2026 | Then: Windows write / Linux print. |
-| 1.6 + PR04.001 | 19 Sep 2026 | No Charts. |
+| 1.6 + PR04.001 | 19 Sep 2026 | Plotting is not a Network surface. |
 | 1.6 + PR05.003 | 19 Sep 2026 | Option C + persist key + packed OUI. |
+| 1.6 + PR07.009 | 24 Sep 2026 | IPv6 IfIndex. Echo recipe. Events through 14540. Plot API never offered. |

@@ -104,7 +104,7 @@ public sealed class IcmpEchoCampaign
                 });
                 existing = CampaignJsonl.Read(resultsPath);
                 missed++;
-                NetworkLog.Warning(HelperLog.Subcategories.Campaign, $"missed campaign={CampaignId} date={dateKey} time={timeKey}");
+                NetworkLog.WindowMissed($"missed campaign={CampaignId} date={dateKey} time={timeKey}");
                 continue;
             }
 
@@ -255,7 +255,8 @@ public sealed class IcmpEchoCampaign
             TimeZoneId = options.TimeZoneId,
             GraceMinutes = (int)options.Grace.TotalMinutes,
             Windows = options.Windows.Select(w => new CampaignWindowDto { LocalTime = w.LocalTime.ToString("HH:mm"), Count = w.Count }).ToList(),
-            ResultsPath = options.ResultsPath
+            ResultsPath = options.ResultsPath,
+            Echo = CampaignEchoDto.From(options.Echo)
         }, new JsonWriteOptions { WriteIndented = true, Collision = JsonCollision.Overwrite });
     }
 
@@ -282,6 +283,7 @@ public sealed class IcmpEchoCampaign
         public int GraceMinutes { get; init; } = 15;
         public List<CampaignWindowDto> Windows { get; init; } = [];
         public string? ResultsPath { get; init; }
+        public CampaignEchoDto? Echo { get; init; }
 
         public IcmpEchoCampaignOptions ToOptions()
             => new()
@@ -292,7 +294,8 @@ public sealed class IcmpEchoCampaign
                 TimeZoneId = TimeZoneId,
                 Grace = TimeSpan.FromMinutes(GraceMinutes),
                 Windows = Windows.Select(w => new EchoWindow(TimeOnly.Parse(w.LocalTime), w.Count)).ToList(),
-                ResultsPath = ResultsPath
+                ResultsPath = ResultsPath,
+                Echo = Echo?.ToOptions() ?? new IcmpEchoOptions()
             };
     }
 
@@ -300,5 +303,40 @@ public sealed class IcmpEchoCampaign
     {
         public string LocalTime { get; init; } = "";
         public int Count { get; init; }
+    }
+
+    private sealed class CampaignEchoDto
+    {
+        public int TimeoutMs { get; init; }
+        public int IntervalMs { get; init; }
+        public int BufferSize { get; init; }
+        public int Ttl { get; init; }
+        public bool DontFragment { get; init; }
+        public int? MaxDurationMs { get; init; }
+        public bool AllowBurst { get; init; }
+
+        public static CampaignEchoDto From(IcmpEchoOptions echo)
+            => new()
+            {
+                TimeoutMs = (int)echo.Timeout.TotalMilliseconds,
+                IntervalMs = (int)echo.Interval.TotalMilliseconds,
+                BufferSize = echo.BufferSize,
+                Ttl = echo.Ttl,
+                DontFragment = echo.DontFragment,
+                MaxDurationMs = echo.MaxDuration is { } duration ? (int)duration.TotalMilliseconds : null,
+                AllowBurst = echo.AllowBurst
+            };
+
+        public IcmpEchoOptions ToOptions()
+            => new()
+            {
+                Timeout = TimeSpan.FromMilliseconds(TimeoutMs),
+                Interval = TimeSpan.FromMilliseconds(IntervalMs),
+                BufferSize = BufferSize,
+                Ttl = Ttl,
+                DontFragment = DontFragment,
+                MaxDuration = MaxDurationMs is { } ms ? TimeSpan.FromMilliseconds(ms) : null,
+                AllowBurst = AllowBurst
+            };
     }
 }
