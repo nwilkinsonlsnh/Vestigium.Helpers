@@ -36,6 +36,54 @@ internal static class PathMtuEngine
         }
     }
 
+    internal static PathMtuOutcome Classify(IcmpEchoStatus status, string? detail)
+    {
+        if (status == IcmpEchoStatus.Success)
+            return PathMtuOutcome.Passed;
+        if (status == IcmpEchoStatus.DestinationUnreachable)
+            return PathMtuOutcome.TooBig;
+        if (detail is not null
+            && (detail.Contains("PacketTooBig", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("NeedFrag", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("MessageTooLong", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("too big", StringComparison.OrdinalIgnoreCase)))
+            return PathMtuOutcome.TooBig;
+        return PathMtuOutcome.Unknown;
+    }
+
+    internal static void Step(PathMtuOutcome outcome, int mid, ref int lo, ref int hi, ref int? largest, HashSet<int> unknown)
+    {
+        switch (outcome)
+        {
+            case PathMtuOutcome.Passed:
+                largest = mid;
+                lo = mid + 1;
+                break;
+            case PathMtuOutcome.TooBig:
+                hi = mid - 1;
+                break;
+            default:
+                unknown.Add(mid);
+                break;
+        }
+    }
+
+    internal static int? NextSize(int lo, int hi, HashSet<int> unknown)
+    {
+        if (lo > hi)
+            return null;
+        var mid = lo + ((hi - lo) / 2);
+        if (!unknown.Contains(mid))
+            return mid;
+        for (var size = lo; size <= hi; size++)
+        {
+            if (!unknown.Contains(size))
+                return size;
+        }
+
+        return null;
+    }
+
     private static async Task<PathMtuResult> RunAsync(
         string jobId,
         string target,
@@ -49,11 +97,15 @@ internal static class PathMtuEngine
         string? resolved = null;
         var lo = options.MinPayload;
         var hi = options.MaxPayload;
+        var unknown = new HashSet<int>();
 
-        while (lo <= hi && !token.IsCancellationRequested)
+        while (!token.IsCancellationRequested)
         {
-            var mid = lo + ((hi - lo) / 2);
-            var row = await ProbeAsync(target, mid, options, token).ConfigureAwait(false);
+            var mid = NextSize(lo, hi, unknown);
+            if (mid is null)
+                break;
+
+            var row = await ProbeAsync(target, mid.Value, options, token).ConfigureAwait(false);
             tries.Add(row.Try);
             resolved ??= row.Resolved;
             progress?.Report(new NetworkProgress
@@ -62,20 +114,12 @@ internal static class PathMtuEngine
                 Phase = "Pmtu",
                 Sent = tries.Count,
                 Received = tries.Count(t => t.Passed),
-                Sequence = mid,
-                LastStatus = row.Try.Status.ToString(),
+                Sequence = mid.Value,
+                LastStatus = row.Try.Outcome.ToString(),
                 LastRoundtripMs = row.Try.RoundtripTimeMs
             });
 
-            if (row.Try.Passed)
-            {
-                largest = mid;
-                lo = mid + 1;
-            }
-            else
-            {
-                hi = mid - 1;
-            }
+            Step(row.Try.Outcome, mid.Value, ref lo, ref hi, ref largest, unknown);
         }
 
         var hitCeiling = largest == options.MaxPayload;
@@ -104,9 +148,9 @@ internal static class PathMtuEngine
         });
         var result = await job.RunAsync(token).ConfigureAwait(false);
         var reply = result.Replies.FirstOrDefault();
-        var passed = reply is { Status: IcmpEchoStatus.Success };
         var status = reply?.Status ?? IcmpEchoStatus.Failed;
+        var outcome = Classify(status, reply?.Detail);
         var rtt = reply?.RoundtripTimeMs ?? 0;
-        return (new PathMtuTry(payload, passed, status, rtt), result.ResolvedAddress);
+        return (new PathMtuTry(payload, outcome == PathMtuOutcome.Passed, outcome, status, rtt), result.ResolvedAddress);
     }
 }

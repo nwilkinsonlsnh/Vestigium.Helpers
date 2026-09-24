@@ -1,5 +1,12 @@
 namespace Vestigium.Helpers.Network;
 
+public enum PathMtuOutcome
+{
+    Passed,
+    TooBig,
+    Unknown
+}
+
 public sealed class PathMtuOptions
 {
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(2);
@@ -12,6 +19,7 @@ public sealed class PathMtuOptions
 public sealed record PathMtuTry(
     int Payload,
     bool Passed,
+    PathMtuOutcome Outcome,
     IcmpEchoStatus Status,
     long RoundtripTimeMs);
 
