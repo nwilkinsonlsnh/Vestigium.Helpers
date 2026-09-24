@@ -27,7 +27,7 @@ internal static class DnsProbeEngine
         CancellationToken token,
         IProgress<NetworkProgress>? progress)
     {
-        NetworkLog.Pending(HelperLog.Subcategories.Dns, $"probeDns job={jobId} name={name} server={options.Server ?? "os"}");
+        NetworkLog.Pending(HelperLog.Subcategories.Icmp, $"probeDns job={jobId} name={name} server={options.Server ?? "os"}");
         var lookup = await DnsClient.LookupAsync(name, options, token).ConfigureAwait(false);
         var status = Map(lookup.Rcode);
         var result = new DnsProbeResult(
@@ -48,9 +48,9 @@ internal static class DnsProbeEngine
         });
         var line = $"{status} probeDns job={jobId} name={name} rcode={lookup.Rcode} ms={result.ElapsedMs}";
         if (status == DnsProbeStatus.Answered)
-            NetworkLog.Success(HelperLog.Subcategories.Dns, line);
+            NetworkLog.Success(HelperLog.Subcategories.Icmp, line);
         else
-            NetworkLog.Failed(HelperLog.Subcategories.Dns, line);
+            NetworkLog.Failed(HelperLog.Subcategories.Icmp, line);
         return result;
     }
 }

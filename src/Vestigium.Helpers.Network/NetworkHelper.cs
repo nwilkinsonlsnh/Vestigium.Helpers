@@ -93,6 +93,9 @@ public static class NetworkHelper
     public static Task<IReadOnlyList<DnsLookupResult>> LookupManyAsync(IEnumerable<string> names, DnsLookupOptions? options = null, CancellationToken cancellation = default)
         => DnsClient.LookupManyAsync(names, options, cancellation);
 
+    public static NetworkJob<DnsProbeResult> ProbeDns(string name, DnsLookupOptions? options = null)
+        => DnsProbeEngine.Create(name, options);
+
     public static IReadOnlyList<NetworkConnection> GetConnections(NetworkConnectionQuery? query = null)
     {
         using var scope = NetworkLog.Begin(HelperLog.Subcategories.Connection, nameof(GetConnections));
