@@ -70,6 +70,19 @@ public sealed class JsonlTests : IDisposable
     }
 
     [Fact]
+    public void Json_null_line_is_a_legal_record()
+    {
+        var path = Path.Combine(_root, "null-line.jsonl");
+        File.WriteAllText(path, "null\n{\"n\":1}\n", new UTF8Encoding(false));
+        using var doc = JsonHelper.OpenJsonl(path);
+        Assert.Equal(2, doc.RecordCount);
+        Assert.Null(doc.Record(0));
+        Assert.Equal(1, doc.Record(1)! ["n"]!.GetValue<int>());
+        Assert.Throws<ArgumentNullException>(() => doc.AppendRecord(null!));
+        Assert.Equal(2, doc.RecordCount);
+    }
+
+    [Fact]
     public void Empty_lines_are_skipped_truncated_last_line_fails()
     {
         var skip = Path.Combine(_root, "skip.jsonl");
