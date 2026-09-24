@@ -49,19 +49,31 @@ public static class NetworkHelper
     }
 
     public static NetworkJob<IcmpEchoResult> IcmpEcho(string target, IcmpEchoOptions? options = null)
-        => IcmpEchoEngine.Create(target, options);
+    {
+        var o = options ?? new IcmpEchoOptions();
+        EgressBind.Validate(o.InterfaceIndex, o.SourceAddress);
+        return IcmpEchoEngine.Create(target, o);
+    }
 
     public static NetworkJob<IcmpEchoResult> Ping(string target, IcmpEchoOptions? options = null)
         => IcmpEcho(target, options);
 
     public static NetworkJob<IcmpTraceResult> IcmpTrace(string target, IcmpTraceOptions? options = null)
-        => IcmpTraceEngine.Create(target, options);
+    {
+        var o = options ?? new IcmpTraceOptions();
+        EgressBind.Validate(o.InterfaceIndex, o.SourceAddress);
+        return IcmpTraceEngine.Create(target, o);
+    }
 
     public static NetworkJob<IcmpTraceResult> Trace(string target, IcmpTraceOptions? options = null)
         => IcmpTrace(target, options);
 
     public static Task<DnsLookupResult> LookupAsync(string name, DnsLookupOptions? options = null, CancellationToken cancellation = default)
-        => DnsClient.LookupAsync(name, options, cancellation);
+    {
+        var o = options ?? new DnsLookupOptions();
+        EgressBind.Validate(o.InterfaceIndex, o.SourceAddress);
+        return DnsClient.LookupAsync(name, o, cancellation);
+    }
 
     public static Task<IReadOnlyList<DnsLookupResult>> LookupManyAsync(IEnumerable<string> names, DnsLookupOptions? options = null, CancellationToken cancellation = default)
         => DnsClient.LookupManyAsync(names, options, cancellation);
