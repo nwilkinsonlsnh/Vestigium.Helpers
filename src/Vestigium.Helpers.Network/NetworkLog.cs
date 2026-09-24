@@ -29,6 +29,30 @@ internal static class NetworkLog
     public static void Reject(string subcategory, string method, string message)
         => HelperLog.Reject(App, subcategory, method, Redact(message));
 
+    public static void RouteDenied(string method, string message)
+        => HelperLog.WriteEvent(
+            NetworkEvents.RouteDenied,
+            VestigiumLogLevel.Error,
+            VestigiumStatus.Failed,
+            HelperLog.Subcategories.Route,
+            HelperLog.Line("reject", method, Redact(message), HelperLog.CorrelationId));
+
+    public static void IcmpForbidden(string message)
+        => HelperLog.WriteEvent(
+            NetworkEvents.IcmpForbidden,
+            VestigiumLogLevel.Error,
+            VestigiumStatus.Failed,
+            HelperLog.Subcategories.Icmp,
+            Redact(message));
+
+    public static void WindowMissed(string message)
+        => HelperLog.WriteEvent(
+            NetworkEvents.CampaignWindowMissed,
+            VestigiumLogLevel.Warning,
+            VestigiumStatus.Warning,
+            HelperLog.Subcategories.Campaign,
+            Redact(message));
+
     internal static string? Redact(string? message)
     {
         if (string.IsNullOrEmpty(message))

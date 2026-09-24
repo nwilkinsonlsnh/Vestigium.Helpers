@@ -151,6 +151,69 @@ public sealed class NetworkTraceAndRouteTests
         Assert.DoesNotContain("Linux writes throw typed denies", src, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Named_events_14530_14535_14540_exist()
+    {
+        Assert.Equal(14530, NetworkEvents.RouteDenied);
+        Assert.Equal(14535, NetworkEvents.IcmpForbidden);
+        Assert.Equal(14540, NetworkEvents.CampaignWindowMissed);
+        Assert.Contains(NetworkCatalog.Rows, r => r.EventId == 14530 && r.Name == "RouteDenied");
+        Assert.Contains(NetworkCatalog.Rows, r => r.EventId == 14535 && r.Name == "IcmpForbidden");
+        Assert.Contains(NetworkCatalog.Rows, r => r.EventId == 14540 && r.Name == "CampaignWindowMissed");
+        var jsonPath = FindNetworkSource(Path.Combine("EventCatalog", "network.json"));
+        Assert.True(jsonPath is not null, "network.json not found.");
+        var json = File.ReadAllText(jsonPath);
+        Assert.Contains("14530", json, StringComparison.Ordinal);
+        Assert.Contains("14535", json, StringComparison.Ordinal);
+        Assert.Contains("14540", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Default_route_write_logs_route_denied()
+    {
+        try
+        {
+            Init();
+            var ex = Assert.Throws<NetworkRouteDenied>(() => NetworkHelper.AddRoute(new NetworkRouteChange
+            {
+                Destination = "0.0.0.0",
+                PrefixLength = 0,
+                Gateway = "1.1.1.1",
+                InterfaceIndex = 1
+            }));
+            Assert.Contains("Default route", ex.Message, StringComparison.OrdinalIgnoreCase);
+            VestigiumLogger.Flush();
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14530") && line.Contains("default route"));
+        }
+        finally
+        {
+            VestigiumLogger.Shutdown();
+        }
+    }
+
+    [Fact]
+    public void Icmp_forbidden_and_window_missed_use_named_events()
+    {
+        try
+        {
+            Init();
+            NetworkLog.IcmpForbidden("Failed job=echo-x ICMP not permitted");
+            NetworkLog.WindowMissed("missed campaign=c1 date=2026-09-24 time=02:00");
+            VestigiumLogger.Flush();
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14535") && line.Contains("ICMP not permitted"));
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14540") && line.Contains("missed campaign"));
+            Assert.DoesNotContain(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14515") && line.Contains("ICMP not permitted"));
+        }
+        finally
+        {
+            VestigiumLogger.Shutdown();
+        }
+    }
+
     private static void Init()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumNetLog", Guid.NewGuid().ToString("N"));

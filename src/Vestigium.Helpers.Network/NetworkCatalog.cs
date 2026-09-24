@@ -31,6 +31,9 @@ public static class NetworkCatalog
         Row(NetworkEvents.OperationComplete, "OperationComplete", "Information", "operation complete"),
         Row(NetworkEvents.OperationFailed, "OperationFailed", "Error", "operation failed"),
         Row(NetworkEvents.OperationWarning, "OperationWarning", "Warning", "operation warning"),
+        Row(NetworkEvents.RouteDenied, "RouteDenied", "Error", "route write denied"),
+        Row(NetworkEvents.IcmpForbidden, "IcmpForbidden", "Error", "ICMP not permitted"),
+        Row(NetworkEvents.CampaignWindowMissed, "CampaignWindowMissed", "Warning", "campaign window missed"),
     ];
 
     private static CatalogRow Row(int eventId, string name, string severity, string description)

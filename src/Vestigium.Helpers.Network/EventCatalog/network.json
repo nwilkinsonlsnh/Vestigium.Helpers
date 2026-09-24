@@ -8,6 +8,9 @@
     { "eventId": 14510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Network", "message": "enter operation" },
     { "eventId": 14515, "name": "OperationComplete", "severity": "Information", "subcategory": "Network", "message": "operation complete" },
     { "eventId": 14520, "name": "OperationFailed", "severity": "Error", "subcategory": "Network", "message": "operation failed" },
-    { "eventId": 14525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Network", "message": "operation warning" }
+    { "eventId": 14525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Network", "message": "operation warning" },
+    { "eventId": 14530, "name": "RouteDenied", "severity": "Error", "subcategory": "Network", "message": "route write denied" },
+    { "eventId": 14535, "name": "IcmpForbidden", "severity": "Error", "subcategory": "Network", "message": "ICMP not permitted" },
+    { "eventId": 14540, "name": "CampaignWindowMissed", "severity": "Warning", "subcategory": "Network", "message": "campaign window missed" }
   ]
 }

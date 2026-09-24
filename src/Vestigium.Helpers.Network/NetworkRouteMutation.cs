@@ -211,7 +211,7 @@ internal static class NetworkRouteMutation
 
     internal static NetworkRouteDenied LinuxWriteDenied(string verb)
     {
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, "Linux route write requires CAP_NET_ADMIN");
+        NetworkLog.RouteDenied(verb, "Linux route write requires CAP_NET_ADMIN");
         return new NetworkRouteDenied("Linux route write requires CAP_NET_ADMIN.");
     }
 
@@ -223,13 +223,16 @@ internal static class NetworkRouteMutation
             ErrorInvalidParameter => verb + " rejected. Destination, mask, gateway, or interface is invalid.",
             _ => verb + " failed. Win32=" + code
         };
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, message);
+        if (code == ErrorAccessDenied)
+            NetworkLog.RouteDenied(verb, message);
+        else
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, verb, message);
         return new NetworkRouteDenied(message);
     }
 
     internal static NetworkRouteDenied PersistentAccessDenied(Exception ex)
     {
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Route, nameof(DeletePersistent), "persistent route access denied");
+        NetworkLog.RouteDenied(nameof(DeletePersistent), "persistent route access denied");
         return new NetworkRouteDenied("Persistent route requires write access to HKLM PersistentRoutes.", ex);
     }
 

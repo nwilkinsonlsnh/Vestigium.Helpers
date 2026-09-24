@@ -104,7 +104,7 @@ public sealed class IcmpEchoCampaign
                 });
                 existing = CampaignJsonl.Read(resultsPath);
                 missed++;
-                NetworkLog.Warning(HelperLog.Subcategories.Campaign, $"missed campaign={CampaignId} date={dateKey} time={timeKey}");
+                NetworkLog.WindowMissed($"missed campaign={CampaignId} date={dateKey} time={timeKey}");
                 continue;
             }
 
