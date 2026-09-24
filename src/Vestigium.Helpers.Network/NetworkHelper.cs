@@ -196,4 +196,7 @@ public static class NetworkHelper
 
     public static PercentileBill BillP95(NumericSeries series)
         => PercentileBillEngine.FromSeries(series, 0.95);
+
+    public static PercentileBill BillPercentile(NumericSeries series, double percentile)
+        => PercentileBillEngine.FromSeries(series, percentile);
 }
