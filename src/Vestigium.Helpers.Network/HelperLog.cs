@@ -90,9 +90,10 @@ internal static class HelperLog
         VestigiumLogLevel level,
         VestigiumStatus status,
         string subcategory,
-        string message,
+        string? message,
         Exception? exception)
     {
+        message ??= string.Empty;
         if (!VestigiumLogger.IsInitialized)
             return;
 

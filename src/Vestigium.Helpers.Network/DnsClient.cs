@@ -232,17 +232,19 @@ internal static class DnsClient
     {
         while (true)
         {
-            if (left.Equals(right)) return true;
-            if (!left.IsIPv4MappedToIPv6)
-                return right.IsIPv4MappedToIPv6 switch
-                {
-                    true => AddressesEqual(left, right.MapToIPv4()),
-                    _ => false
-                };
-            left = left.MapToIPv4();
-            continue;
-
-            break;
+            if (left.Equals(right))
+                return true;
+            if (left.IsIPv4MappedToIPv6)
+            {
+                left = left.MapToIPv4();
+                continue;
+            }
+            if (right.IsIPv4MappedToIPv6)
+            {
+                right = right.MapToIPv4();
+                continue;
+            }
+            return false;
         }
     }
 

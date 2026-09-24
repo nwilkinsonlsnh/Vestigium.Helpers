@@ -87,8 +87,6 @@ internal static class IcmpEchoEngine
             throw new ArgumentOutOfRangeException(
                 nameof(o.Interval),
                 "Continuous jobs longer than one minute require an Interval of at least 1 second.");
-
-            return;
         }
 
         if (o.AllowBurst || o.Interval >= IcmpEchoOptions.MinContinuousInterval) return;

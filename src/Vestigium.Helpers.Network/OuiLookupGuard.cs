@@ -152,7 +152,6 @@ internal static class OuiLookupGuard
             }
 
             return true;
-            break;
         }
     }
 
