@@ -15,9 +15,10 @@ This page records *why* Json is shaped this way. It does not add requirements.
 Give a host one way to read and edit **payload** JSON / JSONL: settings, exports, external logs. `System.Text.Json` only. An edit session so a developer can see the RFC 6902 patch before disk changes.
 
 ```
-ToJson / FromJson / Parse     one-shot document
+ToJson / FromJson / Parse     one-shot document (string, Stream, ReadOnlySpan<byte>)
 Create / Open / OpenJsonl     JsonSession
     Snapshot → Set / AppendRecord → Diff → Commit → Save
+Compare                       two payload files → JsonPatch (Diff only)
 Logging writes audit JSONL. This library does not.
 ```
 
@@ -34,8 +35,9 @@ Logging writes audit JSONL. This library does not.
 | Collision default Fail | UniqueName belongs in FileIo. |
 | Atomic write default | Sibling temp then `File.Move` overwrite of the opened path. |
 | Open vs OpenJsonl | A single RFC 8259 document is not a line file. Do not guess. |
-| Paths accept pointer and dotted | `/a/b` and `a.b` are the same member. Get missing throws; TryGet is false. |
+| Paths accept pointer and dotted | `/a/b` and `a.b` are the same member. Get missing throws `KeyNotFoundException`; TryGet is false. |
 | Sparse HelperLog | Paths and counts. Never bodies or field values. Get is quiet. |
+| Event IDs per subcategory | Block 13500–13999, step 5, used through 13625. |
 | Never `Initialize` | Folder follows the host APPID. |
 | Probe in memory | Must not write Desktop exports. |
 
@@ -45,14 +47,16 @@ Logging writes audit JSONL. This library does not.
 
 | File | Role |
 |---|---|
-| `JsonHelper.cs` | Identity, Probe, ToJson/FromJson/Parse, Create/Open/OpenJsonl, WriteFile, paths |
+| `JsonHelper.cs` | Identity, Probe, ToJson/FromJson/Parse, Create/Open/OpenJsonl, WriteFile, Compare, paths |
 | `JsonSession.cs` | Working / committed / snapshot, Get/Set, Diff, Commit, Save |
 | `JsonPath.cs` | Pointer and dotted path |
-| `JsonPatch.cs` | RFC 6902 Diff |
+| `JsonPatch.cs` | RFC 6902 Diff. Public `Compare(JsonNode?, JsonNode?)`. |
 | `JsonCodec.cs` | Serializer options |
 | `JsonIO.cs` | Streamed read/write, JSONL lines, collision |
 | `JsonOptions.cs` | Kind, collision, write/read/session options |
 | `HelperLog` / `JsonCatalog` / `JsonEvents` | Logging |
+
+`JsonHelper.Compare(leftPath, rightPath)` reads both files and returns `JsonPatch.Compare`. JSONL files compare as arrays. Mixed kind is `ArgumentException`. No `Apply`.
 
 Tests live under `src/Vestigium.Helpers.Tests/`.
 
@@ -79,18 +83,19 @@ JSONL Save rewrites the whole file. No mid-file splice in v1.
 
 | Class | When |
 |---|---|
-| `ArgumentNullException` / `ArgumentException` | Null value, blank path, bad path syntax. |
+| `ArgumentNullException` / `ArgumentException` | Null value, blank path, bad path syntax, Compare kind mismatch. |
+| `KeyNotFoundException` | `JsonSession.Get` on an unknown path. `TryGet` returns false instead. |
 | `JsonException` | Not RFC 8259, BOM, JSON null as document root, truncated JSONL line. |
-| `FileNotFoundException` | Open / OpenJsonl on a missing file. |
+| `FileNotFoundException` | Open / OpenJsonl / Compare on a missing file. |
 | `IOException` | Collision Fail; write failure. |
 
-Expected `ArgumentException` / `JsonException` / `IOException` rethrow without `HelperLog.Trap`.
+Expected `ArgumentException` / `JsonException` / `IOException` / `KeyNotFoundException` rethrow without `HelperLog.Trap`.
 
 ---
 
 ## 6. Still out
 
-Comments / trailing commas, UniqueName, tree copy, mid-file JSONL splice, being the audit logger, Newtonsoft, YAML.
+Comments / trailing commas, UniqueName, tree copy, mid-file JSONL splice, being the audit logger, Newtonsoft, YAML, RFC 6902 Apply, Desktop unlock, a stream-buffer knob, `Exception` objects on HelperLog.
 
 ---
 
@@ -99,3 +104,4 @@ Comments / trailing commas, UniqueName, tree copy, mid-file JSONL splice, being 
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 21 Sep 2026 | First standalone Design. Content lifted from Guide v1.0 + shipped helper/session. |
+| 1.0 | 23 Sep 2026 | PR05: Compare on JsonPatch and JsonHelper. Get throws. Event IDs through 13625. |
