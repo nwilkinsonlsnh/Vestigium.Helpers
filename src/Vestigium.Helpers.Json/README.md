@@ -41,12 +41,17 @@ Compare two files: `JsonHelper.Compare(leftPath, rightPath)`. Same kind. Diff on
 
 | Call | Returns | Notes |
 |---|---|---|
-| `ToJson` / `FromJson` / `Parse` | string / T / `JsonNode` | RFC 8259. No BOM. `Parse(string)`, `Parse(Stream)`, `Parse(ReadOnlySpan<byte>)`. |
-| `Create` / `Open` / `OpenJsonl` | `JsonSession` | Open is one document. JSONL is explicit. |
-| `WriteFile` | void | Collision default Fail. Atomic default true. |
-| `Compare` | `JsonPatch` | Two payload paths. JSONL compared as arrays. No Apply. |
-| `session.Get` / `TryGet` / `Set` | value / bool / void | `/a/b` and `a.b` are the same member. |
-| `Snapshot` / `Diff` / `Commit` / `Save` | patch or void | Disk sees committed only. |
+| `Identity` / `Probe` | string | In-memory only. Probe does not write the export folder. |
+| `ToJson` / `FromJson` | string / T | RFC 8259. No BOM. `FromJson` honors `JsonReadOptions.MaxDepth` (default 64). |
+| `Parse(string)` / `Parse(Stream)` / `Parse(ReadOnlySpan<byte>)` | `JsonNode` | RFC 8259. JSON null is not a document root. Stream honors the 32 MiB cap. |
+| `Create` / `Open` / `OpenJsonl` / `OpenExport` | `JsonSession` | `Open` is one `.json` document; a `.jsonl` path is rejected. `Create("*.jsonl")` starts an empty list. |
+| `WriteFile` | void | Collision default Fail. Atomic default true. 32 MiB document cap. |
+| `Compare` | `JsonPatch` | Two payload paths of the same kind. JSONL compared as arrays. Diff only — no Apply. Also `JsonPatch.Compare(from, to)`. |
+| `DefaultExportDirectory` / `NewExportPath` | string | Path only. Does not create the file. |
+| `session.Get` / `TryGet` / `Set` | T / bool / void | `/a/b` and `a.b` are the same member. Get miss throws. Get and TryGet do not log. |
+| `AppendRecord` / `Record` / `RecordCount` | void / node / int | JSONL only. |
+| `Snapshot` / `Diff` / `Commit` / `Revert` / `Cancel` | void / `JsonPatch` / void | Disk sees committed only. |
+| `Save` / `SaveAs` / `SaveWorking` | path string | `SaveWorking` writes working without Commit. |
 | `JsonCatalog.Register(cfg)` | void | Host-only, during `VestigiumLogger.Initialize`. |
 
 Default export: `%DESKTOP%\\Vestigium\\Exports\\Json\\`. Tests override `JsonTestHooks.ExportRoot`. Probe never writes it.
