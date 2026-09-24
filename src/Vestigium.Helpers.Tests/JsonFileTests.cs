@@ -21,6 +21,8 @@ public sealed class JsonFileTests : IDisposable
     public void Dispose()
     {
         JsonTestHooks.ExportRoot = null;
+        JsonTestHooks.MaxDocumentBytes = null;
+        JsonTestHooks.MaxJsonlLineBytes = null;
         HelperLog.Shutdown();
         if (Directory.Exists(_root))
             Directory.Delete(_root, recursive: true);
@@ -173,34 +175,35 @@ public sealed class JsonFileTests : IDisposable
     }
 
     [Fact]
-    public void Open_jsonl_path_fails_closed()
+    public void Open_rejects_document_over_cap()
     {
-        var path = Path.Combine(_root, "rows.jsonl");
-        File.WriteAllText(path, "{\"n\":1}\n");
-        var ex = Assert.Throws<ArgumentException>(() => JsonHelper.Open(path));
-        Assert.Equal("path", ex.ParamName);
-        Assert.Contains("OpenJsonl", ex.Message, StringComparison.Ordinal);
-        using var jsonl = JsonHelper.OpenJsonl(path);
-        Assert.Equal(JsonDocumentKind.Jsonl, jsonl.Kind);
-        Assert.Equal(1, jsonl.RecordCount);
+        JsonTestHooks.MaxDocumentBytes = 32;
+        var path = Path.Combine(_root, "big.json");
+        File.WriteAllText(path, "{\"pad\":\"xxxxxxxxxxxxxxxxxxxxxxxx\"}");
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.Open(path));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("xxxxxxxx", string.Join("\n", HelperLog.RecentJsonLines));
     }
 
     [Fact]
-    public void Open_jsonl_extension_is_case_insensitive()
+    public void Parse_stream_rejects_document_over_cap()
     {
-        var path = Path.Combine(_root, "rows.JSONL");
-        File.WriteAllText(path, "{\"n\":1}\n");
-        var ex = Assert.Throws<ArgumentException>(() => JsonHelper.Open(path));
-        Assert.Equal("path", ex.ParamName);
+        JsonTestHooks.MaxDocumentBytes = 8;
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("{\"timeoutSeconds\":15}"));
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.Parse(stream));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Create_jsonl_path_starts_an_empty_list()
+    public void WriteFile_rejects_document_over_cap()
     {
-        var path = Path.Combine(_root, "new-rows.jsonl");
-        using var doc = JsonHelper.Create(path);
-        Assert.Equal(JsonDocumentKind.Jsonl, doc.Kind);
-        Assert.Equal(0, doc.RecordCount);
+        JsonTestHooks.MaxDocumentBytes = 16;
+        var path = Path.Combine(_root, "over.json");
+        var ex = Assert.Throws<JsonException>(() =>
+            JsonHelper.WriteFile(path, new { Level = "Information", Pad = "xxxxxxxxxxxxxxxx" }));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(path));
+        Assert.Empty(Directory.GetFiles(_root, "*.tmp", SearchOption.AllDirectories));
     }
 
     [Fact]
