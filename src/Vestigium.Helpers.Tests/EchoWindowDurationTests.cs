@@ -4,19 +4,18 @@ namespace Vestigium.Helpers.Tests;
 
 public sealed class EchoWindowDurationTests : IDisposable
 {
-    private readonly string _root;
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "VestigiumNetworkCampaigns", Guid.NewGuid().ToString("N"));
 
     public EchoWindowDurationTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), "vest-echo-window-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
-        CampaignPaths.OverrideRoot(_root);
+        NetworkTestHooks.CampaignRoot = _root;
     }
 
     public void Dispose()
     {
-        CampaignPaths.OverrideRoot(null);
-        try { Directory.Delete(_root, true); } catch (IOException) { }
+        NetworkTestHooks.Reset();
+        try { Directory.Delete(_root, true); } catch { }
     }
 
     [Fact]
@@ -49,10 +48,17 @@ public sealed class EchoWindowDurationTests : IDisposable
     [Fact]
     public void Old_recipe_without_durationMs_opens_count_only()
     {
-        var path = Path.Combine(_root, "old.json");
+        var path = Path.Combine(_root, "old-duration.json");
         File.WriteAllText(path,
             """
-            {"campaignId":"camp-old","target":"127.0.0.1","rangeStartDate":"2026-09-24","rangeEndDate":"2026-09-24","graceMinutes":15,"windows":[{"localTime":"12:00","count":2}]}
+            {
+              "campaignId": "camp-old",
+              "target": "127.0.0.1",
+              "rangeStartDate": "2026-09-24",
+              "rangeEndDate": "2026-09-24",
+              "graceMinutes": 15,
+              "windows": [ { "localTime": "12:00", "count": 2 } ]
+            }
             """);
         var opened = NetworkHelper.OpenEchoCampaign(path);
         Assert.Null(opened.Options.Windows[0].Duration);

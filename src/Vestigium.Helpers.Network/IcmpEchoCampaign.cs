@@ -115,11 +115,14 @@ public sealed class IcmpEchoCampaign
                 recordedUtc = nowUtc,
                 date = dateKey,
                 localTime = timeKey,
-                count = window.Count
+                count = window.Count,
+                durationMs = window.Duration is { } dur ? (int)dur.TotalMilliseconds : (int?)null
             });
 
             var echoOptions = CloneEcho(Options.Echo);
             echoOptions.Count = window.Count;
+            if (window.Duration is { } duration)
+                echoOptions.MaxDuration = duration;
             echoOptions.StatsPath = null;
             var job = NetworkHelper.IcmpEcho(Options.Target, echoOptions);
             var result = await job.RunAsync(cancellation).ConfigureAwait(false);
@@ -199,10 +202,25 @@ public sealed class IcmpEchoCampaign
             throw new ArgumentException("Windows must have unique LocalTime values.", nameof(o.Windows));
         }
 
-        if (o.Windows.Any(w => w.Count < 1))
+        foreach (var window in o.Windows)
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(Guard), "window count");
-            throw new ArgumentOutOfRangeException(nameof(o.Windows), "Window Count must be at least 1.");
+            if (window.Count < 1 && window.Duration is null)
+            {
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(Guard), "window neither count nor duration");
+                throw new ArgumentOutOfRangeException(nameof(o.Windows), "Window needs a Count of at least 1 or a Duration.");
+            }
+
+            if (window.Count < 0)
+            {
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(Guard), "window count");
+                throw new ArgumentOutOfRangeException(nameof(o.Windows), "Window Count cannot be negative.");
+            }
+
+            if (window.Duration is { } duration && (duration <= TimeSpan.Zero || duration > IcmpEchoOptions.MaxJobDuration))
+            {
+                HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(Guard), $"window duration={duration}");
+                throw new ArgumentOutOfRangeException(nameof(o.Windows), "Window Duration must be greater than 0 and at most 24 hours.");
+            }
         }
 
         if (o.Grace < TimeSpan.Zero || o.Grace > TimeSpan.FromHours(12))
@@ -254,7 +272,12 @@ public sealed class IcmpEchoCampaign
             RangeEndDate = options.RangeEndDate.ToString("yyyy-MM-dd"),
             TimeZoneId = options.TimeZoneId,
             GraceMinutes = (int)options.Grace.TotalMinutes,
-            Windows = options.Windows.Select(w => new CampaignWindowDto { LocalTime = w.LocalTime.ToString("HH:mm"), Count = w.Count }).ToList(),
+            Windows = options.Windows.Select(w => new CampaignWindowDto
+            {
+                LocalTime = w.LocalTime.ToString("HH:mm"),
+                Count = w.Count,
+                DurationMs = w.Duration is { } d ? (int)d.TotalMilliseconds : null
+            }).ToList(),
             ResultsPath = options.ResultsPath,
             Echo = CampaignEchoDto.From(options.Echo)
         }, new JsonWriteOptions { WriteIndented = true, Collision = JsonCollision.Overwrite });
@@ -270,7 +293,9 @@ public sealed class IcmpEchoCampaign
             Ttl = source.Ttl,
             DontFragment = source.DontFragment,
             MaxDuration = source.MaxDuration,
-            AllowBurst = source.AllowBurst
+            AllowBurst = source.AllowBurst,
+            InterfaceIndex = source.InterfaceIndex,
+            SourceAddress = source.SourceAddress
         };
 
     private sealed class CampaignRecipe
@@ -293,7 +318,10 @@ public sealed class IcmpEchoCampaign
                 RangeEndDate = DateOnly.Parse(RangeEndDate),
                 TimeZoneId = TimeZoneId,
                 Grace = TimeSpan.FromMinutes(GraceMinutes),
-                Windows = Windows.Select(w => new EchoWindow(TimeOnly.Parse(w.LocalTime), w.Count)).ToList(),
+                Windows = Windows.Select(w => new EchoWindow(
+                    TimeOnly.Parse(w.LocalTime),
+                    w.Count,
+                    w.DurationMs is { } ms ? TimeSpan.FromMilliseconds(ms) : null)).ToList(),
                 ResultsPath = ResultsPath,
                 Echo = Echo?.ToOptions() ?? new IcmpEchoOptions()
             };
@@ -303,6 +331,7 @@ public sealed class IcmpEchoCampaign
     {
         public string LocalTime { get; init; } = "";
         public int Count { get; init; }
+        public int? DurationMs { get; init; }
     }
 
     private sealed class CampaignEchoDto
