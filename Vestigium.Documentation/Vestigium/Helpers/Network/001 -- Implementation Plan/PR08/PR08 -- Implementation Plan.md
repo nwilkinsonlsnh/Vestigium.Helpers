@@ -15,7 +15,7 @@ PR08-07 is the owner gate on the clone.
 
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
-| 1 | PR08-01 | Fix `NetworkHelper` XML. Linux route write is Option C netlink, not a blanket typed deny. | Open |
+| 1 | PR08-01 | Fix `NetworkHelper` XML. Linux route write is Option C netlink, not a blanket typed deny. | Done (PR07-05, on main) |
 | 2 | PR08-02 | Add EVENTID 14530 / 14535 / 14540 / 14545. Update `NetworkEvents`, `EventCatalog/network.json`, `HelperLog.EventId`. Version **1.0.1**. Cut this row only if owner refuses a bump. | Open |
 | 3 | PR08-04 | `BillPercentile(NumericSeries, double)` on the façade. | Open |
 | 4 | PR08-03 | Stop `Compile Remove` on `NetworkInventoryTests.cs`. Keep Hotspot removed. Tests stay off public Internet and off ProgramData / `/var/lib/vestigium`. | Open |
@@ -27,7 +27,7 @@ PR08-07 is the owner gate on the clone.
 
 ### PR08-01
 
-The class summary still says Linux writes throw typed denies. That was the pre-Option C contract. `NetworkRouteMutation` + `NetworkRouteNetlink` already write. Default routes still throw `NetworkRouteDenied`. Missing `CAP_NET_ADMIN` still throws `NetworkRouteDenied`. Comment must match that.
+Done on main by PR07-05. `NetworkHelper` summary is Option C: Windows IPv4 IP Helper + HKLM persist, Windows IPv6 `CreateIpForwardEntry2`, Linux IPv4 and IPv6 netlink. Typed deny only for missing admin / `CAP_NET_ADMIN`, ACL, or a default-route write. No `route` / `ip` / `netsh`.
 
 ### PR08-02
 
@@ -75,7 +75,7 @@ Inventory tests were removed in the umbrella csproj. That is not “Linux CI.”
 
 - Alvin: do not grow `HelperLog` into a second logger.
 - Theodore: inventory tests must not talk to the Internet.
-- Simon: packed OUI stays incomplete; do not “fix” it with a live dump.
+- Simon: do not pack an IEEE OUI. The registry changes. Lookup is a URL the caller points at, fetched on that request. Do not grow `_Data/oui-snapshot.txt`.
 
 ## Next action
 
