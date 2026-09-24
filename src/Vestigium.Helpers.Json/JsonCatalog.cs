@@ -2,12 +2,26 @@ using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Json;
 
+/// <summary>
+/// Registers the Json Event ID block and taxonomy on a host logger.
+/// The class library never calls <see cref="VestigiumLogger.Initialize"/>.
+/// </summary>
 public static class JsonCatalog
 {
+    /// <summary>Logger app id for this package.</summary>
     public const string AppId = "Json";
+
+    /// <summary>Logger category for this package.</summary>
     public const string Category = "Helpers";
+
+    /// <summary>Default subcategory label.</summary>
     public const string Subcategory = "Json";
 
+    /// <summary>
+    /// Registers taxonomy and Event IDs 13500–13999 on <paramref name="cfg"/>.
+    /// Safe to call more than once on the same options instance.
+    /// </summary>
+    /// <param name="cfg">Host logger options. Must not be null.</param>
     public static void Register(VestigiumLoggerOptions cfg)
     {
         ArgumentNullException.ThrowIfNull(cfg);
