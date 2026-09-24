@@ -183,6 +183,7 @@ public static class JsonHelper
         {
             var input = HelperGuard.NotNull(stream, nameof(stream));
             HelperGuard.Require(input.CanRead, nameof(stream), "Stream must be readable.");
+            JsonIo.EnsureStreamWithinCap(input);
             RejectBom(input);
             JsonNode? node;
             try
@@ -314,12 +315,6 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
         try
         {
-            if (JsonIo.KindFromPath(target) == JsonDocumentKind.Jsonl)
-            {
-                HelperLog.Reject($"Open is JSON only path={target}");
-                throw new ArgumentException("Open requires a .json document. Use OpenJsonl for .jsonl.", nameof(path));
-            }
-
             var node = JsonIo.Read(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(
