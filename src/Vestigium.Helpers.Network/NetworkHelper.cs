@@ -74,6 +74,9 @@ public static class NetworkHelper
     public static NetworkJob<TcpConnectResult> TcpConnect(string host, int port, TcpConnectOptions? options = null)
         => TcpConnectEngine.Create(host, port, options);
 
+    public static NetworkJob<CounterSampleResult> SampleCounters(string nameOrId, CounterSampleOptions? options = null)
+        => CounterSampleEngine.Create(nameOrId, options);
+
     public static Task<DnsLookupResult> LookupAsync(string name, DnsLookupOptions? options = null, CancellationToken cancellation = default)
     {
         var o = options ?? new DnsLookupOptions();
