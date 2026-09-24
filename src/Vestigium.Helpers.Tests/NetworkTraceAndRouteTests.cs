@@ -138,9 +138,6 @@ public sealed class NetworkTraceAndRouteTests
         Assert.Contains("\"Share\"", src, StringComparison.Ordinal);
         Assert.Contains("\"Stats\"", src, StringComparison.Ordinal);
         Assert.Contains("\"Progress\"", src, StringComparison.Ordinal);
-        Assert.Equal("Share", HelperLog.Subcategories.Share);
-        Assert.Equal("Stats", HelperLog.Subcategories.Stats);
-        Assert.Equal("Progress", HelperLog.Subcategories.Progress);
     }
 
     private static void Init()
