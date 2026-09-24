@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
 **Version:** 1.6  
-**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.1.0**.  
+**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.2.0**.  
 **Date:** 24 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
@@ -14,38 +14,34 @@ A .NET 10 LTS resource library. Hosts subscribe on Windows or Linux. Not a CLI. 
 One `net10.0` DLL. References: Json 1.0.1, Analytics 1.0.1, FileIo 1.1.1. Logging from repo `$(VestigiumLoggingVersion)`. No plot package.
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.1.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.2.0" />
 ```
 
-Route **print** works on both OS, both families. Route **write** is Option C:
+Route **print** works on both OS, both families. Route **write** is Option C.
 
-| | Windows | Linux |
-|---|---|---|
-| IPv4 | IP Helper + optional HKLM persist | Netlink |
-| IPv6 | `CreateIpForwardEntry2` | Netlink |
-| Default `0.0.0.0/0` or `::/0` | `NetworkRouteDenied` | `NetworkRouteDenied` |
-| No admin / no `CAP_NET_ADMIN` | `NetworkRouteDenied` | `NetworkRouteDenied` |
+Default `0.0.0.0/0` or `::/0` throws `NetworkRouteDenied`. No admin / no `CAP_NET_ADMIN` throws the same.
 
-NetBIOS is Windows-only. `NetworkTestHooks` is internal.
+NetBIOS is Windows-only. `NetworkTestHooks` is internal. This library does not plot.
 
-This library does not plot. `BandwidthAmount`, `TransferResult`, `PercentileBill`, and campaign results stay network facts.
-
-## Routes
+## PR10 jobs
 
 ```csharp
-var printed = NetworkHelper.GetRoutes(RouteFamily.All);
-
-NetworkHelper.AddRoute(new NetworkRouteChange
-{
-    Destination = "192.0.2.0",
-    PrefixLength = 24,
-    Gateway = "192.0.2.1",
-    InterfaceIndex = 12, // required on Linux; Windows IPv6: caller >= 1 or first up IPv6 NIC
-    Persistent = true    // Windows IPv4 HKLM only
-});
+var udp  = await NetworkHelper.UdpProbe("192.0.2.1", 53).RunAsync();
+var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
+var watch = await NetworkHelper.WatchAdapter("Ethernet", new AdapterWatchOptions { Duration = TimeSpan.FromSeconds(5) }).RunAsync();
 ```
 
-`2001:db8::/32` is a legal write (same doors). `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`.
+Bound ICMP: when `InterfaceIndex` or `SourceAddress` is set, echo uses the bound path. Omit both and BCL `Ping` may stay.
+
+PMTU: timeout is unknown. Only a sized reject shrinks the walk.
+
+`ProbeNeighbor` is one-address resolve, not a table filter.
+
+Pathping phase 2 samples with the protocol the walk settled on.
+
+Campaign recipes persist bind when set. Old recipes open unset.
+
+`UdpProbe` is one host and one port. `ProbeDns` is answered / refused / timed out. `WatchAdapter` is oper-status, not byte counters.
 
 ## PR09 jobs
 
@@ -57,57 +53,31 @@ var nic  = await NetworkHelper.SampleCounters("Ethernet", new CounterSampleOptio
 var arp  = NetworkHelper.ProbeNeighbor("192.0.2.1");
 ```
 
-`InterfaceIndex` 0 is not rewritten to 1. Trace probes are ICMP, then UDP if ICMP is forbidden, then TCP if UDP is silent. A refused TCP connect still names the hop. Pathping is a walk plus a sample; link loss is never reported as a gain. `TcpConnect` is one host and one port. `SampleCounters` does not call `BillP95`. `ProbeNeighbor` does not dump `GetNeighbors`.
-
-Echo campaign windows may set `Duration`. A recipe without `durationMs` opens as count-only.
+`InterfaceIndex` 0 is not rewritten to 1. Trace probes are ICMP, then UDP if ICMP is forbidden, then TCP if UDP is silent.
 
 ## OUI
 
-```csharp
-var live = await NetworkHelper.LookupOuiAsync("00:00:0C:11:22:33");
-var packed = NetworkHelper.LookupOuiPacked("00:00:0C:11:22:33"); // tiny stub, not the IEEE list
-```
-
-The registry changes, so this library does not pack it. Completeness is `LookupOuiAsync`: default host `api.macvendors.com`, or a caller URL with `AllowCustomRegistry` and the allowlist. Fetched on that request. No redirect. The embedded snapshot is not grown.
+The registry is not packed. Completeness is `LookupOuiAsync`.
 
 ## Share campaigns
 
-```csharp
-var analysis = FileIoHelper.AnalyzeDirectory(sourceDir);
-var plan = NetworkHelper.PlanShareProbe(analysis);
-var campaign = NetworkHelper.CreateShareCampaign(new ShareCampaignOptions
-{
-    Target = new FileShareTarget { Directory = shareDir },
-    Mode = ShareCampaignMode.Advanced,
-    SourceAnalysis = analysis
-});
-var result = await campaign.RunAsync();
-```
-
-Default mode: 64 MiB × 4 FileIo write probes, P95 → `TransferTime`. Network does not open `FileStream`. No password field.
+FileIo probes. No password field.
 
 ## ICMP continuous
 
-`Count = 0` needs `MaxDuration` (≤ 24 h). Interval floor 200 ms under one minute, 1 s above. `AllowBurst` is only for the short band.
+`Count = 0` needs `MaxDuration` (≤ 24 h). Interval floor 200 ms under one minute, 1 s above.
 
 ## Linux CI
 
-The umbrella test project is `net10.0-windows` because that assembly also covers WinReg. That is **repo CI**, not a Network feature. Windows `FullyQualifiedName~Network` is the Network gate. Live Ubuntu route checks wait for a later box (PR05 §4).
+Windows `FullyQualifiedName~Network` is the Network gate.
 
 ## What is not next in this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry. Port sweep.
+Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry. Port sweep. Default-route write.
 
 ## Document control
 
 | Version | Date | Change |
 |---|---|---|
-| 1.2 | 10 Sep 2026 | Phase 8 harden wording. |
-| 1.6 | 19 Sep 2026 | Shipped façade. PR01 locks. |
-| 1.6 + PR02 | 19 Sep 2026 | Then: Windows write / Linux print. |
-| 1.6 + PR03 | 19 Sep 2026 | Share campaigns. Demo skipped. |
-| 1.6 + PR04.001 | 19 Sep 2026 | Plotting is not a Network surface. |
-| 1.6 + PR05.003 | 19 Sep 2026 | Option C + packed OUI + persist key. |
-| 1.6 + PR07.009 | 24 Sep 2026 | Consume 1.0.1. IPv6 IfIndex. Echo recipe. Plot API never offered. |
-| 1.6 + PR08.005 | 24 Sep 2026 | Option C stands. OUI is a URL on request. IEEE registry is not packed. |
 | 1.6 + PR09-11 | 24 Sep 2026 | Consume 1.1.0. PR09 doors. |
+| 1.6 + PR10-09 | 24 Sep 2026 | Consume 1.2.0. PR10 doors. |
