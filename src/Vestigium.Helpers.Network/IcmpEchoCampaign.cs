@@ -184,6 +184,7 @@ public sealed class IcmpEchoCampaign
     {
         var o = options ?? throw new ArgumentNullException(nameof(options));
         HelperGuard.NotBlank(o.Target, nameof(o.Target));
+        EgressBind.Validate(o.Echo.InterfaceIndex, o.Echo.SourceAddress);
         if (o.RangeEndDate < o.RangeStartDate)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(Guard), "range inverted");
@@ -343,6 +344,8 @@ public sealed class IcmpEchoCampaign
         public bool DontFragment { get; init; }
         public int? MaxDurationMs { get; init; }
         public bool AllowBurst { get; init; }
+        public int? InterfaceIndex { get; init; }
+        public string? SourceAddress { get; init; }
 
         public static CampaignEchoDto From(IcmpEchoOptions echo)
             => new()
@@ -353,7 +356,9 @@ public sealed class IcmpEchoCampaign
                 Ttl = echo.Ttl,
                 DontFragment = echo.DontFragment,
                 MaxDurationMs = echo.MaxDuration is { } duration ? (int)duration.TotalMilliseconds : null,
-                AllowBurst = echo.AllowBurst
+                AllowBurst = echo.AllowBurst,
+                InterfaceIndex = echo.InterfaceIndex >= 1 ? echo.InterfaceIndex : null,
+                SourceAddress = string.IsNullOrWhiteSpace(echo.SourceAddress) ? null : echo.SourceAddress.Trim()
             };
 
         public IcmpEchoOptions ToOptions()
@@ -365,7 +370,9 @@ public sealed class IcmpEchoCampaign
                 Ttl = Ttl,
                 DontFragment = DontFragment,
                 MaxDuration = MaxDurationMs is { } ms ? TimeSpan.FromMilliseconds(ms) : null,
-                AllowBurst = AllowBurst
+                AllowBurst = AllowBurst,
+                InterfaceIndex = InterfaceIndex ?? 0,
+                SourceAddress = SourceAddress
             };
     }
 }
