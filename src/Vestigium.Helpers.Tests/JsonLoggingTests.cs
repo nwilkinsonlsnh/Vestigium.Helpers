@@ -133,6 +133,31 @@ public sealed class JsonLoggingTests
     }
 
     [Fact]
+    public void Jsonl_null_line_is_a_legal_record()
+    {
+        var export = Path.Combine(Path.GetTempPath(), "VestigiumJsonPr07Null", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(export);
+        JsonTestHooks.ExportRoot = export;
+        try
+        {
+            var path = Path.Combine(export, "null-line.jsonl");
+            File.WriteAllText(path, "null\n{\"n\":1}\n");
+            using var doc = JsonHelper.OpenJsonl(path);
+            Assert.Equal(2, doc.RecordCount);
+            Assert.Null(doc.Record(0));
+            Assert.Equal(1, doc.Record(1)! ["n"]!.GetValue<int>());
+            Assert.Throws<ArgumentNullException>(() => doc.AppendRecord(null!));
+            Assert.Equal(2, doc.RecordCount);
+        }
+        finally
+        {
+            JsonTestHooks.ExportRoot = null;
+            if (Directory.Exists(export))
+                Directory.Delete(export, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Catalog_rows_cover_the_pr05_block_and_stay_in_range()
     {
         Assert.Equal(29, JsonCatalog.Rows.Length);
