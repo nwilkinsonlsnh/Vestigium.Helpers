@@ -154,8 +154,9 @@ internal static class CsvCodec
             case double d when !double.IsFinite(d):
             {
                 CsvLog.Error(CsvEvents.CellRejectedNonFinite, CsvCatalog.Subcategories.Session, "rejected non-finite number");
-                    throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
-                }
+                throw new ArgumentOutOfRangeException(nameof(value), "Value is not a finite number.");
+            }
+            case double d:
                 return d.ToString("G17", CultureInfo.InvariantCulture);
             default:
                 return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
