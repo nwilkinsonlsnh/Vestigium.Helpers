@@ -3,7 +3,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
-    <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. Packed OUI snapshot is offline and incomplete.</Description>
+    <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. OUI lookup is a caller URL. The embedded snapshot is a stub.</Description>
+    <!-- 1.0.0 is the nuget.org publish without named fail IDs. 1.0.1 is required once 14530+ shipped. Do not republish 1.0.0. -->
     <Version>1.0.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>

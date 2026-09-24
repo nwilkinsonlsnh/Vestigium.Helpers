@@ -7,6 +7,7 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 | Field | Value |
 |---|---|
 | Package | `Vestigium.Helpers.Network` 1.0.1 |
+| Version rule | `1.0.0` has no named fail IDs. `1.0.1` is this package because 14530–14555 shipped. Do not republish `1.0.0`. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14555) |

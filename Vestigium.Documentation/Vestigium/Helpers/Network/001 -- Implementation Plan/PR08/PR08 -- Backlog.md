@@ -1,7 +1,7 @@
 # Vestigium.Helpers.Network — PR08 Backlog
 
 **Document ID:** VEST-HLP-NETWORK-PR08-BL  
-**Package:** `Vestigium.Helpers.Network` 1.0.0 on tree; 1.0.1 if EVENTIDs land  
+**Package:** `Vestigium.Helpers.Network` 1.0.1. `1.0.0` is the nuget.org publish without named fail IDs.  
 **Repo path:** `Vestigium.Documentation/Vestigium/Helpers/Network/001 -- Implementation Plan/PR08/`  
 **Binding:** `Requirements_v1.6.md` wins. This backlog amends paper only where a row says so.
 
@@ -63,10 +63,10 @@ PR08 is not pathping, not HTTP reachability, not a plot API, not Demo, not a sch
 
 | Setting | Value |
 | :--- | :--- |
-| Package | `1.0.0` unless PR08-02 ships, then `1.0.1` |
-| EVENTID | 14500–14999, step 5, used through 14545 if PR08-02 ships |
+| Package | `1.0.1`. `1.0.0` stays the nuget.org publish without named fail IDs. Do not republish it. |
+| EVENTID | 14500–14999, step 5, used through 14555 |
 | Route write | Option C. Defaults denied. |
-| OUI packed | Offline stub |
+| OUI | Caller URL on request. Embedded snapshot is a stub and is not grown. |
 | Tests filter | `FullyQualifiedName~Network` |
 | Commit | `Network PR08: <id short goal>` |
 

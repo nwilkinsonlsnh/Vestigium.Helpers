@@ -20,7 +20,7 @@ PR08-07 is the owner gate on the clone.
 | 3 | PR08-04 | `BillPercentile(NumericSeries, double)` on the façade. | Done |
 | 4 | PR08-03 | Stop `Compile Remove` on `NetworkInventoryTests.cs`. Keep Hotspot removed. Tests stay off public Internet and off ProgramData / `/var/lib/vestigium`. | Done |
 | 5 | PR08-05 | Point `001/README.md` at this folder. SRS, Design, Guide, and package README say Option C, OUI is a URL on request, and this library does not plot. | Done |
-| 6 | PR08-06 | Version rule in csproj + README. 1.0.0 without events; 1.0.1 with PR08-02. | Open |
+| 6 | PR08-06 | Version rule in csproj + README. 1.0.0 without events; 1.0.1 with PR08-02. | Done |
 | 7 | PR08-07 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
@@ -52,6 +52,10 @@ Done. `NetworkHelper.BillPercentile(NumericSeries, double)` calls `PercentileBil
 ### PR08-05
 
 Done. `001/README.md` already points here. SRS decision 35, Design, Guide, and the package README now say: route write is Option C; the IEEE OUI registry is not packed; lookup is the caller's URL fetched on that request; this library does not plot.
+
+### PR08-06
+
+Done. Named fail IDs shipped, so the package is **1.0.1**. `1.0.0` remains the nuget.org publish without those IDs. Do not republish it. The rule is the csproj comment and the README version-rule row.
 
 ## What this PR does not do
 
