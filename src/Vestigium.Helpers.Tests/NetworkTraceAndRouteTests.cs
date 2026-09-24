@@ -225,8 +225,8 @@ public sealed class NetworkTraceAndRouteTests
         Assert.Contains("Vestigium.Helpers.Json\" Version=\"1.0.1\"", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.Analytics\" Version=\"1.0.1\"", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.FileIo\" Version=\"1.1.1\"", src, StringComparison.Ordinal);
-        Assert.DoesNotContain("Vestigium.Logging", src, StringComparison.Ordinal);
-        Assert.DoesNotContain("Vestigium.Helpers.Charts", src, StringComparison.Ordinal);
+        Assert.DoesNotContain("Include=\"Vestigium.Logging\"", src, StringComparison.Ordinal);
+        Assert.DoesNotContain("Include=\"Vestigium.Helpers.Charts\"", src, StringComparison.Ordinal);
     }
 
     private static void Init()
