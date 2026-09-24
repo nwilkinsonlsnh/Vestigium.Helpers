@@ -3,19 +3,22 @@ namespace Vestigium.Helpers.Network;
 public enum ProbeProtocol
 {
     Icmp,
-    Udp
+    Udp,
+    Tcp
 }
 
 public sealed class IcmpTraceOptions
 {
     public const int DefaultMaxHops = 30;
     public const int DefaultProbesPerHop = 3;
+    public const int DefaultTcpPort = 80;
 
     public int MaxHops { get; set; } = DefaultMaxHops;
     public int ProbesPerHop { get; set; } = DefaultProbesPerHop;
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(4);
     public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
     public bool PreferUdp { get; set; }
+    public int TcpPort { get; set; } = DefaultTcpPort;
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
     public RouteFamily Family { get; set; } = RouteFamily.All;

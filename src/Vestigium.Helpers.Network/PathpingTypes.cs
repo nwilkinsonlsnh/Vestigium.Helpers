@@ -15,6 +15,7 @@ public sealed class PathpingOptions
     public TimeSpan SampleInterval { get; set; } = TimeSpan.FromMilliseconds(200);
     public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
     public bool PreferUdp { get; set; }
+    public int TcpPort { get; set; } = IcmpTraceOptions.DefaultTcpPort;
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
     public RouteFamily Family { get; set; } = RouteFamily.All;
