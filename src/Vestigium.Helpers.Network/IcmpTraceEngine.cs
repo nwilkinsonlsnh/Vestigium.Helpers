@@ -12,6 +12,7 @@ internal static class IcmpTraceEngine
         var host = HelperGuard.NotBlank(target, nameof(target)).Trim();
         var o = options ?? new IcmpTraceOptions();
         Guard(o);
+        TraceResolve.GuardLiteral(host, o.Family);
         var jobId = "trace-" + HelperLog.NewId();
         return new NetworkJob<IcmpTraceResult>(jobId, "icmpTrace", (token, progress) => RunAsync(jobId, host, o, token, progress));
     }
@@ -36,6 +37,8 @@ internal static class IcmpTraceEngine
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"TimeoutMs={timeoutMs:0}");
             throw new ArgumentOutOfRangeException(nameof(o.Timeout), "Timeout must be between 10 ms and 60 s.");
         }
+
+        TraceResolve.Guard(o.Family);
     }
 
     private static async Task<IcmpTraceResult> RunAsync(
@@ -53,6 +56,12 @@ internal static class IcmpTraceEngine
         var protocol = options.PreferUdp ? ProbeProtocol.Udp : ProbeProtocol.Icmp;
         var reached = false;
         var resolved = IPAddress.TryParse(target, out var parsed) ? parsed.ToString() : null;
+        var probeTarget = target;
+        if (options.Family is RouteFamily.Pv4 or RouteFamily.Pv6)
+        {
+            probeTarget = await TraceResolve.ResolveAsync(target, options.Family, token).ConfigureAwait(false);
+            resolved = IPAddress.TryParse(probeTarget, out _) ? probeTarget : resolved;
+        }
         var timeoutMs = Math.Clamp((int)options.Timeout.TotalMilliseconds, IcmpEchoOptions.MinTimeoutMs, IcmpEchoOptions.MaxTimeoutMs);
         var buffer = new byte[Math.Clamp(options.BufferSize, 0, IcmpEchoOptions.MaxBufferSize)];
 
@@ -68,17 +77,17 @@ internal static class IcmpTraceEngine
                     IcmpTraceProbe row;
                     if (protocol == ProbeProtocol.Icmp && !options.PreferUdp)
                     {
-                        row = await IcmpProbeAsync(ping, target, buffer, timeoutMs, ttl, probe, token).ConfigureAwait(false);
+                        row = await IcmpProbeAsync(ping, probeTarget, buffer, timeoutMs, ttl, probe, token).ConfigureAwait(false);
                         if (row.Status == IcmpEchoStatus.ProtocolForbidden)
                         {
                             protocol = ProbeProtocol.Udp;
                             NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} ICMP forbidden; UDP fallback");
-                            row = await UdpProbeAsync(target, timeoutMs, ttl, probe, token).ConfigureAwait(false);
+                            row = await UdpProbeAsync(probeTarget, timeoutMs, ttl, probe, token, options.Family).ConfigureAwait(false);
                         }
                     }
                     else
                     {
-                        row = await UdpProbeAsync(target, timeoutMs, ttl, probe, token).ConfigureAwait(false);
+                        row = await UdpProbeAsync(probeTarget, timeoutMs, ttl, probe, token, options.Family).ConfigureAwait(false);
                     }
 
                     probes.Add(row);
@@ -183,20 +192,31 @@ internal static class IcmpTraceEngine
         int timeoutMs,
         int ttl,
         int probe,
-        CancellationToken token)
+        CancellationToken token,
+        RouteFamily family = RouteFamily.All)
     {
         if (!IPAddress.TryParse(target, out var dest))
         {
             try
             {
-                var addrs = await Dns.GetHostAddressesAsync(target, token).ConfigureAwait(false);
-                dest = addrs.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)
-                    ?? addrs.FirstOrDefault();
+                var pin = TraceResolve.Pin(family);
+                var addrs = pin is { } required
+                    ? await Dns.GetHostAddressesAsync(target, required, token).ConfigureAwait(false)
+                    : await Dns.GetHostAddressesAsync(target, token).ConfigureAwait(false);
+                dest = TraceResolve.Pick(addrs, family);
             }
             catch (SocketException)
             {
                 dest = null;
             }
+            catch (ArgumentException)
+            {
+                dest = null;
+            }
+        }
+        else if (TraceResolve.Pin(family) is { } required && dest.AddressFamily != required)
+        {
+            dest = null;
         }
 
         if (dest is null)
