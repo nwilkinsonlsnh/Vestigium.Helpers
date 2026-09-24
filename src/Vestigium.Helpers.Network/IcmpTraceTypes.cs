@@ -16,6 +16,8 @@ public sealed class IcmpTraceOptions
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(4);
     public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
     public bool PreferUdp { get; set; }
+    public int InterfaceIndex { get; set; }
+    public string? SourceAddress { get; set; }
 }
 
 public sealed record IcmpTraceProbe(

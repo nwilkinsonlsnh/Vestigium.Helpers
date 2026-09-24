@@ -18,4 +18,5 @@ public static class NetworkEvents
     public const int CampaignPathEscape = 14545;
     public const int DnsPeerMismatch = 14550;
     public const int OuiLookupRejected = 14555;
+    public const int BindRejected = 14560;
 }

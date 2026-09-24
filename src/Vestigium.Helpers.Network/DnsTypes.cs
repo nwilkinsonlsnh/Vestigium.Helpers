@@ -33,6 +33,8 @@ public sealed class DnsLookupOptions
     public int Port { get; set; } = 53;
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(3);
     public bool RecursionDesired { get; set; } = true;
+    public int InterfaceIndex { get; set; }
+    public string? SourceAddress { get; set; }
 }
 
 public sealed record DnsRecord(
