@@ -8,6 +8,12 @@ namespace Vestigium.Helpers.Json;
 internal static class JsonIo
 {
     internal const int StreamBufferSize = 64 * 1024;
+    internal const long DefaultMaxDocumentBytes = 32L * 1024 * 1024;
+    internal const int DefaultMaxJsonlLineBytes = 1024 * 1024;
+
+    internal static long MaxDocumentBytes => JsonTestHooks.MaxDocumentBytes ?? DefaultMaxDocumentBytes;
+
+    internal static int MaxJsonlLineBytes => JsonTestHooks.MaxJsonlLineBytes ?? DefaultMaxJsonlLineBytes;
 
     internal static JsonDocumentKind KindFromPath(string? path)
         => !string.IsNullOrWhiteSpace(path) && path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase)
@@ -16,6 +22,7 @@ internal static class JsonIo
 
     internal static JsonNode Read(string path)
     {
+        RejectFileTooLarge(path);
         using var stream = OpenRead(path);
         RejectBom(stream);
         JsonNode? node;
@@ -37,13 +44,13 @@ internal static class JsonIo
 
     internal static JsonArray ReadJsonl(string path)
     {
+        RejectFileTooLarge(path);
         using var stream = OpenRead(path);
         RejectBom(stream);
         var terminated = EndsWithNewline(stream);
-        using var reader = new StreamReader(stream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false, StreamBufferSize);
         var records = new JsonArray();
         var index = 0;
-        while (reader.ReadLine() is { } line)
+        while (ReadJsonlLine(stream, index) is { } line)
         {
             if (string.IsNullOrWhiteSpace(line))
                 continue;
@@ -55,7 +62,7 @@ internal static class JsonIo
             }
             catch (JsonException ex)
             {
-                var truncated = !terminated && reader.EndOfStream;
+                var truncated = !terminated && stream.Position >= stream.Length;
                 HelperLog.Reject(truncated
                     ? $"jsonl line is truncated index={index}"
                     : $"jsonl line is not RFC 8259 index={index}");
@@ -69,6 +76,19 @@ internal static class JsonIo
         }
 
         return records;
+    }
+
+    internal static void EnsureStreamWithinCap(Stream stream)
+    {
+        if (!stream.CanSeek)
+            return;
+
+        var remaining = stream.Length - stream.Position;
+        if (remaining <= MaxDocumentBytes)
+            return;
+
+        HelperLog.Reject($"document exceeds cap bytes={remaining} cap={MaxDocumentBytes}");
+        throw new JsonException($"JSON document exceeds the {MaxDocumentBytes} byte cap.");
     }
 
     internal static int Write(string path, JsonNode node, bool indented, bool atomic)
@@ -174,6 +194,7 @@ internal static class JsonIo
         }
 
         stream.Flush(flushToDisk: true);
+        RejectWrittenTooLarge(path, stream.Length);
         return checked((int)stream.Length);
     }
 
@@ -184,6 +205,7 @@ internal static class JsonIo
         {
             foreach (var record in records)
             {
+                var start = stream.Position;
                 if (record is null)
                     writer.WriteNullValue();
                 else
@@ -191,15 +213,69 @@ internal static class JsonIo
                 writer.Flush();
                 stream.WriteByte((byte)'\n');
                 writer.Reset();
+                var lineBytes = stream.Position - start;
+                if (lineBytes > MaxJsonlLineBytes)
+                {
+                    HelperLog.Reject($"jsonl line exceeds cap path={path} bytes={lineBytes} cap={MaxJsonlLineBytes}");
+                    throw new JsonException($"JSONL line exceeds the {MaxJsonlLineBytes} byte cap.");
+                }
             }
         }
 
         stream.Flush(flushToDisk: true);
+        RejectWrittenTooLarge(path, stream.Length);
         return checked((int)stream.Length);
     }
 
     private static FileStream OpenWrite(string path)
         => new(path, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan);
+
+
+    private static void RejectFileTooLarge(string path)
+    {
+        var bytes = new FileInfo(path).Length;
+        if (bytes <= MaxDocumentBytes)
+            return;
+
+        HelperLog.Reject($"document exceeds cap path={path} bytes={bytes} cap={MaxDocumentBytes}");
+        throw new JsonException($"JSON document exceeds the {MaxDocumentBytes} byte cap.");
+    }
+
+    private static void RejectWrittenTooLarge(string path, long bytes)
+    {
+        if (bytes <= MaxDocumentBytes)
+            return;
+
+        HelperLog.Reject($"document exceeds cap path={path} bytes={bytes} cap={MaxDocumentBytes}");
+        throw new JsonException($"JSON document exceeds the {MaxDocumentBytes} byte cap.");
+    }
+
+    private static string? ReadJsonlLine(Stream stream, int index)
+    {
+        var buffer = new MemoryStream();
+        while (true)
+        {
+            var next = stream.ReadByte();
+            if (next < 0)
+                return buffer.Length == 0 ? null : Encoding.UTF8.GetString(buffer.ToArray());
+
+            if (next == '\n')
+            {
+                var raw = buffer.ToArray();
+                var length = raw.Length;
+                if (length > 0 && raw[length - 1] == (byte)'\r')
+                    length--;
+                return Encoding.UTF8.GetString(raw, 0, length);
+            }
+
+            buffer.WriteByte((byte)next);
+            if (buffer.Length <= MaxJsonlLineBytes)
+                continue;
+
+            HelperLog.Reject($"jsonl line exceeds cap index={index} bytes={buffer.Length} cap={MaxJsonlLineBytes}");
+            throw new JsonException($"JSONL line exceeds the {MaxJsonlLineBytes} byte cap at index {index}.");
+        }
+    }
 
     private static void RejectBom(Stream stream)
     {
