@@ -77,6 +77,14 @@ internal static class NetworkLog
             HelperLog.Subcategories.Address,
             HelperLog.Line("reject", method, Redact(message), HelperLog.CorrelationId));
 
+    public static void BindRejected(string method, string message)
+        => HelperLog.WriteEvent(
+            NetworkEvents.BindRejected,
+            VestigiumLogLevel.Error,
+            VestigiumStatus.Failed,
+            HelperLog.Subcategories.Adapter,
+            HelperLog.Line("reject", method, Redact(message), HelperLog.CorrelationId));
+
     internal static string? Redact(string? message)
     {
         if (string.IsNullOrEmpty(message))
