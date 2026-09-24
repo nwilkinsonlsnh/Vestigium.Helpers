@@ -11,7 +11,7 @@ PR01–PR05 shipped the protocol surface. PR06 planned the nuget flip; the packa
 
 PR08 is the next wave that can ship without a new protocol: stale comments, queryable fail IDs, the inventory tests that are `Compile Remove`d, and paper that matches Option C.
 
-PR08 is not pathping, not HTTP reachability, not Charts, not Demo, not a scheduler package, not a full IEEE OUI dump, not default-route write, not repo Linux CI, not live Ubuntu mutate, not duration-per-window.
+PR08 is not pathping, not HTTP reachability, not a plot API, not Demo, not a scheduler package, not a packed IEEE OUI registry, not default-route write, not repo Linux CI, not live Ubuntu mutate, not duration-per-window.
 
 ## What the library is today
 
@@ -21,8 +21,8 @@ PR08 is not pathping, not HTTP reachability, not Charts, not Demo, not a schedul
 | TFM | `net10.0`. Tests project is `net10.0-windows`. |
 | EVENTID | Reserved 14500–14999, used 14500–14525 only. Six generic rows. |
 | Pack refs | Json 1.0.1, Analytics 1.0.1, FileIo 1.1.1, Logging 1.7.1 |
-| Charts | Not referenced. Keep it that way. |
-| Packed OUI | Embedded stub. Incomplete on purpose. |
+| Charts | Not a Network surface. This library does not plot. |
+| OUI | Caller URL, fetched on request. The embedded snapshot is a stub and is not grown. |
 
 ## Review — keep / fix / cut
 
@@ -39,7 +39,7 @@ PR08 is not pathping, not HTTP reachability, not Charts, not Demo, not a schedul
 | ID | Item | Why |
 | :--- | :--- | :--- |
 | PR08-04 | `BillPercentile(NumericSeries, double)` next to `BillP95(NumericSeries)`. | Hole, not a product. |
-| PR08-05 | Paper: this folder is the live plan. `001/README.md` points here. Requirements / Design / Guide / package README say Option C on Linux, packed OUI incomplete, no Charts. | v1.6 text still talks like PR05 is “this amendment.” |
+| PR08-05 | Paper: this folder is the live plan. Requirements / Design / Guide / package README say Option C, OUI is a URL on request, and this library does not plot. | v1.6 text still talked like the IEEE list would be packed. |
 | PR08-06 | Version: stay 1.0.0 if only comments + paper. Bump **1.0.1** if PR08-02 lands. | Events are a contract change. |
 | PR08-07 | `dotnet test --filter FullyQualifiedName~Network` on the clone. Owner gate. | Same as Json PR07. |
 

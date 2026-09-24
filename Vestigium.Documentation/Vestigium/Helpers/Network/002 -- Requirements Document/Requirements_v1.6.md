@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-SRS-000  
 **Version:** 1.6  
-**Status:** Locked companion to PR01–PR05. PR07 is the first post-1.0.0 wave.  
+**Status:** Locked companion to PR01–PR07. PR08 is the live paper.  
 **Date:** 19 September 2026  
 **Package:** `Vestigium.Helpers.Network`  
 **TFM:** `net10.0` (.NET 10 LTS) — **Windows and Linux are first-class**. Not `net10.0-windows`.  
@@ -56,9 +56,9 @@ A future `Vestigium.Scheduler` (name not locked) may start jobs. This library do
 | 30 | Campaign paths | Recipe and results must resolve under the campaign root after `Path.GetFullPath`. `..` escape → Reject + `ArgumentException`. |
 | 31 | HTTP | Never this library except the constrained OUI GET. |
 | 32 | Share campaigns | **Shipped (PR03).** `PlanShareProbe` / `CreateShareCampaign` / `OpenShareCampaign`. Probe I/O is FileIo. No password field. No `FileStream` in Network. |
-| 33 | Plotting | Never this library. No plot type, no plot method, no Charts package reference. Results are addresses, RTTs, tables, and prefixes. That is not a deferred feature. |
+| 33 | Plotting | Never this library. No plot type and no plot method. Results are addresses, RTTs, tables, and prefixes. That is not a deferred feature. |
 | 34 | Default route | `0.0.0.0/0` and `::/0` write → `NetworkRouteDenied`. Default route is not offered. |
-| 35 | Packed OUI | `LoadPackedOuiRegistry` / `LookupOuiPacked` are an offline stub. Not a live IEEE MA-L pull. Hosts that need completeness pass their own file. |
+| 35 | OUI | The IEEE registry is not packed. It changes. Completeness is `LookupOuiAsync`: the caller points at an HTTPS URL and this library fetches it on that request. Allowlist, no redirect, body cap. The embedded snapshot is a tiny stub and is not grown. A host file via `LoadOuiRegistry` is optional and is not a substitute for packing MA-L into this DLL. |
 
 Hosts catch `NetworkRouteDenied` for cap / ACL / default-route denies.
 
@@ -84,7 +84,7 @@ Hosts catch `NetworkRouteDenied` for cap / ACL / default-route denies.
 | Campaign recipe + JSONL | Yes | Yes | Paths confined to campaign root |
 | Share campaigns | Yes | Yes | FileIo probes |
 | Prefix describe / plan / VLSM / classify | Yes | Yes | Pure math |
-| MAC / EUI / OUI / bandwidth / P95 bill | Yes | Yes | Live OUI is HTTPS + allowlist. Packed OUI is offline. |
+| MAC / EUI / OUI / bandwidth / P95 bill | Yes | Yes | OUI completeness is an HTTPS URL on request. The embedded snapshot is a stub and is not grown. |
 | Charts / WPF Demo | **Never** | **Never** | Not a Network surface |
 
 ---
@@ -98,7 +98,7 @@ Hosts catch `NetworkRouteDenied` for cap / ACL / default-route denies.
 | Audit logs | Vestigium.Logging host path | Vestigium.Logging host path |
 | Tests | `NetworkTestHooks.CampaignRoot` temp | same |
 
-Prefix math writes no files. Live OUI writes no files. Packed OUI is an embedded snapshot. File OUI is host-supplied path (8 MiB / 200_000 row cap).
+Prefix math writes no files. Live OUI writes no files. The embedded snapshot is not the IEEE registry. A host-supplied OUI file stays capped (8 MiB / 200_000 rows).
 
 ---
 
@@ -191,7 +191,7 @@ v1.2 surface plus §5.1–5.3. Count default 4. Grace 15 min. `MaxList` default 
 
 ## 9. Logging
 
-APPID Network. Sparse. Campaign echoes live in stats JSONL only. Subnet / MAC / bandwidth / share lines are query + summary. No packet bytes. No credentials. Absolute-path prefixes are stripped from Network log / Reject lines (PR01.009). Named events used through 14540: RouteDenied 14530, IcmpForbidden 14535, CampaignWindowMissed 14540. Taxonomy includes Share, Stats, Progress.
+APPID Network. Sparse. Campaign echoes live in stats JSONL only. Subnet / MAC / bandwidth / share lines are query + summary. No packet bytes. No credentials. Absolute-path prefixes are stripped from Network log / Reject lines (PR01.009). Named events used through 14555: RouteDenied 14530, IcmpForbidden 14535, CampaignWindowMissed 14540, CampaignPathEscape 14545, DnsPeerMismatch 14550, OuiLookupRejected 14555. Taxonomy includes Share, Stats, Progress. `BillPercentile(NumericSeries, double)` is on the façade.
 
 ---
 
@@ -227,7 +227,8 @@ Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP reachabilit
 | PR02 | Contract lock — **shipped** |
 | PR04 | Packed OUI + Option C route write — **shipped** |
 | PR05 | Hygiene (persist key, docs) — **shipped** |
-| PR07 | Post-1.0.0 truth pass (1.0.1) — **this amendment** |
+| PR07 | Post-1.0.0 truth pass (1.0.1) — **shipped** |
+| PR08 | Fail IDs through 14555, series percentile, paper — **this amendment** |
 | later | Scheduler package; macOS as a test gate; pathping-class; repo Linux CI |
 
 HTTP reachability stays out of this package.
@@ -255,7 +256,7 @@ Cousins are documentation. Never spawned.
 
 ## 15. Acceptance
 
-PR01–PR05 are accepted. PR07 accepts decision 29 IPv6 IfIndex, named events 14530–14540, Echo recipe persist, package 1.0.1, and decision 33 as never-plot. Network stays `net10.0`, one DLL for Windows and Linux.
+PR01–PR07 are accepted. PR08 accepts decision 35 as URL-on-request (the IEEE list is not packed), events through 14555, and `BillPercentile(NumericSeries, double)`. Network stays `net10.0`, one DLL for Windows and Linux. Route write stays Option C.
 
 ## Document control
 
@@ -269,3 +270,4 @@ PR01–PR05 are accepted. PR07 accepts decision 29 IPv6 IfIndex, named events 14
 | 1.6 + PR02.001 | 19 Sep 2026 | Then: Windows mutate, Linux print-only. |
 | 1.6 + PR05.002 | 19 Sep 2026 | Share shipped. Option C. Default route refused. Packed OUI. Plotting is not a Network surface. |
 | 1.6 + PR07.009 | 24 Sep 2026 | IPv6 IfIndex. Echo recipe persist. Events through 14540. Package 1.0.1. Plot API never offered. |
+| 1.6 + PR08.005 | 24 Sep 2026 | Option C stands. OUI is a URL fetched on request. IEEE registry is not packed. Events through 14555. |

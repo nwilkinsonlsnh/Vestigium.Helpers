@@ -45,7 +45,7 @@ This library does not plot and will not grow a plot API.
 | Campaign is a recipe, not a daemon | Process lifetime is the host’s. |
 | Campaign paths under one root | `..` must not write `%WINDIR%` or `/etc`. |
 | `NetworkTestHooks` internal | Plugins must not retarget ProgramData or `/proc`. |
-| OUI allowlist + no redirect | SSRF. Packed snapshot is offline and incomplete. |
+| OUI allowlist + no redirect | SSRF. The IEEE registry is not packed. Lookup is the caller's HTTPS URL, fetched on that request. The embedded snapshot is a stub and is not grown. |
 | DNS accept only the queried peer | UDP is connectionless. |
 | No guessed IfIndex `1` | Wrong NIC. Linux write requires an index. Windows IPv6 uses caller `>= 1` or first up IPv6 NIC. Never an IPv4 table index on a v6 write. |
 | Route write is Option C | Windows IPv4 IP Helper + HKLM persist (`NetworkRouteKeys`). Windows IPv6 `CreateIpForwardEntry2`. Linux netlink IPv4+IPv6. Cap/admin miss → `NetworkRouteDenied`. |
@@ -85,7 +85,7 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | `NetworkRouteNetlink.cs` | Linux IPv4+IPv6 |
 | `NetworkRouteSpec.cs` / `NetworkRouteKeys.cs` | Parse + HKLM path |
 | `ShareCampaign*.cs` / `ShareProbePlanner.cs` | Share campaigns |
-| `OuiPacked.cs` / `_Data/oui-snapshot.txt` | Offline OUI stub |
+| `OuiPacked.cs` / `_Data/oui-snapshot.txt` | Tiny offline stub. Not the IEEE registry. Do not grow it. |
 | `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. No plot package. |
 
 ---
@@ -101,12 +101,13 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | PR04 | Packed OUI. Option C route write. |
 | PR05.001–002 | Persist key. Requirements catch-up. |
 | PR07 | Trace finish log. IPv6 IfIndex. Echo recipe persist. Events 14530–14540. Package 1.0.1. |
+| PR08 | Events through 14555. `BillPercentile(NumericSeries, double)`. OUI stays a URL on request. |
 
 ---
 
 ## 7. Still out of this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4).
+Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). Packing the IEEE OUI registry. Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4).
 
 ---
 
@@ -119,3 +120,4 @@ Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). R
 | 1.6 + PR04.001 | 19 Sep 2026 | Plotting is not a Network surface. |
 | 1.6 + PR05.003 | 19 Sep 2026 | Option C + persist key + packed OUI. |
 | 1.6 + PR07.009 | 24 Sep 2026 | IPv6 IfIndex. Echo recipe. Events through 14540. Plot API never offered. |
+| 1.6 + PR08.005 | 24 Sep 2026 | Option C stands. OUI is a URL on request. IEEE registry is not packed. |

@@ -51,10 +51,10 @@ NetworkHelper.AddRoute(new NetworkRouteChange
 
 ```csharp
 var live = await NetworkHelper.LookupOuiAsync("00:00:0C:11:22:33");
-var packed = NetworkHelper.LookupOuiPacked("00:00:0C:11:22:33"); // offline stub, Source=File
+var packed = NetworkHelper.LookupOuiPacked("00:00:0C:11:22:33"); // tiny stub, not the IEEE list
 ```
 
-Default live host is `api.macvendors.com`. Custom URL needs `AllowCustomRegistry` + allowlist. Packed snapshot is not a live IEEE pull.
+The registry changes, so this library does not pack it. Completeness is `LookupOuiAsync`: default host `api.macvendors.com`, or a caller URL with `AllowCustomRegistry` and the allowlist. Fetched on that request. No redirect. The embedded snapshot is not grown.
 
 ## Share campaigns
 
@@ -82,7 +82,7 @@ The umbrella test project is `net10.0-windows` because that assembly also covers
 
 ## What is not next in this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API. Full IEEE OUI dump.
+Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry.
 
 ## Document control
 
@@ -95,3 +95,4 @@ Scheduler package. HTTP reachability. Demo gallery. Plot API. Full IEEE OUI dump
 | 1.6 + PR04.001 | 19 Sep 2026 | Plotting is not a Network surface. |
 | 1.6 + PR05.003 | 19 Sep 2026 | Option C + packed OUI + persist key. |
 | 1.6 + PR07.009 | 24 Sep 2026 | Consume 1.0.1. IPv6 IfIndex. Echo recipe. Plot API never offered. |
+| 1.6 + PR08.005 | 24 Sep 2026 | Option C stands. OUI is a URL on request. IEEE registry is not packed. |

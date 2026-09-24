@@ -14,7 +14,7 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/002%20--%20Requirements%20Document) |
 
-Does not plot. Packed OUI snapshot is offline and incomplete.
+Does not plot. OUI completeness is a URL fetched on request. The embedded snapshot is a stub and is not the IEEE registry.
 
 ## Consume
 
@@ -44,8 +44,8 @@ var routes = NetworkHelper.GetRoutes();
 | `AddRoute` / `ChangeRoute` / `RemoveRoute` | void | Default `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`. |
 | `CreateEchoCampaign` / `CreateShareCampaign` | campaign | Share campaigns use FileIo probes. No password field. |
 | `ClassifyAddress` / `DescribePrefix` / `PlanByHosts` | prefix math | |
-| `ParseMac` / `LookupOuiPacked` / `LookupOuiAsync` | MAC / OUI | Packed is offline. |
-| `Bandwidth` / `BillP95` | amounts | Numbers only. Host plots. |
+| `ParseMac` / `LookupOuiAsync` / `LookupOuiPacked` | MAC / OUI | Live lookup is the URL. Packed is a stub. |
+| `Bandwidth` / `BillP95` / `BillPercentile` | amounts | Network facts. This library does not plot. |
 | `NetworkCatalog.Register(cfg)` | void | Host-only, during `VestigiumLogger.Initialize`. |
 
 ## Rules that do not move
@@ -53,7 +53,7 @@ var routes = NetworkHelper.GetRoutes();
 - Not `ping.exe` / `tracert.exe`. Jobs are BCL + IP Helper / ICMP.
 - Route writes need admin / `CAP_NET_ADMIN`. Defaults are denied.
 - NetBIOS is Windows-only.
-- Packed OUI is not a live IEEE dump.
+- OUI completeness is `LookupOuiAsync` against the caller URL. The IEEE registry is not packed. The embedded snapshot is not grown.
 - Never log credentials. Share campaigns have no password field.
 - The library never calls `VestigiumLogger.Initialize`.
 
