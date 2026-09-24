@@ -69,15 +69,10 @@ public sealed class JsonSession : IDisposable
         ThrowIfDisposed();
         var parsed = JsonPath.Parse(path);
         if (!parsed.TryEvaluate(_working, out var node))
-        {
-            HelperLog.Reject(App, HelperLog.Subcategories.Query, "Get", $"path not found path={parsed.Original}", SessionId);
             throw new KeyNotFoundException($"JSON path was not found: {parsed.Original}.");
-        }
 
         if (TryConvert<T>(node, out var value)) return value!;
-        HelperLog.Reject(App, HelperLog.Subcategories.Query, "Get", $"path type mismatch path={parsed.Original} type={typeof(T).Name}", SessionId);
         throw new InvalidOperationException($"JSON path could not be read as {typeof(T).Name}.");
-
     }
 
     public void Set(string path, object? value)
@@ -130,10 +125,7 @@ public sealed class JsonSession : IDisposable
         ThrowIfDisposed();
         RequireJsonl("Record");
         if (index < 0)
-        {
-            HelperLog.Reject(App, HelperLog.Subcategories.Jsonl, "Record", $"index={index} is below 0", SessionId);
             throw new ArgumentOutOfRangeException(nameof(index), "Record index must be at least 0.");
-        }
 
         var array = WorkingArray();
         return index >= array.Count ? null : array[index]?.DeepClone();
