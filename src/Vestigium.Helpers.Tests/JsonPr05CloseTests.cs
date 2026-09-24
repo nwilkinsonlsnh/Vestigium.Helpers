@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Vestigium.Helpers.Json;
 using Vestigium.Logging;
 
@@ -30,13 +31,22 @@ public sealed class JsonPr05CloseTests : IDisposable
     public void Public_surface_has_span_parse_and_compare_not_apply()
     {
         var helper = typeof(JsonHelper);
-        Assert.NotNull(helper.GetMethod("Parse", [typeof(ReadOnlySpan<byte>)]));
+        Assert.Contains(
+            helper.GetMethods(BindingFlags.Public | BindingFlags.Static),
+            m => m.Name == "Parse"
+                 && m.GetParameters() is [{ ParameterType.Name: "ReadOnlySpan`1" }]);
         Assert.NotNull(helper.GetMethod("Compare", [typeof(string), typeof(string)]));
-        Assert.Null(helper.GetMethod("Apply", BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance));
+        Assert.DoesNotContain(
+            helper.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance),
+            m => m.Name == "Apply");
 
         var patch = typeof(JsonPatch);
-        Assert.True(patch.GetMethod("Compare", BindingFlags.Public | BindingFlags.Static)!.IsPublic);
-        Assert.Null(patch.GetMethod("Apply", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance));
+        Assert.Contains(
+            patch.GetMethods(BindingFlags.Public | BindingFlags.Static),
+            m => m.Name == "Compare");
+        Assert.DoesNotContain(
+            patch.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance),
+            m => m.Name == "Apply");
         Assert.DoesNotContain(
             typeof(JsonPatchOperation).GetProperties(),
             p => p.Name is "From" or "from");
