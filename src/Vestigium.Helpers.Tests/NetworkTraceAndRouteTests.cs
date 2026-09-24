@@ -129,6 +129,20 @@ public sealed class NetworkTraceAndRouteTests
             Assert.True(found >= 1, found.ToString());
     }
 
+    [Fact]
+    public void Catalog_register_includes_share_stats_progress()
+    {
+        var path = FindNetworkSource("NetworkCatalog.cs");
+        Assert.True(path is not null, "NetworkCatalog.cs not found walking up from BaseDirectory.");
+        var src = File.ReadAllText(path);
+        Assert.Contains("\"Share\"", src, StringComparison.Ordinal);
+        Assert.Contains("\"Stats\"", src, StringComparison.Ordinal);
+        Assert.Contains("\"Progress\"", src, StringComparison.Ordinal);
+        Assert.Equal("Share", HelperLog.Subcategories.Share);
+        Assert.Equal("Stats", HelperLog.Subcategories.Stats);
+        Assert.Equal("Progress", HelperLog.Subcategories.Progress);
+    }
+
     private static void Init()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumNetLog", Guid.NewGuid().ToString("N"));

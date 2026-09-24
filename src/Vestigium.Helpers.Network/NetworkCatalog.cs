@@ -16,7 +16,8 @@ public static class NetworkCatalog
         taxonomy.Register(
             Category,
             "Probe", "Inventory", "Adapter", "Connection", "Route", "Neighbor",
-            "Netbios", "Icmp", "Dns", "Campaign", "Address", "Bandwidth", "Subnet", "Guard");
+            "Netbios", "Icmp", "Dns", "Campaign", "Address", "Bandwidth", "Subnet", "Guard",
+            "Share", "Stats", "Progress");
         cfg.RegisterTaxonomy(taxonomy);
         foreach (var row in Rows)
             cfg.RegisterEvent(row.Name, row.FullName, Category, Subcategory, row.EventId, row.Severity, row.Description);
