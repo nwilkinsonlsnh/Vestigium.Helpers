@@ -75,6 +75,15 @@ public sealed class JsonPureTests
     }
 
     [Fact]
+    public void FromJson_rejects_json_null()
+    {
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.FromJson<Dictionary<string, int>>("null"));
+        Assert.Contains("JSON null", ex.Message, StringComparison.Ordinal);
+        var padded = Assert.Throws<JsonException>(() => JsonHelper.FromJson<ProbeDto>(" null "));
+        Assert.Contains("JSON null", padded.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Compact_write_has_no_newlines()
     {
         var json = JsonHelper.ToJson(new ProbeDto { TimeoutSeconds = 1, Level = "x" }, new JsonWriteOptions { WriteIndented = false });
