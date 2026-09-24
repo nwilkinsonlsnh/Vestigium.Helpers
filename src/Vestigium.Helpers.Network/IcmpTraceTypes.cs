@@ -18,6 +18,7 @@ public sealed class IcmpTraceOptions
     public bool PreferUdp { get; set; }
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
+    public RouteFamily Family { get; set; } = RouteFamily.All;
 }
 
 public sealed record IcmpTraceProbe(
