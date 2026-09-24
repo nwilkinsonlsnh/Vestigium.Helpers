@@ -195,6 +195,24 @@ public sealed class JsonFileTests : IDisposable
     }
 
     [Fact]
+    public void Parse_string_rejects_document_over_cap()
+    {
+        JsonTestHooks.MaxDocumentBytes = 8;
+        const string json = "{\"timeoutSeconds\":15}";
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.Parse(json));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("timeoutSeconds", string.Join("\n", HelperLog.RecentJsonLines));
+    }
+
+    [Fact]
+    public void Parse_span_rejects_document_over_cap()
+    {
+        JsonTestHooks.MaxDocumentBytes = 8;
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.Parse("{\"timeoutSeconds\":15}"u8));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void WriteFile_rejects_document_over_cap()
     {
         JsonTestHooks.MaxDocumentBytes = 16;

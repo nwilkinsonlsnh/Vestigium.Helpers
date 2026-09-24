@@ -83,11 +83,15 @@ internal static class JsonIo
         if (!stream.CanSeek)
             return;
 
-        var remaining = stream.Length - stream.Position;
-        if (remaining <= MaxDocumentBytes)
+        RejectDocumentTooLarge(stream.Length - stream.Position);
+    }
+
+    internal static void RejectDocumentTooLarge(long bytes)
+    {
+        if (bytes <= MaxDocumentBytes)
             return;
 
-        HelperLog.Reject($"document exceeds cap bytes={remaining} cap={MaxDocumentBytes}");
+        HelperLog.Reject($"document exceeds cap bytes={bytes} cap={MaxDocumentBytes}");
         throw new JsonException($"JSON document exceeds the {MaxDocumentBytes} byte cap.");
     }
 

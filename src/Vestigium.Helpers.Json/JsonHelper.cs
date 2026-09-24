@@ -141,7 +141,7 @@ public static class JsonHelper
         }
     }
 
-    /// <summary>Parse RFC 8259 text to a <see cref="JsonNode"/>. JSON null is not a document root.</summary>
+    /// <summary>Parse RFC 8259 text to a <see cref="JsonNode"/>. JSON null is not a document root. Honors the document cap.</summary>
     public static JsonNode Parse(string json)
     {
         const string app = HelperLog.AppIds.Json;
@@ -149,6 +149,7 @@ public static class JsonHelper
         try
         {
             var text = RequireRfc8259Text(json);
+            JsonIo.RejectDocumentTooLarge(Encoding.UTF8.GetByteCount(text));
             JsonNode? node;
             try
             {
@@ -201,6 +202,7 @@ public static class JsonHelper
             var input = HelperGuard.NotNull(stream, nameof(stream));
             HelperGuard.Require(input.CanRead, nameof(stream), "Stream must be readable.");
             RejectBom(input);
+            JsonIo.EnsureStreamWithinCap(input);
             JsonNode? node;
             try
             {
@@ -241,7 +243,7 @@ public static class JsonHelper
         }
     }
 
-    /// <summary>Parse UTF-8 bytes. Rejects empty input and a leading BOM.</summary>
+    /// <summary>Parse UTF-8 bytes. Rejects empty input, a leading BOM, and payloads over the document cap.</summary>
     public static JsonNode Parse(ReadOnlySpan<byte> utf8Json)
     {
         const string app = HelperLog.AppIds.Json;
@@ -260,6 +262,7 @@ public static class JsonHelper
                 throw new JsonException("RFC 8259 JSON must be UTF-8 without a BOM.");
             }
 
+            JsonIo.RejectDocumentTooLarge(utf8Json.Length);
             JsonNode? node;
             try
             {
