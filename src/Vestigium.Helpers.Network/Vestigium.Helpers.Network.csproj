@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
     <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. Packed OUI snapshot is offline and incomplete.</Description>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>network;icmp;dns;share;oui;vestigium</PackageTags>
