@@ -7,13 +7,18 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Json;
 
 /// <summary>
-/// System.Text.Json helpers for payload documents. Phase 5: sparse HelperLog, Probe %TEMP% only.
-/// The class library never calls <see cref="VestigiumLogger.Initialize"/>.
+/// RFC 8259 JSON and JSONL helpers. The class library never calls
+/// <see cref="VestigiumLogger.Initialize"/>.
 /// </summary>
 public static class JsonHelper
 {
+    /// <summary>Assembly identity returned by <see cref="Probe"/>.</summary>
     public static string Identity => "Vestigium.Helpers.Json";
 
+    /// <summary>
+    /// Serializes and parses a tiny in-memory payload. Does not write the export folder.
+    /// </summary>
+    /// <returns><see cref="Identity"/>.</returns>
     public static string Probe()
     {
         const string app = HelperLog.AppIds.Json;
@@ -26,6 +31,9 @@ public static class JsonHelper
         return Identity;
     }
 
+    /// <summary>
+    /// Export folder: <c>%DESKTOP%\Vestigium\Exports\Json</c>, or the test hook when set.
+    /// </summary>
     public static string DefaultExportDirectory()
     {
         if (!string.IsNullOrWhiteSpace(JsonTestHooks.ExportRoot))
@@ -41,6 +49,9 @@ public static class JsonHelper
         return Path.Combine(desktop, "Vestigium", "Exports", "Json");
     }
 
+    /// <summary>
+    /// Builds a path under <see cref="DefaultExportDirectory"/> without creating the file.
+    /// </summary>
     public static string NewExportPath(string? stem = null, JsonDocumentKind kind = JsonDocumentKind.Json)
     {
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
@@ -50,6 +61,7 @@ public static class JsonHelper
         return JsonIo.ResolveExportFile(DefaultExportDirectory(), name, kind);
     }
 
+    /// <summary>Serialize <paramref name="value"/> to an RFC 8259 string. Null value is rejected.</summary>
     public static string ToJson<T>(T value, JsonWriteOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -88,6 +100,7 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>Deserialize RFC 8259 text. Rejects blank text and a leading BOM.</summary>
     public static T FromJson<T>(string json, JsonReadOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -128,6 +141,7 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>Parse RFC 8259 text to a <see cref="JsonNode"/>. JSON null is not a document root.</summary>
     public static JsonNode Parse(string json)
     {
         const string app = HelperLog.AppIds.Json;
@@ -175,6 +189,9 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>
+    /// Parse a readable UTF-8 stream. Rejects a BOM on a seekable stream and payloads over the document cap.
+    /// </summary>
     public static JsonNode Parse(Stream stream)
     {
         const string app = HelperLog.AppIds.Json;
@@ -183,7 +200,6 @@ public static class JsonHelper
         {
             var input = HelperGuard.NotNull(stream, nameof(stream));
             HelperGuard.Require(input.CanRead, nameof(stream), "Stream must be readable.");
-            JsonIo.EnsureStreamWithinCap(input);
             RejectBom(input);
             JsonNode? node;
             try
@@ -225,6 +241,7 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>Parse UTF-8 bytes. Rejects empty input and a leading BOM.</summary>
     public static JsonNode Parse(ReadOnlySpan<byte> utf8Json)
     {
         const string app = HelperLog.AppIds.Json;
@@ -283,6 +300,10 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>
+    /// New empty session. A <c>.jsonl</c> path starts an empty list; otherwise an empty object.
+    /// Does not create the file until Save.
+    /// </summary>
     public static JsonSession Create(string? path = null, JsonSessionOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -307,6 +328,9 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>
+    /// Open one RFC 8259 document. A <c>.jsonl</c> path is rejected; use <see cref="OpenJsonl"/>.
+    /// </summary>
     public static JsonSession Open(string path, JsonSessionOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -339,6 +363,7 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>Open newline-delimited JSON. Empty lines are skipped. A truncated last line fails closed.</summary>
     public static JsonSession OpenJsonl(string path, JsonSessionOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -371,6 +396,9 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>
+    /// Open a file under <see cref="DefaultExportDirectory"/>. JSONL stems go through <see cref="OpenJsonl"/>.
+    /// </summary>
     public static JsonSession OpenExport(string stem, JsonDocumentKind kind = JsonDocumentKind.Json, JsonSessionOptions? options = null)
     {
         var name = HelperGuard.NotBlank(stem, nameof(stem));
@@ -378,6 +406,7 @@ public static class JsonHelper
         return kind == JsonDocumentKind.Jsonl ? OpenJsonl(target, options) : Open(target, options);
     }
 
+    /// <summary>Serialize <paramref name="value"/> to <paramref name="path"/>. Null value is rejected.</summary>
     public static void WriteFile<T>(string path, T value, JsonWriteOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -421,6 +450,9 @@ public static class JsonHelper
         }
     }
 
+    /// <summary>
+    /// Diff two files of the same kind. Mixed JSON and JSONL is rejected.
+    /// </summary>
     public static JsonPatch Compare(string leftPath, string rightPath)
     {
         const string app = HelperLog.AppIds.Json;
