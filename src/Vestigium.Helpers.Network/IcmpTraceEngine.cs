@@ -363,11 +363,10 @@ internal static class IcmpTraceEngine
                     ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), 0, ex.SocketErrorCode.ToString());
             }
 
-            var hop = dest.ToString();
-            var status = ex.SocketErrorCode is SocketError.HostUnreachable or SocketError.NetworkUnreachable or SocketError.TtlExpired
+            var status = ex.SocketErrorCode is SocketError.HostUnreachable or SocketError.NetworkUnreachable
                 ? IcmpEchoStatus.DestinationUnreachable
                 : IcmpEchoStatus.TimedOut;
-            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Tcp, status, refused ? hop : null, 0, ex.SocketErrorCode.ToString());
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Tcp, status, null, 0, ex.SocketErrorCode.ToString());
         }
     }
 
