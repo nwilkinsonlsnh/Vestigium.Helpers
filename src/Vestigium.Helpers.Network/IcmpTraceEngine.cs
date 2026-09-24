@@ -105,8 +105,8 @@ internal static class IcmpTraceEngine
 
         var status = DecideStatus(token.IsCancellationRequested, reached, hops);
 
-        NetworkLog.Success(
-            HelperLog.Subcategories.Icmp,
+        IcmpEchoEngine.LogFinished(
+            status,
             $"{status} trace job={jobId} target={target} hops={hops.Count} reached={reached} protocol={protocol}");
 
         return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, hops.Count, hops);
