@@ -6,11 +6,11 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Network` 1.0.1 |
-| Version rule | `1.0.0` has no named fail IDs. `1.0.1` is this package because 14530–14555 shipped. Do not republish `1.0.0`. |
+| Package | `Vestigium.Helpers.Network` 1.1.0 |
+| Version rule | `1.0.0` has no named fail IDs. `1.0.1` is events 14530–14555. `1.1.0` is the PR09 doors. Do not republish `1.0.1` as if it had Pathping. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
-| EVENTID | Reserved 14500–14999 (used through 14555) |
+| EVENTID | Reserved 14500–14999 (used through 14560) |
 | Depends on | `Vestigium.Helpers.Json` 1.0.1, `Vestigium.Helpers.Analytics` 1.0.1, `Vestigium.Helpers.FileIo` 1.1.1, `Vestigium.Logging` |
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Network/002%20--%20Requirements%20Document) |
@@ -20,7 +20,7 @@ Does not plot. OUI completeness is a URL fetched on request. The embedded snapsh
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.0.1" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.1.0" />
 ```
 
 ```csharp
@@ -30,6 +30,8 @@ var box = NetworkHelper.GetWorkstation();
 var echo = await NetworkHelper.IcmpEcho("192.0.2.1").RunAsync();
 var dns  = await NetworkHelper.LookupAsync("example.com");
 var routes = NetworkHelper.GetRoutes();
+var path = await NetworkHelper.Pathping("192.0.2.1").RunAsync();
+var tcp  = await NetworkHelper.TcpConnect("192.0.2.1", 443).RunAsync();
 ```
 
 `Ping` / `Trace` are aliases for `IcmpEcho` / `IcmpTrace`.
@@ -39,11 +41,15 @@ var routes = NetworkHelper.GetRoutes();
 | Call | Returns | Notes |
 |---|---|
 | `GetWorkstation` / `GetAdapters` / `GetSnapshot` | inventory | Local stack. |
-| `IcmpEcho` / `IcmpTrace` | `NetworkJob<T>` | Then `RunAsync`. |
+| `IcmpEcho` / `IcmpTrace` / `Pathping` | `NetworkJob<T>` | Then `RunAsync`. Bind and family on options. |
+| `TcpConnect` | `NetworkJob<TcpConnectResult>` | One host, one port. |
+| `SampleCounters` | `NetworkJob<CounterSampleResult>` | One adapter. No bill. |
+| `PathMtu` | `NetworkJob<PathMtuResult>` | Largest DF echo that passed. |
 | `LookupAsync` | DNS result | |
 | `GetConnections` / `GetRoutes` / `GetNeighbors` | lists | Route print works on Windows and Linux. |
+| `ProbeNeighbor` | `NeighborProbeResult` | One address. MAC or none. |
 | `AddRoute` / `ChangeRoute` / `RemoveRoute` | void | Default `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`. |
-| `CreateEchoCampaign` / `CreateShareCampaign` | campaign | Share campaigns use FileIo probes. No password field. |
+| `CreateEchoCampaign` / `CreateShareCampaign` | campaign | Window may carry `Duration`. |
 | `ClassifyAddress` / `DescribePrefix` / `PlanByHosts` | prefix math | |
 | `ParseMac` / `LookupOuiAsync` / `LookupOuiPacked` | MAC / OUI | Live lookup is the URL. Packed is a stub. |
 | `Bandwidth` / `BillP95` / `BillPercentile` | amounts | Network facts. This library does not plot. |
@@ -51,12 +57,13 @@ var routes = NetworkHelper.GetRoutes();
 
 ## Rules that do not move
 
-- Not `ping.exe` / `tracert.exe`. Jobs are BCL + IP Helper / ICMP.
+- Not `ping.exe` / `tracert.exe` / `pathping.exe`. Jobs are BCL + IP Helper / ICMP.
 - Route writes need admin / `CAP_NET_ADMIN`. Defaults are denied.
 - NetBIOS is Windows-only.
 - OUI completeness is `LookupOuiAsync` against the caller URL. The IEEE registry is not packed. The embedded snapshot is not grown.
 - Never log credentials. Share campaigns have no password field.
 - The library never calls `VestigiumLogger.Initialize`.
+- `InterfaceIndex` 0 is not rewritten to 1.
 
 ## Logging
 
@@ -69,7 +76,7 @@ VestigiumLogger.Initialize(cfg =>
 });
 ```
 
-Writes are no-ops until the host initializes. JSONL lands at `%ProgramData%\Vestigium\Logs\{host-APPID}\`.
+Writes are no-ops until the host initializes. JSONL lands at `%ProgramData%\\Vestigium\\Logs\\{host-APPID}\\`.
 
 Named events live in `EventCatalog/network.json`.
 
