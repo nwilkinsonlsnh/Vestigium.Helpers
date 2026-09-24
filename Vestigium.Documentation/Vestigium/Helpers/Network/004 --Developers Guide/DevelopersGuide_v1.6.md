@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
 **Version:** 1.6  
-**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.0.1**.  
+**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.1.0**.  
 **Date:** 24 September 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
@@ -14,7 +14,7 @@ A .NET 10 LTS resource library. Hosts subscribe on Windows or Linux. Not a CLI. 
 One `net10.0` DLL. References: Json 1.0.1, Analytics 1.0.1, FileIo 1.1.1. Logging from repo `$(VestigiumLoggingVersion)`. No plot package.
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.0.1" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.1.0" />
 ```
 
 Route **print** works on both OS, both families. Route **write** is Option C:
@@ -46,6 +46,20 @@ NetworkHelper.AddRoute(new NetworkRouteChange
 ```
 
 `2001:db8::/32` is a legal write (same doors). `0.0.0.0/0` and `::/0` throw `NetworkRouteDenied`.
+
+## PR09 jobs
+
+```csharp
+var walk = await NetworkHelper.Pathping("192.0.2.1", new PathpingOptions { Family = RouteFamily.Pv4 }).RunAsync();
+var tcp  = await NetworkHelper.TcpConnect("192.0.2.1", 443).RunAsync();
+var mtu  = await NetworkHelper.PathMtu("192.0.2.1").RunAsync();
+var nic  = await NetworkHelper.SampleCounters("Ethernet", new CounterSampleOptions { Duration = TimeSpan.FromSeconds(5) }).RunAsync();
+var arp  = NetworkHelper.ProbeNeighbor("192.0.2.1");
+```
+
+`InterfaceIndex` 0 is not rewritten to 1. Trace probes are ICMP, then UDP if ICMP is forbidden, then TCP if UDP is silent. A refused TCP connect still names the hop. Pathping is a walk plus a sample; link loss is never reported as a gain. `TcpConnect` is one host and one port. `SampleCounters` does not call `BillP95`. `ProbeNeighbor` does not dump `GetNeighbors`.
+
+Echo campaign windows may set `Duration`. A recipe without `durationMs` opens as count-only.
 
 ## OUI
 
@@ -82,7 +96,7 @@ The umbrella test project is `net10.0-windows` because that assembly also covers
 
 ## What is not next in this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry.
+Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry. Port sweep.
 
 ## Document control
 
@@ -96,3 +110,4 @@ Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE O
 | 1.6 + PR05.003 | 19 Sep 2026 | Option C + packed OUI + persist key. |
 | 1.6 + PR07.009 | 24 Sep 2026 | Consume 1.0.1. IPv6 IfIndex. Echo recipe. Plot API never offered. |
 | 1.6 + PR08.005 | 24 Sep 2026 | Option C stands. OUI is a URL on request. IEEE registry is not packed. |
+| 1.6 + PR09-11 | 24 Sep 2026 | Consume 1.1.0. PR09 doors. |

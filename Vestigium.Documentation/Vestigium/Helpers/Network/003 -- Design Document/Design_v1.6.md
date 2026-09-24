@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DSN-000  
 **Version:** 1.6  
-**Status:** Locked companion to SRS v1.6 + PR07.009  
+**Status:** Locked companion to SRS v1.6 + PR09  
 **Date:** 24 September 2026  
 **Binding:** `Requirements_v1.6.md` wins on conflict
 
@@ -18,7 +18,8 @@ Hosts need workstation facts and protocol jobs without shelling out. One `net10.
 host
   → NetworkHelper
        ├ Probe / inventory / snapshot / NetBIOS
-       ├ IcmpEcho / Ping / IcmpTrace
+       ├ IcmpEcho / Ping / IcmpTrace / Pathping
+       ├ TcpConnect / PathMtu / SampleCounters / ProbeNeighbor
        ├ LookupAsync (OS or wire)
        ├ tables: connections, stats, routes, neighbors
        ├ Add/Change/RemoveRoute          Option C (see §2)
@@ -39,7 +40,7 @@ This library does not plot and will not grow a plot API.
 | Decision | Why |
 |---|---|
 | One façade, internal engines | Hosts cannot reach hooks, wire codecs, or IP Helper structs. |
-| No process spawn | Output of `ping`/`ip`/`netsh` is not an API. |
+| No process spawn | Output of `ping`/`ip`/`netsh`/`pathping` is not an API. |
 | `Ping` is an alias of `IcmpEcho` | PingIQ name. JSONL kind stays `icmpEcho`. |
 | Continuous is `Count = 0` plus a duration cap | Unlimited + `Interval = 0` is a flood. |
 | Campaign is a recipe, not a daemon | Process lifetime is the host’s. |
@@ -47,19 +48,22 @@ This library does not plot and will not grow a plot API.
 | `NetworkTestHooks` internal | Plugins must not retarget ProgramData or `/proc`. |
 | OUI allowlist + no redirect | SSRF. The IEEE registry is not packed. Lookup is the caller's HTTPS URL, fetched on that request. The embedded snapshot is a stub and is not grown. |
 | DNS accept only the queried peer | UDP is connectionless. |
-| No guessed IfIndex `1` | Wrong NIC. Linux write requires an index. Windows IPv6 uses caller `>= 1` or first up IPv6 NIC. Never an IPv4 table index on a v6 write. |
+| No guessed IfIndex `1` | Wrong NIC. `InterfaceIndex` 0 stays 0. Linux write requires an index. Windows IPv6 uses caller `>= 1` or first up IPv6 NIC. Never an IPv4 table index on a v6 write. |
 | Route write is Option C | Windows IPv4 IP Helper + HKLM persist (`NetworkRouteKeys`). Windows IPv6 `CreateIpForwardEntry2`. Linux netlink IPv4+IPv6. Cap/admin miss → `NetworkRouteDenied`. |
 | Default route is not offered | `0.0.0.0/0` and `::/0` must not come from this DLL. |
 | Prefix / MAC / bandwidth / share results are network facts | Addresses, RTTs, tables, prefixes. No plot type. |
 | No plot API | Never this library. Not a deferred feature. |
 | Share I/O is FileIo | Network does not open `FileStream`. No password field. |
 | Logging is sparse | APPID Network. No packet bytes. No credentials. |
+| Pathping is walk then sample | Not "trace with more probes." Link loss is never a negative gain. |
+| TcpConnect is one port | Not a sweep. Not HTTP. |
+| SampleCounters does not bill | Host may pass samples to `BillPercentile`. |
 
 ---
 
 ## 3. Job vs schedule
 
-An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a local clock. A **scheduler** (future package or host) wakes the process. Network does not install cron, schtasks, or systemd.
+An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a local clock. A window may carry `Duration`. Count and duration together stop at the first limit. A **scheduler** (future package or host) wakes the process. Network does not install cron, schtasks, or systemd.
 
 ---
 
@@ -68,8 +72,8 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | Type | When |
 |---|---|
 | `NetworkRouteDenied` | No admin / no `CAP_NET_ADMIN` / default route / persist ACL |
-| `ArgumentException` | Family mismatch, IPv4 dest required only when the other side is IPv4 |
-| `ArgumentOutOfRangeException` | Prefix outside 0–32 (v4) or 0–128 (v6) |
+| `ArgumentException` | Family mismatch, IPv4 dest required only when the other side is IPv4, garbage bind source |
+| `ArgumentOutOfRangeException` | Prefix outside 0–32 (v4) or 0–128 (v6); negative `InterfaceIndex` |
 | `InvalidOperationException` | Empty P95 samples |
 | OUI HTTP miss | `Source = None`, not a throw |
 
@@ -80,13 +84,16 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | File | Role |
 |---|---|
 | `NetworkHelper.cs` | Public façade |
+| `EgressBind.cs` | Shared index + source pin |
+| `PathpingEngine.cs` / `PathMtuEngine.cs` / `TcpConnectEngine.cs` | PR09 jobs |
+| `CounterSampleEngine.cs` / `NeighborProbeEngine.cs` | PR09 jobs |
 | `NetworkRouteMutation.cs` | Windows IPv4 write + persist via `NetworkRouteKeys` |
 | `NetworkRouteWindowsV6.cs` | `CreateIpForwardEntry2` |
 | `NetworkRouteNetlink.cs` | Linux IPv4+IPv6 |
 | `NetworkRouteSpec.cs` / `NetworkRouteKeys.cs` | Parse + HKLM path |
 | `ShareCampaign*.cs` / `ShareProbePlanner.cs` | Share campaigns |
 | `OuiPacked.cs` / `_Data/oui-snapshot.txt` | Tiny offline stub. Not the IEEE registry. Do not grow it. |
-| `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. No plot package. |
+| `Vestigium.Helpers.Network.csproj` | Json + Analytics + FileIo. Version **1.1.0**. No plot package. |
 
 ---
 
@@ -102,12 +109,13 @@ An ICMP **job** is `IcmpEchoOptions`. A campaign **recipe** is windows on a loca
 | PR05.001–002 | Persist key. Requirements catch-up. |
 | PR07 | Trace finish log. IPv6 IfIndex. Echo recipe persist. Events 14530–14540. Package 1.0.1. |
 | PR08 | Events through 14555. `BillPercentile(NumericSeries, double)`. OUI stays a URL on request. |
+| PR09 | Bind, family pin, Pathping, PTR, TCP probe, TcpConnect, counters, window duration, PMTU, ProbeNeighbor. Package 1.1.0. |
 
 ---
 
 ## 7. Still out of this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). Packing the IEEE OUI registry. Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4).
+Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). Packing the IEEE OUI registry. Repo portable test TFM / ubuntu workflow. Live Ubuntu route verification (PR05 §4). Port sweep.
 
 ---
 
@@ -121,3 +129,4 @@ Scheduler package. HTTP reachability. Demo gallery. Plot API (never this DLL). P
 | 1.6 + PR05.003 | 19 Sep 2026 | Option C + persist key + packed OUI. |
 | 1.6 + PR07.009 | 24 Sep 2026 | IPv6 IfIndex. Echo recipe. Events through 14540. Plot API never offered. |
 | 1.6 + PR08.005 | 24 Sep 2026 | Option C stands. OUI is a URL on request. IEEE registry is not packed. |
+| 1.6 + PR09-11 | 24 Sep 2026 | PR09 doors. Package 1.1.0. |
