@@ -112,16 +112,20 @@ internal static class IcmpTraceEngine
         {
         }
 
-        var status = DecideStatus(token.IsCancellationRequested, reached, hops);
-        var line = $"{status} trace job={jobId} target={target} hops={hops.Count} reached={reached} protocol={protocol}";
-        var forbidden = hops.SelectMany(h => h.Probes).Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden)
-            && hops.All(h => h.Address is null);
+        IReadOnlyList<IcmpTraceHop> named = hops;
+        if (!token.IsCancellationRequested)
+            named = await HopPtr.FillTraceAsync(hops, token).ConfigureAwait(false);
+
+        var status = DecideStatus(token.IsCancellationRequested, reached, named);
+        var line = $"{status} trace job={jobId} target={target} hops={named.Count} reached={reached} protocol={protocol}";
+        var forbidden = named.SelectMany(h => h.Probes).Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden)
+            && named.All(h => h.Address is null);
         if (forbidden)
             NetworkLog.IcmpForbidden(line);
         else
             IcmpEchoEngine.LogFinished(status, line);
 
-        return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, hops.Count, hops);
+        return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, named.Count, named);
     }
 
     internal static NetworkJobStatus DecideStatus(bool cancelled, bool reached, IReadOnlyList<IcmpTraceHop> hops)

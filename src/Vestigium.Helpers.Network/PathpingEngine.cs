@@ -99,7 +99,7 @@ internal static class PathpingEngine
         CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(hop.Address))
-            return new PathpingHop(hop.Ttl, null, 0, 0, 0, 0, 0, null, null, null);
+            return new PathpingHop(hop.Ttl, null, 0, 0, 0, 0, 0, null, null, null, hop.Name);
 
         var echo = IcmpEchoEngine.Create(hop.Address, new IcmpEchoOptions
         {
@@ -125,7 +125,8 @@ internal static class PathpingEngine
             0,
             result.MinMs,
             result.MaxMs,
-            result.AverageMs);
+            result.AverageMs,
+            hop.Name);
     }
 
     internal static IReadOnlyList<PathpingHop> ApplyLinkLoss(IReadOnlyList<PathpingHop> hops)
