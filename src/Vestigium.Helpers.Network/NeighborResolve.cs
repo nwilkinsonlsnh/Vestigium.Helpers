@@ -32,8 +32,9 @@ internal static class NeighborResolve
         return ResolveIpNet(address, 0);
     }
 
-    private static IEnumerable<int> LocalIndexes(AddressFamily family)
+    private static List<int> LocalIndexes(AddressFamily family)
     {
+        var indexes = new List<int>();
         foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
         {
             if (nic.OperationalStatus != OperationalStatus.Up)
@@ -44,19 +45,21 @@ internal static class NeighborResolve
                 {
                     var v6 = nic.GetIPProperties().GetIPv6Properties();
                     if (v6 is not null)
-                        yield return v6.Index;
+                        indexes.Add(v6.Index);
                 }
                 else
                 {
                     var v4 = nic.GetIPProperties().GetIPv4Properties();
                     if (v4 is not null)
-                        yield return v4.Index;
+                        indexes.Add(v4.Index);
                 }
             }
             catch (NetworkInformationException)
             {
             }
         }
+
+        return indexes;
     }
 
     private static string? ResolveIpNet(IPAddress address, int index)
