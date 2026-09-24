@@ -67,7 +67,7 @@ NDJSON and JSONL are the same idea: one JSON value per line. Vestigium.Logging u
 
 ## Paths
 
-`/network/timeoutSeconds` and `network.timeoutSeconds` are the same member. `records[3].id` and `/records/3/id` are the same. JSONL records use `[0].code`. Invalid syntax fails through `HelperGuard` / Query Reject. Get of a missing path throws; `TryGet` returns false. Set creates object parents; it does not create through a primitive or grow arrays.
+`/network/timeoutSeconds` and `network.timeoutSeconds` are the same member. `records[3].id` and `/records/3/id` are the same. JSONL records use `[0].code`. Object member compare is ordinal: `network.Timeout` and `network.timeout` are two keys. Hosts that want Windows-ish keys call FileIo UniqueName, not this package. Invalid syntax fails through `HelperGuard` / Query Reject. Get of a missing path throws; `TryGet` returns false. Set creates object parents; it does not create through a primitive or grow arrays.
 
 ## Writes
 
