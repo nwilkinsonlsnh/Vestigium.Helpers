@@ -63,6 +63,9 @@ public static class JsonCatalog
         Row(JsonEvents.JsonlFailed, "JsonlFailed", "Error", HelperLog.Subcategories.Jsonl, "jsonl failed"),
         Row(JsonEvents.GuardFailed, "GuardFailed", "Error", HelperLog.Subcategories.Guard, "guard failed"),
         Row(JsonEvents.OperationWarning, "OperationWarning", "Warning", HelperLog.Subcategories.Guard, "operation warning"),
+        Row(JsonEvents.SnapshotFailed, "SnapshotFailed", "Error", HelperLog.Subcategories.Snapshot, "snapshot failed"),
+        Row(JsonEvents.DiffFailed, "DiffFailed", "Error", HelperLog.Subcategories.Diff, "diff failed"),
+        Row(JsonEvents.CommitFailed, "CommitFailed", "Error", HelperLog.Subcategories.Commit, "commit failed"),
     ];
 
     private static CatalogRow Row(int eventId, string name, string severity, string subcategory, string description)

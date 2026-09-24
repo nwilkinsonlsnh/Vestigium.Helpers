@@ -60,4 +60,10 @@ public static class JsonEvents
     public const int GuardFailed = 13620;
     /// <summary>Non-fatal warning on an operation.</summary>
     public const int OperationWarning = 13625;
+    /// <summary>Snapshot failed.</summary>
+    public const int SnapshotFailed = 13630;
+    /// <summary>Diff or Compare failed.</summary>
+    public const int DiffFailed = 13635;
+    /// <summary>Commit, Revert, or Cancel failed.</summary>
+    public const int CommitFailed = 13640;
 }

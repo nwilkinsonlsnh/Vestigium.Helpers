@@ -99,16 +99,61 @@ public sealed class JsonLoggingTests
     }
 
     [Fact]
+    public void Snapshot_diff_commit_failed_do_not_collapse_to_guard()
+    {
+        var export = Path.Combine(Path.GetTempPath(), "VestigiumJsonPr07Events", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(export);
+        JsonTestHooks.ExportRoot = export;
+        try
+        {
+            Init();
+            var jsonPath = Path.Combine(export, "left.json");
+            var jsonlPath = Path.Combine(export, "right.jsonl");
+            JsonHelper.WriteFile(jsonPath, new { N = 1 });
+            File.WriteAllText(jsonlPath, "{\"n\":1}\n");
+            Assert.Throws<ArgumentException>(() => JsonHelper.Compare(jsonPath, jsonlPath));
+
+            using (HelperLog.Begin(HelperLog.AppIds.Json, HelperLog.Subcategories.Snapshot, "Snapshot"))
+                HelperLog.Reject("forced snapshot reject");
+            using (HelperLog.Begin(HelperLog.AppIds.Json, HelperLog.Subcategories.Commit, "Commit"))
+                HelperLog.Reject("forced commit reject");
+
+            VestigiumLogger.Flush();
+            var log = VestigiumLogger.RecentJsonLines;
+            Assert.Contains(log, line =>
+                line.Contains("\"EVENTID\":13635") && line.Contains("\"SUBCATEGORY\":\"Diff\""));
+            Assert.Contains(log, line =>
+                line.Contains("\"EVENTID\":13630") && line.Contains("\"SUBCATEGORY\":\"Snapshot\""));
+            Assert.Contains(log, line =>
+                line.Contains("\"EVENTID\":13640") && line.Contains("\"SUBCATEGORY\":\"Commit\""));
+            Assert.DoesNotContain(log, line =>
+                line.Contains("\"SUBCATEGORY\":\"Diff\"") && line.Contains("\"EVENTID\":13620"));
+            Assert.DoesNotContain(log, line =>
+                line.Contains("\"SUBCATEGORY\":\"Snapshot\"") && line.Contains("\"EVENTID\":13620"));
+            Assert.DoesNotContain(log, line =>
+                line.Contains("\"SUBCATEGORY\":\"Commit\"") && line.Contains("\"EVENTID\":13620"));
+            Assert.All(log, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
+        }
+        finally
+        {
+            JsonTestHooks.ExportRoot = null;
+            VestigiumLogger.Shutdown();
+            if (Directory.Exists(export))
+                Directory.Delete(export, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Catalog_rows_cover_the_pr05_block_and_stay_in_range()
     {
-        Assert.Equal(26, JsonCatalog.Rows.Length);
+        Assert.Equal(29, JsonCatalog.Rows.Length);
         Assert.All(JsonCatalog.Rows, row =>
         {
             Assert.InRange(row.EventId, JsonEvents.BlockStart, JsonEvents.BlockEnd);
             Assert.Equal(0, row.EventId % 5);
         });
         Assert.Equal(JsonEvents.ProbeEnter, JsonCatalog.Rows[0].EventId);
-        Assert.Equal(JsonEvents.OperationWarning, JsonCatalog.Rows[^1].EventId);
+        Assert.Equal(JsonEvents.CommitFailed, JsonCatalog.Rows[^1].EventId);
         Assert.Equal("Probe", JsonCatalog.Rows[0].Subcategory);
         Assert.DoesNotContain(JsonCatalog.Rows, row => row.Name is "OperationEnter" or "OperationComplete" or "OperationFailed");
     }

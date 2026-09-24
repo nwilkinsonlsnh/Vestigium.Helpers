@@ -28,6 +28,9 @@
     { "eventId": 13610, "name": "JsonlComplete", "severity": "Information", "subcategory": "Jsonl", "message": "jsonl complete" },
     { "eventId": 13615, "name": "JsonlFailed", "severity": "Error", "subcategory": "Jsonl", "message": "jsonl failed" },
     { "eventId": 13620, "name": "GuardFailed", "severity": "Error", "subcategory": "Guard", "message": "guard failed" },
-    { "eventId": 13625, "name": "OperationWarning", "severity": "Warning", "subcategory": "Guard", "message": "operation warning" }
+    { "eventId": 13625, "name": "OperationWarning", "severity": "Warning", "subcategory": "Guard", "message": "operation warning" },
+    { "eventId": 13630, "name": "SnapshotFailed", "severity": "Error", "subcategory": "Snapshot", "message": "snapshot failed" },
+    { "eventId": 13635, "name": "DiffFailed", "severity": "Error", "subcategory": "Diff", "message": "diff failed" },
+    { "eventId": 13640, "name": "CommitFailed", "severity": "Error", "subcategory": "Commit", "message": "commit failed" }
   ]
 }
