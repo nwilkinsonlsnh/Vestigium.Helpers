@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text.Json;
 using Vestigium.Helpers.Json;
 using Vestigium.Logging;
 
@@ -156,6 +158,37 @@ public sealed class JsonLoggingTests
         Assert.Equal(JsonEvents.CommitFailed, JsonCatalog.Rows[^1].EventId);
         Assert.Equal("Probe", JsonCatalog.Rows[0].Subcategory);
         Assert.DoesNotContain(JsonCatalog.Rows, row => row.Name is "OperationEnter" or "OperationComplete" or "OperationFailed");
+    }
+
+    [Fact]
+    public void Catalog_file_matches_rows_and_event_constants()
+    {
+        var consts = typeof(JsonEvents)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(int) && f.Name is not "BlockStart" and not "BlockEnd")
+            .Select(f => (Id: (int)f.GetValue(null)!, f.Name))
+            .ToArray();
+        Assert.Equal(JsonCatalog.Rows.Length, consts.Length);
+        foreach (var (id, name) in consts)
+            Assert.Contains(JsonCatalog.Rows, row => row.EventId == id && row.Name == name);
+
+        var catalog = Path.Combine(
+            Path.GetDirectoryName(typeof(JsonCatalog).Assembly.Location)!,
+            "EventCatalog",
+            "json.json");
+        Assert.True(File.Exists(catalog), catalog);
+        using var doc = JsonDocument.Parse(File.ReadAllText(catalog));
+        var events = doc.RootElement.GetProperty("events");
+        Assert.Equal(JsonCatalog.Rows.Length, events.GetArrayLength());
+        var i = 0;
+        foreach (var item in events.EnumerateArray())
+        {
+            var row = JsonCatalog.Rows[i++];
+            Assert.Equal(row.EventId, item.GetProperty("eventId").GetInt32());
+            Assert.Equal(row.Name, item.GetProperty("name").GetString());
+            Assert.Equal(row.Subcategory, item.GetProperty("subcategory").GetString());
+            Assert.Equal(row.Severity, item.GetProperty("severity").GetString());
+        }
     }
 
     [Fact]

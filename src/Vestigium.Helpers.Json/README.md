@@ -8,10 +8,10 @@ Not the audit logger. Not FileIo. One path, 64 KiB streams.
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Json` 1.0.0 |
+| Package | `Vestigium.Helpers.Json` 1.0.1 |
 | TFM | `net10.0` |
 | APPID | `Json` (`JsonCatalog.AppId`) |
-| EVENTID | Reserved 13500–13999 (used through 13625) |
+| EVENTID | Reserved 13500–13999 (used through 13640) |
 | Depends on | `Vestigium.Logging` |
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Json/002%20--%20Requirements%20Document) |
@@ -19,7 +19,7 @@ Not the audit logger. Not FileIo. One path, 64 KiB streams.
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Json" Version="1.0.0" />
+<PackageReference Include="Vestigium.Helpers.Json" Version="1.0.1" />
 ```
 
 ```csharp
@@ -43,9 +43,9 @@ Compare two files: `JsonHelper.Compare(leftPath, rightPath)`. Same kind. Diff on
 |---|---|---|
 | `Identity` / `Probe` | string | In-memory only. Probe does not write the export folder. |
 | `ToJson` / `FromJson` | string / T | RFC 8259. No BOM. `FromJson` honors `JsonReadOptions.MaxDepth` (default 64). |
-| `Parse(string)` / `Parse(Stream)` / `Parse(ReadOnlySpan<byte>)` | `JsonNode` | RFC 8259. JSON null is not a document root. Stream honors the 32 MiB cap. |
+| `Parse(string)` / `Parse(Stream)` / `Parse(ReadOnlySpan<byte>)` | `JsonNode` | RFC 8259. JSON null is not a document root. All three honor the 32 MiB cap. Stream must be seekable. |
 | `Create` / `Open` / `OpenJsonl` / `OpenExport` | `JsonSession` | `Open` is one `.json` document; a `.jsonl` path is rejected. `Create("*.jsonl")` starts an empty list. |
-| `WriteFile` | void | Collision default Fail. Atomic default true. 32 MiB document cap. |
+| `WriteFile` | void | Collision default Fail. Atomic default true. 32 MiB document cap. Dest is never the overflow file. |
 | `Compare` | `JsonPatch` | Two payload paths of the same kind. JSONL compared as arrays. Diff only — no Apply. Also `JsonPatch.Compare(from, to)`. |
 | `DefaultExportDirectory` / `NewExportPath` | string | Path only. Does not create the file. |
 | `session.Get` / `TryGet` / `Set` | T / bool / void | `/a/b` and `a.b` are the same member. Get miss throws. Get and TryGet do not log. |
@@ -79,7 +79,7 @@ VestigiumLogger.Initialize(cfg =>
 
 Writes are no-ops until the host initializes. JSONL lands at `%ProgramData%\\Vestigium\\Logs\\{host-APPID}\\`.
 
-Named events live in `EventCatalog/json.json`. Event IDs are per subcategory in 13500–13999 (step 5), used through 13625.
+Named events live in `EventCatalog/json.json`. The library does not load that file at runtime. Event IDs are per subcategory in 13500–13999 (step 5), used through 13640.
 
 ## Related
 
