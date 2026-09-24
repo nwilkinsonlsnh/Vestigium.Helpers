@@ -60,6 +60,7 @@ internal static class NetworkRouteMutation
             if (spec.InterfaceIndex < 1)
                 spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
             NetworkRouteWindowsV6.Change(spec);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"ChangeRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6");
             return;
         }
 
@@ -87,6 +88,7 @@ internal static class NetworkRouteMutation
             if (spec.InterfaceIndex < 1)
                 spec = spec with { InterfaceIndex = ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index()) };
             NetworkRouteWindowsV6.Remove(spec);
+            NetworkLog.Success(HelperLog.Subcategories.Route, $"RemoveRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6");
             return;
         }
 

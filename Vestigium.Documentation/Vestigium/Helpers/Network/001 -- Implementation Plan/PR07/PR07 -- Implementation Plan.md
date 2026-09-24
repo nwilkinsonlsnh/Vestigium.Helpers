@@ -14,7 +14,7 @@ This is not TCP connect, pathping, duration-per-window, Charts, Demo, Ubuntu CI,
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | PR07-01 | Trace finish uses `LogFinished` (or the same switch Echo uses). Failed/TimedOut/Cancelled do not write Success. | On branch |
-| 2 | PR07-02 | Windows IPv6 Change/Remove write the same Success line Add already writes. Deny path unchanged. | Open |
+| 2 | PR07-02 | Windows IPv6 Change/Remove write the same Success line Add already writes. Deny path unchanged. | On branch |
 | 3 | PR07-03 | IPv6 IfIndex: caller `>= 1` or first up IPv6 NIC. Stop calling `TryFirstIpv4Index()` from the v6 write path. | Open |
 | 4 | PR07-04 | `NetworkCatalog.Register` taxonomy includes `Share`, `Stats`, `Progress`. Keep existing names. | Open |
 | 5 | PR07-05 | Fix `NetworkHelper` summary comment to Option C (Linux netlink, typed deny only on cap/ACL/default). | Open |

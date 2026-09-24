@@ -65,6 +65,26 @@ public sealed class NetworkPr07Tests
     }
 
     [Fact]
+    public void PR07_02_win_v6_change_and_remove_log_success()
+    {
+        var path = FindNetworkSource("NetworkRouteMutation.cs");
+        Assert.True(path is not null, "NetworkRouteMutation.cs not found walking up from BaseDirectory.");
+        var src = File.ReadAllText(path);
+        Assert.Contains(
+            "NetworkLog.Success(HelperLog.Subcategories.Route, $\"AddRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6\")",
+            src,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "NetworkLog.Success(HelperLog.Subcategories.Route, $\"ChangeRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6\")",
+            src,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "NetworkLog.Success(HelperLog.Subcategories.Route, $\"RemoveRoute dest={change.Destination}/{change.PrefixLength} gw={change.Gateway} win-v6\")",
+            src,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PR07_01_decide_status_cancelled_beats_reached()
     {
         var hop = new IcmpTraceHop(1, "127.0.0.1", []);
