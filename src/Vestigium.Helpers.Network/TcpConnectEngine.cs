@@ -101,26 +101,22 @@ internal static class TcpConnectEngine
 
         try
         {
-            return await TraceResolve.ResolveAddressAsync(host, family, token).ConfigureAwait(false);
+            var text = await TraceResolve.ResolveAsync(host, family, token).ConfigureAwait(false);
+            if (IPAddress.TryParse(text, out var fromPin))
+                return fromPin;
+            var pin = TraceResolve.Pin(family);
+            var addrs = pin is { } required
+                ? await Dns.GetHostAddressesAsync(host, required, token).ConfigureAwait(false)
+                : await Dns.GetHostAddressesAsync(host, token).ConfigureAwait(false);
+            return TraceResolve.Pick(addrs, family);
         }
-        catch (Exception)
+        catch (SocketException)
         {
-            try
-            {
-                var pin = TraceResolve.Pin(family);
-                var addrs = pin is { } required
-                    ? await Dns.GetHostAddressesAsync(host, required, token).ConfigureAwait(false)
-                    : await Dns.GetHostAddressesAsync(host, token).ConfigureAwait(false);
-                return TraceResolve.Pick(addrs, family);
-            }
-            catch (SocketException)
-            {
-                return null;
-            }
-            catch (ArgumentException)
-            {
-                return null;
-            }
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
         }
     }
 }
