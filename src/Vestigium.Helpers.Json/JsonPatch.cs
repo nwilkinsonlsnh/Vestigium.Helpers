@@ -13,10 +13,15 @@ public sealed class JsonPatch
     internal JsonPatch(IEnumerable<JsonPatchOperation> operations)
         => _operations = [.. operations];
 
+    /// <summary>Operations in document order. Array removes are high index first.</summary>
     public IReadOnlyList<JsonPatchOperation> Operations => _operations;
 
+    /// <summary>Number of operations.</summary>
     public int Count => _operations.Length;
 
+    /// <summary>
+    /// RFC 6902 array. <c>remove</c> omits <c>value</c>.
+    /// </summary>
     public JsonArray ToJsonArray()
     {
         var array = new JsonArray();
@@ -35,8 +40,13 @@ public sealed class JsonPatch
         return array;
     }
 
+    /// <summary>Short count label for logs and tests.</summary>
     public override string ToString() => $"{Count} operation(s)";
 
+    /// <summary>
+    /// Diff <paramref name="from"/> to <paramref name="to"/>. Add, remove, replace only.
+    /// Does not apply the patch.
+    /// </summary>
     public static JsonPatch Compare(JsonNode? from, JsonNode? to)
     {
         var ops = new List<JsonPatchOperation>();
@@ -109,6 +119,9 @@ public sealed class JsonPatch
         => token.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
 }
 
+/// <summary>
+/// One RFC 6902 operation produced by <see cref="JsonPatch.Compare"/>.
+/// </summary>
 public sealed class JsonPatchOperation
 {
     private JsonPatchOperation(string op, string path, JsonNode? value)
@@ -118,8 +131,13 @@ public sealed class JsonPatchOperation
         Value = value;
     }
 
+    /// <summary><c>add</c>, <c>remove</c>, or <c>replace</c>.</summary>
     public string Op { get; }
+
+    /// <summary>JSON Pointer to the target.</summary>
     public string Path { get; }
+
+    /// <summary>Cloned value for add and replace. Null on remove.</summary>
     public JsonNode? Value { get; }
 
     internal static JsonPatchOperation Add(string path, JsonNode? value) => new("add", path, value);
