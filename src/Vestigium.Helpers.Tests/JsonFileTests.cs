@@ -237,6 +237,38 @@ public sealed class JsonFileTests : IDisposable
     }
 
     [Fact]
+    public void WriteFile_over_cap_non_atomic_leaves_no_dest()
+    {
+        JsonTestHooks.MaxDocumentBytes = 16;
+        var path = Path.Combine(_root, "over-direct.json");
+        var ex = Assert.Throws<JsonException>(() =>
+            JsonHelper.WriteFile(
+                path,
+                new { Level = "Information", Pad = "xxxxxxxxxxxxxxxx" },
+                new JsonWriteOptions { AtomicWrite = false }));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(path));
+        Assert.Empty(Directory.GetFiles(_root, "*.tmp", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public void WriteFile_over_cap_keeps_existing_dest()
+    {
+        var path = Path.Combine(_root, "keep.json");
+        JsonHelper.WriteFile(path, new { N = 1 });
+        var before = File.ReadAllText(path);
+        JsonTestHooks.MaxDocumentBytes = 16;
+        var ex = Assert.Throws<JsonException>(() =>
+            JsonHelper.WriteFile(
+                path,
+                new { Level = "Information", Pad = "xxxxxxxxxxxxxxxx" },
+                new JsonWriteOptions { Collision = JsonCollision.Overwrite, AtomicWrite = false }));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(before, File.ReadAllText(path));
+        Assert.Empty(Directory.GetFiles(_root, "*.tmp", SearchOption.AllDirectories));
+    }
+
+    [Fact]
     public void Open_missing_file_throws()
         => Assert.Throws<FileNotFoundException>(() => JsonHelper.Open(Path.Combine(_root, "missing.json")));
 

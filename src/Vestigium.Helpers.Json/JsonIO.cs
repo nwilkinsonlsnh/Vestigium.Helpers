@@ -96,10 +96,10 @@ internal static class JsonIo
     }
 
     internal static long Write(string path, JsonNode node, bool indented, bool atomic)
-        => WriteAtomic(path, atomic, dest => WriteJson(dest, node, indented));
+        => WriteStaged(path, dest => WriteJson(dest, node, indented));
 
     internal static long WriteJsonl(string path, JsonArray records, bool atomic)
-        => WriteAtomic(path, atomic, dest => WriteJsonlTo(dest, records));
+        => WriteStaged(path, dest => WriteJsonlTo(dest, records));
 
     internal static void RejectCollision(string path, JsonCollision collision, bool replaceInPlace)
     {
@@ -162,14 +162,11 @@ internal static class JsonIo
     private static FileStream OpenRead(string path)
         => new(path, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan);
 
-    private static long WriteAtomic(string path, bool atomic, Func<string, long> write)
+    private static long WriteStaged(string path, Func<string, long> write)
     {
         var parent = Path.GetDirectoryName(path);
         if (!string.IsNullOrWhiteSpace(parent))
             Directory.CreateDirectory(parent);
-
-        if (!atomic)
-            return write(path);
 
         var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
@@ -180,9 +177,11 @@ internal static class JsonIo
         }
         catch
         {
-            if (!File.Exists(temp)) throw;
-            try { File.Delete(temp); }
-            catch (IOException) { }
+            if (File.Exists(temp))
+            {
+                try { File.Delete(temp); }
+                catch (IOException) { }
+            }
 
             throw;
         }
