@@ -4,6 +4,7 @@ namespace Vestigium.Helpers.Json;
 
 /// <summary>
 /// RFC 6902 JSON Patch. Hosts render the operation list. HelperLog records the count, never values.
+/// Diff only: add, remove, replace. No Apply.
 /// </summary>
 public sealed class JsonPatch
 {
@@ -36,7 +37,7 @@ public sealed class JsonPatch
 
     public override string ToString() => $"{Count} operation(s)";
 
-    internal static JsonPatch Compare(JsonNode? from, JsonNode? to)
+    public static JsonPatch Compare(JsonNode? from, JsonNode? to)
     {
         var ops = new List<JsonPatchOperation>();
         DiffExisting(from, to, "", ops);
