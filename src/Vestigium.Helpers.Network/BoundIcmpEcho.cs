@@ -49,7 +49,8 @@ internal static class BoundIcmpEcho
                 var got = await socket.ReceiveFromAsync(receive, SocketFlags.None, new IPEndPoint(family == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any, 0), timed.Token).ConfigureAwait(false);
                 var rtt = started.ElapsedMilliseconds;
                 var remote = got.RemoteEndPoint as IPEndPoint;
-                return ParseReply(receive.AsSpan(0, got.Count), family, id, seq, sequence, rtt, remote?.Address);
+                var received = Math.Clamp(got.ReceivedBytes, 0, receive.Length);
+                return ParseReply(receive.AsSpan(0, received), family, id, seq, sequence, rtt, remote?.Address);
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {

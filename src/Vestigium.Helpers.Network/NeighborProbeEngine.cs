@@ -18,14 +18,13 @@ internal static class NeighborProbeEngine
         }
 
         NetworkLog.Pending(HelperLog.Subcategories.Neighbor, $"probeNeighbor address={ip}");
-        string? mac = null;
-        if (OperatingSystem.IsWindows() && ip.AddressFamily == AddressFamily.InterNetwork)
+        var mac = NeighborResolve.Resolve(ip);
+        if (string.IsNullOrWhiteSpace(mac) && OperatingSystem.IsWindows() && ip.AddressFamily == AddressFamily.InterNetwork)
             mac = SendArp(ip);
-        mac ??= LookupOne(ip);
-        if (mac is null)
+        if (string.IsNullOrWhiteSpace(mac))
         {
             Nudge(ip);
-            mac = LookupOne(ip);
+            mac = NeighborResolve.Resolve(ip) ?? SendArpFallback(ip);
         }
 
         var found = !string.IsNullOrWhiteSpace(mac);
@@ -33,19 +32,8 @@ internal static class NeighborProbeEngine
         return new NeighborProbeResult(ip.ToString(), found ? mac : null, found);
     }
 
-    internal static string? LookupOne(IPAddress ip)
-    {
-        var needle = ip.ToString();
-        foreach (var row in NetworkStackEngine.GetNeighbors())
-        {
-            if (row.Address == needle && !string.IsNullOrWhiteSpace(row.MacAddress))
-                return row.MacAddress;
-            if (IPAddress.TryParse(row.Address, out var other) && other.Equals(ip) && !string.IsNullOrWhiteSpace(row.MacAddress))
-                return row.MacAddress;
-        }
-
-        return null;
-    }
+    private static string? SendArpFallback(IPAddress ip)
+        => OperatingSystem.IsWindows() && ip.AddressFamily == AddressFamily.InterNetwork ? SendArp(ip) : null;
 
     private static void Nudge(IPAddress ip)
     {
