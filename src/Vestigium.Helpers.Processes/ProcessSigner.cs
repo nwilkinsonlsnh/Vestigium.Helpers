@@ -43,11 +43,14 @@ internal static class ProcessSigner
     {
         try
         {
-            return X509Certificate2.GetCertContentType(imagePath) != X509ContentType.Authenticode ? null : new X509Certificate2(X509Certificate.CreateFromSignedFile(imagePath));
+            if (X509Certificate2.GetCertContentType(imagePath) != X509ContentType.Authenticode)
+                return null;
 
-            // X509CertificateLoader has no Authenticode/PE path. CreateFromSignedFile is the
-            // remaining framework API; trust still comes from WinVerifyTrust below.
+            // X509CertificateLoader has no Authenticode/PE path. GetCertContentType + the
+            // path constructor is the remaining framework recipe; trust still comes from
+            // WinVerifyTrust below.
 #pragma warning disable SYSLIB0057
+            return new X509Certificate2(imagePath);
 #pragma warning restore SYSLIB0057
         }
         catch
