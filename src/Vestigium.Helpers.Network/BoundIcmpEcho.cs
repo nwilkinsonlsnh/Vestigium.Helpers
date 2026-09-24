@@ -30,7 +30,11 @@ internal static class BoundIcmpEcho
         try
         {
             using var socket = CreateSocket(family, icmp);
+            EnsureBound(socket, family, options.InterfaceIndex, options.SourceAddress);
             EgressBind.Apply(socket, options.InterfaceIndex, options.SourceAddress);
+            if (!PinHolds(socket, options.InterfaceIndex, options.SourceAddress))
+                return new IcmpEchoReply(sequence, IcmpEchoStatus.Failed, dest.ToString(), 0, 0, false, "bind-miss");
+
             socket.Ttl = (short)Math.Clamp(options.Ttl, 1, 255);
             if (family == AddressFamily.InterNetwork)
                 socket.DontFragment = options.DontFragment;
@@ -73,6 +77,48 @@ internal static class BoundIcmpEcho
         {
             return new IcmpEchoReply(sequence, IcmpEchoStatus.ProtocolForbidden, dest.ToString(), 0, 0, true, ex.Message);
         }
+    }
+
+    internal static void EnsureBound(Socket socket, AddressFamily family, int interfaceIndex, string? sourceAddress)
+    {
+        if (!string.IsNullOrWhiteSpace(sourceAddress))
+            return;
+        if (interfaceIndex < 1)
+            return;
+        if (socket.IsBound)
+            return;
+        var nic = EgressBind.FindAdapter(interfaceIndex);
+        if (nic is null)
+            return;
+        foreach (var uni in nic.GetIPProperties().UnicastAddresses)
+        {
+            if (uni.Address.AddressFamily != family)
+                continue;
+            if (IPAddress.IsLoopback(uni.Address))
+                continue;
+            try
+            {
+                socket.Bind(new IPEndPoint(uni.Address, 0));
+                return;
+            }
+            catch (SocketException)
+            {
+            }
+        }
+    }
+
+    internal static bool PinHolds(Socket socket, int interfaceIndex, string? sourceAddress)
+    {
+        if (!EgressBind.IsPinned(interfaceIndex, sourceAddress))
+            return true;
+        if (socket.LocalEndPoint is not IPEndPoint local)
+            return false;
+        if (!string.IsNullOrWhiteSpace(sourceAddress) && IPAddress.TryParse(sourceAddress.Trim(), out var source))
+            return local.Address.Equals(source);
+        if (interfaceIndex < 1)
+            return true;
+        var nic = EgressBind.FindAdapter(interfaceIndex);
+        return nic is not null && EgressBind.AddressLivesOn(nic, local.Address);
     }
 
     private static Socket CreateSocket(AddressFamily family, ProtocolType icmp)
