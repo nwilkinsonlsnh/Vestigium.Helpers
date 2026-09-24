@@ -61,20 +61,21 @@ internal static class PathpingEngine
 
         var walkJob = IcmpTraceEngine.Create(target, ToTrace(options));
         var walk = await walkJob.RunAsync(token).ConfigureAwait(false);
+        var protocol = SettledProtocol(walk);
         progress?.Report(new NetworkProgress
         {
             JobId = jobId,
             Phase = "Walk",
             Sent = walk.HopCount,
             Received = walk.Hops.Count(h => h.Address is not null),
-            LastStatus = walk.Status.ToString()
+            LastStatus = protocol.ToString()
         });
 
         var sampled = new List<PathpingHop>(walk.Hops.Count);
         for (var i = 0; i < walk.Hops.Count && !token.IsCancellationRequested; i++)
         {
             var hop = walk.Hops[i];
-            sampled.Add(await SampleHopAsync(hop, options, token).ConfigureAwait(false));
+            sampled.Add(await SampleHopAsync(hop, protocol, options, token).ConfigureAwait(false));
             progress?.Report(new NetworkProgress
             {
                 JobId = jobId,
@@ -88,20 +89,80 @@ internal static class PathpingEngine
 
         var hops = ApplyLinkLoss(sampled);
         var status = DecideStatus(token.IsCancellationRequested, walk, hops);
-        var line = $"{status} pathping job={jobId} target={target} hops={hops.Count} reached={walk.Reached}";
+        var line = $"{status} pathping job={jobId} target={target} hops={hops.Count} reached={walk.Reached} sample={protocol}";
         IcmpEchoEngine.LogFinished(status, line);
-        return new PathpingResult(jobId, target, walk.ResolvedAddress, status, walk.Reached, walk.ProbeProtocol, walk, hops);
+        return new PathpingResult(jobId, target, walk.ResolvedAddress, status, walk.Reached, protocol, walk, hops);
     }
+
+    internal static ProbeProtocol SettledProtocol(IcmpTraceResult walk)
+        => walk.ProbeProtocol;
 
     private static async Task<PathpingHop> SampleHopAsync(
         IcmpTraceHop hop,
+        ProbeProtocol protocol,
         PathpingOptions options,
         CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(hop.Address))
             return new PathpingHop(hop.Ttl, null, 0, 0, 0, 0, 0, null, null, null, hop.Name);
 
-        var echo = IcmpEchoEngine.Create(hop.Address, new IcmpEchoOptions
+        if (protocol == ProbeProtocol.Icmp)
+            return await SampleIcmpAsync(hop, options, token).ConfigureAwait(false);
+
+        var timeoutMs = Math.Clamp((int)options.Timeout.TotalMilliseconds, IcmpEchoOptions.MinTimeoutMs, IcmpEchoOptions.MaxTimeoutMs);
+        var times = new List<long>();
+        var received = 0;
+        for (var i = 1; i <= options.SamplesPerHop && !token.IsCancellationRequested; i++)
+        {
+            IcmpTraceProbe row;
+            if (protocol == ProbeProtocol.Tcp)
+            {
+                row = await IcmpTraceEngine.TcpProbeAsync(
+                    hop.Address, timeoutMs, 64, i, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                row = await IcmpTraceEngine.UdpProbeAsync(hop.Address, timeoutMs, 64, i, token, options.Family).ConfigureAwait(false);
+            }
+
+            if (SampleHit(row))
+            {
+                received++;
+                times.Add(row.RoundtripTimeMs);
+            }
+
+            if (options.SampleInterval > TimeSpan.Zero && i < options.SamplesPerHop)
+            {
+                try { await Task.Delay(options.SampleInterval, token).ConfigureAwait(false); }
+                catch (OperationCanceledException) { break; }
+            }
+        }
+
+        var samples = options.SamplesPerHop;
+        var lost = Math.Max(0, samples - received);
+        var hopLoss = samples == 0 ? 0 : 100.0 * lost / samples;
+        return new PathpingHop(
+            hop.Ttl,
+            hop.Address,
+            samples,
+            received,
+            lost,
+            hopLoss,
+            0,
+            times.Count == 0 ? null : times.Min(),
+            times.Count == 0 ? null : times.Max(),
+            times.Count == 0 ? null : times.Average(),
+            hop.Name);
+    }
+
+    internal static bool SampleHit(IcmpTraceProbe row)
+        => row.Status is IcmpEchoStatus.Success or IcmpEchoStatus.TtlExpired
+           || (row.Protocol == ProbeProtocol.Tcp && row.Address is not null);
+
+    private static async Task<PathpingHop> SampleIcmpAsync(IcmpTraceHop hop, PathpingOptions options, CancellationToken token)
+    {
+        var echo = IcmpEchoEngine.Create(hop.Address!, new IcmpEchoOptions
         {
             Count = options.SamplesPerHop,
             Timeout = options.Timeout,
