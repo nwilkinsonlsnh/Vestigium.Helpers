@@ -55,11 +55,11 @@ PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, durati
 
 | Item | Why cut |
 | :--- | :--- |
-| TCP / UDP connect jobs | PingIQ host surface. This DLL already has ICMP Echo, ICMP/UDP trace, and stack tables. New protocol = later addendum. |
+| TCP / UDP connect jobs | This DLL already has ICMP Echo, ICMP/UDP trace, and stack tables. New protocol = later addendum. |
 | Pathping-class | Roadmap “later.” Not a 1.0.1 fix. |
 | Duration-per-window on `EchoWindow` | SRS §6 already parked it. Do not smuggle it in with recipe persist. |
 | Scheduler package / cron / systemd | Host lifetime. Locked out. |
-| HTTP reachability | HttpIQ. OUI GET stays the only HTTP. |
+| HTTP reachability | Not this package. OUI GET stays the only HTTP. |
 | Charts / Demo / Network.Demo | Locked out. |
 | Full IEEE MA-L dump | Decision 35. Packed stays a stub. |
 | Live Ubuntu / admin-Windows route checks | PR05 §3 parked. Record dated notes when those boxes exist. Not a publish gate. |
