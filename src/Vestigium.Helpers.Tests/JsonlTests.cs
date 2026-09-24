@@ -22,6 +22,8 @@ public sealed class JsonlTests : IDisposable
     public void Dispose()
     {
         JsonTestHooks.ExportRoot = null;
+        JsonTestHooks.MaxDocumentBytes = null;
+        JsonTestHooks.MaxJsonlLineBytes = null;
         HelperLog.Shutdown();
         if (Directory.Exists(_root))
             Directory.Delete(_root, recursive: true);
@@ -145,5 +147,26 @@ public sealed class JsonlTests : IDisposable
         Assert.All(lines, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
         using var reopened = JsonHelper.OpenJsonl(path);
         Assert.Equal(2, reopened.RecordCount);
+    }
+
+    [Fact]
+    public void OpenJsonl_rejects_file_over_document_cap()
+    {
+        JsonTestHooks.MaxDocumentBytes = 8;
+        var path = Path.Combine(_root, "over.jsonl");
+        File.WriteAllText(path, "{\"n\":1}\n{\"n\":2}\n", new UTF8Encoding(false));
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.OpenJsonl(path));
+        Assert.Contains("cap", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OpenJsonl_rejects_line_over_line_cap()
+    {
+        JsonTestHooks.MaxJsonlLineBytes = 8;
+        var path = Path.Combine(_root, "longline.jsonl");
+        File.WriteAllText(path, "{\"code\":\"this-is-too-long\"}\n", new UTF8Encoding(false));
+        var ex = Assert.Throws<JsonException>(() => JsonHelper.OpenJsonl(path));
+        Assert.Contains("line exceeds", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("this-is-too-long", string.Join("\n", HelperLog.RecentJsonLines));
     }
 }
