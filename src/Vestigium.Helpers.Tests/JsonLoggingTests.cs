@@ -112,4 +112,39 @@ public sealed class JsonLoggingTests
         Assert.Equal("Probe", JsonCatalog.Rows[0].Subcategory);
         Assert.DoesNotContain(JsonCatalog.Rows, row => row.Name is "OperationEnter" or "OperationComplete" or "OperationFailed");
     }
+
+    [Fact]
+    public void Get_and_TryGet_do_not_write_query_failed()
+    {
+        var export = Path.Combine(Path.GetTempPath(), "VestigiumJsonPr06Get", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(export);
+        JsonTestHooks.ExportRoot = export;
+        try
+        {
+            Init();
+            using var doc = JsonHelper.Create();
+            doc.Set("level", "Information");
+            Assert.Equal("Information", doc.Get<string>("level"));
+            Assert.False(doc.TryGet<string>("missing", out _));
+            Assert.Throws<KeyNotFoundException>(() => doc.Get<string>("missing"));
+            Assert.Throws<InvalidOperationException>(() => doc.Get<int>("level"));
+
+            VestigiumLogger.Flush();
+            var log = VestigiumLogger.RecentJsonLines;
+            Assert.DoesNotContain(log, line =>
+                line.Contains("\"SUBCATEGORY\":\"Query\"") && line.Contains("\"STATUS\":\"Failed\""));
+            Assert.DoesNotContain(log, line => line.Contains("path not found"));
+            Assert.DoesNotContain(log, line => line.Contains("path type mismatch"));
+            Assert.Contains(log, line =>
+                line.Contains("\"SUBCATEGORY\":\"Query\"") && line.Contains("Set path=level"));
+            Assert.All(log, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
+        }
+        finally
+        {
+            JsonTestHooks.ExportRoot = null;
+            VestigiumLogger.Shutdown();
+            if (Directory.Exists(export))
+                Directory.Delete(export, recursive: true);
+        }
+    }
 }
