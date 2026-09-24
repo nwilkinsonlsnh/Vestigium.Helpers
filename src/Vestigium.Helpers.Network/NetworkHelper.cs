@@ -77,6 +77,9 @@ public static class NetworkHelper
     public static NetworkJob<CounterSampleResult> SampleCounters(string nameOrId, CounterSampleOptions? options = null)
         => CounterSampleEngine.Create(nameOrId, options);
 
+    public static NetworkJob<PathMtuResult> PathMtu(string target, PathMtuOptions? options = null)
+        => PathMtuEngine.Create(target, options);
+
     public static Task<DnsLookupResult> LookupAsync(string name, DnsLookupOptions? options = null, CancellationToken cancellation = default)
     {
         var o = options ?? new DnsLookupOptions();
