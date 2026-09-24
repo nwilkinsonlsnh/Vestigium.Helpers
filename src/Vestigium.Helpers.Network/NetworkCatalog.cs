@@ -34,6 +34,9 @@ public static class NetworkCatalog
         Row(NetworkEvents.RouteDenied, "RouteDenied", "Error", "route write denied"),
         Row(NetworkEvents.IcmpForbidden, "IcmpForbidden", "Error", "ICMP not permitted"),
         Row(NetworkEvents.CampaignWindowMissed, "CampaignWindowMissed", "Warning", "campaign window missed"),
+        Row(NetworkEvents.CampaignPathEscape, "CampaignPathEscape", "Error", "campaign path escape"),
+        Row(NetworkEvents.DnsPeerMismatch, "DnsPeerMismatch", "Warning", "DNS peer mismatch"),
+        Row(NetworkEvents.OuiLookupRejected, "OuiLookupRejected", "Error", "OUI lookup rejected"),
     ];
 
     private static CatalogRow Row(int eventId, string name, string severity, string description)

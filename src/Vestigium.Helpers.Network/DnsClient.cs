@@ -275,9 +275,7 @@ internal static class DnsClient
             var result = await receive.ConfigureAwait(false);
             if (!IsExpectedDnsPeer(result.RemoteEndPoint, server, port))
             {
-                NetworkLog.Warning(
-                    HelperLog.Subcategories.Dns,
-                    $"udp discarded foreign source={result.RemoteEndPoint}");
+                NetworkLog.DnsPeerMismatch($"udp discarded foreign source={result.RemoteEndPoint}", fatal: false);
                 continue;
             }
 
@@ -298,7 +296,7 @@ internal static class DnsClient
         await tcp.ConnectAsync(server, port, timed.Token).ConfigureAwait(false);
         if (!IsExpectedDnsPeer(tcp.Client.RemoteEndPoint, server, port))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Dns, nameof(TcpExchangeAsync), "tcp peer mismatch");
+            NetworkLog.DnsPeerMismatch("tcp peer mismatch", fatal: true);
             throw new SocketException((int)SocketError.HostUnreachable);
         }
 

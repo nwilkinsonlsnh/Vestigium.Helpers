@@ -30,7 +30,7 @@ internal static class CampaignPaths
 
         if (!IsUnder(full, Root()))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(Confine), "path escape");
+            NetworkLog.CampaignPathEscape(nameof(Confine), "path escape");
             throw new ArgumentException("Campaign path must stay under the campaign root.", paramName);
         }
 
@@ -59,7 +59,7 @@ internal static class CampaignPaths
 
         if (!IsUnder(dir, Root()))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Campaign, nameof(EnsureDirectoryUnderRoot), "create above root");
+            NetworkLog.CampaignPathEscape(nameof(EnsureDirectoryUnderRoot), "create above root");
             throw new ArgumentException("Campaign directories cannot be created above the campaign root.", nameof(path));
         }
 

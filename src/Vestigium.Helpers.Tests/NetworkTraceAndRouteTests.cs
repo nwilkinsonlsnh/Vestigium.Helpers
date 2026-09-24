@@ -169,6 +169,38 @@ public sealed class NetworkTraceAndRouteTests
     }
 
     [Fact]
+    public void Path_escape_dns_peer_and_oui_reject_use_named_events()
+    {
+        Assert.Equal(14545, NetworkEvents.CampaignPathEscape);
+        Assert.Equal(14550, NetworkEvents.DnsPeerMismatch);
+        Assert.Equal(14555, NetworkEvents.OuiLookupRejected);
+        var root = Path.Combine(Path.GetTempPath(), "vest-camp-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            Init();
+            NetworkTestHooks.CampaignRoot = root;
+            Assert.Throws<ArgumentException>(() => CampaignPaths.Confine(Path.GetTempPath(), "recipe"));
+            NetworkLog.DnsPeerMismatch("udp discarded foreign source=192.0.2.9:53", fatal: false);
+            Assert.Throws<ArgumentException>(() =>
+                OuiLookupGuard.Bind("http://api.macvendors.com/00-00-0C", new OuiLookupOptions()));
+            VestigiumLogger.Flush();
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14545") && line.Contains("path escape"));
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14550") && line.Contains("foreign source"));
+            Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
+                line.Contains("\"EVENTID\":14555") && line.Contains("scheme="));
+        }
+        finally
+        {
+            NetworkTestHooks.Reset();
+            VestigiumLogger.Shutdown();
+            try { Directory.Delete(root, true); } catch { }
+        }
+    }
+
+    [Fact]
     public void Default_route_write_logs_route_denied()
     {
         try

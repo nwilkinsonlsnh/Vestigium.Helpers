@@ -15,4 +15,7 @@ public static class NetworkEvents
     public const int RouteDenied = 14530;
     public const int IcmpForbidden = 14535;
     public const int CampaignWindowMissed = 14540;
+    public const int CampaignPathEscape = 14545;
+    public const int DnsPeerMismatch = 14550;
+    public const int OuiLookupRejected = 14555;
 }

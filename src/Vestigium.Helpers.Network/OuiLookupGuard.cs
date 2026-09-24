@@ -13,38 +13,38 @@ internal static class OuiLookupGuard
         var raw = HelperGuard.NotBlank(expandedUrl, nameof(options.RegistryUrl));
         if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "registry url is not absolute");
+            NetworkLog.OuiRejected(nameof(Bind), "registry url is not absolute");
             throw new ArgumentException("OUI registry URL must be an absolute HTTPS URI.", nameof(options.RegistryUrl));
         }
 
         if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "scheme=" + uri.Scheme);
+            NetworkLog.OuiRejected(nameof(Bind), "scheme=" + uri.Scheme);
             throw new ArgumentException("OUI registry URL must use HTTPS.", nameof(options.RegistryUrl));
         }
 
         if (!string.IsNullOrEmpty(uri.UserInfo))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "userinfo");
+            NetworkLog.OuiRejected(nameof(Bind), "userinfo");
             throw new ArgumentException("OUI registry URL must not contain user information.", nameof(options.RegistryUrl));
         }
 
         var host = uri.IdnHost;
         if (string.IsNullOrWhiteSpace(host))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "missing host");
+            NetworkLog.OuiRejected(nameof(Bind), "missing host");
             throw new ArgumentException("OUI registry URL must include a host.", nameof(options.RegistryUrl));
         }
 
         if (IsBlockedHost(host))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "blocked host");
+            NetworkLog.OuiRejected(nameof(Bind), "blocked host");
             throw new ArgumentException("OUI registry host is not allowed.", nameof(options.RegistryUrl));
         }
 
         if (!IsAllowedHost(host, options))
         {
-            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "host not allowlisted");
+            NetworkLog.OuiRejected(nameof(Bind), "host not allowlisted");
             throw new ArgumentException("Custom OUI registry host is not allowlisted.", nameof(options.RegistryUrl));
         }
 
@@ -171,7 +171,7 @@ internal static class OuiLookupGuard
         }
 
         if (!addresses.Any(IsBlockedAddress)) return;
-        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Address, nameof(Bind), "resolved private");
+        NetworkLog.OuiRejected(nameof(Bind), "resolved private");
         throw new ArgumentException("OUI registry host resolves to a blocked address.", nameof(OuiLookupOptions.RegistryUrl));
     }
 }

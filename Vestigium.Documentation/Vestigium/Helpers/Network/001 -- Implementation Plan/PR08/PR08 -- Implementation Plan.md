@@ -16,7 +16,7 @@ PR08-07 is the owner gate on the clone.
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | PR08-01 | Fix `NetworkHelper` XML. Linux route write is Option C netlink, not a blanket typed deny. | Done (PR07-05, on main) |
-| 2 | PR08-02 | Add EVENTID 14530 / 14535 / 14540 / 14545. Update `NetworkEvents`, `EventCatalog/network.json`, `HelperLog.EventId`. Version **1.0.1**. Cut this row only if owner refuses a bump. | Open |
+| 2 | PR08-02 | Fail IDs for route deny, campaign path escape, DNS peer mismatch, and live OUI reject. 14530 stays RouteDenied. 14535 and 14540 stay the PR07 events. New IDs are 14545 / 14550 / 14555. Version stays **1.0.1**. | Done |
 | 3 | PR08-04 | `BillPercentile(NumericSeries, double)` on the façade. | Open |
 | 4 | PR08-03 | Stop `Compile Remove` on `NetworkInventoryTests.cs`. Keep Hotspot removed. Tests stay off public Internet and off ProgramData / `/var/lib/vestigium`. | Open |
 | 5 | PR08-05 | Point `001/README.md` at this folder. Align SRS / Design / Guide / package README with Option C + packed OUI + no Charts. | Open |
@@ -31,14 +31,15 @@ Done on main by PR07-05. `NetworkHelper` summary is Option C: Windows IPv4 IP He
 
 ### PR08-02
 
-Do not invent a catalog per subcategory. Four fail IDs. Map:
+14530 `RouteDenied` was already wired. 14535 `IcmpForbidden` and 14540 `CampaignWindowMissed` stay. Do not renumber them.
 
-- Route deny / default-route refuse → 14530
-- Campaign path escape → 14535
-- DNS UDP peer mismatch → 14540
-- Live OUI HTTP reject (allowlist / cap / status) → 14545
+New, still count by 5:
 
-Everything else stays on 14510–14525. Catalog JSON is the source hosts copy.
+- 14545 `CampaignPathEscape` — campaign path leaves the root
+- 14550 `DnsPeerMismatch` — UDP foreign source (warning, packet dropped) and TCP peer mismatch (error)
+- 14555 `OuiLookupRejected` — allowlist, blocked host, redirect, HTTP status, body cap
+
+Everything else stays on 14510–14525. `network.json` is the list hosts copy. Package version stays 1.0.1.
 
 ### PR08-03
 

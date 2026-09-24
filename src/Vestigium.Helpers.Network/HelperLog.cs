@@ -156,6 +156,9 @@ internal static class HelperLog
         NetworkEvents.RouteDenied => "route write denied",
         NetworkEvents.IcmpForbidden => "ICMP not permitted",
         NetworkEvents.CampaignWindowMissed => "campaign window missed",
+        NetworkEvents.CampaignPathEscape => "campaign path escape",
+        NetworkEvents.DnsPeerMismatch => "DNS peer mismatch",
+        NetworkEvents.OuiLookupRejected => "OUI lookup rejected",
         _ => "operation complete"
     };
 

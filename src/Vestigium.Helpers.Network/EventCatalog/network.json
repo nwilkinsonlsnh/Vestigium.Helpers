@@ -11,6 +11,9 @@
     { "eventId": 14525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Network", "message": "operation warning" },
     { "eventId": 14530, "name": "RouteDenied", "severity": "Error", "subcategory": "Network", "message": "route write denied" },
     { "eventId": 14535, "name": "IcmpForbidden", "severity": "Error", "subcategory": "Network", "message": "ICMP not permitted" },
-    { "eventId": 14540, "name": "CampaignWindowMissed", "severity": "Warning", "subcategory": "Network", "message": "campaign window missed" }
+    { "eventId": 14540, "name": "CampaignWindowMissed", "severity": "Warning", "subcategory": "Network", "message": "campaign window missed" },
+    { "eventId": 14545, "name": "CampaignPathEscape", "severity": "Error", "subcategory": "Network", "message": "campaign path escape" },
+    { "eventId": 14550, "name": "DnsPeerMismatch", "severity": "Warning", "subcategory": "Network", "message": "DNS peer mismatch" },
+    { "eventId": 14555, "name": "OuiLookupRejected", "severity": "Error", "subcategory": "Network", "message": "OUI lookup rejected" }
   ]
 }

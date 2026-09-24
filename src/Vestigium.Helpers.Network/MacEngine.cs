@@ -97,13 +97,13 @@ internal static class MacEngine
             var code = (int)response.StatusCode;
             if (code is >= 300 and < 400)
             {
-                NetworkLog.Warning("Address", $"oui lookup redirect http={code} oui={oui}");
+                NetworkLog.OuiRejected(nameof(LookupOuiAsync), $"oui lookup redirect http={code} oui={oui}");
                 return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                NetworkLog.Warning("Address", $"oui lookup http={code} oui={oui}");
+                NetworkLog.OuiRejected(nameof(LookupOuiAsync), $"oui lookup http={code} oui={oui}");
                 return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
             }
 
@@ -117,7 +117,7 @@ internal static class MacEngine
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or TimeoutException or UriFormatException)
         {
-            NetworkLog.Warning("Address", $"oui lookup failed oui={oui} {ex.GetType().Name}");
+            NetworkLog.OuiRejected(nameof(LookupOuiAsync), $"oui lookup failed oui={oui} {ex.GetType().Name}");
             return new OuiLookupResult(parsed.Colon, null, OuiSource.None, OuiLookupOptions.Disclaimer);
         }
     }
@@ -134,6 +134,9 @@ internal static class MacEngine
                 break;
             read += n;
         }
+
+        if (read == buffer.Length)
+            NetworkLog.OuiRejected(nameof(ReadLimitedAsync), "body cap");
 
         return Encoding.UTF8.GetString(buffer, 0, read);
     }

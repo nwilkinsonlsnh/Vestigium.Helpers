@@ -53,6 +53,30 @@ internal static class NetworkLog
             HelperLog.Subcategories.Campaign,
             Redact(message));
 
+    public static void CampaignPathEscape(string method, string message)
+        => HelperLog.WriteEvent(
+            NetworkEvents.CampaignPathEscape,
+            VestigiumLogLevel.Error,
+            VestigiumStatus.Failed,
+            HelperLog.Subcategories.Campaign,
+            HelperLog.Line("reject", method, Redact(message), HelperLog.CorrelationId));
+
+    public static void DnsPeerMismatch(string message, bool fatal)
+        => HelperLog.WriteEvent(
+            NetworkEvents.DnsPeerMismatch,
+            fatal ? VestigiumLogLevel.Error : VestigiumLogLevel.Warning,
+            fatal ? VestigiumStatus.Failed : VestigiumStatus.Warning,
+            HelperLog.Subcategories.Dns,
+            Redact(message));
+
+    public static void OuiRejected(string method, string message)
+        => HelperLog.WriteEvent(
+            NetworkEvents.OuiLookupRejected,
+            VestigiumLogLevel.Error,
+            VestigiumStatus.Failed,
+            HelperLog.Subcategories.Address,
+            HelperLog.Line("reject", method, Redact(message), HelperLog.CorrelationId));
+
     internal static string? Redact(string? message)
     {
         if (string.IsNullOrEmpty(message))
