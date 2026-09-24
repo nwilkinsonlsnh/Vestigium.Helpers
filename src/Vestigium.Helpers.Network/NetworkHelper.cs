@@ -74,6 +74,9 @@ public static class NetworkHelper
     public static NetworkJob<TcpConnectResult> TcpConnect(string host, int port, TcpConnectOptions? options = null)
         => TcpConnectEngine.Create(host, port, options);
 
+    public static NetworkJob<UdpProbeResult> UdpProbe(string host, int port, UdpProbeOptions? options = null)
+        => UdpProbeEngine.Create(host, port, options);
+
     public static NetworkJob<CounterSampleResult> SampleCounters(string nameOrId, CounterSampleOptions? options = null)
         => CounterSampleEngine.Create(nameOrId, options);
 
