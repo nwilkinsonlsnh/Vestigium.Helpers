@@ -14,6 +14,7 @@
     { "eventId": 14540, "name": "CampaignWindowMissed", "severity": "Warning", "subcategory": "Network", "message": "campaign window missed" },
     { "eventId": 14545, "name": "CampaignPathEscape", "severity": "Error", "subcategory": "Network", "message": "campaign path escape" },
     { "eventId": 14550, "name": "DnsPeerMismatch", "severity": "Warning", "subcategory": "Network", "message": "DNS peer mismatch" },
-    { "eventId": 14555, "name": "OuiLookupRejected", "severity": "Error", "subcategory": "Network", "message": "OUI lookup rejected" }
+    { "eventId": 14555, "name": "OuiLookupRejected", "severity": "Error", "subcategory": "Network", "message": "OUI lookup rejected" },
+    { "eventId": 14560, "name": "BindRejected", "severity": "Error", "subcategory": "Network", "message": "egress bind rejected" }
   ]
 }
