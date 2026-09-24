@@ -166,6 +166,17 @@ public sealed class JsonPureTests
     }
 
     [Fact]
+    public void Parse_stream_rejects_non_seekable()
+    {
+        var json = Encoding.UTF8.GetBytes("{\"n\":1}");
+        using var inner = new MemoryStream(json);
+        using var stream = new ForwardOnlyStream(inner);
+        var ex = Assert.Throws<ArgumentException>(() => JsonHelper.Parse(stream));
+        Assert.Equal("stream", ex.ParamName);
+        Assert.Contains("seekable", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Logs_do_not_contain_payload_bodies()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumJsonTests", Guid.NewGuid().ToString("N"));
@@ -191,5 +202,28 @@ public sealed class JsonPureTests
     {
         public int TimeoutSeconds { get; set; }
         public string Level { get; set; } = "";
+    }
+
+    private sealed class ForwardOnlyStream : Stream
+    {
+        private readonly Stream _inner;
+
+        public ForwardOnlyStream(Stream inner) => _inner = inner;
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position
+        {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }
