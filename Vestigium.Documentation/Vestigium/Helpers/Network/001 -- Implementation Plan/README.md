@@ -1,12 +1,11 @@
 # 001 -- Implementation Plan
 
 **Library:** Vestigium.Helpers.Network  
-**Status:** PR08 open.
+**Status:** PR09 open. This release is package **1.1.0**.
 
 Live paper:
 
-- [`PR08/PR08 -- Backlog.md`](PR08/PR08%20--%20Backlog.md)
-- [`PR08/PR08 -- Implementation Plan.md`](PR08/PR08%20--%20Implementation%20Plan.md)
+- [`PR09/PR09 -- Backlog.md`](PR09/PR09%20--%20Backlog.md)
+- [`PR09/PR09 -- Implementation Plan.md`](PR09/PR09%20--%20Implementation%20Plan.md)
 
-PR01–PR06 live under `000 -- Archived/001 -- Implementation Plan/`.
-PR07 paper landed with this merge: [`PR07/PR07 -- Implementation Plan.md`](PR07/PR07%20--%20Implementation%20Plan.md).
+PR01–PR08 live under `000 -- Archived/001 -- Implementation Plan/`.
