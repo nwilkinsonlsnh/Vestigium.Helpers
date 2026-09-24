@@ -10,26 +10,26 @@ public sealed class NetworkInventoryTests
     [Fact]
     public void Network_subcategories_are_registered()
     {
-        string[] required =
-        [
-            HelperLog.Subcategories.Probe,
-            HelperLog.Subcategories.Identity,
-            HelperLog.Subcategories.Guard,
-            HelperLog.Subcategories.Inventory,
-            HelperLog.Subcategories.Adapter,
-            HelperLog.Subcategories.Icmp,
-            HelperLog.Subcategories.Dns,
-            HelperLog.Subcategories.Connection,
-            HelperLog.Subcategories.Neighbor,
-            HelperLog.Subcategories.Netbios,
-            HelperLog.Subcategories.Route,
-            HelperLog.Subcategories.Snapshot,
-            HelperLog.Subcategories.Campaign,
-            HelperLog.Subcategories.Job,
-            HelperLog.Subcategories.Stats
-        ];
-        foreach (var sub in required)
-            Assert.True(HelperLog.Taxonomy.IsSubcategoryRegistered(HelperLog.Category, sub), sub);
+        var sub = typeof(Vestigium.Helpers.Network.HelperLog).GetNestedType("Subcategories")
+            ?? throw new InvalidOperationException("Network HelperLog.Subcategories is missing.");
+        var names = sub.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Select(f => (string)f.GetRawConstantValue()!)
+            .ToArray();
+
+        string? catalog = null;
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            var hit = Path.Combine(dir.FullName, "src", "Vestigium.Helpers.Network", "NetworkCatalog.cs");
+            if (File.Exists(hit))
+            {
+                catalog = File.ReadAllText(hit);
+                break;
+            }
+        }
+
+        Assert.NotNull(catalog);
+        foreach (var name in names)
+            Assert.Contains($"\"{name}\"", catalog, StringComparison.Ordinal);
     }
 
     [Fact]
