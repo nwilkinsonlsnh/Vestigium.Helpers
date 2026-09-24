@@ -91,12 +91,12 @@ internal static class IcmpTraceEngine
                         {
                             protocol = ProbeProtocol.Udp;
                             NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} ICMP forbidden; UDP fallback");
-                            row = await UdpProbeAsync(probeTarget, timeoutMs, ttl, probe, token, options.Family).ConfigureAwait(false);
+                            row = await UdpProbeAsync(probeTarget, timeoutMs, ttl, probe, token, options.Family, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false);
                         }
                     }
                     else if (protocol != ProbeProtocol.Tcp)
                     {
-                        row = await UdpProbeAsync(probeTarget, timeoutMs, ttl, probe, token, options.Family).ConfigureAwait(false);
+                        row = await UdpProbeAsync(probeTarget, timeoutMs, ttl, probe, token, options.Family, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false);
                     }
                     else
                     {
@@ -221,7 +221,9 @@ internal static class IcmpTraceEngine
         int ttl,
         int probe,
         CancellationToken token,
-        RouteFamily family = RouteFamily.All)
+        RouteFamily family = RouteFamily.All,
+        int interfaceIndex = 0,
+        string? sourceAddress = null)
     {
         if (!IPAddress.TryParse(target, out var dest))
         {
@@ -253,6 +255,7 @@ internal static class IcmpTraceEngine
         try
         {
             using var socket = new Socket(dest.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            EgressBind.Apply(socket, interfaceIndex, sourceAddress);
             socket.Ttl = (short)ttl;
             socket.ReceiveTimeout = timeoutMs;
             var remote = new IPEndPoint(dest, 33434 + ttl);
