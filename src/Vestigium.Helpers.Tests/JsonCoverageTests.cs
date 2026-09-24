@@ -216,7 +216,7 @@ public sealed class JsonCoverageTests
     }
 
     [Fact]
-    public void Get_type_mismatch_is_logged_as_failed()
+    public void Get_type_mismatch_throws_and_stays_quiet()
     {
         var dir = Path.Combine(Path.GetTempPath(), "VestigiumJsonTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -227,8 +227,11 @@ public sealed class JsonCoverageTests
             doc.Set("level", "Information");
             var ex = Assert.Throws<InvalidOperationException>(() => doc.Get<int>("level"));
             Assert.Contains("int", ex.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(HelperLog.RecentJsonLines, l =>
-                l.Contains("\"STATUS\":\"Failed\"") && l.Contains("path type mismatch") && l.Contains("level"));
+            Assert.Throws<KeyNotFoundException>(() => doc.Get<string>("missing"));
+            Assert.DoesNotContain(HelperLog.RecentJsonLines, l =>
+                l.Contains("\"SUBCATEGORY\":\"Query\"") && l.Contains("\"STATUS\":\"Failed\""));
+            Assert.DoesNotContain(HelperLog.RecentJsonLines, l => l.Contains("path type mismatch"));
+            Assert.DoesNotContain(HelperLog.RecentJsonLines, l => l.Contains("path not found"));
         }
         finally
         {
