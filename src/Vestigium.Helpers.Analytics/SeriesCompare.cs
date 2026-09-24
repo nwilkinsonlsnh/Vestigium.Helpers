@@ -8,15 +8,21 @@ namespace Vestigium.Helpers.Analytics;
 /// </summary>
 public sealed class SeriesCompare
 {
+    /// <summary>Observation count of the left snapshot.</summary>
     public int Count1 { get; init; }
+    /// <summary>Observation count of the right snapshot.</summary>
     public int Count2 { get; init; }
+    /// <summary>Arithmetic mean of the left snapshot, or null when undefined.</summary>
     public double? Mean1 { get; init; }
+    /// <summary>Arithmetic mean of the right snapshot, or null when undefined.</summary>
     public double? Mean2 { get; init; }
 
     /// <summary>Mean1 − Mean2 when both means exist.</summary>
     public double? MeanDelta { get; init; }
 
+    /// <summary>Welch two-sample t statistic. Null when the test is undefined.</summary>
     public double? WelchT { get; init; }
+    /// <summary>Welch–Satterthwaite degrees of freedom. Null when the test is undefined.</summary>
     public double? WelchDegreesOfFreedom { get; init; }
 
     /// <summary>Two-sided Welch p-value. Null when the test is undefined.</summary>
@@ -25,6 +31,10 @@ public sealed class SeriesCompare
     /// <summary>New snapshot of x−y in encounter order when n1 = n2. Null otherwise.</summary>
     public NumericSeries? Paired { get; init; }
 
+    /// <summary>
+    /// Compare <paramref name="left"/> to <paramref name="right"/>.
+    /// Welch runs whenever both bands have n ≥ 2 and a usable mean and s.
+    /// </summary>
     public static SeriesCompare Of(NumericSeries left, NumericSeries right)
     {
         ArgumentNullException.ThrowIfNull(left);

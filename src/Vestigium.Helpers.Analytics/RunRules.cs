@@ -5,15 +5,19 @@ namespace Vestigium.Helpers.Analytics;
 /// <summary>Western Electric 1–4 and Nelson 5–8.</summary>
 public enum WesternElectricRule
 {
+    /// <summary>Western Electric 1: one point beyond 3σ.</summary>
     PointBeyondThreeSigma = 1,
+    /// <summary>Western Electric 2: two of three consecutive beyond 2σ, same side.</summary>
     TwoOfThreeBeyondTwoSigma = 2,
+    /// <summary>Western Electric 3: four of five consecutive beyond 1σ, same side.</summary>
     FourOfFiveBeyondOneSigma = 3,
+    /// <summary>Western Electric 4: eight consecutive on one side of the center line.</summary>
     EightOnOneSideOfCenter = 4,
 
     /// <summary>Nelson 5: six consecutive strictly increasing or decreasing.</summary>
     SixIncreasingOrDecreasing = 5,
 
-    /// <summary>Nelson 6: fifteen consecutive in zone C (\|z\| &lt; 1).</summary>
+    /// <summary>Nelson 6: fifteen consecutive in zone C (absolute z below 1).</summary>
     FifteenInZoneC = 6,
 
     /// <summary>Nelson 7: fourteen consecutive alternating up/down.</summary>
@@ -26,15 +30,20 @@ public enum WesternElectricRule
 /// <summary>Indexes that participated in one rule.</summary>
 public sealed class RunRuleHit
 {
+    /// <summary>Which Western Electric / Nelson rule fired.</summary>
     public required WesternElectricRule Rule { get; init; }
+    /// <summary>Encounter-order indexes that participated in the hit.</summary>
     public required IReadOnlyList<int> Indexes { get; init; }
 }
 
 /// <summary>Shewhart run-rule evaluation of one Full series.</summary>
 public sealed class RunRuleReport
 {
+    /// <summary>Fences used to score the rules.</summary>
     public required ControlLimits Limits { get; init; }
+    /// <summary>Hits in rule-number order. Empty when none fire.</summary>
     public required IReadOnlyList<RunRuleHit> Hits { get; init; }
+    /// <summary>Distinct encounter indexes across every hit, ascending.</summary>
     public required IReadOnlyList<int> AllIndexes { get; init; }
 
     internal const string RequiresFull =
@@ -288,6 +297,9 @@ public sealed class RunRuleReport
 /// <summary>Run-rule doors.</summary>
 public static class SeriesRunRules
 {
+    /// <summary>
+    /// Evaluate Western Electric 1–4 and Nelson 5–8 against the Full band of <paramref name="series"/>.
+    /// </summary>
     public static RunRuleReport RunRules(
         this NumericSeries series,
         ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,
@@ -298,6 +310,10 @@ public static class SeriesRunRules
         return RunRuleReport.Evaluate(series.Full, method, k, floor);
     }
 
+    /// <summary>
+    /// Evaluate Western Electric 1–4 and Nelson 5–8 against <paramref name="slice"/>.
+    /// Legal only on <see cref="SliceKind.Full"/>.
+    /// </summary>
     public static RunRuleReport RunRules(
         this SeriesSlice slice,
         ControlLimitMethod method = ControlLimitMethod.MeanPlusKSigma,

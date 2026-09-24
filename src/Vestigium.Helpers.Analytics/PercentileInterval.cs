@@ -8,17 +8,28 @@ namespace Vestigium.Helpers.Analytics;
 /// </summary>
 public sealed class PercentileInterval
 {
+    /// <summary>Fallback when no order-statistic pair reaches the requested coverage: [min, max].</summary>
     public const string SampleRangeMethod = "SampleRange";
+    /// <summary>Tightest order-statistic pair whose binomial coverage is at least the requested level.</summary>
     public const string OrderStatisticMethod = "OrderStatistic";
 
+    /// <summary>Target percentile in [0, 1].</summary>
     public required double P { get; init; }
+    /// <summary>Requested coverage γ in (0, 1).</summary>
     public required double Level { get; init; }
+    /// <summary>Lower order statistic (value at <see cref="LowerRank"/>).</summary>
     public required decimal Lower { get; init; }
+    /// <summary>Upper order statistic (value at <see cref="UpperRank"/>).</summary>
     public required decimal Upper { get; init; }
+    /// <summary><see cref="OrderStatisticMethod"/> when coverage was reached; otherwise <see cref="SampleRangeMethod"/>.</summary>
     public required string Method { get; init; }
+    /// <summary>True when some pair (j, k) reached γ. False when the interval is the sample range.</summary>
     public required bool ReachedCoverage { get; init; }
+    /// <summary>1-based rank of <see cref="Lower"/> in the sorted sample.</summary>
     public required int LowerRank { get; init; }
+    /// <summary>1-based rank of <see cref="Upper"/> in the sorted sample.</summary>
     public required int UpperRank { get; init; }
+    /// <summary>Binomial coverage of [X₍ⱼ₎, X₍ₖ₎] for percentile p.</summary>
     public double Coverage { get; init; }
 
     internal static PercentileInterval For(SeriesSlice slice, double p, double level)
@@ -135,12 +146,14 @@ public sealed class PercentileInterval
 /// <summary>Percentile-interval doors.</summary>
 public static class SeriesPercentileInterval
 {
+    /// <summary>Order-statistic interval for percentile <paramref name="p"/> of this band.</summary>
     public static PercentileInterval PercentileInterval(
         this SeriesSlice slice,
         double p,
         double level = ConfidenceLevel.DefaultValue)
         => Analytics.PercentileInterval.For(slice, p, level);
 
+    /// <summary>Order-statistic interval for percentile <paramref name="p"/> of the Full band.</summary>
     public static PercentileInterval PercentileInterval(
         this NumericSeries series,
         double p,

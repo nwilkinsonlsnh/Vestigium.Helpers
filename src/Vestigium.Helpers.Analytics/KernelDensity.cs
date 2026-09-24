@@ -25,6 +25,11 @@ public static class KernelDensity
     /// </summary>
     public const double Silverman = 1.06;
 
+    /// <summary>
+    /// Gaussian KDE of this band on an evenly spaced grid of <paramref name="count"/> points.
+    /// Returns an empty list when the band is empty or s is not positive.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is outside 1..<see cref="MaxCount"/>.</exception>
     public static IReadOnlyList<DensityPoint> PdfPoints(this SeriesSlice slice, int count = DefaultCount)
     {
         ArgumentNullException.ThrowIfNull(slice);
@@ -77,6 +82,7 @@ public static class KernelDensity
         return NumberConvert.Freeze(points);
     }
 
+    /// <summary>Gaussian KDE of the Full band of <paramref name="series"/>.</summary>
     public static IReadOnlyList<DensityPoint> PdfPoints(this NumericSeries series, int count = DefaultCount)
     {
         ArgumentNullException.ThrowIfNull(series);

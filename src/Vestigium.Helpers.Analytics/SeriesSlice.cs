@@ -9,11 +9,11 @@ public enum SliceKind
     Full = 0,
     /// <summary>Values ≤ the full-series Q1.</summary>
     Q1 = 1,
-    /// <summary>Full-series Q1 < x ≤ median.</summary>
+    /// <summary>Values above full-series Q1, through the median.</summary>
     Q2 = 2,
-    /// <summary>Full-series median < x ≤ Q3.</summary>
+    /// <summary>Values above the full-series median, through Q3.</summary>
     Q3 = 3,
-    /// <summary>Values > the full-series Q3 (the slow group for latency).</summary>
+    /// <summary>Values above the full-series Q3 (the slow group for latency).</summary>
     Q4 = 4,
     /// <summary>Full-series Q1 ≤ x ≤ Q3.</summary>
     Iqr = 5
@@ -103,9 +103,9 @@ public sealed class SeriesSlice
     public double? MeanAbsoluteDeviation => _stats.MeanAbsoluteDeviation;
     /// <summary>Median of |x − median|.</summary>
     public double? MedianAbsoluteDeviation => _stats.MedianAbsoluteDeviation;
-    /// <summary>Excel SKEW (G1). Null when n < 3 or s = 0.</summary>
+    /// <summary>Excel SKEW (G1). Null when n is below 3 or s = 0.</summary>
     public double? Skewness => _stats.Skewness;
-    /// <summary>Excel KURT (G2). Null when n < 4 or s = 0.</summary>
+    /// <summary>Excel KURT (G2). Null when n is below 4 or s = 0.</summary>
     public double? ExcessKurtosis => _stats.ExcessKurtosis;
     /// <summary>ExcessKurtosis + 3.</summary>
     public double? Kurtosis => _stats.Kurtosis;
