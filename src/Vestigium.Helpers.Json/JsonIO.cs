@@ -91,10 +91,10 @@ internal static class JsonIo
         throw new JsonException($"JSON document exceeds the {MaxDocumentBytes} byte cap.");
     }
 
-    internal static int Write(string path, JsonNode node, bool indented, bool atomic)
+    internal static long Write(string path, JsonNode node, bool indented, bool atomic)
         => WriteAtomic(path, atomic, dest => WriteJson(dest, node, indented));
 
-    internal static int WriteJsonl(string path, JsonArray records, bool atomic)
+    internal static long WriteJsonl(string path, JsonArray records, bool atomic)
         => WriteAtomic(path, atomic, dest => WriteJsonlTo(dest, records));
 
     internal static void RejectCollision(string path, JsonCollision collision, bool replaceInPlace)
@@ -158,7 +158,7 @@ internal static class JsonIo
     private static FileStream OpenRead(string path)
         => new(path, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan);
 
-    private static int WriteAtomic(string path, bool atomic, Func<string, int> write)
+    private static long WriteAtomic(string path, bool atomic, Func<string, long> write)
     {
         var parent = Path.GetDirectoryName(path);
         if (!string.IsNullOrWhiteSpace(parent))
@@ -184,7 +184,7 @@ internal static class JsonIo
         }
     }
 
-    private static int WriteJson(string path, JsonNode node, bool indented)
+    private static long WriteJson(string path, JsonNode node, bool indented)
     {
         using var stream = OpenWrite(path);
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = indented }))
@@ -195,10 +195,10 @@ internal static class JsonIo
 
         stream.Flush(flushToDisk: true);
         RejectWrittenTooLarge(path, stream.Length);
-        return checked((int)stream.Length);
+        return stream.Length;
     }
 
-    private static int WriteJsonlTo(string path, JsonArray records)
+    private static long WriteJsonlTo(string path, JsonArray records)
     {
         using var stream = OpenWrite(path);
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false }))
@@ -224,7 +224,7 @@ internal static class JsonIo
 
         stream.Flush(flushToDisk: true);
         RejectWrittenTooLarge(path, stream.Length);
-        return checked((int)stream.Length);
+        return stream.Length;
     }
 
     private static FileStream OpenWrite(string path)
