@@ -8,18 +8,18 @@ Recon fills five size buckets. Default collision is UniqueName (`.##`). Cap is `
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.FileIo` 1.1.1 |
+| Package | `Vestigium.Helpers.FileIo` 1.1.2 |
 | TFM | `net10.0` |
 | APPID | `FileIo` (`FileIoCatalog.AppId`) |
 | EVENTID | Reserved 12500–12999 (used through 12610) |
-| Depends on | `Vestigium.Helpers.Analytics` 1.0.1, `Vestigium.Helpers.Hashing` 1.4.0, `Vestigium.Logging` |
+| Depends on | `Vestigium.Helpers.Analytics` 1.0.1, `Vestigium.Helpers.Hashing` 1.4.1, `Vestigium.Logging` |
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/FileIo/002%20--%20Requirements%20Document) |
 
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.FileIo" Version="1.1.1" />
+<PackageReference Include="Vestigium.Helpers.FileIo" Version="1.1.2" />
 ```
 
 ```csharp

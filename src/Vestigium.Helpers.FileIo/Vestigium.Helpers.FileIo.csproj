@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.FileIo</RootNamespace>
     <AssemblyName>Vestigium.Helpers.FileIo</AssemblyName>
     <Description>Validated file jobs: recon, five buckets, UniqueName default, Audit Mode, Pause/Cancel, Analytics sizes/rates, ALCOA+ JSONL. Not robocopy.exe.</Description>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>fileio;filesystem;robocopy;uniquename;alcoa;vestigium</PackageTags>
@@ -19,7 +19,7 @@
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Vestigium.Helpers.Hashing" Version="1.4.0" />
+    <PackageReference Include="Vestigium.Helpers.Hashing" Version="1.4.1" />
     <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
