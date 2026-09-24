@@ -77,6 +77,8 @@ Cancel     drop working, no write
 
 JSONL Save rewrites the whole file. No mid-file splice in v1.
 
+Object member compare is ordinal: `network.Timeout` and `network.timeout` are two keys. Hosts that want Windows-ish keys call FileIo UniqueName, not this package.
+
 ---
 
 ## 5. Exception policy
@@ -105,3 +107,4 @@ Comments / trailing commas, UniqueName, tree copy, mid-file JSONL splice, being 
 |---|---|---|
 | 1.0 | 21 Sep 2026 | First standalone Design. Content lifted from Guide v1.0 + shipped helper/session. |
 | 1.0 | 23 Sep 2026 | PR05: Compare on JsonPatch and JsonHelper. Get throws. Event IDs through 13625. |
+| 1.0 | 23 Sep 2026 | PR06-06: object member compare is ordinal. |
