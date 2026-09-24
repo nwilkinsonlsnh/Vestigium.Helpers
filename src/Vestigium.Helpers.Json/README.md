@@ -56,6 +56,7 @@ Default export: `%DESKTOP%\\Vestigium\\Exports\\Json\\`. Tests override `JsonTes
 - RFC 8259 only. No comments, no trailing commas, no BOM.
 - Pretty + camelCase for `.json`. JSONL Save is compact (one value + newline).
 - Collision default Fail. No UniqueName here — call FileIo in the host.
+- Object member compare is ordinal: `network.Timeout` and `network.timeout` are two keys. Hosts that want Windows-ish keys call FileIo UniqueName, not this package.
 - Get of a missing path throws `KeyNotFoundException`. `TryGet` returns false. Get is quiet in the log.
 - Never log payload bodies, field values, PEM, or `Exception` objects.
 - The library never calls `VestigiumLogger.Initialize`.
