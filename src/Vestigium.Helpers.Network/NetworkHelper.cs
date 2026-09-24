@@ -80,6 +80,9 @@ public static class NetworkHelper
     public static NetworkJob<CounterSampleResult> SampleCounters(string nameOrId, CounterSampleOptions? options = null)
         => CounterSampleEngine.Create(nameOrId, options);
 
+    public static NetworkJob<AdapterWatchResult> WatchAdapter(string nameOrId, AdapterWatchOptions? options = null)
+        => AdapterWatchEngine.Create(nameOrId, options);
+
     public static NetworkJob<PathMtuResult> PathMtu(string target, PathMtuOptions? options = null)
         => PathMtuEngine.Create(target, options);
 
