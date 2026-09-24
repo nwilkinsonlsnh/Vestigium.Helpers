@@ -191,7 +191,7 @@ public static class JsonHelper
     }
 
     /// <summary>
-    /// Parse a readable UTF-8 stream. Rejects a BOM on a seekable stream and payloads over the document cap.
+    /// Parse a readable, seekable UTF-8 stream. Rejects a BOM and payloads over the document cap.
     /// </summary>
     public static JsonNode Parse(Stream stream)
     {
@@ -201,6 +201,7 @@ public static class JsonHelper
         {
             var input = HelperGuard.NotNull(stream, nameof(stream));
             HelperGuard.Require(input.CanRead, nameof(stream), "Stream must be readable.");
+            HelperGuard.Require(input.CanSeek, nameof(stream), "Stream must be seekable.");
             RejectBom(input);
             JsonIo.EnsureStreamWithinCap(input);
             JsonNode? node;
