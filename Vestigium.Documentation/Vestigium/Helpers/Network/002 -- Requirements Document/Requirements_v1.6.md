@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-SRS-000  
 **Version:** 1.6  
-**Status:** Locked companion to PR01–PR04. PR05 is hygiene.  
+**Status:** Locked companion to PR01–PR05. PR07 is the first post-1.0.0 wave.  
 **Date:** 19 September 2026  
 **Package:** `Vestigium.Helpers.Network`  
 **TFM:** `net10.0` (.NET 10 LTS) — **Windows and Linux are first-class**. Not `net10.0-windows`.  
@@ -16,7 +16,7 @@ If implementation and this file disagree, this file wins **except** where a late
 
 This package is a **library of resources**, not a tool. Hosts subscribe. It speaks **protocols** (ICMP Echo, ICMP Time Exceeded, DNS, ARP/ND, TCP/UDP tables, the OS routing table) and **prefix / MAC / bandwidth arithmetic**. It does not spawn `ping`, `ping.exe`, `traceroute`, `tracert.exe`, `ip`, `ss`, `netstat`, `route`, `nbtstat`, `arp`, `netsh`, `nslookup`, `ipcalc`, or `ipv6calc`.
 
-A future `Vestigium.Scheduler` (name not locked) may start jobs. This library does not install cron, schtasks, or systemd units. Plotting is the host (`Vestigium.Helpers.Charts`). This package does not reference Charts.
+A future `Vestigium.Scheduler` (name not locked) may start jobs. This library does not install cron, schtasks, or systemd units. This library does not plot and will not grow a plot API. Results are network facts.
 
 ---
 
@@ -52,11 +52,11 @@ A future `Vestigium.Scheduler` (name not locked) may start jobs. This library do
 | 26 | Test hooks | `NetworkTestHooks` is **internal**. Hosts cannot set `CampaignRoot`, `UtcNow`, or `ProcRoot`. Tests use `InternalsVisibleTo`. |
 | 27 | ICMP duration / interval | See §2.4. |
 | 28 | DNS wire peer | UDP datagram accepted only when `RemoteEndPoint` is the queried server IP + port. TXID check stays. TCP is a connected socket; peer mismatch is a typed fail. |
-| 29 | Route interface | No guessed IfIndex `1`. Caller may pass `InterfaceIndex >= 1`. Linux write requires `InterfaceIndex`. Windows IPv4 with no up NIC and no caller index → Reject + `ArgumentException`. |
+| 29 | Route interface | No guessed IfIndex `1`. Caller may pass `InterfaceIndex >= 1`. Linux write requires `InterfaceIndex`. Windows IPv4 with no up IPv4 NIC and no caller index → Reject + `ArgumentException`. Windows IPv6 uses the caller index or the first up IPv6 NIC (`GetIPv6Properties().Index`). Never reuse an IPv4 table index on an IPv6 write. |
 | 30 | Campaign paths | Recipe and results must resolve under the campaign root after `Path.GetFullPath`. `..` escape → Reject + `ArgumentException`. |
-| 31 | HTTP | Never this library except the constrained OUI GET. HttpIQ owns reachability. |
+| 31 | HTTP | Never this library except the constrained OUI GET. |
 | 32 | Share campaigns | **Shipped (PR03).** `PlanShareProbe` / `CreateShareCampaign` / `OpenShareCampaign`. Probe I/O is FileIo. No password field. No `FileStream` in Network. |
-| 33 | Charts | This package does not reference `Vestigium.Helpers.Charts`. Results are numbers. Hosts plot if they want a picture. |
+| 33 | Plotting | Never this library. No plot type, no plot method, no Charts package reference. Results are addresses, RTTs, tables, and prefixes. That is not a deferred feature. |
 | 34 | Default route | `0.0.0.0/0` and `::/0` write → `NetworkRouteDenied`. Default route is not offered. |
 | 35 | Packed OUI | `LoadPackedOuiRegistry` / `LookupOuiPacked` are an offline stub. Not a live IEEE MA-L pull. Hosts that need completeness pass their own file. |
 
@@ -85,7 +85,7 @@ Hosts catch `NetworkRouteDenied` for cap / ACL / default-route denies.
 | Share campaigns | Yes | Yes | FileIo probes |
 | Prefix describe / plan / VLSM / classify | Yes | Yes | Pure math |
 | MAC / EUI / OUI / bandwidth / P95 bill | Yes | Yes | Live OUI is HTTPS + allowlist. Packed OUI is offline. |
-| Charts / WPF Demo | **No** | **No** | Host concern |
+| Charts / WPF Demo | **Never** | **Never** | Not a Network surface |
 
 ---
 
@@ -137,7 +137,7 @@ G10. Linux boxes do not need a Windows VM.
 G11. Prefix calculator for IPv4 and IPv6, plus IPv4 classful labels A–E.  
 G12. Fail closed on attacker-controlled strings (OUI URL, campaign path, ICMP flood, DNS spoof, guessed IfIndex).  
 G13. Share campaigns without credentials or `FileStream` in this DLL.  
-G14. No Charts reference.
+G14. No plot API. Never.
 
 ---
 
@@ -173,7 +173,7 @@ Façade: `PlanShareProbe`, `CreateShareCampaign`, `OpenShareCampaign`.
 
 ## 6. Campaigns
 
-Clock windows + date range + timezone + 15 min grace. Recipe `.json`, results `.jsonl`.
+Clock windows + date range + timezone + 15 min grace. Recipe `.json`, results `.jsonl`. Create persists Echo options that Create already accepted (`timeoutMs`, `intervalMs`, `bufferSize`, `ttl`, `dontFragment`, `maxDurationMs`, `allowBurst`). Open reads them. A recipe with no `echo` object keeps current `IcmpEchoOptions` defaults. Window `Count` stays on the window.
 
 `ResultsPath` and `RecipePath` must stay under the campaign root (§2.2, decision 30). Tests inject the temp root only.
 
@@ -191,7 +191,7 @@ v1.2 surface plus §5.1–5.3. Count default 4. Grace 15 min. `MaxList` default 
 
 ## 9. Logging
 
-APPID Network. Sparse. Campaign echoes live in stats JSONL only. Subnet / MAC / bandwidth / share lines are query + summary. No packet bytes. No credentials. Absolute-path prefixes are stripped from Network log / Reject lines (PR01.009).
+APPID Network. Sparse. Campaign echoes live in stats JSONL only. Subnet / MAC / bandwidth / share lines are query + summary. No packet bytes. No credentials. Absolute-path prefixes are stripped from Network log / Reject lines (PR01.009). Named events used through 14540: RouteDenied 14530, IcmpForbidden 14535, CampaignWindowMissed 14540. Taxonomy includes Share, Stats, Progress.
 
 ---
 
@@ -203,7 +203,7 @@ Not a library gate. No `Vestigium.Helpers.Network.Demo` project in this package.
 
 ## 11. Tests
 
-Named fixtures `PR01_` … `PR05_`. No public Internet. No live ProgramData / `/var/lib/vestigium` in tests. OUI tests inject `OuiLookupOptions.Handler` or use the packed snapshot.
+Named fixtures `PR01_` … `PR05_` plus later tests named for the behavior. No public Internet. No live ProgramData / `/var/lib/vestigium` in tests. OUI tests inject `OuiLookupOptions.Handler` or use the packed snapshot.
 
 Linux CI for the umbrella test project is **repo** work (test TFM is `net10.0-windows`). It is not a Network feature. Windows `FullyQualifiedName~Network` is the Network gate until a later repo workflow lands. Live Ubuntu route checks are parked on [`PR05_ImplementationPlan.md`](PR05_ImplementationPlan.md) §4.
 
@@ -211,7 +211,7 @@ Linux CI for the umbrella test project is **repo** work (test TFM is `net10.0-wi
 
 ## 12. Non-goals
 
-Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP reachability client. NetBIOS on Linux. Full NetworkManager / netplan writers. Packet capture. Classful mask inference when prefix and mask are both omitted. Classless in-addr.arpa fabrication. DHCP scope design. Guessing IfIndex. Following OUI HTTP redirects. Accepting DNS answers from a foreign UDP source. Default-route write. Charts. Demo gallery. `net use` / stored share passwords.
+Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP reachability client. NetBIOS on Linux. Full NetworkManager / netplan writers. Packet capture. Classful mask inference when prefix and mask are both omitted. Classless in-addr.arpa fabrication. DHCP scope design. Guessing IfIndex. Following OUI HTTP redirects. Accepting DNS answers from a foreign UDP source. Default-route write. Plotting / a charting surface. Demo gallery. `net use` / stored share passwords.
 
 ---
 
@@ -226,7 +226,8 @@ Spawn CLI tools on any OS. Install cron/schtasks/systemd units. HTTP reachabilit
 | v1.6 | PR01 security locks — **shipped** |
 | PR02 | Contract lock — **shipped** |
 | PR04 | Packed OUI + Option C route write — **shipped** |
-| PR05 | Hygiene (persist key, docs) — **this amendment** |
+| PR05 | Hygiene (persist key, docs) — **shipped** |
+| PR07 | Post-1.0.0 truth pass (1.0.1) — **this amendment** |
 | later | Scheduler package; macOS as a test gate; pathping-class; repo Linux CI |
 
 HTTP reachability stays out of this package.
@@ -254,7 +255,7 @@ Cousins are documentation. Never spawned.
 
 ## 15. Acceptance
 
-PR01–PR04 are accepted. PR05.002 accepts decisions 11 / 11b / 32–35 as shipped. Network stays `net10.0`, one DLL for Windows and Linux.
+PR01–PR05 are accepted. PR07 accepts decision 29 IPv6 IfIndex, named events 14530–14540, Echo recipe persist, package 1.0.1, and decision 33 as never-plot. Network stays `net10.0`, one DLL for Windows and Linux.
 
 ## Document control
 
@@ -266,4 +267,5 @@ PR01–PR04 are accepted. PR05.002 accepts decisions 11 / 11b / 32–35 as shipp
 | 1.5 | Sep 2026 | Share campaign addendum. |
 | 1.6 | 19 Sep 2026 | PR01 locks. |
 | 1.6 + PR02.001 | 19 Sep 2026 | Then: Windows mutate, Linux print-only. |
-| 1.6 + PR05.002 | 19 Sep 2026 | Share shipped. Option C. No Charts. Default route refused. Packed OUI. |
+| 1.6 + PR05.002 | 19 Sep 2026 | Share shipped. Option C. Default route refused. Packed OUI. Plotting is not a Network surface. |
+| 1.6 + PR07.009 | 24 Sep 2026 | IPv6 IfIndex. Echo recipe persist. Events through 14540. Package 1.0.1. Plot API never offered. |

@@ -15,7 +15,7 @@ public sealed class NetworkCloseTests
         "Recipe_round_trips_echo_options",
         "Old_recipe_without_echo_opens_with_defaults",
         "Named_events_14530_14535_14540_exist",
-        "Network_assembly_has_no_charts"
+        "Network_assembly_does_not_plot"
     ];
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class NetworkCloseTests
     }
 
     [Fact]
-    public void Network_assembly_has_no_charts()
+    public void Network_assembly_does_not_plot()
     {
         var names = typeof(NetworkHelper).Assembly.GetReferencedAssemblies().Select(a => a.Name!);
         Assert.DoesNotContain("Vestigium.Helpers.Charts", names, StringComparer.OrdinalIgnoreCase);

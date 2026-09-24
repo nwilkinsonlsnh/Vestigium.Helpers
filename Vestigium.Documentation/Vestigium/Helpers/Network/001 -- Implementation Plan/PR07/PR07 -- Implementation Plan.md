@@ -7,7 +7,7 @@
 **Binding:** Requirements win. Commit: `Network PR07: <id short goal>`.
 **Package:** 1.0.0 on nuget.org → **1.0.1** in PR07-08.
 
-This is not TCP connect, pathping, duration-per-window, Charts, Demo, Ubuntu CI, or a new OUI dump.
+This is not TCP connect, pathping, duration-per-window, a plot API, Demo, Ubuntu CI, or a new OUI dump.
 
 ## Implementation table
 
@@ -21,8 +21,8 @@ This is not TCP connect, pathping, duration-per-window, Charts, Demo, Ubuntu CI,
 | 6 | PR07-07 | Add `RouteDenied` 14530, `IcmpForbidden` 14535, `CampaignWindowMissed` 14540 to `NetworkEvents`, `network.json`, and `Rows`. Wire Reject/forbidden/missed lines to those IDs. | On branch |
 | 7 | PR07-06 | Campaign recipe DTO grows an `echo` object. Write on Create. Read on Open. Absent object = current defaults. | On branch |
 | 8 | PR07-08 | csproj + package README Version `1.0.1`. Sibling pins stay Json 1.0.1 / Analytics 1.0.1 / FileIo 1.1.1. Logging stays `$(VestigiumLoggingVersion)`. | On branch |
-| 9 | PR07-10 | Tests: trace status log; v6 index reject; taxonomy contains Share/Stats/Progress; recipe round-trip Echo; old recipe without echo still opens; 14530–14540 exist; still no Charts. | On branch |
-| 10 | PR07-09 | SRS 1.6 amendment note, Design §2 IfIndex, Guide consume 1.0.1, Implementation Plan README points here. | Open |
+| 9 | PR07-10 | Tests: trace status log; v6 index reject; taxonomy contains Share/Stats/Progress; recipe round-trip Echo; old recipe without echo still opens; 14530–14540 exist; assembly does not plot. | On branch |
+| 10 | PR07-09 | SRS 1.6 amendment note, Design §2 IfIndex, Guide consume 1.0.1, Implementation Plan README points here. | On branch |
 
 PR07-10 (`dotnet test --filter FullyQualifiedName~Network`) is the owner gate on the clone.
 
@@ -72,7 +72,7 @@ Still count by 5. Still no payload bytes in the message.
 
 ### PR07-08 — Pack
 
-Do not push from this agent. Owner packs 1.0.1 after 01–07 + tests. Inspect nuspec: no Charts, no `.csproj` deps.
+Do not push from this agent. Owner packs 1.0.1 after 01–07 + tests. Inspect nuspec: no plot package, no `.csproj` deps.
 
 ## What this PR does not do
 

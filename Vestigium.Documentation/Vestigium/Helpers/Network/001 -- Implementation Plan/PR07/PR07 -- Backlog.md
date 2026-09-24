@@ -10,7 +10,7 @@
 
 v1.6 + PR01–PR06 shipped the library and the first public nupkg. PR07 is the first post-ship pass: make the shipped doors tell the truth, persist what Create already accepted, and stop logging a failed trace as Success.
 
-PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, duration-per-window, a scheduler, HTTP reachability, Charts, Demo, a live IEEE OUI dump, macOS as a test gate, or repo Linux CI.
+PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, duration-per-window, a scheduler, HTTP reachability, a plot API, Demo, a live IEEE OUI dump, macOS as a test gate, or repo Linux CI.
 
 ## What the library is today
 
@@ -60,7 +60,8 @@ PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, durati
 | Duration-per-window on `EchoWindow` | SRS §6 already parked it. Do not smuggle it in with recipe persist. |
 | Scheduler package / cron / systemd | Host lifetime. Locked out. |
 | HTTP reachability | Not this package. OUI GET stays the only HTTP. |
-| Charts / Demo / Network.Demo | Locked out. |
+| Charting / plot API | Never this library. Not deferred. |
+| Demo / Network.Demo | Locked out. |
 | Full IEEE MA-L dump | Decision 35. Packed stays a stub. |
 | Live Ubuntu / admin-Windows route checks | PR05 §3 parked. Record dated notes when those boxes exist. Not a publish gate. |
 | Repo `net10.0` test TFM / ubuntu workflow | Repo CI. Not a Network feature. |
@@ -76,7 +77,7 @@ PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, durati
 | Windows IPv6 IfIndex | Caller `>= 1`, or first **IPv6** up NIC. No IPv4 index reuse. No `1`. |
 | Old echo recipes without `echo` object | Open succeeds. `Echo` stays `new IcmpEchoOptions()`. |
 | Default route write | Still `NetworkRouteDenied` |
-| Charts reference | Still none |
+| Plot API | Never |
 
 ## Close gate
 
@@ -84,6 +85,6 @@ PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, durati
 2. PR07-10 is `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` on the clone.
 3. Event IDs stay inside 14500–14999 and count by 5.
 4. No packet bytes, WLAN keys, share passwords, or `Exception` objects in HelperLog writes.
-5. No Charts reference. No process spawn. No default-route write.
+5. No plot API. No process spawn. No default-route write.
 
 PR06 paper lives under `000 -- Archived/001 -- Implementation Plan/PR06/`.
