@@ -6,12 +6,6 @@ using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Network;
 
-// Linux ICMP path (PR02.005): System.Net.NetworkInformation.Ping.
-// On current .NET 10 this is unprivileged ICMP DGRAM when the kernel allows it.
-// Never spawn ping(8). Never open a raw socket here.
-// Custom payload rejected → empty-buffer retry + PayloadRestricted.
-// Access denied / not permitted → ProtocolForbidden.
-// A dedicated DGRAM socket is PR04 only if BCL Ping is proven raw-only.
 internal static class IcmpEchoEngine
 {
     public static NetworkJob<IcmpEchoResult> Create(string target, IcmpEchoOptions? options)
@@ -104,9 +98,10 @@ internal static class IcmpEchoEngine
         CancellationToken token,
         IProgress<NetworkProgress>? progress)
     {
+        var pinned = EgressBind.IsPinned(options.InterfaceIndex, options.SourceAddress);
         NetworkLog.Pending(
             HelperLog.Subcategories.Icmp,
-            $"recipe job={jobId} target={target} count={options.Count} timeoutMs={(int)options.Timeout.TotalMilliseconds} buffer={options.BufferSize} intervalMs={(int)options.Interval.TotalMilliseconds}");
+            $"recipe job={jobId} target={target} count={options.Count} timeoutMs={(int)options.Timeout.TotalMilliseconds} buffer={options.BufferSize} intervalMs={(int)options.Interval.TotalMilliseconds} bound={pinned}");
 
         var replies = new List<IcmpEchoReply>();
         var payloadRestricted = false;
@@ -119,7 +114,7 @@ internal static class IcmpEchoEngine
 
         try
         {
-            using var ping = new Ping();
+            using var ping = pinned ? null : new Ping();
             var sequence = 0;
             while (!token.IsCancellationRequested)
             {
@@ -129,7 +124,9 @@ internal static class IcmpEchoEngine
                     break;
 
                 sequence++;
-                var reply = await SendOnceAsync(ping, target, buffer, timeoutMs, pingOptions, sequence, token).ConfigureAwait(false);
+                var reply = pinned
+                    ? await BoundIcmpEcho.SendAsync(target, buffer, timeoutMs, options, sequence, token).ConfigureAwait(false)
+                    : await SendOnceAsync(ping!, target, buffer, timeoutMs, pingOptions, sequence, token).ConfigureAwait(false);
                 if (reply.PayloadRestricted)
                 {
                     payloadRestricted = true;
@@ -179,7 +176,7 @@ internal static class IcmpEchoEngine
             min, max, avg,
             payloadRestricted, replies);
 
-        var line = $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted}";
+        var line = $"{status} job={jobId} target={target} sent={sent} recv={received} loss={loss:0.#} payloadRestricted={payloadRestricted} bound={pinned}";
         if (protocolForbidden)
             NetworkLog.IcmpForbidden(line);
         else
