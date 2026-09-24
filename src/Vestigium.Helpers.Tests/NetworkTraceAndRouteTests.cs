@@ -4,15 +4,15 @@ using Vestigium.Logging;
 namespace Vestigium.Helpers.Tests;
 
 [Collection("Logger")]
-public sealed class NetworkPr07Tests
+public sealed class NetworkTraceAndRouteTests
 {
-    public NetworkPr07Tests()
+    public NetworkTraceAndRouteTests()
     {
         VestigiumLogger.Shutdown();
     }
 
     [Fact]
-    public void PR07_01_trace_finish_uses_logfinished()
+    public void Trace_engine_finish_calls_logfinished()
     {
         var path = FindNetworkSource("IcmpTraceEngine.cs");
         Assert.True(path is not null, "IcmpTraceEngine.cs not found walking up from BaseDirectory.");
@@ -22,7 +22,7 @@ public sealed class NetworkPr07Tests
     }
 
     [Fact]
-    public void PR07_01_logfinished_failed_is_not_complete()
+    public void LogFinished_failed_and_timedout_use_operation_failed()
     {
         try
         {
@@ -46,7 +46,7 @@ public sealed class NetworkPr07Tests
     }
 
     [Fact]
-    public void PR07_01_logfinished_cancelled_is_warning()
+    public void LogFinished_cancelled_uses_operation_warning()
     {
         try
         {
@@ -65,7 +65,16 @@ public sealed class NetworkPr07Tests
     }
 
     [Fact]
-    public void PR07_02_win_v6_change_and_remove_log_success()
+    public void Trace_cancelled_beats_reached()
+    {
+        var hop = new IcmpTraceHop(1, "127.0.0.1", []);
+        Assert.Equal(NetworkJobStatus.Cancelled, IcmpTraceEngine.DecideStatus(true, true, [hop]));
+        Assert.Equal(NetworkJobStatus.Success, IcmpTraceEngine.DecideStatus(false, true, [hop]));
+        Assert.Equal(NetworkJobStatus.TimedOut, IcmpTraceEngine.DecideStatus(false, false, []));
+    }
+
+    [Fact]
+    public void Win_ipv6_change_and_remove_log_success()
     {
         var path = FindNetworkSource("NetworkRouteMutation.cs");
         Assert.True(path is not null, "NetworkRouteMutation.cs not found walking up from BaseDirectory.");
@@ -85,12 +94,39 @@ public sealed class NetworkPr07Tests
     }
 
     [Fact]
-    public void PR07_01_decide_status_cancelled_beats_reached()
+    public void Ipv6_write_does_not_borrow_ipv4_interface_index()
     {
-        var hop = new IcmpTraceHop(1, "127.0.0.1", []);
-        Assert.Equal(NetworkJobStatus.Cancelled, IcmpTraceEngine.DecideStatus(true, true, [hop]));
-        Assert.Equal(NetworkJobStatus.Success, IcmpTraceEngine.DecideStatus(false, true, [hop]));
-        Assert.Equal(NetworkJobStatus.TimedOut, IcmpTraceEngine.DecideStatus(false, false, []));
+        var path = FindNetworkSource("NetworkRouteMutation.cs");
+        Assert.True(path is not null, "NetworkRouteMutation.cs not found walking up from BaseDirectory.");
+        var src = File.ReadAllText(path);
+        Assert.Contains("TryFirstIpv6Index()", src, StringComparison.Ordinal);
+        Assert.Contains("BindV6Index(", src, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "ResolveInterfaceIndex(change.InterfaceIndex, TryFirstIpv4Index())",
+            src,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Missing_ipv6_interface_does_not_use_index_1()
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            NetworkRouteMutation.ResolveInterfaceIndex(null, null, "IPv6"));
+        Assert.Contains("InterfaceIndex", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("IPv6", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("IPv4", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(8, NetworkRouteMutation.ResolveInterfaceIndex(8, null, "IPv6"));
+        Assert.Equal(3, NetworkRouteMutation.ResolveInterfaceIndex(null, 3, "IPv6"));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            NetworkRouteMutation.ResolveInterfaceIndex(0, 1, "IPv6"));
+    }
+
+    [Fact]
+    public void First_ipv6_index_is_null_or_at_least_one()
+    {
+        var index = NetworkRouteMutation.TryFirstIpv6Index();
+        if (index is { } found)
+            Assert.True(found >= 1, found.ToString());
     }
 
     private static void Init()

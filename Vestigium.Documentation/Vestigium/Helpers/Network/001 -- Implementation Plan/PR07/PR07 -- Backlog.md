@@ -49,7 +49,7 @@ PR07 is not a new protocol kit. It is not TCP/UDP connect jobs, pathping, durati
 
 | ID | Item |
 | :--- | :--- |
-| PR07-10 | Fixtures `PR07_*` in `Vestigium.Helpers.Tests`. Filter `FullyQualifiedName~Network`. Owner runs it on the clone. |
+| PR07-10 | Tests in `Vestigium.Helpers.Tests` named for the behavior. Filter `FullyQualifiedName~Network`. Owner runs it on the clone. |
 
 ## Cut (named so they do not sneak back)
 
