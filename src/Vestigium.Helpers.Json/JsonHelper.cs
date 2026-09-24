@@ -100,7 +100,7 @@ public static class JsonHelper
         }
     }
 
-    /// <summary>Deserialize RFC 8259 text. Rejects blank text and a leading BOM.</summary>
+    /// <summary>Deserialize RFC 8259 text. Rejects blank text, a leading BOM, and JSON null.</summary>
     public static T FromJson<T>(string json, JsonReadOptions? options = null)
     {
         const string app = HelperLog.AppIds.Json;
@@ -108,10 +108,27 @@ public static class JsonHelper
         try
         {
             var text = RequireRfc8259Text(json);
+            JsonNode? node;
+            try
+            {
+                node = JsonNode.Parse(text, JsonCodec.NodeOptions, JsonCodec.DocumentOptions);
+            }
+            catch (JsonException)
+            {
+                HelperLog.Reject("json is not RFC 8259");
+                throw;
+            }
+
+            if (node is null)
+            {
+                HelperLog.Reject("json is JSON null");
+                throw new JsonException("RFC 8259 JSON null is not a document root for FromJson.");
+            }
+
             T? value;
             try
             {
-                value = JsonSerializer.Deserialize<T>(text, JsonCodec.Read(options));
+                value = node.Deserialize<T>(JsonCodec.Read(options));
             }
             catch (JsonException)
             {
