@@ -33,7 +33,8 @@ public sealed record IcmpTraceProbe(
 public sealed record IcmpTraceHop(
     int Ttl,
     string? Address,
-    IReadOnlyList<IcmpTraceProbe> Probes);
+    IReadOnlyList<IcmpTraceProbe> Probes,
+    string? Name = null);
 
 public sealed record IcmpTraceResult(
     string JobId,

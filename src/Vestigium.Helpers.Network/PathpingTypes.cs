@@ -30,7 +30,8 @@ public sealed record PathpingHop(
     double LinkLossPercent,
     long? MinMs,
     long? MaxMs,
-    double? AverageMs);
+    double? AverageMs,
+    string? Name = null);
 
 public sealed record PathpingResult(
     string JobId,
