@@ -420,6 +420,51 @@ public static class JsonHelper
         }
     }
 
+    public static JsonPatch Compare(string leftPath, string rightPath)
+    {
+        const string app = HelperLog.AppIds.Json;
+        var left = Path.GetFullPath(HelperGuard.FileExists(leftPath, nameof(leftPath)));
+        var right = Path.GetFullPath(HelperGuard.FileExists(rightPath, nameof(rightPath)));
+        using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Diff, "Compare", $"left={left} right={right}");
+        try
+        {
+            var leftKind = JsonIo.KindFromPath(left);
+            var rightKind = JsonIo.KindFromPath(right);
+            if (leftKind != rightKind)
+            {
+                HelperLog.Reject($"compare kind mismatch left={leftKind} right={rightKind}");
+                throw new ArgumentException("Compare requires both paths to be the same document kind.");
+            }
+
+            JsonNode leftNode = leftKind == JsonDocumentKind.Jsonl
+                ? JsonIo.ReadJsonl(left)
+                : JsonIo.Read(left);
+            JsonNode rightNode = rightKind == JsonDocumentKind.Jsonl
+                ? JsonIo.ReadJsonl(right)
+                : JsonIo.Read(right);
+            var patch = JsonPatch.Compare(leftNode, rightNode);
+            HelperLog.Information(
+                app,
+                VestigiumStatus.Success,
+                HelperLog.Subcategories.Diff,
+                $"Compare left={left} right={right} ops={patch.Count}");
+            return patch;
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (JsonException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            HelperLog.Trap(ex);
+            throw;
+        }
+    }
+
     private static string RequireRfc8259Text(string? json)
     {
         var text = HelperGuard.NotBlank(json, nameof(json));
