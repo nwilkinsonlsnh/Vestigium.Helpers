@@ -7,6 +7,10 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NeighborResolve
 {
+    private const int AfInet = 2;
+    private const int AfInet6 = 23;
+    private const int PhysLen = 32;
+
     public static string? Resolve(IPAddress address)
     {
         if (OperatingSystem.IsWindows())
@@ -64,35 +68,41 @@ internal static class NeighborResolve
 
     private static string? ResolveIpNet(IPAddress address, int index)
     {
-        var row = new byte[128];
-        WriteAddress(row, address);
-        BitConverter.GetBytes(index).CopyTo(row, 36);
-        var status = ResolveIpNetEntry2(row, 0);
+        var row = new MibIpNetRow2 { InterfaceIndex = index, PhysicalAddress = new byte[PhysLen] };
+        FillAddress(ref row, address);
+        var status = ResolveIpNetEntry2(ref row, 0);
         if (status != 0)
-            status = GetIpNetEntry2(row);
+            status = GetIpNetEntry2(ref row);
         if (status != 0)
             return null;
-        var length = BitConverter.ToInt32(row, 72);
-        if (length < 6)
-            return null;
-        var mac = row.AsSpan(40, 6);
-        if (mac.ToArray().All(b => b == 0))
-            return null;
-        return string.Join(':', mac.ToArray().Select(b => b.ToString("X2")));
+        return FormatMac(row.PhysicalAddress, row.PhysicalAddressLength);
     }
 
-    private static void WriteAddress(byte[] row, IPAddress address)
+    internal static string? FormatMac(byte[]? physical, uint length)
+    {
+        if (physical is null || length < 6 || physical.Length < 6)
+            return null;
+        if (physical[0] == 0 && physical[1] == 0 && physical[2] == 0 && physical[3] == 0 && physical[4] == 0 && physical[5] == 0)
+            return null;
+        return string.Join(':', physical.Take(6).Select(b => b.ToString("X2")));
+    }
+
+    private static void FillAddress(ref MibIpNetRow2 row, IPAddress address)
     {
         var bytes = address.GetAddressBytes();
-        if (address.AddressFamily == AddressFamily.InterNetwork)
+        if (address.AddressFamily == AddressFamily.InterNetwork && bytes.Length == 4)
         {
-            BitConverter.GetBytes((ushort)2).CopyTo(row, 0);
-            bytes.CopyTo(row, 4);
+            row.Address.Family = AfInet;
+            row.Address.Ipv4Address = BitConverter.ToUInt32(bytes, 0);
             return;
         }
 
-        BitConverter.GetBytes((ushort)23).CopyTo(row, 0);
-        bytes.CopyTo(row, 8);
+        row.Address.Family = AfInet6;
+        if (bytes.Length >= 16)
+        {
+            row.Address.Ipv6B0 = BitConverter.ToUInt64(bytes, 0);
+            row.Address.Ipv6B1 = BitConverter.ToUInt64(bytes, 8);
+        }
     }
 
     private static string? ResolveLinuxArpLine(IPAddress address)
@@ -119,9 +129,35 @@ internal static class NeighborResolve
         return null;
     }
 
-    [DllImport("iphlpapi.dll")]
-    private static extern uint ResolveIpNetEntry2(byte[] row, nint sourceAddress);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SockAddrInet
+    {
+        public ushort Family;
+        public ushort Port;
+        public uint Ipv4Address;
+        public uint FlowInfo;
+        public ulong Ipv6B0;
+        public ulong Ipv6B1;
+        public uint ScopeId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MibIpNetRow2
+    {
+        public SockAddrInet Address;
+        public ulong InterfaceLuid;
+        public int InterfaceIndex;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = PhysLen)]
+        public byte[] PhysicalAddress;
+        public uint PhysicalAddressLength;
+        public int State;
+        public byte Flags;
+        public uint ReachabilityTime;
+    }
 
     [DllImport("iphlpapi.dll")]
-    private static extern uint GetIpNetEntry2(byte[] row);
+    private static extern uint ResolveIpNetEntry2(ref MibIpNetRow2 row, nint sourceAddress);
+
+    [DllImport("iphlpapi.dll")]
+    private static extern uint GetIpNetEntry2(ref MibIpNetRow2 row);
 }
