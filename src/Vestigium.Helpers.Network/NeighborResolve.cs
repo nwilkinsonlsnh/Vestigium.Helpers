@@ -93,7 +93,7 @@ internal static class NeighborResolve
         if (address.AddressFamily == AddressFamily.InterNetwork && bytes.Length == 4)
         {
             row.Address.Family = AfInet;
-            row.Address.Ipv4Address = BitConverter.ToUInt32(bytes, 0);
+            row.Address.FlowOrIpv4 = BitConverter.ToUInt32(bytes, 0);
             return;
         }
 
@@ -129,19 +129,18 @@ internal static class NeighborResolve
         return null;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct SockAddrInet
     {
         public ushort Family;
         public ushort Port;
-        public uint Ipv4Address;
-        public uint FlowInfo;
+        public uint FlowOrIpv4;
         public ulong Ipv6B0;
         public ulong Ipv6B1;
         public uint ScopeId;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct MibIpNetRow2
     {
         public SockAddrInet Address;
@@ -152,6 +151,9 @@ internal static class NeighborResolve
         public uint PhysicalAddressLength;
         public int State;
         public byte Flags;
+        public byte Pad1;
+        public byte Pad2;
+        public byte Pad3;
         public uint ReachabilityTime;
     }
 
