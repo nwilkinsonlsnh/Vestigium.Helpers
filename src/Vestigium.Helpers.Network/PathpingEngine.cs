@@ -155,6 +155,7 @@ internal static class PathpingEngine
             Timeout = o.Timeout,
             BufferSize = o.BufferSize,
             PreferUdp = o.PreferUdp,
+            TcpPort = o.TcpPort,
             InterfaceIndex = o.InterfaceIndex,
             SourceAddress = o.SourceAddress,
             Family = o.Family
