@@ -56,7 +56,6 @@
     <Compile Remove="KqlHelperTests.cs" />
     <Compile Remove="KqlLikeTests.cs" />
     <Compile Remove="NetworkHotspotTests.cs" />
-    <Compile Remove="NetworkInventoryTests.cs" />
     <Compile Remove="ProcessDeltaTests.cs" />
     <Compile Remove="ProcessPhaseGTests.cs" />
     <Compile Remove="ProcessTaxonomyTests.cs" />

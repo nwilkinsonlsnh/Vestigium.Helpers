@@ -18,7 +18,7 @@ PR08-07 is the owner gate on the clone.
 | 1 | PR08-01 | Fix `NetworkHelper` XML. Linux route write is Option C netlink, not a blanket typed deny. | Done (PR07-05, on main) |
 | 2 | PR08-02 | Fail IDs for route deny, campaign path escape, DNS peer mismatch, and live OUI reject. 14530 stays RouteDenied. 14535 and 14540 stay the PR07 events. New IDs are 14545 / 14550 / 14555. Version stays **1.0.1**. | Done |
 | 3 | PR08-04 | `BillPercentile(NumericSeries, double)` on the façade. | Done |
-| 4 | PR08-03 | Stop `Compile Remove` on `NetworkInventoryTests.cs`. Keep Hotspot removed. Tests stay off public Internet and off ProgramData / `/var/lib/vestigium`. | Open |
+| 4 | PR08-03 | Stop `Compile Remove` on `NetworkInventoryTests.cs`. Keep Hotspot removed. Tests stay off public Internet and off ProgramData / `/var/lib/vestigium`. | Done |
 | 5 | PR08-05 | Point `001/README.md` at this folder. Align SRS / Design / Guide / package README with Option C + packed OUI + no Charts. | Open |
 | 6 | PR08-06 | Version rule in csproj + README. 1.0.0 without events; 1.0.1 with PR08-02. | Open |
 | 7 | PR08-07 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
@@ -43,7 +43,7 @@ Everything else stays on 14510–14525. `network.json` is the list hosts copy. P
 
 ### PR08-03
 
-Inventory tests were removed in the umbrella csproj. That is not “Linux CI.” Restore the file. If a test hits the live public net or writes ProgramData, delete that test, do not keep the whole file removed.
+Done. `NetworkInventoryTests.cs` compiles again. It only reads local adapters and prefix math. `NetworkHotspotTests.cs` stays removed.
 
 ### PR08-04
 
