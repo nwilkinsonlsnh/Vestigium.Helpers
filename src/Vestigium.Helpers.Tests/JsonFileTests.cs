@@ -175,6 +175,30 @@ public sealed class JsonFileTests : IDisposable
     }
 
     [Fact]
+    public void Export_stem_dot_and_dotdot_are_rejected()
+    {
+        Assert.Throws<ArgumentException>(() => JsonHelper.NewExportPath("."));
+        Assert.Throws<ArgumentException>(() => JsonHelper.NewExportPath(".."));
+    }
+
+    [Fact]
+    public void Export_containment_follows_SamePath_compare()
+    {
+        var flipped = OperatingSystem.IsWindows() ? _root.ToUpperInvariant() : _root;
+        var dest = JsonIo.ResolveExportFile(flipped, "probe-settings", JsonDocumentKind.Json);
+        var prefix = Path.GetFullPath(_root);
+        if (!prefix.EndsWith(Path.DirectorySeparatorChar))
+            prefix += Path.DirectorySeparatorChar;
+        Assert.StartsWith(
+            prefix,
+            dest,
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+        Assert.True(JsonIo.SamePath(
+            Path.Combine(_root, "probe-settings.json"),
+            dest));
+    }
+
+    [Fact]
     public void Open_rejects_document_over_cap()
     {
         JsonTestHooks.MaxDocumentBytes = 32;

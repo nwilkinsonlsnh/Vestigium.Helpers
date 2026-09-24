@@ -15,6 +15,10 @@ internal static class JsonIo
 
     internal static int MaxJsonlLineBytes => JsonTestHooks.MaxJsonlLineBytes ?? DefaultMaxJsonlLineBytes;
 
+    private static StringComparison PathCompare => OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
     internal static JsonDocumentKind KindFromPath(string? path)
         => !string.IsNullOrWhiteSpace(path) && path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase)
             ? JsonDocumentKind.Jsonl
@@ -117,9 +121,7 @@ internal static class JsonIo
             return false;
         var a = Path.GetFullPath(left);
         var b = Path.GetFullPath(right);
-        return OperatingSystem.IsWindows()
-            ? string.Equals(a, b, StringComparison.OrdinalIgnoreCase)
-            : string.Equals(a, b, StringComparison.Ordinal);
+        return string.Equals(a, b, PathCompare);
     }
 
     internal static string ResolveExportFile(string directory, string stem, JsonDocumentKind kind)
@@ -140,11 +142,11 @@ internal static class JsonIo
         var dest = Path.GetFullPath(Path.Combine(directory, file));
         var root = Path.GetFullPath(directory);
         var prefix = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
-        if (dest.StartsWith(prefix, StringComparison.Ordinal) ||
-            string.Equals(dest, root, StringComparison.Ordinal)) return dest;
+        if (dest.StartsWith(prefix, PathCompare) || string.Equals(dest, root, PathCompare))
+            return dest;
+
         HelperLog.Reject("export path escaped the export folder");
         throw new ArgumentException("Export stem must stay under the export folder.", nameof(stem));
-
     }
 
     private static bool EndsWithNewline(Stream stream)
