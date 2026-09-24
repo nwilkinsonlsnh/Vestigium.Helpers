@@ -122,6 +122,9 @@ public static class NetworkHelper
         return rows;
     }
 
+    public static NeighborProbeResult ProbeNeighbor(string address)
+        => NeighborProbeEngine.Probe(address);
+
     public static IcmpEchoCampaign CreateEchoCampaign(IcmpEchoCampaignOptions options)
         => IcmpEchoCampaign.Create(options);
 
