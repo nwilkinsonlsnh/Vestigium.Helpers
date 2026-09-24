@@ -115,7 +115,7 @@ v1 JSONL mutations:
 
 ### 4.3 Streams and strings
 
-`Parse(string|Stream|ReadOnlySpan<byte>)` and `ToJson`/`FromJson<T>` do not create a session. Sessions begin at `Open` / `Create` / `OpenJsonl`.
+`Parse(string|Stream|ReadOnlySpan<byte>)` and `ToJson`/`FromJson<T>` do not create a session. Sessions begin at `Open` / `Create` / `OpenJsonl`. `Parse(ReadOnlySpan<byte>)` lives on the façade next to the string and stream overloads. Empty span and a UTF-8 BOM (`EF BB BF`) are Failed the same way the string path rejects `\\uFEFF`.
 
 ---
 
@@ -124,13 +124,13 @@ v1 JSONL mutations:
 Two spellings, one target.
 
 | Kind | Example | Notes |
-|---|---|---|
+|---|---|
 | JSON Pointer | `/network/timeoutSeconds` | RFC 6901. `~1` `/`, `~0` `~`. |
 | Dotted | `network.timeoutSeconds` | Object members. |
 | Index | `records[0].code` or `/records/0/code` | Zero-based. |
 | JSONL index | `[0].code` | First line, member `code`. |
 
-Unknown path on Get: return missing (nullable / `TryGet`). Unknown path on Set: create object parents when the parent is an object; do not create through a primitive. Invalid syntax: `HelperGuard` Failed then throw.
+Unknown path on Get: throw `KeyNotFoundException`. Unknown path on `TryGet`: return false. Unknown path on Set: create object parents when the parent is an object; do not create through a primitive. Invalid syntax: `HelperGuard` Failed then throw.
 
 No `$..`, `*`, or filter expressions in v1.
 
@@ -175,6 +175,7 @@ public static class JsonHelper
     public static T FromJson<T>(string json, JsonReadOptions? options = null);
     public static JsonNode Parse(string json);
     public static JsonNode Parse(Stream stream);
+    public static JsonNode Parse(ReadOnlySpan<byte> utf8Json);
 
     public static JsonSession Create(string? path = null, JsonSessionOptions? options = null);
     public static JsonSession Open(string path, JsonSessionOptions? options = null);
@@ -183,6 +184,7 @@ public static class JsonHelper
         JsonSessionOptions? options = null);
 
     public static void WriteFile<T>(string path, T value, JsonWriteOptions? options = null);
+    public static JsonPatch Compare(string leftPath, string rightPath);
 }
 
 public sealed class JsonSession : IDisposable
@@ -229,7 +231,7 @@ public sealed class JsonSessionOptions
 
 `DefaultExportDirectory` is `%DESKTOP%\\Vestigium\\Exports\\Json\\` unless a test injects `JsonTestHooks.ExportRoot`. `NewExportPath` uses stem + `.json` / `.jsonl` under that folder.
 
-`JsonPatch` is the RFC 6902 operation list (add / remove / replace). Hosts render it. Json does not reference Charts.
+`JsonPatch` is the RFC 6902 operation list (add / remove / replace). `JsonPatch.Compare(JsonNode?, JsonNode?)` and `JsonHelper.Compare(string, string)` are public. Hosts render the list. Json does not apply the patch and does not reference Charts. Mixed `.json` / `.jsonl` is `ArgumentException`. JSONL files compare as arrays.
 
 Optional v1: `JsonHelper.DigestWritten(path, HashingAlgorithm = Sha256)` calls Hashing on the file bytes after Save. Not required to ship Phase 1.
 
@@ -238,6 +240,8 @@ Optional v1: `JsonHelper.DigestWritten(path, HashingAlgorithm = Sha256)` calls H
 ## 8. Logging
 
 Category = `Helpers`. APPID = `Json`.
+
+Event IDs live in block 13500–13999 and count by 5. Probe stays 13500 / 13505. Every other live subcategory has its own enter / complete / reject IDs. Catalog `subcategory` values are the HelperLog names (`Probe`, `Session`, `Document`, `Query`, `Snapshot`, `Diff`, `Commit`, `Save`, `Jsonl`, `Guard`). Used through 13625. Save, Commit, and Jsonl must not share 13515.
 
 Register these subcategories (reuse existing names where they already exist):
 
@@ -297,6 +301,7 @@ xUnit, serial logger collection, temp `LogDirectory`, injected export root.
 - JSON Schema
 - JSONPath filters
 - RFC 7396 Merge Patch (6902 Patch is Diff only)
+- RFC 6902 Apply / `move` / `copy` / `test`
 - Mid-file JSONL splice without rewrite
 - Source generators
 - BOM, comments, trailing commas
@@ -309,7 +314,7 @@ xUnit, serial logger collection, temp `LogDirectory`, injected export root.
 | Version | Item |
 |---|---|
 | **v1.0** | This document |
-| **v1.1** | `DigestWritten` via Hashing; Compare two files (semantic node compare + patch) |
+| **v1.1** | `DigestWritten` via Hashing. File/node Compare (Diff half) shipped in PR05. Apply stays later. |
 | **v1.2** | JSONL delete/replace record by index without a full in-memory list when file is large |
 | **later** | JSON Schema, JSONPath, source-gen, Merge Patch |
 
