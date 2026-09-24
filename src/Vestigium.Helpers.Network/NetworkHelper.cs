@@ -71,6 +71,9 @@ public static class NetworkHelper
     public static NetworkJob<PathpingResult> Pathping(string target, PathpingOptions? options = null)
         => PathpingEngine.Create(target, options);
 
+    public static NetworkJob<TcpConnectResult> TcpConnect(string host, int port, TcpConnectOptions? options = null)
+        => TcpConnectEngine.Create(host, port, options);
+
     public static Task<DnsLookupResult> LookupAsync(string name, DnsLookupOptions? options = null, CancellationToken cancellation = default)
     {
         var o = options ?? new DnsLookupOptions();
