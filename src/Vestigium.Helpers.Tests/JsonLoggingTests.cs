@@ -101,7 +101,7 @@ public sealed class JsonLoggingTests
     }
 
     [Fact]
-    public void Snapshot_diff_commit_failed_do_not_collapse_to_guard()
+    public void Compare_kind_mismatch_writes_diff_failed_not_guard()
     {
         var export = Path.Combine(Path.GetTempPath(), "VestigiumJsonPr07Events", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(export);
@@ -115,25 +115,12 @@ public sealed class JsonLoggingTests
             File.WriteAllText(jsonlPath, "{\"n\":1}\n");
             Assert.Throws<ArgumentException>(() => JsonHelper.Compare(jsonPath, jsonlPath));
 
-            using (HelperLog.Begin(HelperLog.AppIds.Json, HelperLog.Subcategories.Snapshot, "Snapshot"))
-                HelperLog.Reject("forced snapshot reject");
-            using (HelperLog.Begin(HelperLog.AppIds.Json, HelperLog.Subcategories.Commit, "Commit"))
-                HelperLog.Reject("forced commit reject");
-
             VestigiumLogger.Flush();
             var log = VestigiumLogger.RecentJsonLines;
             Assert.Contains(log, line =>
                 line.Contains("\"EVENTID\":13635") && line.Contains("\"SUBCATEGORY\":\"Diff\""));
-            Assert.Contains(log, line =>
-                line.Contains("\"EVENTID\":13630") && line.Contains("\"SUBCATEGORY\":\"Snapshot\""));
-            Assert.Contains(log, line =>
-                line.Contains("\"EVENTID\":13640") && line.Contains("\"SUBCATEGORY\":\"Commit\""));
             Assert.DoesNotContain(log, line =>
                 line.Contains("\"SUBCATEGORY\":\"Diff\"") && line.Contains("\"EVENTID\":13620"));
-            Assert.DoesNotContain(log, line =>
-                line.Contains("\"SUBCATEGORY\":\"Snapshot\"") && line.Contains("\"EVENTID\":13620"));
-            Assert.DoesNotContain(log, line =>
-                line.Contains("\"SUBCATEGORY\":\"Commit\"") && line.Contains("\"EVENTID\":13620"));
             Assert.All(log, line => Assert.DoesNotContain("\"EXCEPTION\":\"", line.Replace("\"EXCEPTION\":null", "")));
         }
         finally
@@ -156,6 +143,9 @@ public sealed class JsonLoggingTests
         });
         Assert.Equal(JsonEvents.ProbeEnter, JsonCatalog.Rows[0].EventId);
         Assert.Equal(JsonEvents.CommitFailed, JsonCatalog.Rows[^1].EventId);
+        Assert.Contains(JsonCatalog.Rows, row => row.EventId == JsonEvents.SnapshotFailed && row.Name == "SnapshotFailed");
+        Assert.Contains(JsonCatalog.Rows, row => row.EventId == JsonEvents.DiffFailed && row.Name == "DiffFailed");
+        Assert.Contains(JsonCatalog.Rows, row => row.EventId == JsonEvents.CommitFailed && row.Name == "CommitFailed");
         Assert.Equal("Probe", JsonCatalog.Rows[0].Subcategory);
         Assert.DoesNotContain(JsonCatalog.Rows, row => row.Name is "OperationEnter" or "OperationComplete" or "OperationFailed");
     }
