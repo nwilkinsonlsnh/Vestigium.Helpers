@@ -173,6 +173,37 @@ public sealed class JsonFileTests : IDisposable
     }
 
     [Fact]
+    public void Open_jsonl_path_fails_closed()
+    {
+        var path = Path.Combine(_root, "rows.jsonl");
+        File.WriteAllText(path, "{\"n\":1}\n");
+        var ex = Assert.Throws<ArgumentException>(() => JsonHelper.Open(path));
+        Assert.Equal("path", ex.ParamName);
+        Assert.Contains("OpenJsonl", ex.Message, StringComparison.Ordinal);
+        using var jsonl = JsonHelper.OpenJsonl(path);
+        Assert.Equal(JsonDocumentKind.Jsonl, jsonl.Kind);
+        Assert.Equal(1, jsonl.RecordCount);
+    }
+
+    [Fact]
+    public void Open_jsonl_extension_is_case_insensitive()
+    {
+        var path = Path.Combine(_root, "rows.JSONL");
+        File.WriteAllText(path, "{\"n\":1}\n");
+        var ex = Assert.Throws<ArgumentException>(() => JsonHelper.Open(path));
+        Assert.Equal("path", ex.ParamName);
+    }
+
+    [Fact]
+    public void Create_jsonl_path_starts_an_empty_list()
+    {
+        var path = Path.Combine(_root, "new-rows.jsonl");
+        using var doc = JsonHelper.Create(path);
+        Assert.Equal(JsonDocumentKind.Jsonl, doc.Kind);
+        Assert.Equal(0, doc.RecordCount);
+    }
+
+    [Fact]
     public void Open_missing_file_throws()
         => Assert.Throws<FileNotFoundException>(() => JsonHelper.Open(Path.Combine(_root, "missing.json")));
 
