@@ -1,6 +1,6 @@
 namespace Vestigium.Helpers.Network;
 
-public sealed record EchoWindow(TimeOnly LocalTime, int Count);
+public sealed record EchoWindow(TimeOnly LocalTime, int Count, TimeSpan? Duration = null);
 
 public sealed class IcmpEchoCampaignOptions
 {
