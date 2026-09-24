@@ -4,8 +4,8 @@
     <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
     <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. OUI lookup is a caller URL. The embedded snapshot is a stub.</Description>
-    <!-- 1.0.0 has no named fail IDs. 1.0.1 is 14530–14555. 1.1.0 is PR09 doors. Do not republish 1.0.1 as if it had Pathping. -->
-    <Version>1.1.0</Version>
+    <!-- 1.1.0 is PR09. 1.2.0 is PR10. Do not republish 1.1.0 as if it had UdpProbe. -->
+    <Version>1.2.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>network;icmp;dns;share;oui;vestigium</PackageTags>
