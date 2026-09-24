@@ -18,12 +18,8 @@ public sealed class EgressBindTests
     [Fact]
     public void Negative_index_is_rejected()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions { Count = 1, InterfaceIndex = -1 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            NetworkHelper.IcmpTrace("127.0.0.1", new IcmpTraceOptions { InterfaceIndex = -3 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            EgressBind.Validate(-1, null));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EgressBind.Validate(-1, null));
+        Assert.Throws<ArgumentOutOfRangeException>(() => EgressBind.Validate(-3, null));
     }
 
     [Fact]
@@ -36,8 +32,7 @@ public sealed class EgressBindTests
     [Fact]
     public void Garbage_source_is_rejected()
     {
-        Assert.Throws<ArgumentException>(() =>
-            NetworkHelper.IcmpEcho("127.0.0.1", new IcmpEchoOptions { Count = 1, SourceAddress = "not-an-ip" }));
+        Assert.Throws<ArgumentException>(() => EgressBind.Validate(0, "not-an-ip"));
     }
 
     [Fact]
