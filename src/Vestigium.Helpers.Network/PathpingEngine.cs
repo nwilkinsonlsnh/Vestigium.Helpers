@@ -123,7 +123,7 @@ internal static class PathpingEngine
             }
             else
             {
-                row = await IcmpTraceEngine.UdpProbeAsync(hop.Address, timeoutMs, 64, i, token, options.Family).ConfigureAwait(false);
+                row = await IcmpTraceEngine.UdpProbeAsync(hop.Address, timeoutMs, 64, i, token, options.Family, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false);
             }
 
             if (SampleHit(row))
