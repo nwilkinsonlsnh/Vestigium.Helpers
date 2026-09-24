@@ -1,6 +1,11 @@
 # 001 -- Implementation Plan
 
 **Library:** Vestigium.Helpers.Network  
-**Status:** No current implementation plan.
+**Status:** PR08 open.
 
-v1.6 documents are shipped. When a live plan exists, put `ImplementationPlan_vX.Y.md` here.
+Live paper:
+
+- [`PR08/PR08 -- Backlog.md`](PR08/PR08%20--%20Backlog.md)
+- [`PR08/PR08 -- Implementation Plan.md`](PR08/PR08%20--%20Implementation%20Plan.md)
+
+PR01–PR06 live under `000 -- Archived/001 -- Implementation Plan/`.
