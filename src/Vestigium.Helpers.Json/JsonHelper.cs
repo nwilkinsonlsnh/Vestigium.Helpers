@@ -314,6 +314,12 @@ public static class JsonHelper
         using var scope = HelperLog.Begin(app, HelperLog.Subcategories.Session, "Open", $"path={target} session={sessionId}", sessionId);
         try
         {
+            if (JsonIo.KindFromPath(target) == JsonDocumentKind.Jsonl)
+            {
+                HelperLog.Reject($"Open is JSON only path={target}");
+                throw new ArgumentException("Open requires a .json document. Use OpenJsonl for .jsonl.", nameof(path));
+            }
+
             var node = JsonIo.Read(target);
             var bytes = new FileInfo(target).Length;
             HelperLog.Information(
