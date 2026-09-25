@@ -37,7 +37,8 @@ internal static class DnsClient
 
         var started = Stopwatch.StartNew();
         DnsLookupResult result;
-        if (string.IsNullOrWhiteSpace(o.Server) && o.Type is DnsRecordType.A or DnsRecordType.Aaaa or DnsRecordType.Any)
+        var osDns = FirstOsDnsServer();
+        if (string.IsNullOrWhiteSpace(o.Server) && osDns is null && o.Type is DnsRecordType.A or DnsRecordType.Aaaa or DnsRecordType.Any)
             result = await OsLookupAsync(question, o, started, token).ConfigureAwait(false);
         else
             result = await WireLookupAsync(question, o, started, token).ConfigureAwait(false);
@@ -59,6 +60,24 @@ internal static class DnsClient
         for (var i = 0; i < list.Length; i++)
             results[i] = await LookupAsync(list[i], options, token).ConfigureAwait(false);
         return results;
+    }
+
+    internal static IReadOnlyList<string> OsDnsServers()
+    {
+        try
+        {
+            return NetworkInventoryEngine.Capture()
+                .Adapters
+                .SelectMany(a => a.DnsServers)
+                .Where(s => IPAddress.TryParse(s, out var ip) && !IPAddress.IsLoopback(ip))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => IPAddress.Parse(s).AddressFamily == AddressFamily.InterNetwork ? 0 : 1)
+                .ToArray();
+        }
+        catch (NetworkInformationException)
+        {
+            return [];
+        }
     }
 
     private static string PrepareQuestion(string name, DnsRecordType type)
@@ -178,20 +197,7 @@ internal static class DnsClient
         }
     }
 
-    private static string? FirstOsDnsServer()
-    {
-        try
-        {
-            return NetworkInventoryEngine.Capture()
-                .Adapters
-                .SelectMany(a => a.DnsServers)
-                .FirstOrDefault(s => IPAddress.TryParse(s, out var ip) && !IPAddress.IsLoopback(ip));
-        }
-        catch (NetworkInformationException)
-        {
-            return null;
-        }
-    }
+    private static string? FirstOsDnsServer() => OsDnsServers().FirstOrDefault();
 
     internal static byte[] EncodeQuery(ushort id, string qname, DnsRecordType type, bool rd)
     {
