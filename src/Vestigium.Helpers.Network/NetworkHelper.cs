@@ -62,7 +62,7 @@ public static class NetworkHelper
     {
         var o = options ?? new IcmpTraceOptions();
         EgressBind.Validate(o.InterfaceIndex, o.SourceAddress);
-        return IcmpTraceEngine.Create(target, o);
+        return IcmpTraceEngine.Create(target, options);
     }
 
     public static NetworkJob<IcmpTraceResult> Trace(string target, IcmpTraceOptions? options = null)
@@ -85,6 +85,14 @@ public static class NetworkHelper
 
     public static NetworkJob<PathMtuResult> PathMtu(string target, PathMtuOptions? options = null)
         => PathMtuEngine.Create(target, options);
+
+    public static IReadOnlyList<string> GetOsDnsServers()
+    {
+        using var scope = NetworkLog.Begin(HelperLog.Subcategories.Dns, nameof(GetOsDnsServers));
+        var servers = DnsClient.OsDnsServers();
+        NetworkLog.Success(HelperLog.Subcategories.Dns, $"servers={servers.Count}");
+        return servers;
+    }
 
     public static Task<DnsLookupResult> LookupAsync(string name, DnsLookupOptions? options = null, CancellationToken cancellation = default)
     {
