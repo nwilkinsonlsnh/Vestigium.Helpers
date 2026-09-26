@@ -46,7 +46,13 @@ public sealed record ChartOptions
     public ControlLimits? Limits { get; init; }
     public double? Width { get; init; }
     public double? Height { get; init; }
+    public bool Stretch { get; init; } = true;
+    public bool HostMenu { get; init; } = true;
     public string? Color { get; init; }
+    public string? FigureColor { get; init; }
+    public string? DataColor { get; init; }
+    public string? AxisColor { get; init; }
+    public string? GridColor { get; init; }
     public double? IntervalLevel { get; init; }
     public double? PercentileP { get; init; }
     public RunRuleReport? RunRules { get; init; }
