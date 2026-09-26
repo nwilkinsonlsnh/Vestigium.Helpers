@@ -133,7 +133,6 @@ public static partial class ChartView
             "rejected x/y length mismatch",
             properties: ChartsLog.Props(("nx", x.Count.ToString()), ("ny", y.Count.ToString())));
         throw new ArgumentException("X and Y lengths must match.");
-
     }
 
     public static FrameworkElement Column(NumericSeries series, ChartOptions? options = null)
@@ -299,10 +298,7 @@ public static partial class ChartView
 
         var view = new WpfPlot();
         PlotBuilder.Fill(view.Plot, spec);
-        if (spec.Options?.Width is { } w)
-            view.Width = w;
-        view.Height = spec.Options?.Height ?? 240;
-        view.Refresh();
+        AttachChrome(view, spec);
         return view;
     }
 }
