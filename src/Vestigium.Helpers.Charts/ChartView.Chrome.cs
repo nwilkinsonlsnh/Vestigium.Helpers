@@ -79,15 +79,14 @@ public static partial class ChartView
         menu.Items.Add(Item("Open in New Window", "\uE8A7", () => OpenWindow(view)));
         menu.Items.Add(new Separator());
 
-        var legend = Item("Show Legend", "\uE81E", () =>
+        var legend = new MenuItem
         {
-            view.Plot.Legend.IsVisible = !view.Plot.Legend.IsVisible;
-            view.Refresh();
-            LegendToggled?.Invoke(view, view.Plot.Legend.IsVisible);
-        });
-        legend.IsCheckable = true;
-        legend.IsChecked = view.Plot.Legend.IsVisible;
-        legend.Click -= null;
+            Header = "Show Legend",
+            Icon = Glyph("\uE81E"),
+            IsCheckable = true,
+            IsChecked = view.Plot.Legend.IsVisible
+        };
+        PaintItem(legend);
         legend.Click += (_, _) =>
         {
             view.Plot.Legend.IsVisible = legend.IsChecked;
