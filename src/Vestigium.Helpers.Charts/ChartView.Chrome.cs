@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using ScottPlot;
 using ScottPlot.WPF;
 
 namespace Vestigium.Helpers.Charts;
@@ -27,6 +28,7 @@ public static partial class ChartView
     {
         var options = spec.Options ?? new ChartOptions();
         TrySet(view, "MenuOnRightClick", false);
+        ApplyColors(view.Plot, options);
 
         if (options.Width is { } w)
             view.Width = w;
@@ -54,6 +56,34 @@ public static partial class ChartView
             view.ContextMenu = BuildMenu(view);
 
         view.Refresh();
+    }
+
+    private static void ApplyColors(Plot plot, ChartOptions options)
+    {
+        if (TryHex(options.FigureColor, out var figure))
+            plot.FigureBackground.Color = figure;
+        if (TryHex(options.DataColor, out var data))
+            plot.DataBackground.Color = data;
+        if (TryHex(options.AxisColor, out var axis))
+            plot.Axes.Color(axis);
+        if (TryHex(options.GridColor, out var grid))
+            plot.Grid.MajorLineColor = grid;
+    }
+
+    private static bool TryHex(string? value, out ScottPlot.Color color)
+    {
+        color = Colors.White;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+        try
+        {
+            color = ScottPlot.Color.FromHex(value);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     private static ContextMenu BuildMenu(WpfPlot view)
