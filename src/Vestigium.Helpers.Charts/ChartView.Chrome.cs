@@ -69,23 +69,25 @@ public static partial class ChartView
     {
         var menu = new ContextMenu();
         PaintMenu(menu);
-        menu.Items.Add(Item("Save Image", () => SaveImage(view)));
-        menu.Items.Add(Item("Copy to Clipboard", () => Clipboard.SetImage(Capture(view))));
-        menu.Items.Add(Item("Auto Scale", () =>
+        menu.Items.Add(Item("Save Image", "\uE74E", () => SaveImage(view)));
+        menu.Items.Add(Item("Copy to Clipboard", "\uE8C8", () => Clipboard.SetImage(Capture(view))));
+        menu.Items.Add(Item("Auto Scale", "\uE9A6", () =>
         {
             view.Plot.Axes.AutoScale();
             view.Refresh();
         }));
-        menu.Items.Add(Item("Open in New Window", () => OpenWindow(view)));
+        menu.Items.Add(Item("Open in New Window", "\uE8A7", () => OpenWindow(view)));
         menu.Items.Add(new Separator());
 
-        var legend = new MenuItem
+        var legend = Item("Show Legend", "\uE81E", () =>
         {
-            Header = "Show Legend",
-            IsCheckable = true,
-            IsChecked = view.Plot.Legend.IsVisible
-        };
-        PaintItem(legend);
+            view.Plot.Legend.IsVisible = !view.Plot.Legend.IsVisible;
+            view.Refresh();
+            LegendToggled?.Invoke(view, view.Plot.Legend.IsVisible);
+        });
+        legend.IsCheckable = true;
+        legend.IsChecked = view.Plot.Legend.IsVisible;
+        legend.Click -= null;
         legend.Click += (_, _) =>
         {
             view.Plot.Legend.IsVisible = legend.IsChecked;
@@ -112,6 +114,20 @@ public static partial class ChartView
     {
         item.Foreground = Brushes.Black;
         item.Background = Brushes.White;
+    }
+
+    private static FrameworkElement Glyph(string symbol)
+    {
+        return new TextBlock
+        {
+            Text = symbol,
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            FontSize = 14,
+            Foreground = Brushes.Black,
+            Width = 16,
+            TextAlignment = TextAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
     }
 
     private static void ApplyColors(ScottPlot.Plot plot, ChartOptions options)
@@ -142,9 +158,13 @@ public static partial class ChartView
         }
     }
 
-    private static MenuItem Item(string header, Action action)
+    private static MenuItem Item(string header, string glyph, Action action)
     {
-        var item = new MenuItem { Header = header };
+        var item = new MenuItem
+        {
+            Header = header,
+            Icon = Glyph(glyph)
+        };
         PaintItem(item);
         item.Click += (_, _) => action();
         return item;
