@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="Vestigium.Helpers.Json" Version="1.0.1" />
     <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
-    <PackageReference Include="Vestigium.Helpers.FileIo" Version="1.1.1" />
+    <PackageReference Include="Vestigium.Helpers.FileIo" Version="1.1.2" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.md">

@@ -21,7 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Processes\Vestigium.Helpers.Processes.csproj" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.8" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.12" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
