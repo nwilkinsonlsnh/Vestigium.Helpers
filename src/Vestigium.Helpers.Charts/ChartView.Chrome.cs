@@ -62,6 +62,7 @@ public static partial class ChartView
 
         view.Menu = options.HostMenu ? new ChartPlotMenu(view) : null;
         view.ContextMenu = null;
+        view.Resources["Vestigium.ChartSpec"] = spec;
         view.Loaded += (_, _) => view.Refresh();
         view.SizeChanged += (_, _) =>
         {
@@ -188,21 +189,96 @@ public static partial class ChartView
 
     private static void OpenWindow(WpfPlot view)
     {
-        var open = view.GetType().GetMethod("OpenInNewWindow", Type.EmptyTypes);
-        if (open is not null)
+        var spec = view.Resources["Vestigium.ChartSpec"] as ChartSpec;
+        var title = spec?.Options?.Title ?? spec?.Title ?? PlotTitle(view) ?? "Chart";
+        var options = spec?.Options ?? new ChartOptions();
+        var content = spec is null
+            ? SnapshotView(view)
+            : Host(ForWindow(spec));
+
+        if (content is WpfPlot plot)
         {
-            open.Invoke(view, null);
+            plot.ClearValue(FrameworkElement.WidthProperty);
+            plot.ClearValue(FrameworkElement.HeightProperty);
+            plot.MinHeight = 0;
+            plot.HorizontalAlignment = HorizontalAlignment.Stretch;
+            plot.VerticalAlignment = VerticalAlignment.Stretch;
+        }
+
+        var window = new Window
+        {
+            Title = title,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            WindowState = WindowState.Maximized,
+            Content = content
+        };
+        PaintWindow(window, options);
+        window.Show();
+    }
+
+    private static ChartSpec ForWindow(ChartSpec spec)
+    {
+        var options = spec.Options ?? new ChartOptions();
+        return new ChartSpec
+        {
+            Kind = spec.Kind,
+            Title = spec.Title,
+            Series = spec.Series,
+            Options = options with { Width = null, Height = null, Stretch = true },
+            Limits = spec.Limits,
+            Source = spec.Source,
+            Slices = spec.Slices,
+            RunRules = spec.RunRules,
+            Spec = spec.Spec
+        };
+    }
+
+    private static void PaintWindow(Window window, ChartOptions options)
+    {
+        if (Application.Current?.TryFindResource("Vestigium.Brushes.Surface.Window") is Brush theme)
+        {
+            window.SetResourceReference(WpfControl.BackgroundProperty, "Vestigium.Brushes.Surface.Window");
+            if (Application.Current.TryFindResource("Vestigium.Brushes.Text.Primary") is Brush)
+                window.SetResourceReference(WpfControl.ForegroundProperty, "Vestigium.Brushes.Text.Primary");
             return;
         }
 
-        new Window
+        if (TryWpfBrush(options.FigureColor, out var figure))
+            window.Background = figure;
+    }
+
+    private static bool TryWpfBrush(string? value, out SolidColorBrush brush)
+    {
+        brush = Brushes.Transparent;
+        if (!TryHex(value, out var color))
+            return false;
+        brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(color.R, color.G, color.B));
+        brush.Freeze();
+        return true;
+    }
+
+    private static string? PlotTitle(WpfPlot view)
+    {
+        try
         {
-            Title = "Chart",
-            Width = Math.Max(900, view.ActualWidth + 80),
-            Height = Math.Max(560, view.ActualHeight + 80),
-            Background = Brushes.White,
-            Content = new Image { Source = Capture(view), Stretch = Stretch.Uniform, Margin = new Thickness(8) }
-        }.Show();
+            var text = view.Plot.Axes.Title.Label.Text;
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static FrameworkElement SnapshotView(WpfPlot view)
+    {
+        return new Image
+        {
+            Source = Capture(view),
+            Stretch = Stretch.Uniform,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch
+        };
     }
 
     private static BitmapSource Capture(FrameworkElement view)
