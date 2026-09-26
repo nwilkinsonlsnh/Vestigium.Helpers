@@ -12,5 +12,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vestigium.Helpers.Charts\Vestigium.Helpers.Charts.csproj" />
+    <PackageReference Include="Vestigium.Themes" Version="1.0.2" />
   </ItemGroup>
 </Project>

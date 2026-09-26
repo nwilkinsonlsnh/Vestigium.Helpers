@@ -2,15 +2,29 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Charts Menu Lab"
-        Width="1200" Height="720"
-        Background="#F3F4F6">
+        Width="1200" Height="760"
+        Background="{DynamicResource Vestigium.Brushes.Surface.Window}">
   <DockPanel Margin="12">
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-      <TextBlock FontSize="18" FontWeight="SemiBold" Text="Charts Menu Lab" />
+      <TextBlock FontSize="18" FontWeight="SemiBold"
+                 Foreground="{DynamicResource Vestigium.Brushes.Text.Primary}"
+                 Text="Charts Menu Lab" />
       <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                 Text="Left plot is ScottPlot's default Menu. Right plot is ChartView with HostMenu. Check the box to inject a white MenuItem style like Vestigium themes, then right-click both plots." />
-      <CheckBox x:Name="ThemeTrap" Content="Apply Vestigium-like white MenuItem style"
-                Margin="0,10,0,0" Checked="ThemeTrap_Changed" Unchecked="ThemeTrap_Changed" />
+                 Foreground="{DynamicResource Vestigium.Brushes.Text.Secondary}"
+                 Text="Switch the real Vestigium palette, then right-click both plots. Left is ScottPlot's default Menu. Right is ChartView HostMenu." />
+
+      <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+        <TextBlock VerticalAlignment="Center" Margin="0,0,8,0"
+                   Foreground="{DynamicResource Vestigium.Brushes.Text.Primary}"
+                   Text="Theme" />
+        <ComboBox x:Name="ThemeBox" Width="220"
+                  DisplayMemberPath="DisplayName"
+                  SelectedValuePath="Id"
+                  SelectionChanged="ThemeBox_SelectionChanged" />
+        <CheckBox x:Name="ThemeTrap" Content="Force white MenuItem style"
+                  Margin="16,0,0,0" VerticalAlignment="Center"
+                  Checked="ThemeTrap_Changed" Unchecked="ThemeTrap_Changed" />
+      </StackPanel>
     </StackPanel>
 
     <Grid>
@@ -22,14 +36,16 @@
 
       <DockPanel Grid.Column="0">
         <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8"
+                   Foreground="{DynamicResource Vestigium.Brushes.Text.Primary}"
                    Text="Broken: default ScottPlot Menu" />
-        <Border x:Name="BrokenHost" Background="White" />
+        <Border x:Name="BrokenHost" Background="{DynamicResource Vestigium.Brushes.Surface.Card}" />
       </DockPanel>
 
       <DockPanel Grid.Column="2">
         <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8"
+                   Foreground="{DynamicResource Vestigium.Brushes.Text.Primary}"
                    Text="Fixed: ChartView HostMenu" />
-        <Border x:Name="FixedHost" Background="White" />
+        <Border x:Name="FixedHost" Background="{DynamicResource Vestigium.Brushes.Surface.Card}" />
       </DockPanel>
     </Grid>
   </DockPanel>
