@@ -4,8 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
-using ScottPlot;
 using ScottPlot.WPF;
+using SpColor = ScottPlot.Color;
 
 namespace Vestigium.Helpers.Charts;
 
@@ -58,7 +58,7 @@ public static partial class ChartView
         view.Refresh();
     }
 
-    private static void ApplyColors(Plot plot, ChartOptions options)
+    private static void ApplyColors(ScottPlot.Plot plot, ChartOptions options)
     {
         if (TryHex(options.FigureColor, out var figure))
             plot.FigureBackground.Color = figure;
@@ -70,14 +70,14 @@ public static partial class ChartView
             plot.Grid.MajorLineColor = grid;
     }
 
-    private static bool TryHex(string? value, out ScottPlot.Color color)
+    private static bool TryHex(string? value, out SpColor color)
     {
-        color = Colors.White;
+        color = SpColor.FromHex("#FFFFFF");
         if (string.IsNullOrWhiteSpace(value))
             return false;
         try
         {
-            color = ScottPlot.Color.FromHex(value);
+            color = SpColor.FromHex(value);
             return true;
         }
         catch (Exception)
