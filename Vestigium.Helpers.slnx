@@ -18,6 +18,9 @@
     <Project Path="src/Vestigium.Helpers.WinReg/Vestigium.Helpers.WinReg.csproj" />
     <Project Path="src/Vestigium.Helpers.Xml/Vestigium.Helpers.Xml.csproj" />
   </Folder>
+  <Folder Name="/Samples/">
+    <Project Path="samples/Vestigium.Helpers.Charts.MenuLab/Vestigium.Helpers.Charts.MenuLab.csproj" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
   </Folder>

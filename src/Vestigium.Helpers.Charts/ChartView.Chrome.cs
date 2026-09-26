@@ -27,7 +27,6 @@ public static partial class ChartView
     internal static void AttachChrome(WpfPlot view, ChartSpec spec)
     {
         var options = spec.Options ?? new ChartOptions();
-        TrySet(view, "MenuOnRightClick", false);
         ApplyColors(view.Plot, options);
 
         if (options.Width is { } w)
@@ -40,7 +39,7 @@ public static partial class ChartView
         else if (options.Stretch)
         {
             view.Height = double.NaN;
-            view.MinHeight = 140;
+            view.MinHeight = 220;
             view.VerticalAlignment = VerticalAlignment.Stretch;
             view.HorizontalAlignment = HorizontalAlignment.Stretch;
         }
@@ -50,12 +49,68 @@ public static partial class ChartView
         }
 
         if (spec.Kind == ChartKind.Control)
-            view.Plot.Axes.Margins(0.05, 0.22);
+        {
+            try
+            {
+                view.Plot.Axes.Margins(0.05, 0.22);
+            }
+            catch (Exception)
+            {
+            }
+        }
 
-        if (options.HostMenu)
-            view.ContextMenu = BuildMenu(view);
-
+        view.Menu = options.HostMenu ? new ChartPlotMenu(view) : null;
+        view.ContextMenu = null;
         view.Refresh();
+    }
+
+    internal static ContextMenu CreateHostMenu(WpfPlot view)
+    {
+        var menu = new ContextMenu();
+        PaintMenu(menu);
+        menu.Items.Add(Item("Save Image", () => SaveImage(view)));
+        menu.Items.Add(Item("Copy to Clipboard", () => Clipboard.SetImage(Capture(view))));
+        menu.Items.Add(Item("Auto Scale", () =>
+        {
+            view.Plot.Axes.AutoScale();
+            view.Refresh();
+        }));
+        menu.Items.Add(Item("Open in New Window", () => OpenWindow(view)));
+        menu.Items.Add(new Separator());
+
+        var legend = new MenuItem
+        {
+            Header = "Show Legend",
+            IsCheckable = true,
+            IsChecked = view.Plot.Legend.IsVisible
+        };
+        PaintItem(legend);
+        legend.Click += (_, _) =>
+        {
+            view.Plot.Legend.IsVisible = legend.IsChecked;
+            view.Refresh();
+            LegendToggled?.Invoke(view, legend.IsChecked);
+        };
+        menu.Items.Add(legend);
+        menu.Opened += (_, _) => legend.IsChecked = view.Plot.Legend.IsVisible;
+        return menu;
+    }
+
+    private static void PaintMenu(ContextMenu menu)
+    {
+        menu.Background = Brushes.White;
+        menu.Foreground = Brushes.Black;
+        menu.BorderBrush = Brushes.Silver;
+        var style = new Style(typeof(MenuItem));
+        style.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
+        style.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+        menu.Resources[typeof(MenuItem)] = style;
+    }
+
+    private static void PaintItem(MenuItem item)
+    {
+        item.Foreground = Brushes.Black;
+        item.Background = Brushes.White;
     }
 
     private static void ApplyColors(ScottPlot.Plot plot, ChartOptions options)
@@ -86,52 +141,10 @@ public static partial class ChartView
         }
     }
 
-    private static ContextMenu BuildMenu(WpfPlot view)
-    {
-        var menu = new ContextMenu
-        {
-            Background = Brushes.White,
-            Foreground = Brushes.Black,
-            BorderBrush = Brushes.Silver
-        };
-
-        menu.Items.Add(Item("Save Image", () => SaveImage(view)));
-        menu.Items.Add(Item("Copy to Clipboard", () => Clipboard.SetImage(Capture(view))));
-        menu.Items.Add(Item("Auto Scale", () =>
-        {
-            view.Plot.Axes.AutoScale();
-            view.Refresh();
-        }));
-        menu.Items.Add(Item("Open in New Window", () => OpenWindow(view)));
-        menu.Items.Add(new Separator());
-
-        var legend = new MenuItem
-        {
-            Header = "Show Legend",
-            IsCheckable = true,
-            IsChecked = view.Plot.Legend.IsVisible,
-            Background = Brushes.White,
-            Foreground = Brushes.Black
-        };
-        legend.Click += (_, _) =>
-        {
-            view.Plot.Legend.IsVisible = legend.IsChecked;
-            view.Refresh();
-            LegendToggled?.Invoke(view, legend.IsChecked);
-        };
-        menu.Items.Add(legend);
-        menu.Opened += (_, _) => legend.IsChecked = view.Plot.Legend.IsVisible;
-        return menu;
-    }
-
     private static MenuItem Item(string header, Action action)
     {
-        var item = new MenuItem
-        {
-            Header = header,
-            Background = Brushes.White,
-            Foreground = Brushes.Black
-        };
+        var item = new MenuItem { Header = header };
+        PaintItem(item);
         item.Click += (_, _) => action();
         return item;
     }
@@ -173,16 +186,5 @@ public static partial class ChartView
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(view);
         return bitmap;
-    }
-
-    private static void TrySet(object target, string name, object value)
-    {
-        try
-        {
-            target.GetType().GetProperty(name)?.SetValue(target, value);
-        }
-        catch (Exception)
-        {
-        }
     }
 }
