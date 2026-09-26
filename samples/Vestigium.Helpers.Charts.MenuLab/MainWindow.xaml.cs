@@ -4,6 +4,7 @@ using System.Windows.Media;
 using ScottPlot.WPF;
 using Vestigium.Helpers.Analytics;
 using Vestigium.Helpers.Charts;
+using WpfControl = System.Windows.Controls.Control;
 
 namespace Vestigium.Helpers.Charts.MenuLab;
 
@@ -18,10 +19,11 @@ public partial class MainWindow : Window
     private void BuildPlots()
     {
         var ys = Enumerable.Range(0, 40).Select(i => 8 + Math.Sin(i / 4d) + i % 5 * 0.2).ToArray();
+        var xs = Enumerable.Range(0, ys.Length).Select(i => (double)i).ToArray();
 
         var broken = new WpfPlot { MinHeight = 280 };
         broken.Plot.Title("Default ScottPlot menu");
-        broken.Plot.Add.Scatter(ys);
+        broken.Plot.Add.Scatter(xs, ys);
         broken.Refresh();
         BrokenHost.Child = broken;
 
@@ -46,8 +48,8 @@ public partial class MainWindow : Window
             return;
 
         var style = new Style(typeof(MenuItem));
-        style.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
-        style.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+        style.Setters.Add(new Setter(WpfControl.ForegroundProperty, Brushes.White));
+        style.Setters.Add(new Setter(WpfControl.BackgroundProperty, Brushes.White));
         resources[typeof(MenuItem)] = style;
     }
 }

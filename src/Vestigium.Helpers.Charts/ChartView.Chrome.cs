@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using ScottPlot.WPF;
 using SpColor = ScottPlot.Color;
+using WpfControl = System.Windows.Controls.Control;
 
 namespace Vestigium.Helpers.Charts;
 
@@ -102,8 +103,8 @@ public static partial class ChartView
         menu.Foreground = Brushes.Black;
         menu.BorderBrush = Brushes.Silver;
         var style = new Style(typeof(MenuItem));
-        style.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
-        style.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+        style.Setters.Add(new Setter(WpfControl.ForegroundProperty, Brushes.Black));
+        style.Setters.Add(new Setter(WpfControl.BackgroundProperty, Brushes.White));
         menu.Resources[typeof(MenuItem)] = style;
     }
 
