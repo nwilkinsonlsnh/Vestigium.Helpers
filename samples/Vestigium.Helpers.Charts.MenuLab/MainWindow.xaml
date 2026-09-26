@@ -38,14 +38,16 @@
         <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8"
                    Foreground="{DynamicResource Vestigium.Brushes.Text.Primary}"
                    Text="Broken: default ScottPlot Menu" />
-        <Border x:Name="BrokenHost" Background="{DynamicResource Vestigium.Brushes.Surface.Card}" />
+        <Border x:Name="BrokenHost" MinHeight="360"
+                Background="{DynamicResource Vestigium.Brushes.Surface.Card}" />
       </DockPanel>
 
       <DockPanel Grid.Column="2">
         <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8"
                    Foreground="{DynamicResource Vestigium.Brushes.Text.Primary}"
                    Text="Fixed: ChartView HostMenu" />
-        <Border x:Name="FixedHost" Background="{DynamicResource Vestigium.Brushes.Surface.Card}" />
+        <Border x:Name="FixedHost" MinHeight="360"
+                Background="{DynamicResource Vestigium.Brushes.Surface.Card}" />
       </DockPanel>
     </Grid>
   </DockPanel>

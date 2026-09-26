@@ -4,7 +4,6 @@ using System.Windows.Media;
 using ScottPlot.WPF;
 using Vestigium.Helpers.Analytics;
 using Vestigium.Helpers.Charts;
-using Vestigium.Themes;
 using WpfControl = System.Windows.Controls.Control;
 
 namespace Vestigium.Helpers.Charts.MenuLab;
@@ -29,14 +28,8 @@ public partial class MainWindow : Window
     {
         if (ThemeBox.SelectedValue is not string id || string.IsNullOrWhiteSpace(id))
             return;
-        if (App.Themes.Current?.Id == id)
-        {
-            if (_ready)
-                BuildPlots();
-            return;
-        }
-
-        App.Themes.SwitchTheme(id);
+        if (App.Themes.Current?.Id != id)
+            App.Themes.SwitchTheme(id);
         if (_ready)
             BuildPlots();
     }
@@ -46,15 +39,18 @@ public partial class MainWindow : Window
         var ys = Enumerable.Range(0, 40).Select(i => 8 + Math.Sin(i / 4d) + i % 5 * 0.2).ToArray();
         var xs = Enumerable.Range(0, ys.Length).Select(i => (double)i).ToArray();
 
-        var broken = new WpfPlot { MinHeight = 280 };
+        var broken = new WpfPlot();
+        broken.MinHeight = 360;
+        broken.VerticalAlignment = VerticalAlignment.Stretch;
+        broken.HorizontalAlignment = HorizontalAlignment.Stretch;
         broken.Plot.Title("Default ScottPlot menu");
         broken.Plot.Add.Scatter(xs, ys);
         PaintPlot(broken.Plot);
-        broken.Refresh();
         BrokenHost.Child = broken;
+        broken.Refresh();
 
-        var series = NumericSeries.From(ys.Select(v => (decimal)v).ToArray(), "lab-rtt");
-        FixedHost.Child = ChartView.Line(series, new ChartOptions
+        var series = NumericSeries.From(ys.Select(v => (decimal)v), "lab-rtt");
+        var plot = ChartView.Line(series, new ChartOptions
         {
             Title = "ChartView HostMenu",
             XLabel = "Request",
@@ -62,13 +58,16 @@ public partial class MainWindow : Window
             ShowLegend = true,
             HostMenu = true,
             Stretch = true,
-            Height = 280,
-            Color = Hex("Vestigium.Brushes.Accent.Primary"),
+            Color = Hex("Vestigium.Brushes.Accent.Primary") ?? "#4C6B8A",
             FigureColor = Hex("Vestigium.Brushes.Surface.Window"),
             DataColor = Hex("Vestigium.Brushes.Surface.Card"),
             AxisColor = Hex("Vestigium.Brushes.Text.Primary"),
             GridColor = Hex("Vestigium.Brushes.Stroke.Subtle")
         });
+        plot.MinHeight = 360;
+        FixedHost.Child = plot;
+        if (plot is WpfPlot wpf)
+            wpf.Refresh();
     }
 
     private static void PaintPlot(ScottPlot.Plot plot)

@@ -39,7 +39,7 @@ public static partial class ChartView
         }
         else if (options.Stretch)
         {
-            view.Height = double.NaN;
+            view.ClearValue(FrameworkElement.HeightProperty);
             view.MinHeight = 220;
             view.VerticalAlignment = VerticalAlignment.Stretch;
             view.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -62,6 +62,12 @@ public static partial class ChartView
 
         view.Menu = options.HostMenu ? new ChartPlotMenu(view) : null;
         view.ContextMenu = null;
+        view.Loaded += (_, _) => view.Refresh();
+        view.SizeChanged += (_, _) =>
+        {
+            if (view.ActualWidth > 1 && view.ActualHeight > 1)
+                view.Refresh();
+        };
         view.Refresh();
     }
 
