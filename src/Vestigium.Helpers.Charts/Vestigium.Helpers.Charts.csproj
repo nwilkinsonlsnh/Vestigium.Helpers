@@ -5,7 +5,7 @@
     <RootNamespace>Vestigium.Helpers.Charts</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Charts</AssemblyName>
     <Description>ScottPlot wrapper that puts Analytics numbers on a WPF form.</Description>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>charts;scottplot;wpf;vestigium</PackageTags>

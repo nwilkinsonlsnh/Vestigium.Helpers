@@ -122,7 +122,7 @@ internal static partial class PlotBuilder
 
             var bell = plot.Add.ScatterLine(xs, ys);
             bell.Color = Color.FromHex(Palette.Bell);
-            bell.LegendText = "N(μ, s)";
+            bell.LegendText = "N(\u03bc, s)";
         }
 
         switch (options.ShowKde)
@@ -163,27 +163,7 @@ internal static partial class PlotBuilder
         sc.Color = Primary(options);
         sc.LegendText = spec.Source?.Name ?? "series";
         ApplyLimits(plot, options.Limits ?? spec.Limits, xs, ys);
-
-        switch (options.Trend)
-        {
-            case TrendKind.Linear:
-            {
-                var fit = TrendFit.Linear(xs, ys);
-                if (fit is not null)
-                {
-                    var x0 = xs.Min();
-                    var x1 = xs.Max();
-                    var tr = plot.Add.ScatterLine(new[] { x0, x1 }, new[] { fit.Intercept + fit.Slope * x0, fit.Intercept + fit.Slope * x1 });
-                    tr.Color = Color.FromHex(Palette.Trend);
-                    tr.LegendText = $"trend R²={fit.RSquared:F3}";
-                }
-
-                break;
-            }
-            case TrendKind.None:
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+        ApplyTrend(plot, options, xs, ys);
     }
 
     private static void FillBars(Plot plot, ChartSpec spec, ChartOptions options, bool horizontal)
