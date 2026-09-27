@@ -6,8 +6,8 @@
 
 | Door | Item | Note |
 |---|---|---|
-| In | `SampleRecord`, `CounterPath`, `SampleStatus` | Frozen records. Miss is null, not zero. |
-| In | `ICounterSource` + `FakeCounterSource` | Tests own the fake. |
+| Landed | `SampleRecord`, `CounterPath`, `SampleStatus` | PM01.001 |
+| Landed | `ICounterSource` + `FakeCounterSource` | PM01.002 |
 | In | `SampleJob` + options + result | Bounded clock. Prime tick dropped. |
 | In | Logging door | `PerfMonCatalog.Register(VestigiumLoggerOptions)` |
 | In | EVENTID 17000–17045 | Block through 17499 |
