@@ -43,11 +43,111 @@ public sealed class PerfMonCpuPc01Tests
     }
 
     [Fact]
-    public void PC01_001_live_counters_do_not_throw_when_missing()
+    public void PC01_001_live_does_not_fake_known_when_missing()
     {
-        var live = CpuCounterCatalog.LiveCounters(CpuObjects.ProcessorPerformance, "_Total", 8);
-        Assert.InRange(live.Count, 1, 8);
-        Assert.Empty(CpuCounterCatalog.LiveCounters(CpuObjects.Processor, "_Total", 0));
-        Assert.Empty(CpuCounterCatalog.LiveInstances(CpuObjects.Processor, 0));
+        var missing = new ScriptedInventory { Present = false };
+        Assert.False(CpuCounterCatalog.CategoryPresent(CpuObjects.Processor, missing));
+        Assert.False(CpuCounterCatalog.HasCounter(CpuObjects.Processor, "% Processor Time", "_Total", missing));
+        Assert.False(CpuCounterCatalog.HasInstance(CpuObjects.Processor, "_Total", missing));
+        Assert.Empty(CpuCounterCatalog.LiveCounters(CpuObjects.Processor, "_Total", 256, missing));
+        Assert.Empty(CpuCounterCatalog.LiveInstances(CpuObjects.Processor, 256, missing));
+        Assert.False(CpuCounterCatalog.Snapshot(CpuObjects.Processor, inventory: missing).CategoryPresent);
+    }
+
+    [Fact]
+    public void PC01_001_check_and_snapshot_use_live_inventory()
+    {
+        var live = new ScriptedInventory
+        {
+            Present = true,
+            Counters = ["% Processor Time", "Parking Status"],
+            Instances = ["_Total", "0,0"]
+        };
+        Assert.True(CpuCounterCatalog.CategoryPresent(CpuObjects.ProcessorInformation, live));
+        Assert.True(CpuCounterCatalog.HasCounter(CpuObjects.ProcessorInformation, "Parking Status", "_Total", live));
+        Assert.False(CpuCounterCatalog.HasCounter(CpuObjects.ProcessorInformation, "No Such", "_Total", live));
+        Assert.True(CpuCounterCatalog.HasInstance(CpuObjects.ProcessorInformation, "0,0", live));
+        var snap = CpuCounterCatalog.Snapshot(CpuObjects.ProcessorInformation, inventory: live);
+        Assert.True(snap.CategoryPresent);
+        Assert.Equal(["% Processor Time", "Parking Status"], snap.Counters);
+        Assert.Equal(["_Total", "0,0"], snap.Instances);
+    }
+
+    [Fact]
+    public async Task PC01_001_watch_subscribes_to_live_counters_and_instances()
+    {
+        var inventory = new ScriptedInventory
+        {
+            Present = true,
+            Counters = ["% Processor Time"],
+            Instances = ["_Total"]
+        };
+        var hits = new List<CpuCatalogSnapshot>();
+        await CpuCounterCatalog.WatchAsync(
+            new CpuCatalogWatchOptions
+            {
+                Category = CpuObjects.Processor,
+                Count = 2,
+                Interval = TimeSpan.FromSeconds(1),
+                EmitOnlyOnChange = false,
+                Inventory = inventory,
+                Clock = new ImmediateClock()
+            },
+            hits.Add);
+
+        Assert.Equal(2, hits.Count);
+        Assert.All(hits, s => Assert.Equal(["% Processor Time"], s.Counters));
+        Assert.All(hits, s => Assert.Equal(["_Total"], s.Instances));
+    }
+
+    [Fact]
+    public void PC01_001_is_known_is_not_live()
+    {
+        Assert.True(CpuCounterCatalog.IsKnownCounter(CpuObjects.Processor, "% Processor Time"));
+        Assert.False(CpuCounterCatalog.IsKnownCounter(CpuObjects.Processor, "Parking Status"));
+    }
+
+    private sealed class ScriptedInventory : ICpuInventory
+    {
+        public bool Present { get; set; }
+        public IReadOnlyList<string> Counters { get; set; } = [];
+        public IReadOnlyList<string> Instances { get; set; } = [];
+
+        public bool CategoryPresent(string category) => Present;
+
+        public bool InstancePresent(string category, string instance)
+            => Present && Instances.Contains(instance, StringComparer.OrdinalIgnoreCase);
+
+        public IReadOnlyList<string> LiveCounters(string category, string instance, int cap)
+            => Present ? Counters.Take(cap).ToArray() : [];
+
+        public IReadOnlyList<string> LiveInstances(string category, int cap)
+            => Present ? Instances.Take(cap).ToArray() : [];
+    }
+
+    private sealed class ImmediateClock : TimeProvider
+    {
+        private DateTimeOffset _utc = new(2026, 9, 27, 22, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => _utc;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            if (dueTime != Timeout.InfiniteTimeSpan)
+            {
+                if (dueTime > TimeSpan.Zero)
+                    _utc += dueTime;
+                callback(state);
+            }
+
+            return new DoneTimer();
+        }
+
+        private sealed class DoneTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => false;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
     }
 }

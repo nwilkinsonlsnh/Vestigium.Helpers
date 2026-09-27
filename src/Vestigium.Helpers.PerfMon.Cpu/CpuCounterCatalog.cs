@@ -1,14 +1,15 @@
-using System.Diagnostics;
-
 namespace Vestigium.Helpers.PerfMon.Cpu;
 
 /// <summary>
-/// Counter names under Processor, Processor Information, and Processor Performance.
-/// Known lists work without live PDH. Live lists read the box and stay capped.
+/// Known vocabulary plus live checks and a watch for Processor,
+/// Processor Information, and Processor Performance.
+/// Live methods never substitute the known list.
 /// </summary>
 public static class CpuCounterCatalog
 {
     public const int DefaultCap = 256;
+
+    internal static readonly ICpuInventory Pdh = new PdhCpuInventory();
 
     private static readonly Dictionary<string, string[]> Known = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -77,73 +78,123 @@ public static class CpuCounterCatalog
     public static bool IsKnownCategory(string category)
         => Known.ContainsKey(category?.Trim() ?? string.Empty);
 
+    public static bool IsKnownCounter(string category, string counter)
+    {
+        if (!IsKnownCategory(category) || string.IsNullOrWhiteSpace(counter))
+            return false;
+        return Counters(category).Contains(counter.Trim(), StringComparer.OrdinalIgnoreCase);
+    }
+
     public static IReadOnlyList<string> Counters(string category)
+        => Known[RequireCategory(category)];
+
+    public static bool CategoryPresent(string category, ICpuInventory? inventory = null)
+        => inventory.OrPdh().CategoryPresent(RequireCategory(category));
+
+    public static bool HasCounter(string category, string counter, string instance = "_Total", ICpuInventory? inventory = null)
     {
-        var key = RequireCategory(category);
-        return Known[key];
+        if (string.IsNullOrWhiteSpace(counter))
+            return false;
+        var snap = Snapshot(category, instance, DefaultCap, inventory);
+        return snap.CategoryPresent
+            && snap.Counters.Contains(counter.Trim(), StringComparer.OrdinalIgnoreCase);
     }
 
-    public static IReadOnlyList<string> LiveCounters(string category, string instance = "_Total", int cap = DefaultCap)
+    public static bool HasInstance(string category, string instance, ICpuInventory? inventory = null)
     {
         var key = RequireCategory(category);
-        if (cap <= 0)
-            return Array.Empty<string>();
-
-        try
-        {
-            if (!PerformanceCounterCategory.Exists(key))
-                return Counters(key);
-
-            var inst = string.IsNullOrWhiteSpace(instance) ? "_Total" : instance.Trim();
-            var cat = new PerformanceCounterCategory(key);
-            var rows = cat.CategoryType == PerformanceCounterCategoryType.SingleInstance
-                ? cat.GetCounters()
-                : cat.GetCounters(inst);
-
-            return rows
-                .Select(c => c.CounterName)
-                .Where(n => n.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(cap)
-                .ToArray();
-        }
-        catch (InvalidOperationException)
-        {
-            return Counters(key);
-        }
-        catch (ArgumentException)
-        {
-            return Counters(key);
-        }
+        var inv = inventory.OrPdh();
+        if (!inv.CategoryPresent(key))
+            return false;
+        if (string.IsNullOrWhiteSpace(instance))
+            return true;
+        return inv.InstancePresent(key, instance.Trim());
     }
 
-    public static IReadOnlyList<string> LiveInstances(string category, int cap = DefaultCap)
+    public static IReadOnlyList<string> LiveCounters(string category, string instance = "_Total", int cap = DefaultCap, ICpuInventory? inventory = null)
+        => inventory.OrPdh().LiveCounters(RequireCategory(category), instance, cap);
+
+    public static IReadOnlyList<string> LiveInstances(string category, int cap = DefaultCap, ICpuInventory? inventory = null)
+        => inventory.OrPdh().LiveInstances(RequireCategory(category), cap);
+
+    public static CpuCatalogSnapshot Snapshot(
+        string category,
+        string instance = "_Total",
+        int cap = DefaultCap,
+        ICpuInventory? inventory = null,
+        TimeProvider? clock = null)
     {
         var key = RequireCategory(category);
-        if (cap <= 0)
-            return Array.Empty<string>();
+        var inst = string.IsNullOrWhiteSpace(instance) ? "_Total" : instance.Trim();
+        var inv = inventory.OrPdh();
+        var present = inv.CategoryPresent(key);
+        return new CpuCatalogSnapshot(
+            (clock ?? TimeProvider.System).GetUtcNow(),
+            key,
+            inst,
+            present,
+            present ? inv.LiveCounters(key, inst, cap) : Array.Empty<string>(),
+            present ? inv.LiveInstances(key, cap) : Array.Empty<string>());
+    }
 
-        try
-        {
-            if (!PerformanceCounterCategory.Exists(key))
-                return Array.Empty<string>();
+    public static async Task WatchAsync(
+        CpuCatalogWatchOptions options,
+        Action<CpuCatalogSnapshot> onSnapshot,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(onSnapshot);
+        ArgumentNullException.ThrowIfNull(options.Clock);
 
-            var cat = new PerformanceCounterCategory(key);
-            if (cat.CategoryType == PerformanceCounterCategoryType.SingleInstance)
-                return Array.Empty<string>();
+        var key = RequireCategory(options.Category);
+        if (options.Interval <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(options), "Interval must be positive.");
+        if (options.Interval < TimeSpan.FromMilliseconds(50))
+            throw new ArgumentOutOfRangeException(nameof(options), "Burst floor is 50 ms.");
+        if (options.Interval < TimeSpan.FromMilliseconds(200) && !options.AllowBurst)
+            throw new ArgumentOutOfRangeException(nameof(options), "Intervals under 200 ms require AllowBurst.");
+        if (options.Duration is { } duration && duration > TimeSpan.FromHours(24))
+            throw new ArgumentOutOfRangeException(nameof(options), "Duration cap is 24 hours.");
+        if (options.Count is < 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "Count cannot be negative.");
+        if ((options.Count is null or 0) && options.Duration is null && !cancellationToken.CanBeCanceled)
+            throw new ArgumentException("Watch must have a count, a duration, or a cancellation token.");
 
-            var names = cat.GetInstanceNames();
-            if (names.Length <= cap)
-                return names;
-            return names.Take(cap).ToArray();
-        }
-        catch (InvalidOperationException)
+        var started = options.Clock.GetUtcNow();
+        string? lastKey = null;
+        var ticks = 0;
+
+        while (true)
         {
-            return Array.Empty<string>();
-        }
-        catch (ArgumentException)
-        {
-            return Array.Empty<string>();
+            if (cancellationToken.IsCancellationRequested)
+                return;
+            if (options.Count is > 0 && ticks >= options.Count)
+                return;
+            if (options.Duration is { } cap && options.Clock.GetUtcNow() - started >= cap)
+                return;
+
+            var snap = Snapshot(key, options.Instance, options.Cap, options.Inventory, options.Clock);
+            var sig = Signature(snap);
+            if (!options.EmitOnlyOnChange || sig != lastKey)
+            {
+                onSnapshot(snap);
+                lastKey = sig;
+            }
+
+            ticks++;
+            if (options.Count is > 0 && ticks >= options.Count)
+                return;
+            if (options.Duration is { } cap2 && options.Clock.GetUtcNow() - started >= cap2)
+                return;
+
+            try
+            {
+                await Task.Delay(options.Interval, options.Clock, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
     }
 
@@ -154,7 +205,9 @@ public static class CpuCounterCatalog
     {
         var key = RequireCategory(category);
         var inst = string.IsNullOrWhiteSpace(instance) ? "_Total" : instance.Trim();
-        var names = counters is null ? Counters(key) : counters.Select(n => n?.Trim() ?? string.Empty).Where(n => n.Length > 0).ToArray();
+        var names = counters is null
+            ? Counters(key)
+            : counters.Select(n => n?.Trim() ?? string.Empty).Where(n => n.Length > 0).ToArray();
         return names.Select(name => new CounterPath(key, name, inst, UnitOf(name))).ToArray();
     }
 
@@ -182,4 +235,13 @@ public static class CpuCounterCatalog
                 nameof(category));
         return Known.Keys.First(k => k.Equals(key, StringComparison.OrdinalIgnoreCase));
     }
+
+    private static string Signature(CpuCatalogSnapshot snap)
+        => $"{snap.CategoryPresent}|{string.Join('\u001f', snap.Counters)}|{string.Join('\u001f', snap.Instances)}";
+}
+
+internal static class CpuInventoryExtensions
+{
+    public static ICpuInventory OrPdh(this ICpuInventory? inventory)
+        => inventory ?? CpuCounterCatalog.Pdh;
 }
