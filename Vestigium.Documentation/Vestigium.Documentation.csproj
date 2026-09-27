@@ -21,6 +21,13 @@
     <Content Include="..\src\Vestigium.Helpers.Services\README.md" Link="Vestigium\Helpers\Services\README.md" />
     <Content Include="..\src\Vestigium.Helpers.WinReg\README.md" Link="Vestigium\Helpers\WinReg\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Xml\README.md" Link="Vestigium\Helpers\Xml\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon\README.md" Link="Vestigium\Helpers\PerfMon\PerfMon\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon.Cpu\README.md" Link="Vestigium\Helpers\PerfMon\Cpu\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon.Disk\README.md" Link="Vestigium\Helpers\PerfMon\Disk\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon.Gpu\README.md" Link="Vestigium\Helpers\PerfMon\Gpu\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon.Memory\README.md" Link="Vestigium\Helpers\PerfMon\Memory\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon.Network\README.md" Link="Vestigium\Helpers\PerfMon\Network\README.md" />
+    <Content Include="..\src\Vestigium.PerfMon.PageFile\README.md" Link="Vestigium\Helpers\PerfMon\PageFile\README.md" />
   </ItemGroup>
 
   <ItemGroup>
@@ -78,6 +85,20 @@
     <Folder Include="Vestigium\Helpers\Xml\000 -- Archived\004 -- Developers Guide\" />
     <Folder Include="Vestigium\Helpers\Xml\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\Xml\003 -- Design Document\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Cpu\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Cpu\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Disk\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Disk\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Gpu\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Gpu\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Memory\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Memory\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Network\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\Network\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\PageFile\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\PageFile\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\PerfMon\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\PerfMon\001 -- Implementation Plan\" />
   </ItemGroup>
 
 </Project>

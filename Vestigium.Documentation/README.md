@@ -4,7 +4,9 @@ Suite document store. Project-root `README.md` files stay with the library and l
 
 ## Area folders
 
-Each library under `Vestigium/Helpers/{Name}/` uses the same numbered areas:
+Each library under `Vestigium/Helpers/{Name}/` uses the same numbered areas.
+
+PerfMon is a family. Shared plus each probe live under `Vestigium/Helpers/PerfMon/{Name}/` with the same numbered areas. The family index is `Vestigium/Helpers/PerfMon/README.md`.
 
 | Area | Role |
 |---|---|

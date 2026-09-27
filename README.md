@@ -5,8 +5,8 @@
 Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, HttpIQ, ProbeHost).
 
 **Target:** .NET 10 LTS / Visual Studio 2026  
-**Shape:** class libraries. Some older libraries still have a WPF gallery; **new work does not add Demo projects.** FileIo, Network, and Hashing have none.  
-**Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`  
+**Shape:** class libraries. Some older libraries still have a WPF gallery; **new work does not add Demo projects.** FileIo, Network, Hashing, and PerfMon have none.  
+**Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`, `Vestigium.PerfMon*`  
 **Logging:** [Vestigium.Logging](https://www.nuget.org/packages/Vestigium.Logging) 1.7.1 (NuGet).
 
 Umbrella requirements: [`_Documentation/Requirements_v1.0.md`](_Documentation/Requirements_v1.0.md)  
@@ -41,16 +41,25 @@ Restore `Vestigium.Logging` 1.7.1 from nuget.org (`Directory.Build.props`). Do n
 | `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals, ControlLimits |
 | `Vestigium.Helpers.Charts` | `net10.0-windows` | ScottPlot wrapper. Does not compute UCL/LCL. |
 | `Vestigium.Helpers.Network` | `net10.0` | Workstation inventory, ICMP Echo/Trace, DNS. No Demo project. |
+| `Vestigium.PerfMon` | `net10.0-windows` | Shared sample contract for the PerfMon family. No Demo project. |
+| `Vestigium.PerfMon.Cpu` | `net10.0-windows` | Processor PDH samples |
+| `Vestigium.PerfMon.Disk` | `net10.0-windows` | Physical and logical disk PDH samples |
+| `Vestigium.PerfMon.Gpu` | `net10.0-windows` | GPU the OS exposes. Not NVML. |
+| `Vestigium.PerfMon.Memory` | `net10.0-windows` | Commit and available memory |
+| `Vestigium.PerfMon.Network` | `net10.0-windows` | Adapter PDH rates. Not ICMP. |
+| `Vestigium.PerfMon.PageFile` | `net10.0-windows` | Pagefile usage and paging |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit |
 
-**FileIo, Network, and Hashing have no Demo project.** Hosts consume those libraries.
+**FileIo, Network, Hashing, and PerfMon have no Demo project.** Hosts consume those libraries.
+
+PerfMon documents live under [Vestigium.Documentation / Helpers / PerfMon](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/PerfMon).
 
 ## Open in Visual Studio
 
 1. Clone this repository.
 2. Open `Vestigium.Helpers.slnx` in Visual Studio 2026.
 3. Restore NuGet (`Vestigium.Logging` 1.7.1 comes from nuget.org).
-4. There is no `Vestigium.Helpers.Hashing.Demo`, `FileIo.Demo`, or `Network.Demo`. Run tests for those contracts.
+4. There is no `Vestigium.Helpers.Hashing.Demo`, `FileIo.Demo`, `Network.Demo`, or PerfMon Demo. Run tests for those contracts.
 5. Run `Vestigium.Helpers.Tests` for the contract.
 
 ```
@@ -64,5 +73,6 @@ dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~FileIo
 - Helpers never call `Initialize`. Application hosts do.
 - Disk format is JSON Lines from Vestigium.Logging.
 - `WinReg` stays on `net10.0-windows`.
+- PerfMon family stays on `net10.0-windows`.
 - Tests must not hit live ProgramData; they pass a temp `LogDirectory` or `IndexRootOverride`.
 - `Vestigium.Logging` is a NuGet package. Do not vendor its source into Helpers.

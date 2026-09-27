@@ -1,0 +1,19 @@
+# PerfMon family
+
+Windows performance samples for diagnostic hosts. Not a plot package. Not Task Manager. Not `Vestigium.Helpers.Network`.
+
+Solution folder: `Library/PerfMon`.
+
+| Project | Role | EVENTID |
+|---|---|---|
+| `Vestigium.PerfMon` | Shared sample contract, job runner, counter source | 17000–17499 |
+| `Vestigium.PerfMon.Network` | Adapter rates and errors | 17500–17999 |
+| `Vestigium.PerfMon.Cpu` | Processor time and queue | 18000–18499 |
+| `Vestigium.PerfMon.Gpu` | GPU the OS exposes | 18500–18999 |
+| `Vestigium.PerfMon.Memory` | Commit, available, working set | 19000–19499 |
+| `Vestigium.PerfMon.Disk` | Physical and logical disk | 19500–19999 |
+| `Vestigium.PerfMon.PageFile` | Pagefile usage and paging | 20000–20499 |
+
+Long-form documents sit in the child folder, not at this index.
+
+`Vestigium.Helpers.Network` owns ICMP, DNS, routes, inventory, and `SampleCounters` / `WatchAdapter` as protocol-adjacent jobs. PerfMon.Network owns PDH adapter counters over time. Do not merge them.
