@@ -7,6 +7,8 @@ internal sealed class FakeCounterSource : ICounterSource
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<string>> _instances =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _prime =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public void Seed(CounterPath path, params SampleRecord[] rows)
     {
@@ -33,6 +35,18 @@ internal sealed class FakeCounterSource : ICounterSource
             .Select(n => n?.Trim() ?? string.Empty)
             .Where(n => n.Length > 0)
             .ToList();
+    }
+
+    public void MarkNeedsPrime(CounterPath path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        _prime.Add(path.Key);
+    }
+
+    public bool NeedsPrime(CounterPath path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return _prime.Contains(path.Key);
     }
 
     public SampleRecord Read(CounterPath path)

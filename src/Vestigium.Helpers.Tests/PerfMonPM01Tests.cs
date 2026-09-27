@@ -220,6 +220,48 @@ public sealed class PerfMonPm01Tests
         Assert.Null(result.Samples[1].Value);
     }
 
+    [Fact]
+    public async Task PM01_005_prime_tick_is_not_emitted()
+    {
+        var path = new CounterPath("Processor", "% Processor Time", "_Total");
+        var fake = new FakeCounterSource();
+        fake.MarkNeedsPrime(path);
+        fake.Seed(path, SampleRecord.Ok(path, 0), SampleRecord.Ok(path, 41), SampleRecord.Ok(path, 42));
+
+        var job = new SampleJob([path], new SampleJobOptions
+        {
+            Count = 2,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        var result = await job.RunAsync();
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(2, result.Samples.Count);
+        Assert.Equal(41, result.Samples[0].Value);
+        Assert.Equal(42, result.Samples[1].Value);
+        Assert.DoesNotContain(result.Samples, s => s.Value == 0);
+    }
+
+    [Fact]
+    public async Task PM01_005_level_counter_skips_prime()
+    {
+        var path = new CounterPath("Memory", "Available MBytes");
+        var fake = new FakeCounterSource();
+        fake.Seed(path, SampleRecord.Ok(path, 1024), SampleRecord.Ok(path, 1000));
+
+        var job = new SampleJob([path], new SampleJobOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        var result = await job.RunAsync();
+        Assert.Equal(1, result.Samples.Count);
+        Assert.Equal(1024, result.Samples[0].Value);
+    }
+
     private static CounterPath[] OnePath()
         => [new CounterPath("Processor", "% Processor Time", "_Total")];
 

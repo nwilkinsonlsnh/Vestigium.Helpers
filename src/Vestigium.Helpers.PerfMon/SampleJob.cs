@@ -27,6 +27,16 @@ public sealed class SampleJob
         var started = Options.Clock.GetUtcNow();
         var ticks = 0;
 
+        try
+        {
+            Prime(source, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result(SampleStatus.Cancelled, samples);
+        }
+
+
         while (true)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -71,6 +81,17 @@ public sealed class SampleJob
         }
 
         return Result(terminal, samples);
+    }
+
+    private void Prime(ICounterSource source, CancellationToken cancellationToken)
+    {
+        foreach (var path in Paths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!source.NeedsPrime(path))
+                continue;
+            _ = source.Read(path);
+        }
     }
 
     private bool CountReached(int ticks)

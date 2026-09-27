@@ -6,4 +6,9 @@ public interface ICounterSource
     SampleRecord Read(CounterPath path);
 
     IReadOnlyList<string> ListInstances(string category, int cap);
+
+    /// <summary>
+    /// Rate counters need a discarded first read. Level counters return false.
+    /// </summary>
+    bool NeedsPrime(CounterPath path) => false;
 }
