@@ -76,4 +76,58 @@ public sealed class PerfMonPm01Tests
         Assert.Equal(SampleStatus.Unavailable, unseeded.Status);
         Assert.Null(unseeded.Value);
     }
+
+    [Fact]
+    public void PM01_003_interval_below_200ms_rejected()
+    {
+        var paths = OnePath();
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SampleJob(paths, new SampleJobOptions
+        {
+            Interval = TimeSpan.FromMilliseconds(199),
+            Count = 1
+        }));
+    }
+
+    [Fact]
+    public void PM01_003_burst_below_50ms_rejected()
+    {
+        var paths = OnePath();
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SampleJob(paths, new SampleJobOptions
+        {
+            Interval = TimeSpan.FromMilliseconds(49),
+            AllowBurst = true,
+            Count = 1
+        }));
+    }
+
+    [Fact]
+    public void PM01_003_duration_over_24h_rejected()
+    {
+        var paths = OnePath();
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SampleJob(paths, new SampleJobOptions
+        {
+            Duration = TimeSpan.FromHours(24).Add(TimeSpan.FromMilliseconds(1))
+        }));
+    }
+
+    [Fact]
+    public void PM01_003_unbounded_job_rejected()
+    {
+        var job = new SampleJob(OnePath(), new SampleJobOptions { Count = 0 });
+        Assert.Throws<ArgumentException>(() => job.RunAsync().GetAwaiter().GetResult());
+
+        var missing = new SampleJob(OnePath(), new SampleJobOptions());
+        Assert.Throws<ArgumentException>(() => missing.RunAsync().GetAwaiter().GetResult());
+    }
+
+    [Fact]
+    public void PM01_003_empty_path_list_rejected()
+    {
+        Assert.Throws<ArgumentException>(() => new SampleJob([]));
+        Assert.Throws<ArgumentNullException>(() => new SampleJob(null!));
+    }
+
+    private static CounterPath[] OnePath()
+        => [new CounterPath("Processor", "% Processor Time", "_Total")];
 }
+
