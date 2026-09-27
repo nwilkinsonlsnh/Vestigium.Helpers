@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Logging;
 
@@ -350,6 +351,42 @@ public sealed class PerfMonPm01Tests
         var ex = Record.Exception(() => job.RunAsync().GetAwaiter().GetResult());
         Assert.Null(ex);
         Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void PM01_008_catalog_matches_constants()
+    {
+        var jsonPath = Path.Combine(
+            Path.GetDirectoryName(typeof(PerfMonCatalog).Assembly.Location)!,
+            "EventCatalog",
+            "perfmon.json");
+        Assert.True(File.Exists(jsonPath), jsonPath);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var root = doc.RootElement;
+        Assert.Equal("PerfMon", root.GetProperty("app").GetString());
+        Assert.Equal(PerfMonCatalog.Category, root.GetProperty("category").GetString());
+        Assert.Equal(PerfMonEvents.BlockStart, root.GetProperty("block").GetProperty("start").GetInt32());
+        Assert.Equal(PerfMonEvents.BlockEnd, root.GetProperty("block").GetProperty("end").GetInt32());
+
+        var events = root.GetProperty("events").EnumerateArray().ToArray();
+        Assert.Equal(PerfMonCatalog.Rows.Length, events.Length);
+
+        var constants = typeof(PerfMonEvents)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(int) && f.Name is not ("BlockStart" or "BlockEnd"))
+            .ToDictionary(f => f.Name, f => (int)f.GetValue(null)!);
+
+        foreach (var (row, node) in PerfMonCatalog.Rows.Zip(events))
+        {
+            Assert.Equal(row.EventId, node.GetProperty("eventId").GetInt32());
+            Assert.Equal(row.Name, node.GetProperty("name").GetString());
+            Assert.Equal(row.Severity, node.GetProperty("severity").GetString());
+            Assert.Equal(row.Subcategory, node.GetProperty("subcategory").GetString());
+            Assert.Equal(row.EventId % 5, 0);
+            Assert.InRange(row.EventId, PerfMonEvents.BlockStart, PerfMonEvents.BlockEnd);
+            Assert.Equal(constants[row.Name], row.EventId);
+        }
     }
 
     private static CounterPath[] OnePath()
