@@ -209,6 +209,62 @@ public sealed class PerfMonCpuPc01Tests
         Assert.Single(paths, p => p.Counter == CpuPaths.QueueLength);
     }
 
+    [Fact]
+    public void PC01_004_missing_parking_is_omitted()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.ProcessorInformation],
+            Counters = ["% Processor Time", "% Privileged Time", "% User Time"],
+            Instances = ["_Total", "0,0"]
+        };
+        var paths = CpuPaths.For(new CpuSampleOptions
+        {
+            IncludeParking = true,
+            IncludeCores = true,
+            Inventory = inv
+        }, inv);
+        Assert.DoesNotContain(paths, p => p.Counter == CpuPaths.ParkingStatus);
+        Assert.Contains(paths, p => p.Counter == CpuPaths.QueueLength);
+    }
+
+    [Fact]
+    public void PC01_004_parking_added_when_present()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.ProcessorInformation],
+            Counters = ["% Processor Time", "Parking Status"],
+            Instances = ["_Total", "0,0"]
+        };
+        var paths = CpuPaths.For(new CpuSampleOptions
+        {
+            IncludeParking = true,
+            IncludeCores = true,
+            Inventory = inv
+        }, inv);
+        Assert.Contains(paths, p => p.Counter == CpuPaths.ParkingStatus && p.Instance == "_Total" && p.Unit == "flag");
+        Assert.Contains(paths, p => p.Counter == CpuPaths.ParkingStatus && p.Instance == "0,0");
+        Assert.All(paths.Where(p => p.Counter == CpuPaths.ParkingStatus), p =>
+            Assert.Equal(CpuObjects.ProcessorInformation, p.Category));
+    }
+
+    [Fact]
+    public void PC01_004_parking_off_skips_even_when_present()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.ProcessorInformation],
+            Counters = ["Parking Status"],
+            Instances = ["_Total"]
+        };
+        var paths = CpuPaths.For(new CpuSampleOptions { IncludeParking = false, Inventory = inv }, inv);
+        Assert.DoesNotContain(paths, p => p.Counter == CpuPaths.ParkingStatus);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

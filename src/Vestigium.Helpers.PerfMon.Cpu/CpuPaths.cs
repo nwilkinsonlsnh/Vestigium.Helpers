@@ -2,12 +2,13 @@ namespace Vestigium.Helpers.PerfMon.Cpu;
 
 /// <summary>
 /// Default short job paths. Processor Information first, Processor if that object is absent.
-/// Queue is always System. Cores are listed once at job start. Parking is PC01.004.
+/// Queue is always System. Parking is added only when that counter exists.
 /// </summary>
 internal static class CpuPaths
 {
     public const string SystemObject = "System";
     public const string QueueLength = "Processor Queue Length";
+    public const string ParkingStatus = "Parking Status";
 
     public static readonly string[] Utilization =
     [
@@ -47,9 +48,10 @@ internal static class CpuPaths
         var inst = InstanceOrTotal(options.Instance);
         var obj = UtilizationObject(inv);
         var rows = new List<CounterPath>();
+        var park = options.IncludeParking
+            && CpuCounterCatalog.HasCounter(CpuObjects.ProcessorInformation, ParkingStatus, inst, inv);
 
-        foreach (var counter in Utilization)
-            rows.Add(new CounterPath(obj, counter, inst, CpuCounterCatalog.UnitOf(counter)));
+        AddInstance(rows, obj, inst, park);
 
         if (options.IncludeCores)
         {
@@ -57,12 +59,19 @@ internal static class CpuPaths
             {
                 if (core.Equals(inst, StringComparison.OrdinalIgnoreCase))
                     continue;
-                foreach (var counter in Utilization)
-                    rows.Add(new CounterPath(obj, counter, core, CpuCounterCatalog.UnitOf(counter)));
+                AddInstance(rows, obj, core, park);
             }
         }
 
         rows.Add(new CounterPath(SystemObject, QueueLength, instance: "", unit: "count"));
         return rows;
+    }
+
+    private static void AddInstance(List<CounterPath> rows, string obj, string instance, bool park)
+    {
+        foreach (var counter in Utilization)
+            rows.Add(new CounterPath(obj, counter, instance, CpuCounterCatalog.UnitOf(counter)));
+        if (park)
+            rows.Add(new CounterPath(CpuObjects.ProcessorInformation, ParkingStatus, instance, "flag"));
     }
 }
