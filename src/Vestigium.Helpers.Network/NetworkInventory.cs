@@ -7,7 +7,8 @@ public enum NetbiosOverTcp
 {
     Unknown = 0,
     Disabled = 1,
-    Enabled = 2
+    Enabled = 2,
+    Default = 3
 }
 
 public sealed record UnicastAddress(
@@ -23,6 +24,15 @@ public sealed record DhcpInfo(
     DateTimeOffset? LeaseObtained,
     DateTimeOffset? LeaseExpires);
 
+public sealed record AdapterDriver(
+    string? Provider,
+    string? Version,
+    DateTimeOffset? Date,
+    string? Description,
+    string? Inf,
+    string? HardwareId,
+    string? Service);
+
 public sealed record NetworkAdapter(
     string Id,
     string Name,
@@ -36,13 +46,24 @@ public sealed record NetworkAdapter(
     IReadOnlyList<string> Gateways,
     IReadOnlyList<string> DnsServers,
     DhcpInfo Dhcp,
-    NetbiosOverTcp NetbiosOverTcp);
+    NetbiosOverTcp NetbiosOverTcp,
+    int? InterfaceIndex,
+    int? Ipv4Metric,
+    bool? Ipv4MetricIsAutomatic,
+    bool? Ipv4AutoconfigEnabled,
+    int? Mtu,
+    string? DnsSuffix,
+    IReadOnlyList<string> WinsServers,
+    bool? DnsRegistrationEnabled,
+    bool? PhysicalAdapter,
+    AdapterDriver? Driver);
 
 public sealed record WorkstationNetwork(
     string HostName,
     string? DomainName,
     DateTimeOffset CapturedUtc,
-    IReadOnlyList<NetworkAdapter> Adapters);
+    IReadOnlyList<NetworkAdapter> Adapters,
+    IReadOnlyList<string> DnsSuffixSearchList);
 
 public sealed record NetworkAdapterQuery(
     string? Name = null,

@@ -6,8 +6,8 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Network` 1.2.0 |
-| Version rule | `1.1.0` is PR09. `1.2.0` is PR10. Do not republish `1.1.0` as if it had UdpProbe. |
+| Package | `Vestigium.Helpers.Network` 1.3.0 |
+| Version rule | `1.2.0` is PR10. `1.3.0` is inventory extras. Do not republish `1.2.0` as if it had driver or metric. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14560) |
@@ -20,7 +20,7 @@ Does not plot. OUI completeness is a URL fetched on request. The embedded snapsh
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.2.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.3.0" />
 ```
 
 ```csharp
@@ -41,7 +41,7 @@ var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
 
 | Call | Returns | Notes |
 |---|---|
-| `GetWorkstation` / `GetAdapters` / `GetSnapshot` | inventory | Local stack. |
+| `GetWorkstation` / `GetAdapters` / `GetSnapshot` | inventory | Local stack. 1.3 adds metric, DNS suffix, search list, WINS, driver, DHCP leases. |
 | `IcmpEcho` / `IcmpTrace` / `Pathping` | `NetworkJob<T>` | Bind set uses a bound ICMP path. |
 | `TcpConnect` / `UdpProbe` | `NetworkJob<T>` | One host, one port. |
 | `ProbeDns` | `NetworkJob<DnsProbeResult>` | Answered / refused / timed out. |

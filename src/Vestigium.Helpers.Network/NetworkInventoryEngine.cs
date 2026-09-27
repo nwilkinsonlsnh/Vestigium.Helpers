@@ -30,7 +30,8 @@ internal static class NetworkInventoryEngine
             host,
             domain,
             DateTimeOffset.UtcNow,
-            adapters);
+            adapters,
+            NetworkInventoryWindows.ReadSearchList());
     }
 
     public static NetworkAdapter CaptureOne(string nameOrId)
@@ -105,6 +106,46 @@ internal static class NetworkInventoryEngine
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
+        var wins = ReadWins(props);
+        int? index = null;
+        int? mtu = null;
+        string? suffix = null;
+        bool? dnsReg = null;
+        if (props is not null)
+        {
+            suffix = string.IsNullOrWhiteSpace(props.DnsSuffix) ? null : props.DnsSuffix.Trim();
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                    dnsReg = props.IsDynamicDnsEnabled;
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+
+            try
+            {
+                var v4 = props.GetIPv4Properties();
+                index = v4.Index;
+                mtu = v4.Mtu > 0 ? v4.Mtu : null;
+            }
+            catch (NetworkInformationException)
+            {
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+        }
+
+        NetworkInventoryWindows.ReadInterface(
+            nic,
+            out var metric,
+            out var metricAuto,
+            out var autoconfig,
+            out var leaseObtained,
+            out var leaseExpires);
+        var driver = NetworkInventoryWindows.ReadDriver(nic, out var physical);
+
         return new NetworkAdapter(
             nic.Id,
             nic.Name,
@@ -117,8 +158,18 @@ internal static class NetworkInventoryEngine
             unicast,
             gateways,
             dns,
-            ReadDhcp(nic, props),
-            ReadNetbios(nic));
+            ReadDhcp(nic, props, leaseObtained, leaseExpires),
+            ReadNetbios(nic),
+            index,
+            metric,
+            metricAuto,
+            autoconfig,
+            mtu,
+            suffix,
+            wins,
+            dnsReg,
+            physical,
+            driver);
     }
 
     private static UnicastAddress MapUnicast(UnicastIPAddressInformation addr)
@@ -174,7 +225,34 @@ internal static class NetworkInventoryEngine
         return new UnicastAddress(family, addr.Address.ToString(), v6Prefix, null, isDhcp);
     }
 
-    private static DhcpInfo ReadDhcp(NetworkInterface nic, IPInterfaceProperties? props)
+    private static IReadOnlyList<string> ReadWins(IPInterfaceProperties? props)
+    {
+        if (!OperatingSystem.IsWindows() || props is null)
+            return [];
+
+        try
+        {
+            return props.WinsServersAddresses
+                .Select(a => a.ToString())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch (NetworkInformationException)
+        {
+            return [];
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return [];
+        }
+    }
+
+    private static DhcpInfo ReadDhcp(
+        NetworkInterface nic,
+        IPInterfaceProperties? props,
+        DateTimeOffset? leaseObtained,
+        DateTimeOffset? leaseExpires)
     {
         bool? enabled = null;
         string? server = null;
@@ -204,7 +282,7 @@ internal static class NetworkInventoryEngine
         }
 
         _ = nic;
-        return new DhcpInfo(enabled, server, null, null);
+        return new DhcpInfo(enabled, server, leaseObtained, leaseExpires);
     }
 
     private static NetbiosOverTcp ReadNetbios(NetworkInterface nic)
@@ -221,6 +299,7 @@ internal static class NetworkInventoryEngine
             {
                 return option switch
                 {
+                    0 => NetbiosOverTcp.Default,
                     1 => NetbiosOverTcp.Enabled,
                     2 => NetbiosOverTcp.Disabled,
                     _ => NetbiosOverTcp.Unknown

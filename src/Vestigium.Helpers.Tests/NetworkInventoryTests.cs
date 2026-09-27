@@ -78,6 +78,25 @@ public sealed class NetworkInventoryTests
     }
 
     [Fact]
+    public void Inventory_exposes_search_list_and_adapter_extras()
+    {
+        var box = NetworkHelper.GetWorkstation();
+        Assert.NotNull(box.DnsSuffixSearchList);
+        Assert.NotEmpty(box.Adapters);
+        foreach (var adapter in box.Adapters)
+        {
+            Assert.NotNull(adapter.WinsServers);
+            Assert.NotNull(adapter.DnsServers);
+            if (adapter.InterfaceIndex is int index)
+                Assert.True(index >= 0);
+            if (adapter.Ipv4Metric is int metric)
+                Assert.True(metric >= 0);
+            if (adapter.Mtu is int mtu)
+                Assert.True(mtu > 0);
+        }
+    }
+
+    [Fact]
     public void Linux_netbios_is_unknown()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
