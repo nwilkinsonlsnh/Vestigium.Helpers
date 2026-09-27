@@ -80,6 +80,12 @@ public static class NetworkHelper
     public static NetworkJob<CounterSampleResult> SampleCounters(string nameOrId, CounterSampleOptions? options = null)
         => CounterSampleEngine.Create(nameOrId, options);
 
+    public static CounterReading ReadCounters(string nameOrId)
+        => TrafficWatchEngine.Read(nameOrId);
+
+    public static NetworkJob<TrafficWatchResult> WatchTraffic(string nameOrId, TrafficWatchOptions? options = null)
+        => TrafficWatchEngine.Create(nameOrId, options);
+
     public static NetworkJob<AdapterWatchResult> WatchAdapter(string nameOrId, AdapterWatchOptions? options = null)
         => AdapterWatchEngine.Create(nameOrId, options);
 
