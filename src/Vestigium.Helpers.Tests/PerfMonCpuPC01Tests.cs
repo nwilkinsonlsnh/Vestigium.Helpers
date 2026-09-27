@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Cpu;
 
@@ -263,6 +264,72 @@ public sealed class PerfMonCpuPc01Tests
         };
         var paths = CpuPaths.For(new CpuSampleOptions { IncludeParking = false, Inventory = inv }, inv);
         Assert.DoesNotContain(paths, p => p.Counter == CpuPaths.ParkingStatus);
+    }
+
+    [Fact]
+    public async Task PC01_005_run_uses_shared_job()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.Processor]
+        };
+        var paths = CpuPaths.DefaultJob("_Total", inv);
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await CpuPerf.RunAsync(new CpuSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Inventory = inv,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s => Assert.Equal(12, s.Value));
+        Assert.True(result.Samples is SampleRecord[] || ((IList<SampleRecord>)result.Samples).IsReadOnly);
+    }
+
+    [Fact]
+    public void PC01_005_pid_is_not_an_api()
+    {
+        var names = typeof(CpuSampleOptions).GetProperties().Select(p => p.Name);
+        Assert.DoesNotContain(names, n => n.Equals("Pid", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Equals("ProcessId", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Equals("ProcessName", StringComparison.OrdinalIgnoreCase));
+        Assert.Null(typeof(CpuPerf).GetMethod("RunAsync", [typeof(int)]));
+    }
+
+    [Fact]
+    public void PC01_005_live_total()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists("Processor")
+                && !PerformanceCounterCategory.Exists("Processor Information"))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        var inv = PdhCounterInventory.Shared;
+        var obj = CpuPaths.UtilizationObject(inv);
+        var path = new CounterPath(obj, "% Processor Time", "_Total", "%");
+        var source = new PerformanceCounterSource();
+        _ = source.Read(path);
+        var row = source.Read(path);
+        if (row.Status != SampleStatus.Ok)
+            return;
+        Assert.NotNull(row.Value);
     }
 
     private sealed class ScriptedInventory : ICounterInventory
