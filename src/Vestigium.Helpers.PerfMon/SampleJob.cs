@@ -7,7 +7,10 @@ public sealed class SampleJob
     {
         ArgumentNullException.ThrowIfNull(paths);
         if (paths.Count == 0)
+        {
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "empty path list");
             throw new ArgumentException("Path list cannot be empty.", nameof(paths));
+        }
 
         Paths = paths.ToArray();
         Options = SampleJobOptions.Normalize(options);
@@ -18,6 +21,7 @@ public sealed class SampleJob
 
     public async Task<SampleJobResult> RunAsync(CancellationToken cancellationToken = default)
     {
+        PerfMonLog.Debug(PerfMonEvents.JobEnter, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "enter job");
         Options.RejectIfUnbounded(cancellationToken);
         var source = Options.Source ?? new PerformanceCounterSource();
 
@@ -29,6 +33,7 @@ public sealed class SampleJob
         try
         {
             Prime(source, cancellationToken);
+            PerfMonLog.Information(PerfMonEvents.JobStarted, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "job started");
         }
         catch (OperationCanceledException)
         {
@@ -60,6 +65,12 @@ public sealed class SampleJob
             }
 
             ticks++;
+            PerfMonLog.Debug(
+                PerfMonEvents.JobTick,
+                Vestigium.Logging.VestigiumStatus.Success,
+                PerfMonCatalog.Subcategories.Job,
+                "job tick",
+                properties: PerfMonLog.Props(("ticks", ticks.ToString()), ("status", terminal.ToString())));
             if (tickMiss && tickOk)
                 terminal = SampleStatus.Partial;
 
@@ -100,5 +111,13 @@ public sealed class SampleJob
         => Options.HasDurationLimit && Options.Clock.GetUtcNow() - started >= Options.Duration;
 
     private static SampleJobResult Result(SampleStatus status, List<SampleRecord> samples)
-        => new(status, samples.ToArray());
+    {
+        if (status == SampleStatus.Cancelled)
+            PerfMonLog.Information(PerfMonEvents.JobCancelled, Vestigium.Logging.VestigiumStatus.Cancelled, PerfMonCatalog.Subcategories.Job, "job cancelled");
+        else if (status == SampleStatus.Rejected)
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "job rejected");
+        else
+            PerfMonLog.Information(PerfMonEvents.JobComplete, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "job complete");
+        return new SampleJobResult(status, samples.ToArray());
+    }
 }

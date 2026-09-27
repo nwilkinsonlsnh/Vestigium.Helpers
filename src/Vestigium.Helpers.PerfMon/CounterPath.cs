@@ -24,7 +24,14 @@ public sealed record CounterPath
     {
         var trimmed = value?.Trim() ?? string.Empty;
         if (trimmed.Length == 0)
+        {
+            PerfMonLog.Error(
+                PerfMonEvents.PathRejected,
+                Vestigium.Logging.VestigiumStatus.Failed,
+                PerfMonCatalog.Subcategories.Path,
+                "category and counter are required");
             throw new ArgumentException("Category and counter are required.", paramName);
+        }
         return trimmed;
     }
 }

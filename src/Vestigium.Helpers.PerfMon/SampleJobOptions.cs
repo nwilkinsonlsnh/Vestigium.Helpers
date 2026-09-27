@@ -29,27 +29,35 @@ public sealed class SampleJobOptions
 
     internal void RejectIfInvalid()
     {
+
         if (Interval <= TimeSpan.Zero)
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
             throw new ArgumentOutOfRangeException(nameof(Interval), Interval, "Interval must be positive.");
 
         if (Interval < BurstFloor)
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
             throw new ArgumentOutOfRangeException(nameof(Interval), Interval, "Burst floor is 50 ms.");
 
         if (Interval < BurstThreshold && !AllowBurst)
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
             throw new ArgumentOutOfRangeException(nameof(Interval), Interval, "Intervals under 200 ms require AllowBurst.");
 
         if (Duration is { } duration)
         {
             if (duration <= TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(Duration), duration, "Duration must be positive.");
+                PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
+            throw new ArgumentOutOfRangeException(nameof(Duration), duration, "Duration must be positive.");
             if (duration > MaxDuration)
-                throw new ArgumentOutOfRangeException(nameof(Duration), duration, "Duration cap is 24 hours.");
+                PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
+            throw new ArgumentOutOfRangeException(nameof(Duration), duration, "Duration cap is 24 hours.");
         }
 
         if (Count is < 0)
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
             throw new ArgumentOutOfRangeException(nameof(Count), Count, "Count cannot be negative.");
 
         if (InstanceCap < 0)
+            PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "options rejected");
             throw new ArgumentOutOfRangeException(nameof(InstanceCap), InstanceCap, "Instance cap cannot be negative.");
 
         ArgumentNullException.ThrowIfNull(Clock);
@@ -60,6 +68,7 @@ public sealed class SampleJobOptions
         if (HasCountLimit || HasDurationLimit || token.CanBeCanceled)
             return;
 
+        PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "unbounded job");
         throw new ArgumentException("Job must have a count, a duration, or a cancellation token.");
     }
 }

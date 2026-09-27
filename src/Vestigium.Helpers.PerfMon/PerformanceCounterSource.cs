@@ -15,10 +15,10 @@ internal sealed class PerformanceCounterSource : ICounterSource
         try
         {
             if (!CategoryExists(path.Category))
-                return SampleRecord.Unavailable(path);
+                return Miss(path);
 
             if (path.Instance.Length > 0 && !InstanceExists(path.Category, path.Instance))
-                return SampleRecord.Unavailable(path);
+                return Miss(path);
 
             using var counter = Open(path);
             var value = counter.NextValue();
@@ -26,12 +26,33 @@ internal sealed class PerformanceCounterSource : ICounterSource
         }
         catch (InvalidOperationException)
         {
-            return SampleRecord.Unavailable(path);
+            return Miss(path);
         }
         catch (ArgumentException)
         {
-            return SampleRecord.Unavailable(path);
+            return Miss(path);
         }
+        catch (Exception ex)
+        {
+            PerfMonLog.Error(
+                PerfMonEvents.SourceThrown,
+                Vestigium.Logging.VestigiumStatus.Failed,
+                PerfMonCatalog.Subcategories.Source,
+                "unexpected PDH failure",
+                ex);
+            throw;
+        }
+    }
+
+    private static SampleRecord Miss(CounterPath path)
+    {
+        PerfMonLog.Warning(
+            PerfMonEvents.SourceUnavailable,
+            Vestigium.Logging.VestigiumStatus.Failed,
+            PerfMonCatalog.Subcategories.Source,
+            "category or instance missing",
+            properties: PerfMonLog.Props(("category", path.Category), ("counter", path.Counter), ("instance", path.Instance)));
+        return SampleRecord.Unavailable(path);
     }
 
     public IReadOnlyList<string> ListInstances(string category, int cap)

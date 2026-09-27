@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Tests;
 
+[Collection("Logger")]
 public sealed class PerfMonPm01Tests
 {
     [Fact]
@@ -310,6 +312,44 @@ public sealed class PerfMonPm01Tests
         }
 
         return null;
+    }
+
+    [Fact]
+    public void PM01_007_register_is_host_only()
+    {
+        var register = typeof(PerfMonCatalog).GetMethod("Register");
+        Assert.NotNull(register);
+        Assert.Equal(typeof(VestigiumLoggerOptions), register!.GetParameters()[0].ParameterType);
+        Assert.Null(typeof(PerfMonCatalog).GetMethod("Initialize"));
+
+        VestigiumLogger.Shutdown();
+        Assert.False(VestigiumLogger.IsInitialized);
+        Assert.Null(Record.Exception(() =>
+            PerfMonLog.Information(
+                PerfMonEvents.JobComplete,
+                VestigiumStatus.Success,
+                PerfMonCatalog.Subcategories.Job,
+                "noop")));
+        Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void PM01_007_writes_noop_until_host_starts()
+    {
+        VestigiumLogger.Shutdown();
+        var path = new CounterPath("Processor", "% Processor Time", "_Total");
+        var fake = new FakeCounterSource();
+        fake.Seed(path, SampleRecord.Ok(path, 1));
+        var job = new SampleJob([path], new SampleJobOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        var ex = Record.Exception(() => job.RunAsync().GetAwaiter().GetResult());
+        Assert.Null(ex);
+        Assert.False(VestigiumLogger.IsInitialized);
     }
 
     private static CounterPath[] OnePath()
