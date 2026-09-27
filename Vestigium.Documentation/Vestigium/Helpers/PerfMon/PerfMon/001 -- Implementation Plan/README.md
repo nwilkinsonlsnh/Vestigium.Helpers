@@ -1,20 +1,10 @@
-# Vestigium.PerfMon — Implementation Plan
+# 001 -- Implementation Plan
 
-**Status:** skeleton + contract.
-**Date:** 27 September 2026
+**Library:** Vestigium.PerfMon
+**Status:** PM01 open. Shared library only. Package **0.1.0** (not published).
 
-## This pass
+Live paper:
 
-- Project file and README in `src/Vestigium.PerfMon/`
-- Requirements v1.0 and Design v1.0
-- Solution folder `Library/PerfMon`
+- [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)
 
-## Next pass (not this commit)
-
-- `ICounterSource` and `SampleJob` in shared
-- First live probe: Cpu `_Total` % Processor Time
-- xUnit against a fake source
-
-## Not this family
-
-Demo WPF. NuGet publish. Charts surface.
+Probe plans (Cpu, Disk, Gpu, Memory, Network, PageFile) stay in their own `001` folders. Do not grow this file to cover them.
