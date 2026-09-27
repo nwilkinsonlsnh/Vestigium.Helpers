@@ -1,8 +1,8 @@
 # Vestigium.Helpers.PerfMon.Cpu — PC01 implementation plan
 
 **Document ID:** VEST-HLP-PERFMON-CPU-PLAN-PC01
-**Version:** 1.0
-**Status:** Locked
+**Version:** 1.1
+**Status:** Locked (1.1 catalog amendment)
 **Date:** 27 September 2026
 **Package:** `Vestigium.Helpers.PerfMon.Cpu` 0.1.0 (not published)
 **Project:** `src/Vestigium.Helpers.PerfMon.Cpu/`
@@ -20,9 +20,9 @@ This probe names counters and returns shared `SampleRecord` rows. It does not ow
 
 A host can:
 
-1. Ask `_Total` utilization, privileged/user split, and queue length.
-2. Opt in to per-core rows, capped at 256.
-3. Get frozen `SampleJobResult` from shared `SampleJob`.
+1. List every known counter under `Processor`, `Processor Information`, and `Processor Performance`.
+2. Build `CounterPath` rows for one object + instance from that catalog.
+3. Ask the short default job (`_Total` utilization + queue) or sample a whole object via the catalog.
 4. Register events inside `VestigiumLogger.Initialize`.
 
 Done when the fixtures in §7 pass against a fake `ICounterSource` and this project still has no Charts / Analytics / Processes reference.
@@ -122,8 +122,10 @@ All under `src/Vestigium.Helpers.PerfMon.Cpu/`. Small files. No hub.
 
 | File | Role |
 |---|---|
+| `CpuObjects.cs` | The three PDH object names |
+| `CpuCounterCatalog.cs` | Known + live counters/instances + path builder |
 | `CpuSampleOptions.cs` | Probe options. Shared job options are mapped, not copied as a second clock. |
-| `CpuPaths.cs` | Builds the `CounterPath` list |
+| `CpuPaths.cs` | Default short path set |
 | `CpuPerf.cs` | Façade |
 | `CpuPerfEvents.cs` | Constants, count by 5 |
 | `CpuPerfLog.cs` | Internal. Same habit as `PerfMonLog` |
@@ -141,7 +143,7 @@ This project already references shared. Do not add PerformanceCounter here. Shar
 
 | Step | Pri | Work | Exit |
 |---|---|---|---|
-| **PC01.001** | P0 | Options + `_Total` path set. Empty instance → `_Total`. | Fixtures in §8. |
+| **PC01.001** | P0 | `CpuObjects` + `CpuCounterCatalog`. Known lists for the three objects. Live list capped, falls back to known. | Fixtures in §8. |
 | **PC01.002** | P0 | Category fallback `Processor Information` → `Processor`. Queue always `System`. | Fake without PI still emits Processor paths. |
 | **PC01.003** | P0 | `IncludeCores`. `ListInstances` at start only. Cap 256. Drop `_Total` from the core list. | Cap truncates. No throw. |
 | **PC01.004** | P0 | Parking included only when present. Missing parking is skip, not Unavailable flood. | Job with no parking counter still Ok. |
@@ -160,6 +162,10 @@ All against `FakeCounterSource` unless noted.
 
 | Fixture | Covers |
 |---|---|
+| `PC01_001_catalog_lists_three_objects` | Catalog |
+| `PC01_001_known_counters_cover_each_object` | Known set |
+| `PC01_001_paths_bind_every_known_counter` | Path builder |
+| `PC01_001_live_counters_do_not_throw_when_missing` | Live fallback |
 | `PC01_001_empty_instance_becomes_total` | Default |
 | `PC01_001_named_instance_is_kept` | Named core |
 | `PC01_002_falls_back_to_processor` | Category miss |
@@ -205,8 +211,7 @@ Do not log the sample vector.
 | Item | Why |
 |---|---|
 | Per-process CPU | Processes / later plan |
-| `Processor Frequency` | Not in SRS v1 |
-| Interrupt / DPC time | Later probe revision |
+| Interrupt-only short job | Catalog already lists Interrupt/DPC |
 | C-state residency | Parking is the v1 stand-in |
 | Analytics reduction | Neighbor |
 | Publish 0.1.0 | After a host consumes this |
@@ -224,3 +229,4 @@ When this plan closes, move `PC01/` under `000 -- Archived/001 -- Implementation
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 27 Sep 2026 | Locked. Shared clock. Cpu façade and path set only. |
+| 1.1 | 27 Sep 2026 | Catalog for Processor / Processor Information / Processor Performance. |

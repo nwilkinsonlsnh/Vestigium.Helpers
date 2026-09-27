@@ -1,7 +1,7 @@
 # Vestigium.Helpers.PerfMon.Cpu — Requirements Specification
 
 **Document ID:** VEST-HLP-PERFMON-CPU-SRS-000
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Initial lock.
 **Date:** 27 September 2026
 **Package:** `Vestigium.Helpers.PerfMon.Cpu` 0.1.0 (not published)
@@ -26,7 +26,7 @@ Not a process table. Not thread stacks. Not ETW sampling.
 | 1 | Façade | `CpuPerf` static class. Hosts do not construct the PDH objects. |
 | 2 | Identity | APPID `PerfMon.Cpu`. EVENTID reserved 18000–18499. Count by 5. |
 | 3 | Default instance | `_Total` unless the caller names one. |
-| 4 | Counters v1 | `Processor Information(*)\% Processor Time`, `% Privileged Time`, `% User Time`, `Processor Queue Length` (System), `Parking Status` when present. |
+| 4 | Counters v1 | Catalog covers all known counters under `Processor`, `Processor Information`, and `Processor Performance`. Default job remains `_Total` utilization + System queue + Parking when present. |
 | 5 | Units | Percent 0–100 as PDH reports after the required two-read prime. Queue is a length. |
 | 6 | Sibling boundary | `Helpers.Processes` lists processes. This probe does not accept a PID in v1. |
 
@@ -43,3 +43,4 @@ Project compiles and references shared. No live sampling required in this pass.
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 27 Sep 2026 | Initial lock. |
+| 1.1 | 27 Sep 2026 | Three-object counter catalog. |
