@@ -1,13 +1,14 @@
 # Vestigium.Helpers.PerfMon.Cpu — PC01 implementation plan
 
 **Document ID:** VEST-HLP-PERFMON-CPU-PLAN-PC01
-**Version:** 1.1
-**Status:** Locked (1.1 catalog amendment)
+**Version:** 1.2
+**Status:** Locked. Catalog fingerprint is PM02.
 **Date:** 27 September 2026
 **Package:** `Vestigium.Helpers.PerfMon.Cpu` 0.1.0 (not published)
 **Project:** `src/Vestigium.Helpers.PerfMon.Cpu/`
 **TFM:** `net10.0-windows`
-**Depends on:** `Vestigium.Helpers.PerfMon` (PM01 landed)
+**Depends on:** `Vestigium.Helpers.PerfMon` (PM01 clock, PM02 catalog)
+**Fingerprint:** [`PM02 -- Catalog Fingerprint.md`](../../../PerfMon/001%20--%20Implementation%20Plan/PM02/PM02%20--%20Catalog%20Fingerprint.md)
 **Binding:** [`Requirements_v1.0.md`](../../002%20--%20Requirements%20Document/Requirements_v1.0.md) wins on conflict.
 **Companion:** [`Design_v1.0.md`](../../003%20--%20Design%20Document/Design_v1.0.md)
 **Backlog:** [`PC01 -- Backlog.md`](PC01%20--%20Backlog.md)
@@ -44,12 +45,12 @@ If a step needs one of those, it is the wrong step.
 
 ```
 host
-  → CpuPerf.RunAsync(options)
-       → CpuPaths.For(options)          this package
-       → new SampleJob(paths, shared)   Vestigium.Helpers.PerfMon
-            → ICounterSource            shared PDH or test fake
-       → SampleJobResult
-CpuPerfCatalog.Register is host-only
+  → CpuCounterCatalog                   this package (vocabulary)
+       → CounterSet                     shared
+            → ICounterInventory         PDH or test fake
+            → Snapshot / WatchAsync
+  → CpuPerf.RunAsync                    later steps
+       → SampleJob                      shared clock
 ```
 
 Shared already primes rate counters. This package does not call `NextValue` itself.
@@ -123,7 +124,7 @@ All under `src/Vestigium.Helpers.PerfMon.Cpu/`. Small files. No hub.
 | File | Role |
 |---|---|
 | `CpuObjects.cs` | The three PDH object names |
-| `CpuCounterCatalog.cs` | Known + live counters/instances + path builder |
+| `CpuCounterCatalog.cs` | Thin façade over shared `CounterSet` |
 | `CpuSampleOptions.cs` | Probe options. Shared job options are mapped, not copied as a second clock. |
 | `CpuPaths.cs` | Default short path set |
 | `CpuPerf.cs` | Façade |
@@ -143,7 +144,7 @@ This project already references shared. Do not add PerformanceCounter here. Shar
 
 | Step | Pri | Work | Exit |
 |---|---|---|---|
-| **PC01.001** | P0 | `CpuObjects` + `CpuCounterCatalog`. Known lists for the three objects. Live list capped, falls back to known. | Fixtures in §8. |
+| **PC01.001** | P0 | `CpuObjects` + `CpuCounterCatalog` on shared `CounterSet`. Known ≠ live. Check + snapshot + watch. | Landed. Fingerprint for later probes. |
 | **PC01.002** | P0 | Category fallback `Processor Information` → `Processor`. Queue always `System`. | Fake without PI still emits Processor paths. |
 | **PC01.003** | P0 | `IncludeCores`. `ListInstances` at start only. Cap 256. Drop `_Total` from the core list. | Cap truncates. No throw. |
 | **PC01.004** | P0 | Parking included only when present. Missing parking is skip, not Unavailable flood. | Job with no parking counter still Ok. |
@@ -165,7 +166,10 @@ All against `FakeCounterSource` unless noted.
 | `PC01_001_catalog_lists_three_objects` | Catalog |
 | `PC01_001_known_counters_cover_each_object` | Known set |
 | `PC01_001_paths_bind_every_known_counter` | Path builder |
-| `PC01_001_live_counters_do_not_throw_when_missing` | Live fallback |
+| `PC01_001_live_does_not_fake_known_when_missing` | Live ≠ known |
+| `PC01_001_check_and_snapshot_use_live_inventory` | Checks |
+| `PC01_001_watch_subscribes_to_live_counters_and_instances` | Subscribe |
+| `PC01_001_is_known_is_not_live` | Vocabulary |
 | `PC01_001_empty_instance_becomes_total` | Default |
 | `PC01_001_named_instance_is_kept` | Named core |
 | `PC01_002_falls_back_to_processor` | Category miss |
@@ -230,3 +234,4 @@ When this plan closes, move `PC01/` under `000 -- Archived/001 -- Implementation
 |---|---|---|
 | 1.0 | 27 Sep 2026 | Locked. Shared clock. Cpu façade and path set only. |
 | 1.1 | 27 Sep 2026 | Catalog for Processor / Processor Information / Processor Performance. |
+| 1.2 | 27 Sep 2026 | Shared CounterSet. Cpu is the PM02 fingerprint consumer. |

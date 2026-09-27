@@ -7,7 +7,7 @@
 | Door | Item | Note |
 |---|---|---|
 | In | `CpuPerf` façade | Hosts do not construct PDH objects |
-| Landed | `CpuCounterCatalog` | Processor / Processor Information / Processor Performance |
+| Landed | `CpuCounterCatalog` on shared `CounterSet` | PM02 fingerprint. Processor / Processor Information / Processor Performance |
 | In | Default job path set | Processor Time, Privileged, User, Queue, Parking when present |
 | In | Default instance `_Total` | Per-core is opt-in |
 | In | Category fallback | `Processor Information` then `Processor` |
