@@ -1,7 +1,7 @@
 # Vestigium.Helpers.PerfMon.Disk — Requirements Specification
 
 **Document ID:** VEST-HLP-PERFMON-DISK-SRS-000
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Initial lock.
 **Date:** 27 September 2026
 **Package:** `Vestigium.Helpers.PerfMon.Disk` 0.1.0 (not published)
@@ -26,7 +26,7 @@ Not FileIo copy jobs. Not SMART vendor logs. Not a space-planner.
 | 1 | Façade | `DiskPerf` static class. Hosts do not construct the PDH objects. |
 | 2 | Identity | APPID `PerfMon.Disk`. EVENTID reserved 19500–19999. Count by 5. |
 | 3 | Default instance | `_Total` unless the caller names one. |
-| 4 | Counters v1 | `PhysicalDisk(*)\Disk Bytes/sec`, `Avg. Disk sec/Read`, `Avg. Disk sec/Write`, `Avg. Disk Queue Length`, `Current Disk Queue Length`, `% Disk Time`. LogicalDisk free-space counters are optional on the same job when asked. |
+| 4 | Catalog objects | FileSystem Disk Activity, LogicalDisk, Ntfs Bucketized Performance, PhysicalDisk, ReFS, ReFS Bucketized Performance, ReFS Dedup Minstore Perf Counters, ReFS Dedup Perf Counters, Storage Management WSP Spaces Runtime, Storage Spaces Drt, Storage Spaces Tier, Storage Spaces Virtual Disk, Storage Spaces Virtual Disk Io, Storage Spaces Virtual Disk Map, Storport Unit Queue, Storport Unit Reads, Storport Unit Transfers, Storport Unit Writes, VHD Bucketized Performance. Default short job remains PhysicalDisk rates + queue. |
 | 5 | Units | Bytes/sec, seconds, lengths, percent. Latency stays in seconds on the record; hosts may display ms. |
 | 6 | Sibling boundary | FileIo measures a copy. This probe measures the disk object while anything runs. |
 
@@ -43,3 +43,4 @@ Project compiles and references shared. No live sampling required in this pass.
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 27 Sep 2026 | Initial lock. |
+| 1.1 | 27 Sep 2026 | Nineteen-object Disk catalog. |

@@ -35,6 +35,7 @@
     <ProjectReference Include="..\Vestigium.Helpers.Charts\Vestigium.Helpers.Charts.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon\Vestigium.Helpers.PerfMon.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Cpu\Vestigium.Helpers.PerfMon.Cpu.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Disk\Vestigium.Helpers.PerfMon.Disk.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />

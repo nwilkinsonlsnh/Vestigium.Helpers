@@ -92,7 +92,7 @@ Next probe: same façade name shape `{Probe}Objects` + `{Probe}CounterCatalog` +
 | Probe | Objects in the map |
 |---|---|
 | Cpu | `Processor`, `Processor Information`, `Processor Performance` |
-| Disk | later plan — PhysicalDisk / LogicalDisk |
+| Disk | FileSystem Disk Activity, LogicalDisk, Ntfs Bucketized Performance, PhysicalDisk, ReFS family, Storage Spaces family, Storport Unit *, VHD Bucketized Performance |
 | Gpu | later plan — GPU Engine / GPU Adapter Memory when present |
 | Memory | later plan — Memory |
 | PageFile | later plan — Paging File |

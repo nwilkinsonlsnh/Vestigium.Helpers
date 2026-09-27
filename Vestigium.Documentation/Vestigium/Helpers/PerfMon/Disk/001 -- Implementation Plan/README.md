@@ -1,20 +1,7 @@
-# Vestigium.Helpers.PerfMon.Disk — Implementation Plan
+# 001 -- Implementation Plan
 
-**Status:** skeleton + contract.
-**Date:** 27 September 2026
+**Library:** Vestigium.Helpers.PerfMon.Disk
+**Status:** PD01.001 catalog fingerprint landed. Package **0.1.0** (not published).
 
-## This pass
-
-- Project file and README in `src/Vestigium.Helpers.PerfMon.Disk/`
-- Requirements v1.0 and Design v1.0
-- Solution folder `Library/PerfMon`
-
-## Next pass (not this commit)
-
-- `ICounterSource` and `SampleJob` in shared
-- First live probe: Cpu `_Total` % Processor Time
-- xUnit against a fake source
-
-## Not this family
-
-Demo WPF. NuGet publish. Charts surface.
+Copy [`PM02 -- Catalog Fingerprint`](../../PerfMon/001%20--%20Implementation%20Plan/PM02/PM02%20--%20Catalog%20Fingerprint.md).
+`DiskCounterCatalog` is the façade. Shared `CounterSet` owns live checks and the watch.
