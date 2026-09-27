@@ -29,5 +29,6 @@
       <PackagePath>\</PackagePath>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
+    <None Include="EventCatalog\cpu.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
