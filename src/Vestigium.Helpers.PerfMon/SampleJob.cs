@@ -113,7 +113,7 @@ public sealed class SampleJob
     private static SampleJobResult Result(SampleStatus status, List<SampleRecord> samples)
     {
         if (status == SampleStatus.Cancelled)
-            PerfMonLog.Information(PerfMonEvents.JobCancelled, Vestigium.Logging.VestigiumStatus.Cancelled, PerfMonCatalog.Subcategories.Job, "job cancelled");
+            PerfMonLog.Information(PerfMonEvents.JobCancelled, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "job cancelled");
         else if (status == SampleStatus.Rejected)
             PerfMonLog.Error(PerfMonEvents.JobRejected, Vestigium.Logging.VestigiumStatus.Failed, PerfMonCatalog.Subcategories.Job, "job rejected");
         else
