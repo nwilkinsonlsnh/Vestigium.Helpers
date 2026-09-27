@@ -18,7 +18,7 @@
     <Project Path="src/Vestigium.Helpers.WinReg/Vestigium.Helpers.WinReg.csproj" />
     <Project Path="src/Vestigium.Helpers.Xml/Vestigium.Helpers.Xml.csproj" />
   </Folder>
-  <Folder Name="/Library/NewFolder1/" />
+  <Folder Name="/Library/PerfMon/" />
   <Folder Name="/Samples/">
     <Project Path="samples/Vestigium.Helpers.Charts.MenuLab/Vestigium.Helpers.Charts.MenuLab.csproj" />
     <Project Path="samples/Vestigium.Helpers.Network.InventoryLab/Vestigium.Helpers.Network.InventoryLab.csproj" />
