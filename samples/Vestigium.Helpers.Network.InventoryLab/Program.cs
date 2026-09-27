@@ -99,7 +99,7 @@ static string Speed(long? bits)
 
 static string Metric(NetworkAdapter nic)
 {
-    if (nic.Ipv4Metric is not int metric)
-        return "—";
-    return nic.Ipv4MetricIsAutomatic == true ? $"{metric} auto" : metric.ToString();
+    if (nic.Ipv4Metric is int metric)
+        return nic.Ipv4MetricIsAutomatic == true ? $"{metric} auto" : metric.ToString();
+    return nic.Ipv4MetricIsAutomatic == true ? "auto" : "—";
 }

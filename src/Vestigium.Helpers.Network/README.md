@@ -6,7 +6,7 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Network` 1.3.0 |
+| Package | `Vestigium.Helpers.Network` 1.3.2 |
 | Version rule | `1.2.0` is PR10. `1.3.0` is inventory extras. Do not republish `1.2.0` as if it had driver or metric. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |

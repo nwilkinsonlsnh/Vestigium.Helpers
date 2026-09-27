@@ -81,12 +81,27 @@ internal static class NetworkInventoryWindows
         out DateTimeOffset? leaseExpires)
     {
         metric = null;
-        metricIsAutomatic = null;
+        metricIsAutomatic = OperatingSystem.IsWindows() ? true : null;
         autoconfig = null;
         leaseObtained = null;
         leaseExpires = null;
         if (!OperatingSystem.IsWindows())
             return;
+
+        try
+        {
+            var id = nic.Id.Trim();
+            var path = $@"{TcpipParameters}\Interfaces\{id}";
+            using var key = Registry.LocalMachine.OpenSubKey(path);
+            if (key is null)
+                return;
+
+            metric = ReadDword(key, "InterfaceMetric");
+            var autoMetric = ReadDword(key, "AutoMetric");
+            if (autoMetric is not null)
+                metricIsAutomatic = autoMetric != 0;
+            else
+                metricIsAutomatic = metric is null;
 
         try
         {
