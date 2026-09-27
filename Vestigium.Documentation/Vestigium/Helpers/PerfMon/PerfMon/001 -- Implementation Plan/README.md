@@ -5,6 +5,8 @@
 
 Live paper:
 
-- [`ImplementationPlan_v1.0.md`](ImplementationPlan_v1.0.md)
+- [`PM01/PM01 -- Backlog.md`](PM01/PM01%20--%20Backlog.md)
+- [`PM01/PM01 -- Implementation Plan.md`](PM01/PM01%20--%20Implementation%20Plan.md)
 
-Probe plans (Cpu, Disk, Gpu, Memory, Network, PageFile) stay in their own `001` folders. Do not grow this file to cover them.
+The v1.0 sketch is under `000 -- Archived/001 -- Implementation Plan/`.
+Probe plans stay in their own `001` folders.
