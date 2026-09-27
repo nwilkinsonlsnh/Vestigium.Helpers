@@ -26,7 +26,7 @@ internal static class NetworkInventoryEngine
 
         var adapters = (from nic in NetworkInterface.GetAllNetworkInterfaces() where query.IncludeDown || nic.OperationalStatus == OperationalStatus.Up where Matches(nic, query) select Map(nic)).ToList();
         var stack = NetworkInventoryWindows.ReadStack();
-        var search = NetworkInventoryWindows.ReadSearchList();
+        var search = MergeSearch(NetworkInventoryWindows.ReadSearchList(), adapters);
 
         return new WorkstationNetwork(
             host,
@@ -66,8 +66,28 @@ internal static class NetworkInventoryEngine
         return string.IsNullOrWhiteSpace(query.Id) switch
         {
             false when !string.Equals(nic.Id, query.Id, StringComparison.OrdinalIgnoreCase) => false,
-            _ => true
+            _ => !query.IpEnabledOnly || IsIpEnabled(nic)
         };
+    }
+
+    private static bool IsIpEnabled(NetworkInterface nic)
+        => Supports(nic, NetworkInterfaceComponent.IPv4) || Supports(nic, NetworkInterfaceComponent.IPv6);
+
+    private static IReadOnlyList<string> MergeSearch(IReadOnlyList<string> hive, IReadOnlyList<NetworkAdapter> adapters)
+    {
+        var list = hive.ToList();
+        foreach (var adapter in adapters)
+        {
+            if (string.IsNullOrWhiteSpace(adapter.DnsSuffix))
+                continue;
+            var suffix = adapter.DnsSuffix.Trim().Trim('.');
+            if (suffix.Length == 0)
+                continue;
+            if (!list.Exists(x => string.Equals(x, suffix, StringComparison.OrdinalIgnoreCase)))
+                list.Add(suffix);
+        }
+
+        return list;
     }
 
     private static NetworkAdapter Map(NetworkInterface nic)

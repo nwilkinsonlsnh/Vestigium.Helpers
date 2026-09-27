@@ -1,11 +1,13 @@
 using Vestigium.Helpers.Network;
 
 var box = NetworkHelper.GetWorkstation();
+var enabled = NetworkHelper.GetAdapters(new NetworkAdapterQuery { IncludeDown = true, IpEnabledOnly = true });
 Console.WriteLine($"Helpers.Network inventory lab  {typeof(NetworkHelper).Assembly.GetName().Version}");
 Console.WriteLine($"Host     {box.HostName}");
 Console.WriteLine($"Domain   {box.DomainName ?? "—"}");
 Console.WriteLine($"Captured {box.CapturedUtc:u}");
 Console.WriteLine($"Search   {Join(box.DnsSuffixSearchList)}");
+Console.WriteLine($"         (primary suffix + SearchList + each adapter DnsSuffix. Empty SearchList key is normal.)");
 if (box.Stack is { } stack)
 {
     Console.WriteLine("Stack");
@@ -18,10 +20,10 @@ if (box.Stack is { } stack)
     Console.WriteLine($"  Router       {Flag(stack.IpEnableRouter)}");
     Console.WriteLine($"  Sync domain  {Flag(stack.SyncDomainWithMembership)}");
 }
-Console.WriteLine($"Adapters {box.Adapters.Count}");
+Console.WriteLine($"Adapters {enabled.Count} IP-enabled  ({box.Adapters.Count} total, {box.Adapters.Count - enabled.Count} bind-off hidden)");
 Console.WriteLine();
 
-foreach (var nic in box.Adapters)
+foreach (var nic in enabled)
 {
     Console.WriteLine(new string('-', 72));
     Console.WriteLine($"{nic.Name}  [{nic.Status}]  {nic.Type}");

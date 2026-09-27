@@ -90,4 +90,5 @@ public sealed record WorkstationNetwork(
 public sealed record NetworkAdapterQuery(
     string? Name = null,
     string? Id = null,
-    bool IncludeDown = true);
+    bool IncludeDown = true,
+    bool IpEnabledOnly = false);
