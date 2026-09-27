@@ -1,7 +1,7 @@
-namespace Vestigium.Helpers.PerfMon.Cpu;
+namespace Vestigium.Helpers.PerfMon;
 
-/// <summary>Live inventory. Tests inject a fake. Hosts use the PDH default.</summary>
-public interface ICpuInventory
+/// <summary>Live PDH inventory. Tests inject a fake. Probes do not each invent one.</summary>
+public interface ICounterInventory
 {
     bool CategoryPresent(string category);
 

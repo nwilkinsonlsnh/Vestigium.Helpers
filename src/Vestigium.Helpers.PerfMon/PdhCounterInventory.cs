@@ -1,9 +1,12 @@
 using System.Diagnostics;
 
-namespace Vestigium.Helpers.PerfMon.Cpu;
+namespace Vestigium.Helpers.PerfMon;
 
-internal sealed class PdhCpuInventory : ICpuInventory
+/// <summary>Local PDH inventory. Missing object is absent, not a known-list stand-in.</summary>
+public sealed class PdhCounterInventory : ICounterInventory
 {
+    public static PdhCounterInventory Shared { get; } = new();
+
     public bool CategoryPresent(string category)
     {
         try

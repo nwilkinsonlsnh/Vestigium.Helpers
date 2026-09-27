@@ -19,7 +19,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon\Vestigium.Helpers.PerfMon.csproj" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.12" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />

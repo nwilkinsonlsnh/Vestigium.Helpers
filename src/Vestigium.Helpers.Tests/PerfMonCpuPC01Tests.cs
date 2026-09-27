@@ -82,9 +82,9 @@ public sealed class PerfMonCpuPc01Tests
             Counters = ["% Processor Time"],
             Instances = ["_Total"]
         };
-        var hits = new List<CpuCatalogSnapshot>();
+        var hits = new List<CatalogSnapshot>();
         await CpuCounterCatalog.WatchAsync(
-            new CpuCatalogWatchOptions
+            new CatalogWatchOptions
             {
                 Category = CpuObjects.Processor,
                 Count = 2,
@@ -107,7 +107,7 @@ public sealed class PerfMonCpuPc01Tests
         Assert.False(CpuCounterCatalog.IsKnownCounter(CpuObjects.Processor, "Parking Status"));
     }
 
-    private sealed class ScriptedInventory : ICpuInventory
+    private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
         public IReadOnlyList<string> Counters { get; set; } = [];

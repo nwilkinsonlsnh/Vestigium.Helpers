@@ -1,9 +1,9 @@
-namespace Vestigium.Helpers.PerfMon.Cpu;
+namespace Vestigium.Helpers.PerfMon;
 
-/// <summary>One live view of an object. Frozen lists.</summary>
-public sealed class CpuCatalogSnapshot
+/// <summary>One live view of a PDH object. Frozen lists.</summary>
+public sealed class CatalogSnapshot
 {
-    public CpuCatalogSnapshot(
+    public CatalogSnapshot(
         DateTimeOffset utc,
         string category,
         string instance,
