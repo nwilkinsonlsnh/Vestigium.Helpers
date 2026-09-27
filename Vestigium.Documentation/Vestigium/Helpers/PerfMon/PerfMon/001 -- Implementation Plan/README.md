@@ -1,7 +1,7 @@
 # 001 -- Implementation Plan
 
 **Library:** Vestigium.Helpers.PerfMon
-**Status:** PM01 open. Shared library only. Package **0.1.0** (not published).
+**Status:** PM01.001–009 landed. Shared library only. Package **0.1.0** (not published). Run `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~PM01_` locally to close.
 
 Live paper:
 

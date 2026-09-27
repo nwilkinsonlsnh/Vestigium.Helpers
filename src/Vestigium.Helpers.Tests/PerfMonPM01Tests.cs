@@ -389,6 +389,15 @@ public sealed class PerfMonPm01Tests
         }
     }
 
+    [Fact]
+    public void PM01_009_shared_has_no_probe_reference()
+    {
+        var names = typeof(SampleJob).Assembly.GetReferencedAssemblies().Select(a => a.Name!);
+        Assert.DoesNotContain(names, n => n.StartsWith("Vestigium.Helpers.PerfMon.", StringComparison.Ordinal));
+        Assert.Contains("Vestigium.Helpers.Tests", typeof(PerfMonPm01Tests).Assembly.GetName().Name);
+        Assert.NotNull(typeof(FakeCounterSource));
+    }
+
     private static CounterPath[] OnePath()
         => [new CounterPath("Processor", "% Processor Time", "_Total")];
 
