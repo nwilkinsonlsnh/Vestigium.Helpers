@@ -252,14 +252,14 @@ public sealed class NetworkTraceAndRouteTests
         var path = FindNetworkSource("Vestigium.Helpers.Network.csproj");
         Assert.True(path is not null, "Network csproj not found walking up from BaseDirectory.");
         var src = File.ReadAllText(path);
-        Assert.Contains("<Version>1.2.0</Version>", src, StringComparison.Ordinal);
+        Assert.Contains("<Version>1.3.5</Version>", src, StringComparison.Ordinal);
         Assert.Contains("1.2.0 is PR10", src, StringComparison.Ordinal);
         Assert.DoesNotContain("<Version>1.0.0</Version>", src, StringComparison.Ordinal);
         Assert.DoesNotContain("<Version>1.0.1</Version>", src, StringComparison.Ordinal);
         Assert.DoesNotContain("<Version>1.1.0</Version>", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.Json\" Version=\"1.0.1\"", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.Analytics\" Version=\"1.0.1\"", src, StringComparison.Ordinal);
-        Assert.Contains("Vestigium.Helpers.FileIo\" Version=\"1.1.1\"", src, StringComparison.Ordinal);
+        Assert.Contains("Vestigium.Helpers.FileIo\" Version=\"1.1.2\"", src, StringComparison.Ordinal);
         Assert.DoesNotContain("Include=\"Vestigium.Logging\"", src, StringComparison.Ordinal);
         Assert.DoesNotContain("Include=\"Vestigium.Helpers.Charts\"", src, StringComparison.Ordinal);
     }
