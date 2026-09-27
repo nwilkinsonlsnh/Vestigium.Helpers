@@ -21,9 +21,16 @@ internal static class CpuPaths
         => string.IsNullOrWhiteSpace(instance) ? "_Total" : instance.Trim();
 
     public static string UtilizationObject(ICounterInventory? inventory = null)
-        => CpuCounterCatalog.CategoryPresent(CpuObjects.ProcessorInformation, inventory)
-            ? CpuObjects.ProcessorInformation
-            : CpuObjects.Processor;
+    {
+        if (CpuCounterCatalog.CategoryPresent(CpuObjects.ProcessorInformation, inventory))
+            return CpuObjects.ProcessorInformation;
+        CpuPerfLog.Information(
+            CpuPerfEvents.CategoryFallback,
+            Vestigium.Logging.VestigiumStatus.Success,
+            CpuPerfCatalog.Subcategories.Paths,
+            "Processor Information missing");
+        return CpuObjects.Processor;
+    }
 
     public static IReadOnlyList<string> Cores(ICounterInventory? inventory, int cap)
     {
@@ -50,6 +57,8 @@ internal static class CpuPaths
         var rows = new List<CounterPath>();
         var park = options.IncludeParking
             && CpuCounterCatalog.HasCounter(CpuObjects.ProcessorInformation, ParkingStatus, inst, inv);
+        if (options.IncludeParking && !park)
+            CpuPerfLog.Debug(CpuPerfEvents.ParkingSkipped, Vestigium.Logging.VestigiumStatus.Success, CpuPerfCatalog.Subcategories.Paths, "parking counter absent");
 
         AddInstance(rows, obj, inst, park);
 
