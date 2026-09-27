@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 
 namespace Vestigium.Helpers.Tests;
@@ -260,6 +261,55 @@ public sealed class PerfMonPm01Tests
         var result = await job.RunAsync();
         Assert.Equal(1, result.Samples.Count);
         Assert.Equal(1024, result.Samples[0].Value);
+    }
+
+    [Fact]
+    public void PM01_006_missing_category_is_unavailable()
+    {
+        var path = new CounterPath("VestigiumDoesNotExist", "No Such Counter");
+        var source = new PerformanceCounterSource();
+        var row = source.Read(path);
+        Assert.Equal(SampleStatus.Unavailable, row.Status);
+        Assert.Null(row.Value);
+        Assert.False(source.NeedsPrime(path));
+        Assert.Empty(source.ListInstances("VestigiumDoesNotExist", 256));
+    }
+
+    [Fact]
+    public void PM01_006_live_processor_total()
+    {
+        var category = LiveProcessorCategory();
+        if (category is null)
+            return;
+
+        var path = new CounterPath(category, "% Processor Time", "_Total", "%");
+        var source = new PerformanceCounterSource();
+        Assert.True(source.NeedsPrime(path));
+        _ = source.Read(path);
+        var row = source.Read(path);
+        Assert.Equal(SampleStatus.Ok, row.Status);
+        Assert.NotNull(row.Value);
+    }
+
+    private static string? LiveProcessorCategory()
+    {
+        try
+        {
+            if (PerformanceCounterCategory.Exists("Processor"))
+                return "Processor";
+            if (PerformanceCounterCategory.Exists("Processor Information"))
+                return "Processor Information";
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+
+        return null;
     }
 
     private static CounterPath[] OnePath()

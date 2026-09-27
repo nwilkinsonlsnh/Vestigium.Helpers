@@ -1,6 +1,6 @@
 namespace Vestigium.Helpers.PerfMon;
 
-/// <summary>Bounded sample clock. Prime tick is PM01.005. PDH adapter is PM01.006.</summary>
+/// <summary>Bounded sample clock. Default source is local PDH.</summary>
 public sealed class SampleJob
 {
     public SampleJob(IReadOnlyList<CounterPath> paths, SampleJobOptions? options = null)
@@ -19,8 +19,7 @@ public sealed class SampleJob
     public async Task<SampleJobResult> RunAsync(CancellationToken cancellationToken = default)
     {
         Options.RejectIfUnbounded(cancellationToken);
-        var source = Options.Source
-            ?? throw new InvalidOperationException("ICounterSource is required.");
+        var source = Options.Source ?? new PerformanceCounterSource();
 
         var samples = new List<SampleRecord>();
         var terminal = SampleStatus.Ok;
