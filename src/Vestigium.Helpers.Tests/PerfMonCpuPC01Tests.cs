@@ -159,6 +159,56 @@ public sealed class PerfMonCpuPc01Tests
         Assert.Equal("3,1", CpuPaths.InstanceOrTotal(" 3,1 "));
     }
 
+    [Fact]
+    public void PC01_003_cores_respect_cap()
+    {
+        var names = new List<string> { "_Total" };
+        names.AddRange(Enumerable.Range(0, 10).Select(i => $"0,{i}"));
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.ProcessorInformation],
+            Instances = names
+        };
+
+        var paths = CpuPaths.For(new CpuSampleOptions
+        {
+            IncludeCores = true,
+            InstanceCap = 3,
+            Inventory = inv
+        }, inv);
+
+        var cores = paths
+            .Where(p => p.Counter == "% Processor Time")
+            .Select(p => p.Instance)
+            .ToArray();
+        Assert.Equal(["_Total", "0,0", "0,1", "0,2"], cores);
+        Assert.Equal(3, CpuPaths.Cores(inv, 3).Count);
+        Assert.Empty(CpuPaths.Cores(inv, 0));
+        Assert.Empty(CpuPaths.For(new CpuSampleOptions { IncludeCores = true, InstanceCap = 0, Inventory = inv }, inv)
+            .Where(p => p.Instance != "_Total" && p.Counter != CpuPaths.QueueLength));
+    }
+
+    [Fact]
+    public void PC01_003_cores_omit_total()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.Processor],
+            Instances = ["_Total", "_total", "0", "1"]
+        };
+        var cores = CpuPaths.Cores(inv, 256);
+        Assert.Equal(["0", "1"], cores);
+        Assert.DoesNotContain(cores, n => n.Equals("_Total", StringComparison.OrdinalIgnoreCase));
+
+        var paths = CpuPaths.For(new CpuSampleOptions { IncludeCores = true, Inventory = inv }, inv);
+        Assert.Equal(1, paths.Count(p => p.Instance == "_Total" && p.Counter == "% Processor Time"));
+        Assert.Contains(paths, p => p.Instance == "0" && p.Counter == "% Processor Time");
+        Assert.Contains(paths, p => p.Instance == "1" && p.Counter == "% Privileged Time");
+        Assert.Single(paths, p => p.Counter == CpuPaths.QueueLength);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
