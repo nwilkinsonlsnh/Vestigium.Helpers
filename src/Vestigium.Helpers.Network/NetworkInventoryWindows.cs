@@ -106,6 +106,8 @@ internal static class NetworkInventoryWindows
             var autoCfg = ReadDword(key, "IPAutoconfigurationEnabled");
             if (autoCfg is not null)
                 autoconfig = autoCfg != 0;
+            else if (ReadDword(key, "EnableDHCP") == 1)
+                autoconfig = true;
 
             leaseObtained = ReadLeaseTime(key, "LeaseObtainedTime");
             leaseExpires = ReadLeaseTime(key, "LeaseTerminatesTime");
