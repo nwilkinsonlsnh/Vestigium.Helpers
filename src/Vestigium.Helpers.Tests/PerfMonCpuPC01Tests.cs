@@ -107,13 +107,67 @@ public sealed class PerfMonCpuPc01Tests
         Assert.False(CpuCounterCatalog.IsKnownCounter(CpuObjects.Processor, "Parking Status"));
     }
 
+    [Fact]
+    public void PC01_002_falls_back_to_processor()
+    {
+        var noPi = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.Processor]
+        };
+        var paths = CpuPaths.DefaultJob("_Total", noPi);
+        Assert.All(paths.Where(p => p.Counter != CpuPaths.QueueLength), p =>
+            Assert.Equal(CpuObjects.Processor, p.Category));
+        var queue = Assert.Single(paths, p => p.Counter == CpuPaths.QueueLength);
+        Assert.Equal(CpuPaths.SystemObject, queue.Category);
+        Assert.Equal("", queue.Instance);
+        Assert.Equal("count", queue.Unit);
+        Assert.Equal(CpuObjects.Processor, CpuPaths.UtilizationObject(noPi));
+    }
+
+    [Fact]
+    public void PC01_002_prefers_processor_information()
+    {
+        var both = new ScriptedInventory
+        {
+            Present = true,
+            Only = [CpuObjects.Processor, CpuObjects.ProcessorInformation]
+        };
+        var paths = CpuPaths.DefaultJob("0,0", both);
+        Assert.Equal(CpuObjects.ProcessorInformation, CpuPaths.UtilizationObject(both));
+        Assert.All(paths.Where(p => p.Counter != CpuPaths.QueueLength), p =>
+        {
+            Assert.Equal(CpuObjects.ProcessorInformation, p.Category);
+            Assert.Equal("0,0", p.Instance);
+        });
+        Assert.Contains(paths, p => p.Category == CpuPaths.SystemObject && p.Counter == CpuPaths.QueueLength);
+    }
+
+    [Fact]
+    public void PC01_001_empty_instance_becomes_total()
+    {
+        Assert.Equal("_Total", CpuPaths.InstanceOrTotal(""));
+        Assert.Equal("_Total", CpuPaths.InstanceOrTotal("   "));
+        Assert.Equal("_Total", CpuPaths.InstanceOrTotal(null));
+        var paths = CpuPaths.DefaultJob("  ", new ScriptedInventory { Present = true, Only = [CpuObjects.Processor] });
+        Assert.All(paths.Where(p => p.Counter != CpuPaths.QueueLength), p => Assert.Equal("_Total", p.Instance));
+    }
+
+    [Fact]
+    public void PC01_001_named_instance_is_kept()
+    {
+        Assert.Equal("3,1", CpuPaths.InstanceOrTotal(" 3,1 "));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
+        public HashSet<string>? Only { get; set; }
         public IReadOnlyList<string> Counters { get; set; } = [];
         public IReadOnlyList<string> Instances { get; set; } = [];
 
-        public bool CategoryPresent(string category) => Present;
+        public bool CategoryPresent(string category)
+            => Present && (Only is null || Only.Contains(category));
 
         public bool InstancePresent(string category, string instance)
             => Present && Instances.Contains(instance, StringComparer.OrdinalIgnoreCase);
