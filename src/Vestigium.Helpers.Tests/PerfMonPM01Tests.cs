@@ -127,7 +127,153 @@ public sealed class PerfMonPm01Tests
         Assert.Throws<ArgumentNullException>(() => new SampleJob(null!));
     }
 
+    [Fact]
+    public async Task PM01_004_count_stops_the_job()
+    {
+        var path = new CounterPath("Processor", "% Processor Time", "_Total");
+        var fake = new FakeCounterSource();
+        fake.Seed(path, SampleRecord.Ok(path, 1), SampleRecord.Ok(path, 2), SampleRecord.Ok(path, 3));
+
+        var job = new SampleJob([path], new SampleJobOptions
+        {
+            Count = 2,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        var result = await job.RunAsync();
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(2, result.Samples.Count);
+        Assert.Equal(1, result.Samples[0].Value);
+        Assert.Equal(2, result.Samples[1].Value);
+        Assert.True(((IList<SampleRecord>)result.Samples).IsReadOnly
+            || result.Samples is SampleRecord[]);
+    }
+
+    [Fact]
+    public async Task PM01_004_duration_stops_the_job()
+    {
+        var path = new CounterPath("Processor", "% Processor Time", "_Total");
+        var fake = new FakeCounterSource();
+        fake.Seed(path,
+            SampleRecord.Ok(path, 1),
+            SampleRecord.Ok(path, 2),
+            SampleRecord.Ok(path, 3),
+            SampleRecord.Ok(path, 4));
+
+        var job = new SampleJob([path], new SampleJobOptions
+        {
+            Duration = TimeSpan.FromSeconds(2),
+            Interval = TimeSpan.FromSeconds(1),
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        var result = await job.RunAsync();
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(2, result.Samples.Count);
+    }
+
+    [Fact]
+    public async Task PM01_004_cancel_keeps_samples()
+    {
+        var path = new CounterPath("Processor", "% Processor Time", "_Total");
+        var fake = new FakeCounterSource();
+        fake.Seed(path, SampleRecord.Ok(path, 1), SampleRecord.Ok(path, 2), SampleRecord.Ok(path, 3));
+        var cts = new CancellationTokenSource();
+        var source = new CancelAfterRead(fake, cts, afterReads: 1);
+
+        var job = new SampleJob([path], new SampleJobOptions
+        {
+            Count = 10,
+            Source = source,
+            Clock = new ImmediateClock()
+        });
+
+        var result = await job.RunAsync(cts.Token);
+        Assert.Equal(SampleStatus.Cancelled, result.Status);
+        Assert.Equal(1, result.Samples.Count);
+        Assert.Equal(1, result.Samples[0].Value);
+    }
+
+    [Fact]
+    public async Task PM01_004_missing_instance_is_partial()
+    {
+        var okPath = new CounterPath("Processor", "% Processor Time", "_Total");
+        var missPath = new CounterPath("Processor", "% Processor Time", "99");
+        var fake = new FakeCounterSource();
+        fake.Seed(okPath, SampleRecord.Ok(okPath, 40));
+        fake.SeedMiss(missPath);
+
+        var job = new SampleJob([okPath, missPath], new SampleJobOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        var result = await job.RunAsync();
+        Assert.Equal(SampleStatus.Partial, result.Status);
+        Assert.Equal(2, result.Samples.Count);
+        Assert.Equal(SampleStatus.Ok, result.Samples[0].Status);
+        Assert.Equal(SampleStatus.Unavailable, result.Samples[1].Status);
+        Assert.Null(result.Samples[1].Value);
+    }
+
     private static CounterPath[] OnePath()
         => [new CounterPath("Processor", "% Processor Time", "_Total")];
+
+    private sealed class ImmediateClock : TimeProvider
+    {
+        private DateTimeOffset _utc = new(2026, 9, 27, 19, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => _utc;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            if (dueTime != Timeout.InfiniteTimeSpan)
+            {
+                if (dueTime > TimeSpan.Zero)
+                    _utc += dueTime;
+                callback(state);
+            }
+
+            return new DoneTimer();
+        }
+
+        private sealed class DoneTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => false;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class CancelAfterRead : ICounterSource
+    {
+        private readonly ICounterSource _inner;
+        private readonly CancellationTokenSource _cts;
+        private readonly int _afterReads;
+        private int _reads;
+
+        public CancelAfterRead(ICounterSource inner, CancellationTokenSource cts, int afterReads)
+        {
+            _inner = inner;
+            _cts = cts;
+            _afterReads = afterReads;
+        }
+
+        public SampleRecord Read(CounterPath path)
+        {
+            var row = _inner.Read(path);
+            _reads++;
+            if (_reads >= _afterReads)
+                _cts.Cancel();
+            return row;
+        }
+
+        public IReadOnlyList<string> ListInstances(string category, int cap)
+            => _inner.ListInstances(category, cap);
+    }
 }
 

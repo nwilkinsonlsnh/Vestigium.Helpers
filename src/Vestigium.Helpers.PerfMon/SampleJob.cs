@@ -1,8 +1,6 @@
 namespace Vestigium.Helpers.PerfMon;
 
-/// <summary>
-/// Bounded sample clock. PM01.003 is the door. The loop lands in PM01.004.
-/// </summary>
+/// <summary>Bounded sample clock. Prime tick is PM01.005. PDH adapter is PM01.006.</summary>
 public sealed class SampleJob
 {
     public SampleJob(IReadOnlyList<CounterPath> paths, SampleJobOptions? options = null)
@@ -18,9 +16,69 @@ public sealed class SampleJob
     public IReadOnlyList<CounterPath> Paths { get; }
     public SampleJobOptions Options { get; }
 
-    public Task<SampleJobResult> RunAsync(CancellationToken cancellationToken = default)
+    public async Task<SampleJobResult> RunAsync(CancellationToken cancellationToken = default)
     {
         Options.RejectIfUnbounded(cancellationToken);
-        return Task.FromResult(new SampleJobResult(SampleStatus.Ok, Array.Empty<SampleRecord>()));
+        var source = Options.Source
+            ?? throw new InvalidOperationException("ICounterSource is required.");
+
+        var samples = new List<SampleRecord>();
+        var terminal = SampleStatus.Ok;
+        var started = Options.Clock.GetUtcNow();
+        var ticks = 0;
+
+        while (true)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return Result(SampleStatus.Cancelled, samples);
+
+            if (CountReached(ticks) || DurationReached(started))
+                break;
+
+            var tickOk = false;
+            var tickMiss = false;
+            foreach (var path in Paths)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return Result(SampleStatus.Cancelled, samples);
+
+                var row = source.Read(path);
+                samples.Add(row);
+                if (row.Status == SampleStatus.Unavailable)
+                    tickMiss = true;
+                else
+                    tickOk = true;
+            }
+
+            ticks++;
+            if (tickMiss && tickOk)
+                terminal = SampleStatus.Partial;
+
+            if (CountReached(ticks) || DurationReached(started))
+                break;
+
+            if (cancellationToken.IsCancellationRequested)
+                return Result(SampleStatus.Cancelled, samples);
+
+            try
+            {
+                await Task.Delay(Options.Interval, Options.Clock, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return Result(SampleStatus.Cancelled, samples);
+            }
+        }
+
+        return Result(terminal, samples);
     }
+
+    private bool CountReached(int ticks)
+        => Options.HasCountLimit && ticks >= Options.Count!.Value;
+
+    private bool DurationReached(DateTimeOffset started)
+        => Options.HasDurationLimit && Options.Clock.GetUtcNow() - started >= Options.Duration;
+
+    private static SampleJobResult Result(SampleStatus status, List<SampleRecord> samples)
+        => new(status, samples.ToArray());
 }
