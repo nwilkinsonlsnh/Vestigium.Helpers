@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <RootNamespace>Vestigium.PerfMon.PageFile</RootNamespace>
-    <AssemblyName>Vestigium.PerfMon.PageFile</AssemblyName>
-    <Description>Pagefile usage and paging samples.</Description>
+    <RootNamespace>Vestigium.Helpers.PerfMon.Memory</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.PerfMon.Memory</AssemblyName>
+    <Description>Commit, available, and machine memory samples.</Description>
     <Version>0.1.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>perfmon;pagefile;diagnostics;vestigium</PackageTags>
+    <PackageTags>perfmon;memory;diagnostics;vestigium</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
@@ -18,7 +18,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Vestigium.PerfMon\Vestigium.PerfMon.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.PerfMon\Vestigium.Helpers.PerfMon.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />

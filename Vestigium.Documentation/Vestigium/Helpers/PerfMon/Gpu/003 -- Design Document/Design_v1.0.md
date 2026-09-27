@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Gpu — Design
+# Vestigium.Helpers.PerfMon.Gpu — Design
 
 **Document ID:** VEST-HLP-PERFMON-GPU-DSN-000
 **Version:** 1.0

@@ -1,10 +1,10 @@
-# Vestigium.PerfMon — PM01 implementation plan
+# Vestigium.Helpers.PerfMon — PM01 implementation plan
 
 **Document ID:** VEST-HLP-PERFMON-PLAN-PM01
 **Version:** 1.0
 **Status:** Open
 **Date:** 27 September 2026
-**Package:** `Vestigium.PerfMon` 0.1.0 (not published)
+**Package:** `Vestigium.Helpers.PerfMon` 0.1.0 (not published)
 **Binding:** [`Requirements_v1.0.md`](../002%20--%20Requirements%20Document/Requirements_v1.0.md) wins on conflict.
 **Companion:** [`Design_v1.0.md`](../003%20--%20Design%20Document/Design_v1.0.md)
 
@@ -27,7 +27,7 @@ Done when the fixtures in §6 pass against a fake source and the project still b
 
 ## 2. What PM01 is not
 
-- Any `Vestigium.PerfMon.*` façade.
+- Any `Vestigium.Helpers.PerfMon.*` façade.
 - Live PDH as a CI gate.
 - Analytics reduction or Charts.
 - `IObservable`, dispatcher marshal, Data Collector Sets.
@@ -76,7 +76,7 @@ Keep them small. No hub file.
 | `PerfMonCatalog.cs` | Replace skeleton `Register(object)` with `Register(VestigiumLoggerOptions)` |
 | `EventCatalog/perfmon.json` | Shard packed with the nupkg later |
 
-Tests: `src/Vestigium.Helpers.Tests/PerfMonPM01Tests.cs` plus a project reference to `Vestigium.PerfMon`.
+Tests: `src/Vestigium.Helpers.Tests/PerfMonPM01Tests.cs` plus a project reference to `Vestigium.Helpers.PerfMon`.
 
 Package: `System.Diagnostics.PerformanceCounter` 10.0.12 (same as Processes). Shared may reference it. Tests must not require a live category.
 
@@ -194,3 +194,4 @@ When this plan closes, move it under `000 -- Archived/001 -- Implementation Plan
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 27 Sep 2026 | Open. Shared clock and source only. |
+| 1.0a | 27 Sep 2026 | Project identity is `Vestigium.Helpers.PerfMon`. |

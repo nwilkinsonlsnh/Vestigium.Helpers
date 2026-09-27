@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <RootNamespace>Vestigium.PerfMon.Network</RootNamespace>
-    <AssemblyName>Vestigium.PerfMon.Network</AssemblyName>
-    <Description>Adapter PDH rates and errors.</Description>
+    <RootNamespace>Vestigium.Helpers.PerfMon</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.PerfMon</AssemblyName>
+    <Description>Shared performance sample contract, job runner, and counter source.</Description>
     <Version>0.1.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>perfmon;network;diagnostics;vestigium</PackageTags>
+    <PackageTags>perfmon;diagnostics;vestigium</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
@@ -17,9 +17,6 @@
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Vestigium.PerfMon\Vestigium.PerfMon.csproj" />
-  </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
   </ItemGroup>

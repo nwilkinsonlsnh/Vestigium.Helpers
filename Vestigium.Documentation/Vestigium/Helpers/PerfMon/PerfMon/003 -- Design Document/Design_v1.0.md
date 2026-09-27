@@ -1,4 +1,4 @@
-# Vestigium.PerfMon — Design
+# Vestigium.Helpers.PerfMon — Design
 
 **Document ID:** VEST-HLP-PERFMON-DSN-000
 **Version:** 1.0

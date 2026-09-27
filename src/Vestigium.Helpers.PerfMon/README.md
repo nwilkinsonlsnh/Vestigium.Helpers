@@ -1,4 +1,4 @@
-# Vestigium.PerfMon
+# Vestigium.Helpers.PerfMon
 
 Shared performance sample contract, job runner, and counter source.
 
@@ -8,7 +8,7 @@ Not a CLI. Not `perfmon.exe`. Not a plot package.
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.PerfMon` 0.1.0 |
+| Package | `Vestigium.Helpers.PerfMon` 0.1.0 |
 | TFM | `net10.0-windows` |
 | APPID | `PerfMon` |
 | EVENTID | Reserved 17000–17499 |

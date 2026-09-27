@@ -1,11 +1,11 @@
-# Vestigium.PerfMon.Memory — Implementation Plan
+# Vestigium.Helpers.PerfMon.Memory — Implementation Plan
 
 **Status:** skeleton + contract.
 **Date:** 27 September 2026
 
 ## This pass
 
-- Project file and README in `src/Vestigium.PerfMon.Memory/`
+- Project file and README in `src/Vestigium.Helpers.PerfMon.Memory/`
 - Requirements v1.0 and Design v1.0
 - Solution folder `Library/PerfMon`
 

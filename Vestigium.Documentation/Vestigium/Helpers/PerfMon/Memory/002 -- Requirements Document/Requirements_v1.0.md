@@ -1,15 +1,15 @@
-# Vestigium.PerfMon.Memory — Requirements Specification
+# Vestigium.Helpers.PerfMon.Memory — Requirements Specification
 
 **Document ID:** VEST-HLP-PERFMON-MEM-SRS-000
 **Version:** 1.0
 **Status:** Initial lock.
 **Date:** 27 September 2026
-**Package:** `Vestigium.PerfMon.Memory` 0.1.0 (not published)
+**Package:** `Vestigium.Helpers.PerfMon.Memory` 0.1.0 (not published)
 **TFM:** `net10.0-windows`
-**Depends on:** `Vestigium.PerfMon`
+**Depends on:** `Vestigium.Helpers.PerfMon`
 **Companion:** [`Design_v1.0.md`](../003%20--%20Design%20Document/Design_v1.0.md)
 
-Shared rules in the `Vestigium.PerfMon` SRS apply: no plot, no Initialize, no CLI spawn, Unavailable for missing instances, interval floor, 24 h cap, tests use a fake source.
+Shared rules in the `Vestigium.Helpers.PerfMon` SRS apply: no plot, no Initialize, no CLI spawn, Unavailable for missing instances, interval floor, 24 h cap, tests use a fake source.
 
 ## 1. Purpose
 

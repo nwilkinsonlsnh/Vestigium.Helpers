@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Gpu
+# Vestigium.Helpers.PerfMon.Gpu
 
 GPU engine and adapter memory the OS exposes.
 
@@ -8,11 +8,11 @@ Not a CLI. Not `perfmon.exe`. Not a plot package.
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.PerfMon.Gpu` 0.1.0 |
+| Package | `Vestigium.Helpers.PerfMon.Gpu` 0.1.0 |
 | TFM | `net10.0-windows` |
 | APPID | `PerfMon.Gpu` |
 | EVENTID | Reserved 18500–18999 |
-| Depends on | `Vestigium.PerfMon`, Vestigium.Logging |
+| Depends on | `Vestigium.Helpers.PerfMon`, Vestigium.Logging |
 | License | MIT |
 | Contract | [002 -- Requirements Document](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/PerfMon/Gpu/002%20--%20Requirements%20Document) |
 

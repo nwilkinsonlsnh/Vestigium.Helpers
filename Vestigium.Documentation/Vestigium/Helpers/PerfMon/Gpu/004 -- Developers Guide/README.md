@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Gpu — Developers Guide
+# Vestigium.Helpers.PerfMon.Gpu — Developers Guide
 
 **Status: none** for a call-site guide.
 

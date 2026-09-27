@@ -6,7 +6,7 @@ Cross-cutting helper libraries for the Vestigium suite (PingIQ, DnsIQ, TraceIQ, 
 
 **Target:** .NET 10 LTS / Visual Studio 2026  
 **Shape:** class libraries. Some older libraries still have a WPF gallery; **new work does not add Demo projects.** FileIo, Network, Hashing, and PerfMon have none.  
-**Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`, `Vestigium.PerfMon*`  
+**Windows-only projects:** `Vestigium.Helpers.WinReg`, `Vestigium.Helpers.Charts`, `Vestigium.Helpers.PerfMon*`  
 **Logging:** [Vestigium.Logging](https://www.nuget.org/packages/Vestigium.Logging) 1.7.1 (NuGet).
 
 Umbrella requirements: [`_Documentation/Requirements_v1.0.md`](_Documentation/Requirements_v1.0.md)  
@@ -41,13 +41,13 @@ Restore `Vestigium.Logging` 1.7.1 from nuget.org (`Directory.Build.props`). Do n
 | `Vestigium.Helpers.Analytics` | `net10.0` | NumericSeries: five-number, bands, P95, intervals, ControlLimits |
 | `Vestigium.Helpers.Charts` | `net10.0-windows` | ScottPlot wrapper. Does not compute UCL/LCL. |
 | `Vestigium.Helpers.Network` | `net10.0` | Workstation inventory, ICMP Echo/Trace, DNS. No Demo project. |
-| `Vestigium.PerfMon` | `net10.0-windows` | Shared sample contract for the PerfMon family. No Demo project. |
-| `Vestigium.PerfMon.Cpu` | `net10.0-windows` | Processor PDH samples |
-| `Vestigium.PerfMon.Disk` | `net10.0-windows` | Physical and logical disk PDH samples |
-| `Vestigium.PerfMon.Gpu` | `net10.0-windows` | GPU the OS exposes. Not NVML. |
-| `Vestigium.PerfMon.Memory` | `net10.0-windows` | Commit and available memory |
-| `Vestigium.PerfMon.Network` | `net10.0-windows` | Adapter PDH rates. Not ICMP. |
-| `Vestigium.PerfMon.PageFile` | `net10.0-windows` | Pagefile usage and paging |
+| `Vestigium.Helpers.PerfMon` | `net10.0-windows` | Shared sample contract for the PerfMon family. No Demo project. |
+| `Vestigium.Helpers.PerfMon.Cpu` | `net10.0-windows` | Processor PDH samples |
+| `Vestigium.Helpers.PerfMon.Disk` | `net10.0-windows` | Physical and logical disk PDH samples |
+| `Vestigium.Helpers.PerfMon.Gpu` | `net10.0-windows` | GPU the OS exposes. Not NVML. |
+| `Vestigium.Helpers.PerfMon.Memory` | `net10.0-windows` | Commit and available memory |
+| `Vestigium.Helpers.PerfMon.Network` | `net10.0-windows` | Adapter PDH rates. Not ICMP. |
+| `Vestigium.Helpers.PerfMon.PageFile` | `net10.0-windows` | Pagefile usage and paging |
 | `Vestigium.Helpers.Tests` | `net10.0-windows` | xUnit |
 
 **FileIo, Network, Hashing, and PerfMon have no Demo project.** Hosts consume those libraries.

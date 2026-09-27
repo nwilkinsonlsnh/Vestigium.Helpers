@@ -21,13 +21,13 @@
     <Content Include="..\src\Vestigium.Helpers.Services\README.md" Link="Vestigium\Helpers\Services\README.md" />
     <Content Include="..\src\Vestigium.Helpers.WinReg\README.md" Link="Vestigium\Helpers\WinReg\README.md" />
     <Content Include="..\src\Vestigium.Helpers.Xml\README.md" Link="Vestigium\Helpers\Xml\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon\README.md" Link="Vestigium\Helpers\PerfMon\PerfMon\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon.Cpu\README.md" Link="Vestigium\Helpers\PerfMon\Cpu\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon.Disk\README.md" Link="Vestigium\Helpers\PerfMon\Disk\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon.Gpu\README.md" Link="Vestigium\Helpers\PerfMon\Gpu\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon.Memory\README.md" Link="Vestigium\Helpers\PerfMon\Memory\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon.Network\README.md" Link="Vestigium\Helpers\PerfMon\Network\README.md" />
-    <Content Include="..\src\Vestigium.PerfMon.PageFile\README.md" Link="Vestigium\Helpers\PerfMon\PageFile\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon\README.md" Link="Vestigium\Helpers\PerfMon\PerfMon\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon.Cpu\README.md" Link="Vestigium\Helpers\PerfMon\Cpu\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon.Disk\README.md" Link="Vestigium\Helpers\PerfMon\Disk\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon.Gpu\README.md" Link="Vestigium\Helpers\PerfMon\Gpu\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon.Memory\README.md" Link="Vestigium\Helpers\PerfMon\Memory\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon.Network\README.md" Link="Vestigium\Helpers\PerfMon\Network\README.md" />
+    <Content Include="..\src\Vestigium.Helpers.PerfMon.PageFile\README.md" Link="Vestigium\Helpers\PerfMon\PageFile\README.md" />
   </ItemGroup>
 
   <ItemGroup>

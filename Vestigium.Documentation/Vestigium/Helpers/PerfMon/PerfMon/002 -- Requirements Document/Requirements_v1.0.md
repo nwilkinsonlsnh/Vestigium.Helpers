@@ -1,10 +1,10 @@
-# Vestigium.PerfMon — Requirements Specification
+# Vestigium.Helpers.PerfMon — Requirements Specification
 
 **Document ID:** VEST-HLP-PERFMON-SRS-000
 **Version:** 1.0
 **Status:** Initial lock. Implementation follows this file.
 **Date:** 27 September 2026
-**Package:** `Vestigium.PerfMon` 0.1.0 (not published)
+**Package:** `Vestigium.Helpers.PerfMon` 0.1.0 (not published)
 **TFM:** `net10.0-windows` (.NET 10 LTS)
 **Companion:** [`Design_v1.0.md`](../003%20--%20Design%20Document/Design_v1.0.md)
 
@@ -30,7 +30,7 @@ Not a dashboard. Not Analytics. Not Charts. Not process listing (`Vestigium.Help
 |---|---|---|
 | 1 | Library | `net10.0-windows`. Tools subscribe. No CLI host in this project. No Demo project. |
 | 2 | Family | Six probe packages plus this shared package. Probe packages reference shared. Shared does not reference a probe. |
-| 3 | Names | `Vestigium.PerfMon` and `Vestigium.PerfMon.{Probe}`. Not `Vestigium.Helpers.PerfMon.*`. Repo is still Vestigium.Helpers. |
+| 3 | Names | `Vestigium.Helpers.PerfMon` and `Vestigium.Helpers.PerfMon.{Probe}`. Same pattern as FileIo / Network / Analytics. Not a top-level `Vestigium.PerfMon` product. |
 | 4 | Source | Windows Performance Data Helper / `System.Diagnostics.PerformanceCounter` behind `ICounterSource`. Hosts may inject a fake in tests. |
 | 5 | Missing category | First-class `SampleStatus.Unavailable`. Not an exception when the OS has no instance. |
 | 6 | Bad argument | Empty name, non-finite interval, inverted window → log Failed, then throw. Same `HelperGuard` habit as the rest of Helpers. |
@@ -75,3 +75,4 @@ Skeleton projects compile in `Vestigium.Helpers.slnx` under `Library/PerfMon`. D
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 27 Sep 2026 | Initial family lock. |
+| 1.0a | 27 Sep 2026 | Names locked to `Vestigium.Helpers.PerfMon*`. |

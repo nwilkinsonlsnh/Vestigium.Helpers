@@ -1,13 +1,13 @@
-namespace Vestigium.PerfMon.Disk;
+namespace Vestigium.Helpers.PerfMon;
 
 /// <summary>
-/// Identity door for Vestigium.PerfMon.Disk. Hosts call <see cref="Register"/> inside
+/// Identity door for Vestigium.Helpers.PerfMon. Hosts call <see cref="Register"/> inside
 /// <c>VestigiumLogger.Initialize</c>. This library never initializes the host.
 /// </summary>
-public static class DiskPerfCatalog
+public static class PerfMonCatalog
 {
     /// <summary>Suggested APPID when this library is the process.</summary>
-    public const string AppId = "PerfMon.Disk";
+    public const string AppId = "PerfMon";
 
     /// <summary>Catalog category.</summary>
     public const string Category = "PerfMon";

@@ -1,11 +1,11 @@
-# Vestigium.PerfMon.Network — Implementation Plan
+# Vestigium.Helpers.PerfMon.Network — Implementation Plan
 
 **Status:** skeleton + contract.
 **Date:** 27 September 2026
 
 ## This pass
 
-- Project file and README in `src/Vestigium.PerfMon.Network/`
+- Project file and README in `src/Vestigium.Helpers.PerfMon.Network/`
 - Requirements v1.0 and Design v1.0
 - Solution folder `Library/PerfMon`
 

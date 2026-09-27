@@ -1,6 +1,6 @@
 # 001 -- Implementation Plan
 
-**Library:** Vestigium.PerfMon
+**Library:** Vestigium.Helpers.PerfMon
 **Status:** PM01 open. Shared library only. Package **0.1.0** (not published).
 
 Live paper:

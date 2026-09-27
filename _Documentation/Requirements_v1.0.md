@@ -34,13 +34,13 @@ Out of scope until a per-library SRS is accepted: real algorithm work, NuGet pub
 | HLP-NET | Vestigium.Helpers.Network | net10.0 | |
 | HLP-CSV | Vestigium.Helpers.Csv | net10.0 | RFC 4180 read/write, settable delimiter; not ClosedXml |
 | HLP-TST | Vestigium.Helpers.Tests | net10.0-windows | xUnit, serial logger collection |
-| HLP-PM | Vestigium.PerfMon | net10.0-windows | Shared sample contract. Not published. |
-| HLP-PM-CPU | Vestigium.PerfMon.Cpu | net10.0-windows | Processor PDH |
-| HLP-PM-DISK | Vestigium.PerfMon.Disk | net10.0-windows | Disk PDH |
-| HLP-PM-GPU | Vestigium.PerfMon.Gpu | net10.0-windows | GPU OS counters only |
-| HLP-PM-MEM | Vestigium.PerfMon.Memory | net10.0-windows | Commit / available |
-| HLP-PM-NET | Vestigium.PerfMon.Network | net10.0-windows | Adapter PDH. Not ICMP. |
-| HLP-PM-PF | Vestigium.PerfMon.PageFile | net10.0-windows | Pagefile / paging |
+| HLP-PM | Vestigium.Helpers.PerfMon | net10.0-windows | Shared sample contract. Not published. |
+| HLP-PM-CPU | Vestigium.Helpers.PerfMon.Cpu | net10.0-windows | Processor PDH |
+| HLP-PM-DISK | Vestigium.Helpers.PerfMon.Disk | net10.0-windows | Disk PDH |
+| HLP-PM-GPU | Vestigium.Helpers.PerfMon.Gpu | net10.0-windows | GPU OS counters only |
+| HLP-PM-MEM | Vestigium.Helpers.PerfMon.Memory | net10.0-windows | Commit / available |
+| HLP-PM-NET | Vestigium.Helpers.PerfMon.Network | net10.0-windows | Adapter PDH. Not ICMP. |
+| HLP-PM-PF | Vestigium.Helpers.PerfMon.PageFile | net10.0-windows | Pagefile / paging |
 
 Each library has a matching `*.Demo` WPF gallery (`net10.0-windows`). Analytics, ClosedXml, Charts, Csv, Encryption, Hashing, and FileIo are shipped galleries with accepted SRS + design companion. The rest use the shared skeleton in `Vestigium.Helpers.Gallery` until their own lossless SRS is accepted.
 

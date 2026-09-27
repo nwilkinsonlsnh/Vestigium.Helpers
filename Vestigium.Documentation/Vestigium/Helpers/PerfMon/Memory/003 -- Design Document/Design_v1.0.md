@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Memory — Design
+# Vestigium.Helpers.PerfMon.Memory — Design
 
 **Document ID:** VEST-HLP-PERFMON-MEM-DSN-000
 **Version:** 1.0

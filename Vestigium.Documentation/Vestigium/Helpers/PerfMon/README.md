@@ -6,13 +6,13 @@ Solution folder: `Library/PerfMon`.
 
 | Project | Role | EVENTID |
 |---|---|---|
-| `Vestigium.PerfMon` | Shared sample contract, job runner, counter source | 17000–17499 |
-| `Vestigium.PerfMon.Network` | Adapter rates and errors | 17500–17999 |
-| `Vestigium.PerfMon.Cpu` | Processor time and queue | 18000–18499 |
-| `Vestigium.PerfMon.Gpu` | GPU the OS exposes | 18500–18999 |
-| `Vestigium.PerfMon.Memory` | Commit, available, working set | 19000–19499 |
-| `Vestigium.PerfMon.Disk` | Physical and logical disk | 19500–19999 |
-| `Vestigium.PerfMon.PageFile` | Pagefile usage and paging | 20000–20499 |
+| `Vestigium.Helpers.PerfMon` | Shared sample contract, job runner, counter source | 17000–17499 |
+| `Vestigium.Helpers.PerfMon.Network` | Adapter rates and errors | 17500–17999 |
+| `Vestigium.Helpers.PerfMon.Cpu` | Processor time and queue | 18000–18499 |
+| `Vestigium.Helpers.PerfMon.Gpu` | GPU the OS exposes | 18500–18999 |
+| `Vestigium.Helpers.PerfMon.Memory` | Commit, available, working set | 19000–19499 |
+| `Vestigium.Helpers.PerfMon.Disk` | Physical and logical disk | 19500–19999 |
+| `Vestigium.Helpers.PerfMon.PageFile` | Pagefile usage and paging | 20000–20499 |
 
 Long-form documents sit in the child folder, not at this index.
 

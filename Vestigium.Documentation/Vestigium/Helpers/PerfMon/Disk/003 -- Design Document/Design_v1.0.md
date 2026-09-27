@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Disk — Design
+# Vestigium.Helpers.PerfMon.Disk — Design
 
 **Document ID:** VEST-HLP-PERFMON-DISK-DSN-000
 **Version:** 1.0

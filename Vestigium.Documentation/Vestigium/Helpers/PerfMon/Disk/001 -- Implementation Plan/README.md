@@ -1,11 +1,11 @@
-# Vestigium.PerfMon.Disk — Implementation Plan
+# Vestigium.Helpers.PerfMon.Disk — Implementation Plan
 
 **Status:** skeleton + contract.
 **Date:** 27 September 2026
 
 ## This pass
 
-- Project file and README in `src/Vestigium.PerfMon.Disk/`
+- Project file and README in `src/Vestigium.Helpers.PerfMon.Disk/`
 - Requirements v1.0 and Design v1.0
 - Solution folder `Library/PerfMon`
 

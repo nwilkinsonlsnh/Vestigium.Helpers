@@ -1,11 +1,11 @@
-# Vestigium.PerfMon.PageFile — Implementation Plan
+# Vestigium.Helpers.PerfMon.PageFile — Implementation Plan
 
 **Status:** skeleton + contract.
 **Date:** 27 September 2026
 
 ## This pass
 
-- Project file and README in `src/Vestigium.PerfMon.PageFile/`
+- Project file and README in `src/Vestigium.Helpers.PerfMon.PageFile/`
 - Requirements v1.0 and Design v1.0
 - Solution folder `Library/PerfMon`
 

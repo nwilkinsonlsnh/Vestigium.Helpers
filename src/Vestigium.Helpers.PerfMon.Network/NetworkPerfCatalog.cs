@@ -1,13 +1,13 @@
-namespace Vestigium.PerfMon.Cpu;
+namespace Vestigium.Helpers.PerfMon.Network;
 
 /// <summary>
-/// Identity door for Vestigium.PerfMon.Cpu. Hosts call <see cref="Register"/> inside
+/// Identity door for Vestigium.Helpers.PerfMon.Network. Hosts call <see cref="Register"/> inside
 /// <c>VestigiumLogger.Initialize</c>. This library never initializes the host.
 /// </summary>
-public static class CpuPerfCatalog
+public static class NetworkPerfCatalog
 {
     /// <summary>Suggested APPID when this library is the process.</summary>
-    public const string AppId = "PerfMon.Cpu";
+    public const string AppId = "PerfMon.Network";
 
     /// <summary>Catalog category.</summary>
     public const string Category = "PerfMon";

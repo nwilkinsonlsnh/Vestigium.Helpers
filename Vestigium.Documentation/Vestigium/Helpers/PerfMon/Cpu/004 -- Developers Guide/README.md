@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Cpu — Developers Guide
+# Vestigium.Helpers.PerfMon.Cpu — Developers Guide
 
 **Status: none** for a call-site guide.
 

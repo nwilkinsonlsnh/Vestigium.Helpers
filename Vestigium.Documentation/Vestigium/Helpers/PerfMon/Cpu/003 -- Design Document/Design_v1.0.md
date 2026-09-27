@@ -1,4 +1,4 @@
-# Vestigium.PerfMon.Cpu — Design
+# Vestigium.Helpers.PerfMon.Cpu — Design
 
 **Document ID:** VEST-HLP-PERFMON-CPU-DSN-000
 **Version:** 1.0
