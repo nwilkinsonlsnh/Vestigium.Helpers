@@ -1,20 +1,11 @@
-# Vestigium.Helpers.PerfMon.Cpu — Implementation Plan
+# 001 -- Implementation Plan
 
-**Status:** skeleton + contract.
-**Date:** 27 September 2026
+**Library:** Vestigium.Helpers.PerfMon.Cpu
+**Status:** PC01 open. Probe façade only. Package **0.1.0** (not published).
 
-## This pass
+Live paper:
 
-- Project file and README in `src/Vestigium.Helpers.PerfMon.Cpu/`
-- Requirements v1.0 and Design v1.0
-- Solution folder `Library/PerfMon`
+- [`PC01/PC01 -- Backlog.md`](PC01/PC01%20--%20Backlog.md)
+- [`PC01/PC01 -- Implementation Plan.md`](PC01/PC01%20--%20Implementation%20Plan.md)
 
-## Next pass (not this commit)
-
-- `ICounterSource` and `SampleJob` in shared
-- First live probe: Cpu `_Total` % Processor Time
-- xUnit against a fake source
-
-## Not this family
-
-Demo WPF. NuGet publish. Charts surface.
+Shared clock is `Vestigium.Helpers.PerfMon` PM01. Do not re-implement the loop here.
