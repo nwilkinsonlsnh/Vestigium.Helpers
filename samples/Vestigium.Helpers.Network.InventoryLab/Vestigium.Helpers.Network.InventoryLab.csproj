@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Vestigium.Helpers.Network.InventoryLab</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Network.InventoryLab</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
+  </ItemGroup>
+</Project>
