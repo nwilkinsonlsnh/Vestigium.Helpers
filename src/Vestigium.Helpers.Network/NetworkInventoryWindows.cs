@@ -103,21 +103,6 @@ internal static class NetworkInventoryWindows
             else
                 metricIsAutomatic = metric is null;
 
-        try
-        {
-            var id = nic.Id.Trim();
-            var path = $@"{TcpipParameters}\Interfaces\{id}";
-            using var key = Registry.LocalMachine.OpenSubKey(path);
-            if (key is null)
-                return;
-
-            metric = ReadDword(key, "InterfaceMetric");
-            var autoMetric = ReadDword(key, "AutoMetric");
-            if (autoMetric is not null)
-                metricIsAutomatic = autoMetric != 0;
-            else
-                metricIsAutomatic = metric is null;
-
             var autoCfg = ReadDword(key, "IPAutoconfigurationEnabled");
             if (autoCfg is not null)
                 autoconfig = autoCfg != 0;
