@@ -25,13 +25,16 @@ internal static class NetworkInventoryEngine
         }
 
         var adapters = (from nic in NetworkInterface.GetAllNetworkInterfaces() where query.IncludeDown || nic.OperationalStatus == OperationalStatus.Up where Matches(nic, query) select Map(nic)).ToList();
+        var stack = NetworkInventoryWindows.ReadStack();
+        var search = NetworkInventoryWindows.ReadSearchList();
 
         return new WorkstationNetwork(
             host,
             domain,
             DateTimeOffset.UtcNow,
             adapters,
-            NetworkInventoryWindows.ReadSearchList());
+            search,
+            stack);
     }
 
     public static NetworkAdapter CaptureOne(string nameOrId)
@@ -169,7 +172,21 @@ internal static class NetworkInventoryEngine
             wins,
             dnsReg,
             physical,
-            driver);
+            driver,
+            Supports(nic, NetworkInterfaceComponent.IPv4),
+            Supports(nic, NetworkInterfaceComponent.IPv6));
+    }
+
+    private static bool Supports(NetworkInterface nic, NetworkInterfaceComponent component)
+    {
+        try
+        {
+            return nic.Supports(component);
+        }
+        catch (NetworkInformationException)
+        {
+            return false;
+        }
     }
 
     private static UnicastAddress MapUnicast(UnicastIPAddressInformation addr)

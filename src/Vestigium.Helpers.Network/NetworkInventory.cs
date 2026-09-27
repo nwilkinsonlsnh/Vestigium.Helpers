@@ -56,14 +56,36 @@ public sealed record NetworkAdapter(
     IReadOnlyList<string> WinsServers,
     bool? DnsRegistrationEnabled,
     bool? PhysicalAdapter,
-    AdapterDriver? Driver);
+    AdapterDriver? Driver,
+    bool SupportsIpv4,
+    bool SupportsIpv6)
+{
+    public bool IpEnabled => SupportsIpv4 || SupportsIpv6;
+
+    public bool HasIpv4Unicast =>
+        UnicastAddresses.Any(u => u.Family == AddressFamily.InterNetwork);
+
+    public bool HasIpv6Unicast =>
+        UnicastAddresses.Any(u => u.Family == AddressFamily.InterNetworkV6);
+}
+
+public sealed record TcpipStackInfo(
+    string? HostName,
+    string? Domain,
+    string? NvDomain,
+    string? DhcpDomain,
+    string? NameServer,
+    IReadOnlyList<string> DhcpNameServers,
+    bool? IpEnableRouter,
+    bool? SyncDomainWithMembership);
 
 public sealed record WorkstationNetwork(
     string HostName,
     string? DomainName,
     DateTimeOffset CapturedUtc,
     IReadOnlyList<NetworkAdapter> Adapters,
-    IReadOnlyList<string> DnsSuffixSearchList);
+    IReadOnlyList<string> DnsSuffixSearchList,
+    TcpipStackInfo? Stack);
 
 public sealed record NetworkAdapterQuery(
     string? Name = null,

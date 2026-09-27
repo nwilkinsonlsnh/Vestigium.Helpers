@@ -6,6 +6,18 @@ Console.WriteLine($"Host     {box.HostName}");
 Console.WriteLine($"Domain   {box.DomainName ?? "—"}");
 Console.WriteLine($"Captured {box.CapturedUtc:u}");
 Console.WriteLine($"Search   {Join(box.DnsSuffixSearchList)}");
+if (box.Stack is { } stack)
+{
+    Console.WriteLine("Stack");
+    Console.WriteLine($"  Hostname     {Blank(stack.HostName)}");
+    Console.WriteLine($"  Domain       {Blank(stack.Domain)}");
+    Console.WriteLine($"  NV Domain    {Blank(stack.NvDomain)}");
+    Console.WriteLine($"  DHCP domain  {Blank(stack.DhcpDomain)}");
+    Console.WriteLine($"  NameServer   {Blank(stack.NameServer)}");
+    Console.WriteLine($"  DHCP DNS     {Join(stack.DhcpNameServers)}");
+    Console.WriteLine($"  Router       {Flag(stack.IpEnableRouter)}");
+    Console.WriteLine($"  Sync domain  {Flag(stack.SyncDomainWithMembership)}");
+}
 Console.WriteLine($"Adapters {box.Adapters.Count}");
 Console.WriteLine();
 
@@ -30,6 +42,7 @@ foreach (var nic in box.Adapters)
     Console.WriteLine($"  Lease         obtained={Time(nic.Dhcp.LeaseObtained)}  expires={Time(nic.Dhcp.LeaseExpires)}");
     Console.WriteLine($"  NetBIOS       {nic.NetbiosOverTcp}");
     Console.WriteLine($"  Physical      {Flag(nic.PhysicalAdapter)}");
+    Console.WriteLine($"  IP enabled    {YesNo(nic.IpEnabled)}  IPv4={YesNo(nic.SupportsIpv4)}/{YesNo(nic.HasIpv4Unicast)}  IPv6={YesNo(nic.SupportsIpv6)}/{YesNo(nic.HasIpv6Unicast)}");
     Console.WriteLine("  Unicast");
     if (nic.UnicastAddresses.Count == 0)
         Console.WriteLine("    —");
@@ -63,6 +76,8 @@ static string Blank(string? value) => string.IsNullOrWhiteSpace(value) ? "—" :
 static string Num(int? value) => value is null ? "—" : value.Value.ToString();
 
 static string Flag(bool? value) => value is null ? "—" : value.Value ? "yes" : "no";
+
+static string YesNo(bool value) => value ? "yes" : "no";
 
 static string Time(DateTimeOffset? value) => value is null ? "—" : value.Value.ToLocalTime().ToString("g");
 

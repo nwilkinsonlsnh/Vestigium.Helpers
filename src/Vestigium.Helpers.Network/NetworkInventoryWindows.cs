@@ -15,17 +15,60 @@ internal static class NetworkInventoryWindows
         if (!OperatingSystem.IsWindows())
             return [];
 
+        var found = new List<string>();
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(TcpipParameters);
-            var raw = key?.GetValue("SearchList") as string;
-            if (string.IsNullOrWhiteSpace(raw))
-                raw = key?.GetValue("NV SearchList") as string;
-            return SplitList(raw);
+            AddSplit(found, key?.GetValue("SearchList") as string);
+            AddSplit(found, key?.GetValue("NV SearchList") as string);
+            AddOne(found, key?.GetValue("Domain") as string);
+            AddOne(found, key?.GetValue("DhcpDomain") as string);
+
+            using var interfaces = Registry.LocalMachine.OpenSubKey(TcpipParameters + @"\Interfaces");
+            if (interfaces is not null)
+            {
+                foreach (var name in interfaces.GetSubKeyNames())
+                {
+                    using var iface = interfaces.OpenSubKey(name);
+                    AddSplit(found, iface?.GetValue("DhcpDomainSearchList") as string);
+                    AddOne(found, iface?.GetValue("Domain") as string);
+                    AddOne(found, iface?.GetValue("DhcpDomain") as string);
+                }
+            }
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {
-            return [];
+        }
+
+        return found;
+    }
+
+    public static TcpipStackInfo? ReadStack()
+    {
+        if (!OperatingSystem.IsWindows())
+            return null;
+
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(TcpipParameters);
+            if (key is null)
+                return null;
+
+            var router = ReadDword(key, "IPEnableRouter");
+            var sync = ReadDword(key, "SyncDomainWithMembership");
+            return new TcpipStackInfo(
+                Text(key, "Hostname") ?? Text(key, "NV Hostname"),
+                Text(key, "Domain"),
+                Text(key, "NV Domain"),
+                Text(key, "DhcpDomain"),
+                Text(key, "NameServer"),
+                SplitList(key.GetValue("DhcpNameServer") as string),
+                router is null ? null : router != 0,
+                sync is null ? null : sync != 0);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+        {
+            return null;
         }
     }
 
@@ -65,7 +108,7 @@ internal static class NetworkInventoryWindows
                 autoconfig = autoCfg != 0;
 
             leaseObtained = ReadLeaseTime(key, "LeaseObtainedTime");
-            leaseExpires = ReadLeaseTime(key, "LeaseTerminatesTime") ?? ReadLeaseTime(key, "Lease");
+            leaseExpires = ReadLeaseTime(key, "LeaseTerminatesTime");
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {
@@ -121,6 +164,23 @@ internal static class NetworkInventoryWindows
         }
 
         return null;
+    }
+
+    private static void AddSplit(List<string> target, string? raw)
+    {
+        foreach (var item in SplitList(raw))
+            AddOne(target, item);
+    }
+
+    private static void AddOne(List<string> target, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+        var item = value.Trim().Trim('.');
+        if (item.Length == 0)
+            return;
+        if (!target.Exists(x => string.Equals(x, item, StringComparison.OrdinalIgnoreCase)))
+            target.Add(item);
     }
 
     private static IReadOnlyList<string> SplitList(string? raw)
