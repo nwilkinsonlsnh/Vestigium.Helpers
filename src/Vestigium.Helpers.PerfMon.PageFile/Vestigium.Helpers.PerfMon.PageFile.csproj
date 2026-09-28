@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.PerfMon.PageFile</RootNamespace>
     <AssemblyName>Vestigium.Helpers.PerfMon.PageFile</AssemblyName>
     <Description>Pagefile usage and paging samples.</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>perfmon;pagefile;diagnostics;vestigium</PackageTags>
