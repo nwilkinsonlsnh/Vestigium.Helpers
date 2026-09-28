@@ -99,6 +99,37 @@ public sealed class PerfMonPageFilePf01Tests
         Assert.DoesNotContain(paths, p => p.Counter.Contains("Pages/sec", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void PF01_003_files_respect_cap()
+    {
+        var names = new List<string> { "_Total", @"C:\pagefile.sys", @"D:\pagefile.sys", @"E:\pagefile.sys" };
+        var inv = new ScriptedInventory { Present = true, Instances = names };
+        var paths = PageFilePaths.For(new PageFileSampleOptions
+        {
+            IncludeFiles = true,
+            InstanceCap = 2,
+            Inventory = inv
+        });
+        var files = paths.Where(p => p.Counter == "% Usage").Select(p => p.Instance).ToArray();
+        Assert.Equal(["_Total", @"C:\pagefile.sys", @"D:\pagefile.sys"], files);
+        Assert.Equal(2, PageFilePaths.Files(inv, 2).Count);
+        Assert.Empty(PageFilePaths.Files(inv, 0));
+    }
+
+    [Fact]
+    public void PF01_003_files_omit_total()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Instances = ["_Total", "_total", @"C:\pagefile.sys"]
+        };
+        Assert.Equal([@"C:\pagefile.sys"], PageFilePaths.Files(inv, 256));
+        var paths = PageFilePaths.For(new PageFileSampleOptions { IncludeFiles = true, Inventory = inv });
+        Assert.Equal(1, paths.Count(p => p.Instance == "_Total" && p.Counter == "% Usage"));
+        Assert.All(paths, p => Assert.Equal(PageFileObjects.PagingFile, p.Category));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
