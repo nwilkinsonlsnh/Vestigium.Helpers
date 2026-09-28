@@ -93,7 +93,7 @@ Next probe: same façade name shape `{Probe}Objects` + `{Probe}CounterCatalog` +
 |---|---|
 | Cpu | `Processor`, `Processor Information`, `Processor Performance` |
 | Disk | FileSystem Disk Activity, LogicalDisk, Ntfs Bucketized Performance, PhysicalDisk, ReFS family, Storage Spaces family, Storport Unit *, VHD Bucketized Performance |
-| Gpu | later plan — GPU Engine / GPU Adapter Memory when present |
+| Gpu | GPU Engine, GPU Process Memory, GPU Adapter Memory, GPU Local Adapter Memory, GPU Non Local Adapter Memory |
 | Memory | later plan — Memory |
 | PageFile | later plan — Paging File |
 | Network | later plan — Network Interface / TCPv4 — not `Helpers.Network` ICMP |
