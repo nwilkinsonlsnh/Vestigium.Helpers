@@ -42,6 +42,31 @@ public sealed class PerfMonPr03cTests
         Assert.Null(typeof(NetworkAdapter).Assembly.GetType("Vestigium.Helpers.PerfMon.Network.WinNAT"));
     }
 
+    [Fact]
+    public void PR03c_003_missing_objects_have_no_invented_types()
+    {
+        string[] missing =
+        [
+            "Vestigium.Helpers.PerfMon.Memory.HyperVDynamicMemoryIntegrationService",
+            "Vestigium.Helpers.PerfMon.Disk.ReFS",
+            "Vestigium.Helpers.PerfMon.Disk.StorportUnitQueue",
+            "Vestigium.Helpers.PerfMon.Disk.VHDBucketizedPerformance",
+            "Vestigium.Helpers.PerfMon.Network.WinNAT",
+            "Vestigium.Helpers.PerfMon.Network.IPsecDriver",
+            "Vestigium.Helpers.PerfMon.Network.SMBServer",
+            "Vestigium.Helpers.PerfMon.Network.HTTPService",
+            "Vestigium.Helpers.PerfMon.Gpu.GPUEngine"
+        ];
+        var assemblies = new[]
+        {
+            typeof(Memory).Assembly,
+            typeof(PhysicalDisk).Assembly,
+            typeof(NetworkAdapter).Assembly
+        };
+        foreach (var name in missing)
+            Assert.DoesNotContain(assemblies, a => a.GetType(name) is not null);
+    }
+
     private static void AssertShard(string probe, string[] present, string[] allowOnly)
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(FindShard(probe)));
