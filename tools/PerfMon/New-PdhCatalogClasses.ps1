@@ -27,33 +27,50 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 $data = Get-Content -Path $shard -Raw -Encoding UTF8 | ConvertFrom-Json
 $written = New-Object System.Collections.Generic.List[string]
+$nl = "`n"
+
 foreach ($cat in @($data.categories)) {
     $counters = @($cat.counters)
     if ($counters.Count -eq 0) { continue }
 
     $id = [string]$cat.identifier
     $pdh = [string]$cat.category
-    $sb = New-Object System.Text.StringBuilder
-    [void]$sb.AppendLine("namespace $ns;")
-    [void]$sb.AppendLine()
-    [void]$sb.AppendLine("/// <summary>PDH category $pdh. Generated from EventCatalog/pdh-categories.json.</summary>")
-    [void]$sb.AppendLine("public static class $id")
-    [void]$sb.AppendLine("{")
-    [void]$sb.AppendLine("    public const string Category = `"$pdh`";")
+    $lines = New-Object System.Collections.Generic.List[string]
+    [void]$lines.Add("namespace $ns;")
+    [void]$lines.Add("")
+    [void]$lines.Add("/// <summary>PDH category $pdh. Generated from EventCatalog/pdh-categories.json.</summary>")
+    [void]$lines.Add("public static class $id")
+    [void]$lines.Add("{")
+    [void]$lines.Add('    public const string Category = "' + $pdh + '";')
     foreach ($c in $counters) {
-        $name = ([string]$c.name).Replace('"', '\"')
-        [void]$sb.AppendLine("    public const string $([string]$c.identifier) = `"$name`";")
+        $name = ([string]$c.name).Replace('\', '\\').Replace('"', '\"')
+        [void]$lines.Add('    public const string ' + ([string]$c.identifier) + ' = "' + $name + '";')
     }
-    [void]$sb.AppendLine()
-    [void]$sb.AppendLine("    public static IReadOnlyList<string> Counters { get; } =")
-    [void]$sb.AppendLine("    [")
-    foreach ($c in $counters) {
-        [void]$sb.AppendLine("        $([string]$c.identifier),")
+    [void]$lines.Add("")
+    [void]$lines.Add("    public static IReadOnlyList<string> Counters { get; } =")
+    [void]$lines.Add("    [")
+    for ($i = 0; $i -lt $counters.Count; $i++) {
+        $ident = [string]$counters[$i].identifier
+        if ($i -lt ($counters.Count - 1)) {
+            [void]$lines.Add("        $ident,")
+        }
+        else {
+            [void]$lines.Add("        $ident")
+        }
     }
-    [void]$sb.AppendLine("    ];")
-    [void]$sb.AppendLine("}")
+    [void]$lines.Add("    ];")
+    [void]$lines.Add("}")
+    $text = ($lines -join $nl) + $nl
+
     $path = Join-Path $outDir "$id.cs"
-    Set-Content -Path $path -Value $sb.ToString() -Encoding UTF8
+    $existing = ""
+    if (Test-Path $path) {
+        $existing = [System.IO.File]::ReadAllText($path)
+    }
+    if ($existing -ne $text) {
+        $utf8 = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($path, $text, $utf8)
+    }
     [void]$written.Add($path)
 }
 

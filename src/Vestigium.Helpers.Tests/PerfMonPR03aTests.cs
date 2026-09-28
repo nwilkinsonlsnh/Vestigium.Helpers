@@ -32,6 +32,15 @@ public sealed class PerfMonPr03aTests
         Assert.Equal("Paging File", cat.GetProperty("category").GetString());
     }
 
+    [Fact]
+    public void PR03a_002_pagingfile_class_matches_committed_shape()
+    {
+        Assert.Equal("Paging File", PagingFile.Category);
+        Assert.Equal("% Usage", PagingFile.PercentUsage);
+        Assert.Equal("% Usage Peak", PagingFile.PercentUsagePeak);
+        Assert.Equal(["% Usage", "% Usage Peak"], PagingFile.Counters);
+    }
+
     private static string FindNamed(string name, string mustContain)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
