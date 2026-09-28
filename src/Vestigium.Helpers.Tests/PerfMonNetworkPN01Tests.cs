@@ -104,6 +104,42 @@ public sealed class PerfMonNetworkPn01Tests
         Assert.Equal("count", paths.First(p => p.Counter == "Output Queue Length").Unit);
     }
 
+    [Fact]
+    public void PN01_003_adapters_respect_cap()
+    {
+        var names = new List<string> { "_Total" };
+        names.AddRange(Enumerable.Range(0, 10).Select(i => $"nic{i}"));
+        var inv = new ScriptedInventory { Present = true, Instances = names };
+        var paths = NetworkPaths.For(new NetworkSampleOptions
+        {
+            IncludeAdapters = true,
+            InstanceCap = 3,
+            Inventory = inv
+        });
+        var adapters = paths
+            .Where(p => p.Counter == "Bytes Total/sec")
+            .Select(p => p.Instance)
+            .ToArray();
+        Assert.Equal(["_Total", "nic0", "nic1", "nic2"], adapters);
+        Assert.Equal(3, NetworkPaths.Adapters(inv, 3).Count);
+        Assert.Empty(NetworkPaths.Adapters(inv, 0));
+    }
+
+    [Fact]
+    public void PN01_003_adapters_omit_total()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Instances = ["_Total", "_total", "Ethernet", "Wi-Fi"]
+        };
+        var adapters = NetworkPaths.Adapters(inv, 256);
+        Assert.Equal(["Ethernet", "Wi-Fi"], adapters);
+        var paths = NetworkPaths.For(new NetworkSampleOptions { IncludeAdapters = true, Inventory = inv });
+        Assert.Equal(1, paths.Count(p => p.Instance == "_Total" && p.Counter == "Bytes Total/sec"));
+        Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
