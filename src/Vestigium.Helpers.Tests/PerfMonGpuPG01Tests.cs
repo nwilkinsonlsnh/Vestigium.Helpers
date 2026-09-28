@@ -318,6 +318,36 @@ public sealed class PerfMonGpuPg01Tests
         }
     }
 
+    [Fact]
+    public void PG01_008_probe_references_shared_only()
+    {
+        var csproj = FindCsproj();
+        var text = File.ReadAllText(csproj);
+        Assert.Contains("Vestigium.Helpers.PerfMon\\Vestigium.Helpers.PerfMon.csproj", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Charts", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Analytics", text);
+        Assert.DoesNotContain("Vestigium.Helpers.FileIo", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Processes", text);
+        Assert.DoesNotContain("System.Diagnostics.PerformanceCounter", text);
+        Assert.DoesNotContain("Nvml", text);
+        Assert.DoesNotContain("DXGI", text);
+        Assert.Null(typeof(GpuSampleOptions).GetProperty("ProcessId"));
+        Assert.Null(typeof(GpuPerf).GetMethod("Initialize"));
+    }
+
+    private static string FindCsproj()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hit = dir.GetFiles("Vestigium.Helpers.PerfMon.Gpu.csproj", SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+                return hit.FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Gpu.csproj");
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
