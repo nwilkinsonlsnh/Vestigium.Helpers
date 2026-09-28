@@ -12,9 +12,9 @@ internal static class CpuPaths
 
     public static readonly string[] Utilization =
     [
-        "% Processor Time",
-        "% Privileged Time",
-        "% User Time"
+        Processor.PercentProcessorTime,
+        Processor.PercentPrivilegedTime,
+        Processor.PercentUserTime
     ];
 
     public static string InstanceOrTotal(string? instance)

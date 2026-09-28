@@ -11,24 +11,7 @@ public static class CpuCounterCatalog
     private static readonly CounterSet Set = new(
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            [CpuObjects.Processor] =
-            [
-                "% Processor Time",
-                "% User Time",
-                "% Privileged Time",
-                "% Interrupt Time",
-                "% DPC Time",
-                "% Idle Time",
-                "Interrupts/sec",
-                "DPCs Queued/sec",
-                "DPC Rate",
-                "C1 Transitions/sec",
-                "C2 Transitions/sec",
-                "C3 Transitions/sec",
-                "% C1 Time",
-                "% C2 Time",
-                "% C3 Time"
-            ],
+            [Processor.Category] = [.. Processor.Counters],
             [CpuObjects.ProcessorInformation] =
             [
                 "% Processor Time",

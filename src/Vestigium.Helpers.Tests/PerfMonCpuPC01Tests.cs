@@ -410,6 +410,21 @@ public sealed class PerfMonCpuPc01Tests
         }
     }
 
+    [Fact]
+    public void PR02b_003_processor_type_agrees_with_shard()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(CpuPerfCatalog).Assembly,
+            Processor.Category,
+            Processor.Counters,
+            CpuCounterCatalog.Counters(Processor.Category));
+        Assert.Equal(Processor.PercentProcessorTime, CpuPaths.Utilization[0]);
+        Assert.Equal("% Processor Time", Processor.PercentProcessorTime);
+        Assert.True(CpuCounterCatalog.IsKnownCategory(CpuObjects.ProcessorInformation));
+        Assert.Null(typeof(Processor).Assembly.GetType("Vestigium.Helpers.PerfMon.Cpu.ProcessorInformation"));
+        Assert.Null(typeof(Processor).Assembly.GetType("Vestigium.Helpers.PerfMon.Cpu.ProcessorPerformance"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

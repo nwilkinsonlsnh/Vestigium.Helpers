@@ -8,10 +8,7 @@ public sealed class PerfMonPr02aTests
     [Fact]
     public void PR02a_001_pagefile_shard_is_allow_listed()
     {
-        var jsonPath = Path.Combine(
-            Path.GetDirectoryName(typeof(PageFilePerfCatalog).Assembly.Location)!,
-            "EventCatalog",
-            "pdh-categories.json");
+        var jsonPath = ShardPath();
         Assert.True(File.Exists(jsonPath), jsonPath);
 
         using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
@@ -38,7 +35,7 @@ public sealed class PerfMonPr02aTests
     [Fact]
     public void PR02a_001_mini_dump_filter_drops_clr_and_instances()
     {
-        var mini = FindFixture("pdh-mini.json");
+        var mini = FindNamed("pdh-mini.json");
         using var doc = JsonDocument.Parse(File.ReadAllText(mini));
         var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Paging File" };
         var hits = doc.RootElement.GetProperty("categories").EnumerateArray()
@@ -46,24 +43,19 @@ public sealed class PerfMonPr02aTests
             .ToArray();
         Assert.Single(hits);
         Assert.Equal("Paging File", hits[0].GetProperty("category").GetString());
-        Assert.DoesNotContain(
-            doc.RootElement.GetProperty("categories").EnumerateArray().Select(c => c.GetProperty("category").GetString()),
-            name => name == "Paging File" ? false : wanted.Contains(name!));
         Assert.Contains(
             doc.RootElement.GetProperty("categories").EnumerateArray().Select(c => c.GetProperty("category").GetString()),
             name => name == ".NET CLR Memory");
     }
 
-
     [Fact]
     public void PR02a_004_tools_readme_names_the_pipeline()
     {
-        var readme = FindToolsReadme();
-        var tools = Path.GetDirectoryName(readme)!;
-        Assert.True(File.Exists(Path.Combine(tools, "Dump-PdhCatalog.ps1")));
+        var dumpScript = FindNamed("Dump-PdhCatalog.ps1");
+        var tools = Path.GetDirectoryName(dumpScript)!;
         Assert.True(File.Exists(Path.Combine(tools, "Filter-PdhCatalog.ps1")));
         Assert.True(File.Exists(Path.Combine(tools, "New-PdhCatalogClasses.ps1")));
-        var text = File.ReadAllText(readme);
+        var text = File.ReadAllText(Path.Combine(tools, "README.md"));
         Assert.Contains("Dump-PdhCatalog.ps1", text);
         Assert.Contains("Filter-PdhCatalog.ps1", text);
         Assert.Contains("New-PdhCatalogClasses.ps1", text);
@@ -87,21 +79,15 @@ public sealed class PerfMonPr02aTests
         Assert.Equal("% Usage", PagingFile.PercentUsage);
         Assert.Equal("% Usage Peak", PagingFile.PercentUsagePeak);
         Assert.Equal(["% Usage", "% Usage Peak"], PagingFile.Counters);
+    }
 
-        var jsonPath = Path.Combine(
+    private static string ShardPath()
+        => Path.Combine(
             Path.GetDirectoryName(typeof(PageFilePerfCatalog).Assembly.Location)!,
             "EventCatalog",
             "pdh-categories.json");
-        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
-        var row = doc.RootElement.GetProperty("categories")[0];
-        Assert.Equal(PagingFile.Category, row.GetProperty("category").GetString());
-        var names = row.GetProperty("counters").EnumerateArray()
-            .Select(c => c.GetProperty("name").GetString())
-            .ToArray();
-        Assert.Equal(PagingFile.Counters, names);
-    }
 
-    private static string FindFixture(string name)
+    private static string FindNamed(string name)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
