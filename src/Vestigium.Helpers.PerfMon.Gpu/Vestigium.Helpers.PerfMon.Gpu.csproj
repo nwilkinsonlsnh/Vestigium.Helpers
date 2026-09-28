@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.PerfMon.Gpu</RootNamespace>
     <AssemblyName>Vestigium.Helpers.PerfMon.Gpu</AssemblyName>
     <Description>GPU engine and adapter memory the OS exposes.</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>perfmon;gpu;diagnostics;vestigium</PackageTags>
