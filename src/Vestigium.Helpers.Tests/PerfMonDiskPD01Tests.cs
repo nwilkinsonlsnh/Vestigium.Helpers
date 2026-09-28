@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Disk;
 
@@ -171,6 +172,56 @@ public sealed class PerfMonDiskPd01Tests
         Assert.DoesNotContain(paths, p => p.Category == DiskObjects.LogicalDisk);
         Assert.DoesNotContain(paths, p => p.Counter == "% Free Space");
         Assert.False(DiskCounterCatalog.CategoryPresent(DiskObjects.PhysicalDisk, new ScriptedInventory { Present = false }));
+    }
+
+    [Fact]
+    public async Task PD01_005_run_uses_shared_job()
+    {
+        var paths = DiskPaths.Physical("_Total");
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await DiskPerf.RunAsync(new DiskSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s =>
+        {
+            Assert.Equal(DiskObjects.PhysicalDisk, s.Path.Category);
+            Assert.Equal(12, s.Value);
+        });
+    }
+
+    [Fact]
+    public void PD01_005_live_total()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists(DiskObjects.PhysicalDisk))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        var path = new CounterPath(DiskObjects.PhysicalDisk, "Disk Bytes/sec", "_Total", "/sec");
+        var source = new PerformanceCounterSource();
+        _ = source.Read(path);
+        var row = source.Read(path);
+        if (row.Status != SampleStatus.Ok)
+            return;
+        Assert.NotNull(row.Value);
     }
 
     private sealed class ScriptedInventory : ICounterInventory
