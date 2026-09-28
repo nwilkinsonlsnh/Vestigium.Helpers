@@ -138,42 +138,55 @@ function ConvertTo-StableJson {
     param($Value, [int] $Level = 0)
     $pad = "  " * $Level
     $inner = "  " * ($Level + 1)
+
     if ($null -eq $Value) { return "null" }
-    if ($Value -is [string]) { return '"' + ($Value.Replace("\", "\\").Replace('"', '\"')) + '"' }
-    if ($Value -is [bool]) { if ($Value) { return "true" } else { return "false" } }
-    if ($Value -is [int] -or $Value -is [long]) { return [string]$Value }
-    $arr = @()
-    if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
-        $isMap = $false
+
+    if ($Value -is [bool]) {
+        if ($Value) { return "true" }
+        return "false"
     }
-    if ($Value -is [System.Collections.IDictionary] -or $Value.PSObject.Properties["source"] -or ($Value.PSObject.TypeNames -contains "System.Management.Automation.PSCustomObject")) {
-        $order = @("source","machine","utc","allowList","categoryCount","categories","category","identifier","type","counters","name")
-        $props = @($Value.PSObject.Properties | Where-Object { $_.MemberType -eq "NoteProperty" -or $_.MemberType -eq "Property" })
-        $names = @()
-        foreach ($n in $order) {
-            if ($props | Where-Object { $_.Name -eq $n }) { $names += $n }
+
+    if ($Value -is [int] -or $Value -is [long] -or $Value -is [decimal] -or $Value -is [double]) {
+        return ([string]$Value)
+    }
+
+    if ($Value -is [string]) {
+        $escaped = $Value.Replace('\', '\\').Replace('"', '\"')
+        return ('"' + $escaped + '"')
+    }
+
+    $note = @($Value.PSObject.Properties | Where-Object { $_.MemberType -eq "NoteProperty" })
+    if ($note.Count -gt 0) {
+        $preferred = @("source","machine","utc","allowList","categoryCount","categories","category","identifier","type","counters","name")
+        $names = New-Object System.Collections.Generic.List[string]
+        foreach ($n in $preferred) {
+            foreach ($pr in $note) {
+                if ($pr.Name -eq $n) { [void]$names.Add($n) }
+            }
         }
-        foreach ($pr in $props) {
-            if ($names -notcontains $pr.Name -and $pr.Name -notin @("Count","Length","Keys","Values","Item")) { $names += $pr.Name }
+        foreach ($pr in $note) {
+            if (-not $names.Contains($pr.Name)) { [void]$names.Add($pr.Name) }
         }
-        $parts = @()
+        $parts = New-Object System.Collections.Generic.List[string]
         foreach ($n in $names) {
-            $pv = $Value.$n
-            $parts += ($inner + '"' + $n + '": ' + (ConvertTo-StableJson $pv ($Level + 1)))
+            $rendered = ConvertTo-StableJson -Value $Value.$n -Level ($Level + 1)
+            [void]$parts.Add(($inner + '"' + $n + '": ' + $rendered))
         }
         if ($parts.Count -eq 0) { return "{}" }
-        return "{`n" + ($parts -join ",`n") + "`n$pad}"
+        return ("{`n" + ($parts -join ",`n") + "`n" + $pad + "}")
     }
+
     $items = @($Value)
     if ($items.Count -eq 0) { return "[]" }
-    $parts = @()
+    $parts = New-Object System.Collections.Generic.List[string]
     foreach ($item in $items) {
-        $parts += ($inner + (ConvertTo-StableJson $item ($Level + 1)))
+        [void]$parts.Add(($inner + (ConvertTo-StableJson -Value $item -Level ($Level + 1))))
     }
-    return "[`n" + ($parts -join ",`n") + "`n$pad]"
+    return ("[`n" + ($parts -join ",`n") + "`n" + $pad + "]")
 }
 
-$json = ConvertTo-StableJson $payload
-if (-not $json.EndsWith("`n")) { $json += "`n" }
-[System.IO.File]::WriteAllText($outPath, $json, [System.Text.UTF8Encoding]::new($false))
+$json = ConvertTo-StableJson -Value $payload
+if (-not $json.EndsWith("`n")) { $json = $json + "`n" }
+$utf8 = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($outPath, $json, $utf8)
 Write-Output $outPath
