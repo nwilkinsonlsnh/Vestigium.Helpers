@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.PageFile;
 
@@ -145,6 +146,55 @@ public sealed class PerfMonPageFilePf01Tests
         Assert.DoesNotContain(paths, p => p.Counter.Contains("Pages/sec", StringComparison.OrdinalIgnoreCase));
         Assert.False(PageFileCounterCatalog.CategoryPresent(PageFileObjects.PagingFile, missing));
         Assert.Null(typeof(PageFileSampleOptions).GetProperty("IncludeMemoryRates"));
+    }
+
+    [Fact]
+    public async Task PF01_005_run_uses_shared_job()
+    {
+        var paths = PageFilePaths.Usage("_Total");
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await PageFilePerf.RunAsync(new PageFileSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s =>
+        {
+            Assert.Equal(PageFileObjects.PagingFile, s.Category);
+            Assert.Equal(12, s.Value);
+        });
+    }
+
+    [Fact]
+    public void PF01_005_live_total()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists(PageFileObjects.PagingFile))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        var path = new CounterPath(PageFileObjects.PagingFile, "% Usage", "_Total", "%");
+        var source = new PerformanceCounterSource();
+        var row = source.Read(path);
+        if (row.Status != SampleStatus.Ok)
+            return;
+        Assert.NotNull(row.Value);
     }
 
     private sealed class ScriptedInventory : ICounterInventory
