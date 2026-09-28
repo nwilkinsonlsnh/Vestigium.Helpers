@@ -113,6 +113,45 @@ public sealed class PerfMonDiskPd01Tests
         Assert.Equal("%", paths.First(p => p.Counter == "% Disk Time").Unit);
     }
 
+    [Fact]
+    public void PD01_003_disks_respect_cap()
+    {
+        var names = new List<string> { "_Total" };
+        names.AddRange(Enumerable.Range(0, 10).Select(i => $"{i} X:"));
+        var inv = new ScriptedInventory { Present = true, Instances = names };
+        var paths = DiskPaths.For(new DiskSampleOptions
+        {
+            IncludeDisks = true,
+            InstanceCap = 3,
+            Inventory = inv
+        });
+        var disks = paths
+            .Where(p => p.Counter == "Disk Bytes/sec")
+            .Select(p => p.Instance)
+            .ToArray();
+        Assert.Equal(["_Total", "0 X:", "1 X:", "2 X:"], disks);
+        Assert.Equal(3, DiskPaths.Disks(inv, 3).Count);
+        Assert.Empty(DiskPaths.Disks(inv, 0));
+    }
+
+    [Fact]
+    public void PD01_003_disks_omit_total()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Instances = ["_Total", "_total", "0 C:", "1 D:"]
+        };
+        var disks = DiskPaths.Disks(inv, 256);
+        Assert.Equal(["0 C:", "1 D:"], disks);
+        Assert.DoesNotContain(disks, n => n.Equals("_Total", StringComparison.OrdinalIgnoreCase));
+
+        var paths = DiskPaths.For(new DiskSampleOptions { IncludeDisks = true, Inventory = inv });
+        Assert.Equal(1, paths.Count(p => p.Instance == "_Total" && p.Counter == "Disk Bytes/sec"));
+        Assert.Contains(paths, p => p.Instance == "0 C:" && p.Counter == "Avg. Disk sec/Read");
+        Assert.All(paths, p => Assert.Equal(DiskObjects.PhysicalDisk, p.Category));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
