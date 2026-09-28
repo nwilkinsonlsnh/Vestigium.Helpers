@@ -75,6 +75,39 @@ public sealed class PerfMonMemoryMe01Tests
         Assert.Equal(2, hits.Count);
     }
 
+    [Fact]
+    public void ME01_002_empty_instance_stays_empty()
+    {
+        Assert.Equal("", MemoryPaths.InstanceOrNone(null));
+        Assert.Equal("", MemoryPaths.InstanceOrNone(""));
+        Assert.Equal("", MemoryPaths.InstanceOrNone("   "));
+        var paths = MemoryPaths.Short();
+        Assert.All(paths, p => Assert.Equal("", p.Instance));
+        Assert.DoesNotContain(paths, p => p.Instance.Equals("_Total", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ME01_002_named_instance_is_kept()
+    {
+        Assert.Equal("0", MemoryPaths.InstanceOrNone(" 0 "));
+        var paths = MemoryPaths.Short("0");
+        Assert.All(paths, p => Assert.Equal("0", p.Instance));
+    }
+
+    [Fact]
+    public void ME01_002_paths_are_memory_object()
+    {
+        var paths = MemoryPaths.Short();
+        Assert.Equal(MemoryPaths.ShortCounters, paths.Select(p => p.Counter));
+        Assert.All(paths, p => Assert.Equal(MemoryObjects.Memory, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == MemoryPaths.PageFileObject);
+        Assert.DoesNotContain(paths, p => p.Category == MemoryObjects.Cache);
+        Assert.Equal("MB", paths.First(p => p.Counter == "Available MBytes").Unit);
+        Assert.Equal("B", paths.First(p => p.Counter == "Committed Bytes").Unit);
+        Assert.Equal("%", paths.First(p => p.Counter == "% Committed Bytes In Use").Unit);
+        Assert.Equal("/sec", paths.First(p => p.Counter == "Pages/sec").Unit);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
