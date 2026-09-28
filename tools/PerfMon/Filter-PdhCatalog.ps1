@@ -99,15 +99,16 @@ if ($outPath -match '^[A-Za-z]:\\src\\') {
 
 $raw = Get-Content -Path $dumpPath -Raw -Encoding UTF8
 $data = $raw | ConvertFrom-Json
-$wanted = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-foreach ($name in $AllowList) {
-    $trim = $name.Trim()
-    if ($trim) { [void]$wanted.Add($trim) }
+$wanted = @{}
+foreach ($name in @($AllowList)) {
+    $trim = ([string]$name).Trim()
+    if ($trim) { $wanted[$trim.ToLowerInvariant()] = $true }
 }
 
 $rows = New-Object System.Collections.Generic.List[object]
 foreach ($cat in @($data.categories)) {
-    if (-not $wanted.Contains([string]$cat.category)) { continue }
+    $key = ([string]$cat.category).ToLowerInvariant()
+    if (-not $wanted.ContainsKey($key)) { continue }
     $counters = @()
     foreach ($c in @($cat.counters)) {
         $counters += [pscustomobject]@{
