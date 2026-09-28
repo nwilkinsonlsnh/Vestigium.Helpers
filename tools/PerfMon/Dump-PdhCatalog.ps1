@@ -61,7 +61,16 @@ function Get-CounterNames {
 }
 
 if (-not $All -and -not $Category) {
-    throw "Pass -All or -Category 'Network Adapter','Network Interface'."
+    $here = $PSScriptRoot
+    Write-Host @"
+Dump-PdhCatalog.ps1
+Run from any directory. Do not put 'cd tools/PerfMon' inside this file.
+
+  $here\Dump-PdhCatalog.ps1 -Category 'Network Adapter','Network Interface' -OutFile $here\dumps
+etwork-adapter.json
+  $here\Dump-PdhCatalog.ps1 -All -OutFile $here\dumps\pdh-all.json
+"@
+    exit 1
 }
 
 $wanted = $null
