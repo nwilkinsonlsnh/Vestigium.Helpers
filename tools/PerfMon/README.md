@@ -34,3 +34,8 @@ If `pdh-all.json` is still under `C:\Users\nwilkinson-admin\dumps`, move it once
 New-Item -ItemType Directory -Force dumps | Out-Null
 Copy-Item C:\Users\nwilkinson-admin\dumps\pdh-all.json .\dumps\pdh-all.json
 ```
+
+```powershell
+# 3. generate Catalog/PagingFile.cs
+.\New-PdhCatalogClasses.ps1 -Probe PageFile
+```

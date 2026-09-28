@@ -54,6 +54,27 @@ public sealed class PerfMonPr02aTests
             name => name == ".NET CLR Memory");
     }
 
+    [Fact]
+    public void PR02a_002_pagingfile_matches_shard()
+    {
+        Assert.Equal("Paging File", PagingFile.Category);
+        Assert.Equal("% Usage", PagingFile.PercentUsage);
+        Assert.Equal("% Usage Peak", PagingFile.PercentUsagePeak);
+        Assert.Equal(["% Usage", "% Usage Peak"], PagingFile.Counters);
+
+        var jsonPath = Path.Combine(
+            Path.GetDirectoryName(typeof(PageFilePerfCatalog).Assembly.Location)!,
+            "EventCatalog",
+            "pdh-categories.json");
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var row = doc.RootElement.GetProperty("categories")[0];
+        Assert.Equal(PagingFile.Category, row.GetProperty("category").GetString());
+        var names = row.GetProperty("counters").EnumerateArray()
+            .Select(c => c.GetProperty("name").GetString())
+            .ToArray();
+        Assert.Equal(PagingFile.Counters, names);
+    }
+
     private static string FindFixture(string name)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
