@@ -44,6 +44,10 @@ internal static class GpuPaths
 
     private static IReadOnlyList<string> Resolve(string category, string named, GpuSampleOptions options)
     {
+        if (options.Inventory is not null
+            && !GpuCounterCatalog.CategoryPresent(category, options.Inventory))
+            return Array.Empty<string>();
+
         if (!options.IncludeAllInstances)
             return [named];
 

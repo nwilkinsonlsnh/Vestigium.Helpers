@@ -151,13 +151,47 @@ public sealed class PerfMonGpuPg01Tests
         Assert.Contains(paths, p => p.Instance == "luid_0x0_0x1_phys_0");
     }
 
+    [Fact]
+    public void PG01_004_missing_object_is_omitted()
+    {
+        var adapterOnly = new ScriptedInventory
+        {
+            Present = true,
+            Only = [GpuObjects.AdapterMemory],
+            Instances = ["luid_0x0_0x1_phys_0"]
+        };
+        var paths = GpuPaths.For(new GpuSampleOptions
+        {
+            IncludeAllInstances = true,
+            Inventory = adapterOnly
+        });
+        Assert.DoesNotContain(paths, p => p.Category == GpuObjects.Engine);
+        Assert.All(paths, p => Assert.Equal(GpuObjects.AdapterMemory, p.Category));
+    }
+
+    [Fact]
+    public void PG01_004_both_missing_is_empty()
+    {
+        var none = new ScriptedInventory { Present = false };
+        var paths = GpuPaths.For(new GpuSampleOptions
+        {
+            IncludeAllInstances = true,
+            Inventory = none
+        });
+        Assert.Empty(paths);
+        Assert.Null(typeof(GpuCounterCatalog).Assembly.GetType("Nvidia.Nvml.Nvml"));
+        Assert.Null(typeof(GpuSampleOptions).GetProperty("DxgiFactory"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
+        public HashSet<string>? Only { get; set; }
         public IReadOnlyList<string> Counters { get; set; } = [];
         public IReadOnlyList<string> Instances { get; set; } = [];
 
-        public bool CategoryPresent(string category) => Present;
+        public bool CategoryPresent(string category)
+            => Present && (Only is null || Only.Contains(category));
 
         public bool InstancePresent(string category, string instance)
             => Present && Instances.Contains(instance, StringComparer.OrdinalIgnoreCase);
