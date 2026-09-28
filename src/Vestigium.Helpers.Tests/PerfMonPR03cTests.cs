@@ -43,6 +43,27 @@ public sealed class PerfMonPr03cTests
     }
 
     [Fact]
+    public void PR03c_004_probes_stay_shared_only()
+    {
+        foreach (var name in new[]
+                 {
+                     "Vestigium.Helpers.PerfMon.Memory.csproj",
+                     "Vestigium.Helpers.PerfMon.Disk.csproj",
+                     "Vestigium.Helpers.PerfMon.Network.csproj",
+                     "Vestigium.Helpers.PerfMon.Gpu.csproj"
+                 })
+        {
+            var text = File.ReadAllText(FindProject(name));
+            Assert.Contains("Vestigium.Helpers.PerfMon\\Vestigium.Helpers.PerfMon.csproj", text);
+            Assert.DoesNotContain("Vestigium.Helpers.Network\\", text);
+            Assert.DoesNotContain("Vestigium.Helpers.Charts", text);
+            Assert.DoesNotContain("Vestigium.Helpers.Analytics", text);
+            Assert.DoesNotContain("SQLServer", text);
+            Assert.DoesNotContain("NETCLR", text);
+        }
+    }
+
+    [Fact]
     public void PR03c_003_missing_objects_have_no_invented_types()
     {
         string[] missing =
