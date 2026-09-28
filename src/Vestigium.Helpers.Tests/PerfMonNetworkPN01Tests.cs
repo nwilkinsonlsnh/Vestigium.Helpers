@@ -312,6 +312,48 @@ public sealed class PerfMonNetworkPn01Tests
         throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Network.csproj");
     }
 
+    [Fact]
+    public void PR02c_001_network_shard_is_the_present_ten()
+    {
+        var jsonPath = FindNetworkShard();
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var names = doc.RootElement.GetProperty("categories").EnumerateArray()
+            .Select(c => c.GetProperty("category").GetString())
+            .ToArray();
+        Assert.Equal(
+        [
+            "Network Adapter",
+            "Network Interface",
+            "IPv4",
+            "IPv6",
+            "ICMP",
+            "ICMPv6",
+            "TCPv4",
+            "TCPv6",
+            "UDPv4",
+            "UDPv6"
+        ], names);
+        Assert.Equal(10, doc.RootElement.GetProperty("categoryCount").GetInt32());
+        Assert.DoesNotContain("WinNAT", names);
+        Assert.DoesNotContain(".NET CLR Networking", names);
+        Assert.Contains("WinNAT", doc.RootElement.GetProperty("allowList").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    private static string FindNetworkShard()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hits = dir.GetFiles("pdh-categories.json", SearchOption.AllDirectories)
+                .Where(f => f.FullName.Contains("PerfMon.Network", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (hits.Length > 0)
+                return hits[0].FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Network pdh-categories.json");
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
