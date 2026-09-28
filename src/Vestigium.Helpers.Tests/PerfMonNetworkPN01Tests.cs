@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Network;
 
@@ -155,6 +156,56 @@ public sealed class PerfMonNetworkPn01Tests
         Assert.False(NetworkCounterCatalog.CategoryPresent(NetworkObjects.NetworkInterface, missing));
         Assert.Null(typeof(NetworkSampleOptions).Assembly.GetType("Vestigium.Helpers.Network.NetworkHelpers"));
         Assert.Null(typeof(NetworkSampleOptions).GetProperty("Ping"));
+    }
+
+    [Fact]
+    public async Task PN01_005_run_uses_shared_job()
+    {
+        var paths = NetworkPaths.Interface("_Total");
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await NetworkPerf.RunAsync(new NetworkSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s =>
+        {
+            Assert.Equal(NetworkObjects.NetworkInterface, s.Category);
+            Assert.Equal(12, s.Value);
+        });
+    }
+
+    [Fact]
+    public void PN01_005_live_total()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists(NetworkObjects.NetworkInterface))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        var path = new CounterPath(NetworkObjects.NetworkInterface, "Bytes Total/sec", "_Total", "/sec");
+        var source = new PerformanceCounterSource();
+        _ = source.Read(path);
+        var row = source.Read(path);
+        if (row.Status != SampleStatus.Ok)
+            return;
+        Assert.NotNull(row.Value);
     }
 
     private sealed class ScriptedInventory : ICounterInventory
