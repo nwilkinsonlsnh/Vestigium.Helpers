@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Vestigium.Helpers.PerfMon;
+using Vestigium.Helpers.PerfMon.Gpu;
 using Vestigium.Helpers.PerfMon.Network;
 using Vestigium.Logging;
 
@@ -383,6 +384,21 @@ public sealed class PerfMonNetworkPn01Tests
         Assert.All(paths, p => Assert.Equal(NetworkInterface.Category, p.Category));
         Assert.Contains(paths, p => p.Counter == NetworkInterface.BytesTotalPerSec);
         Assert.DoesNotContain(paths, p => p.Category == NetworkAdapter.Category);
+    }
+
+    [Fact]
+    public void PR02c_004_missing_categories_stay_name_only()
+    {
+        var network = typeof(NetworkAdapter).Assembly;
+        Assert.Null(network.GetType("Vestigium.Helpers.PerfMon.Network.WinNAT"));
+        Assert.Null(network.GetType("Vestigium.Helpers.PerfMon.Network.WinNat"));
+        Assert.Null(network.GetType("Vestigium.Helpers.PerfMon.Network.IPsecDriver"));
+        Assert.Equal("WinNAT", NetworkObjects.WinNat);
+
+        var gpu = typeof(GpuPerfCatalog).Assembly;
+        Assert.Null(gpu.GetType("Vestigium.Helpers.PerfMon.Gpu.GpuEngine"));
+        Assert.Null(gpu.GetType("Vestigium.Helpers.PerfMon.Gpu.GPUEngine"));
+        Assert.True(typeof(GpuObjects).GetField("Engine") is not null || GpuObjects.Engine == "GPU Engine");
     }
 
     private sealed class ScriptedInventory : ICounterInventory
