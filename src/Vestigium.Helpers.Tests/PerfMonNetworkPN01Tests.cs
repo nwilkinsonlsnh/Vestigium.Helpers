@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Network;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Tests;
 
+[Collection("Logger")]
 public sealed class PerfMonNetworkPn01Tests
 {
     [Fact]
@@ -206,6 +208,43 @@ public sealed class PerfMonNetworkPn01Tests
         if (row.Status != SampleStatus.Ok)
             return;
         Assert.NotNull(row.Value);
+    }
+
+    [Fact]
+    public void PN01_006_register_is_host_only()
+    {
+        var register = typeof(NetworkPerfCatalog).GetMethod("Register");
+        Assert.NotNull(register);
+        Assert.Equal(typeof(VestigiumLoggerOptions), register!.GetParameters()[0].ParameterType);
+        Assert.Null(typeof(NetworkPerfCatalog).GetMethod("Initialize"));
+
+        VestigiumLogger.Shutdown();
+        Assert.False(VestigiumLogger.IsInitialized);
+        Assert.Null(Record.Exception(() =>
+            NetworkPerfLog.Information(
+                NetworkPerfEvents.ProbeComplete,
+                VestigiumStatus.Success,
+                NetworkPerfCatalog.Subcategories.Probe,
+                "noop")));
+        Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void PN01_006_writes_noop_until_host_starts()
+    {
+        VestigiumLogger.Shutdown();
+        var fake = new FakeCounterSource();
+        foreach (var path in NetworkPaths.Interface("_Total"))
+            fake.Seed(path, SampleRecord.Ok(path, 1));
+
+        var ex = Record.Exception(() => NetworkPerf.RunAsync(new NetworkSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        }).GetAwaiter().GetResult());
+        Assert.Null(ex);
+        Assert.False(VestigiumLogger.IsInitialized);
     }
 
     private sealed class ScriptedInventory : ICounterInventory
