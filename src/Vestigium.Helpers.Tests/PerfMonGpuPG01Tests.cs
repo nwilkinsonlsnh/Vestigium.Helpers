@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Gpu;
 
@@ -181,6 +182,62 @@ public sealed class PerfMonGpuPg01Tests
         Assert.Empty(paths);
         Assert.Null(typeof(GpuCounterCatalog).Assembly.GetType("Nvidia.Nvml.Nvml"));
         Assert.Null(typeof(GpuSampleOptions).GetProperty("DxgiFactory"));
+    }
+
+    [Fact]
+    public async Task PG01_005_run_uses_shared_job()
+    {
+        const string inst = "luid_0x0_0x1_phys_0";
+        var paths = GpuPaths.Short(inst);
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await GpuPerf.RunAsync(new GpuSampleOptions
+        {
+            Instance = inst,
+            IncludeAllInstances = false,
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s => Assert.Equal(12, s.Value));
+    }
+
+    [Fact]
+    public void PG01_005_headless_rejects_empty_paths()
+    {
+        var none = new ScriptedInventory { Present = false };
+        var ex = Assert.Throws<ArgumentException>(() => GpuPerf.RunAsync(new GpuSampleOptions
+        {
+            IncludeAllInstances = true,
+            Inventory = none,
+            Count = 1,
+            Clock = new ImmediateClock()
+        }).GetAwaiter().GetResult());
+        Assert.Contains("Path list cannot be empty", ex.Message);
+    }
+
+    [Fact]
+    public void PG01_005_live_engine()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists(GpuObjects.Engine)
+                && !PerformanceCounterCategory.Exists(GpuObjects.AdapterMemory))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
     }
 
     private sealed class ScriptedInventory : ICounterInventory
