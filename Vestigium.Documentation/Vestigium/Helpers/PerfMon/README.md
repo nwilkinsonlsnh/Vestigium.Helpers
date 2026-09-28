@@ -17,3 +17,6 @@ Solution folder: `Library/PerfMon`.
 Long-form documents sit in the child folder, not at this index.
 
 `Vestigium.Helpers.Network` owns ICMP, DNS, routes, inventory, and `SampleCounters` / `WatchAdapter` as protocol-adjacent jobs. PerfMon.Network owns PDH adapter counters over time. Do not merge them.
+
+Live family plan: [`001 -- Implementation Plan/PR02`](001%20--%20Implementation%20Plan/PR02/PR02a%20--%20Implementation%20Plan.md) (typed catalogs from the PDH dump, locked categories only).
+
