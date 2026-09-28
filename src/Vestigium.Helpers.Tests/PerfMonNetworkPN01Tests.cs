@@ -74,6 +74,36 @@ public sealed class PerfMonNetworkPn01Tests
         Assert.Equal(2, hits.Count);
     }
 
+    [Fact]
+    public void PN01_002_empty_instance_becomes_total()
+    {
+        Assert.Equal("_Total", NetworkPaths.InstanceOrTotal(""));
+        Assert.Equal("_Total", NetworkPaths.InstanceOrTotal("   "));
+        Assert.Equal("_Total", NetworkPaths.InstanceOrTotal(null));
+        var paths = NetworkPaths.Interface("  ");
+        Assert.All(paths, p => Assert.Equal("_Total", p.Instance));
+        Assert.Equal(NetworkPaths.InterfaceShort.Length, paths.Count);
+    }
+
+    [Fact]
+    public void PN01_002_named_instance_is_kept()
+    {
+        Assert.Equal("Ethernet", NetworkPaths.InstanceOrTotal(" Ethernet "));
+        var paths = NetworkPaths.Interface("Ethernet");
+        Assert.All(paths, p => Assert.Equal("Ethernet", p.Instance));
+    }
+
+    [Fact]
+    public void PN01_002_paths_are_network_interface()
+    {
+        var paths = NetworkPaths.Interface();
+        Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == NetworkObjects.NetworkAdapter);
+        Assert.Equal(NetworkPaths.InterfaceShort, paths.Select(p => p.Counter));
+        Assert.Equal("/sec", paths.First(p => p.Counter == "Bytes Total/sec").Unit);
+        Assert.Equal("count", paths.First(p => p.Counter == "Output Queue Length").Unit);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
