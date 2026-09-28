@@ -55,6 +55,16 @@ public sealed class PerfMonPr02aTests
     }
 
     [Fact]
+    public void PR02a_003_shard_class_and_counterset_agree()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(PageFilePerfCatalog).Assembly,
+            PagingFile.Category,
+            PagingFile.Counters,
+            PageFileCounterCatalog.Counters(PagingFile.Category));
+    }
+
+    [Fact]
     public void PR02a_002_pagingfile_matches_shard()
     {
         Assert.Equal("Paging File", PagingFile.Category);

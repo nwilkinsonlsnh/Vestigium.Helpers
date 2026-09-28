@@ -11,11 +11,7 @@ public static class PageFileCounterCatalog
     private static readonly CounterSet Set = new(
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            [PageFileObjects.PagingFile] =
-            [
-                "% Usage",
-                "% Usage Peak"
-            ]
+            [PagingFile.Category] = [.. PagingFile.Counters]
         },
         "Category must be Paging File.",
         UnitOf);
