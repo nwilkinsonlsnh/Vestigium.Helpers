@@ -130,6 +130,23 @@ public sealed class PerfMonPageFilePf01Tests
         Assert.All(paths, p => Assert.Equal(PageFileObjects.PagingFile, p.Category));
     }
 
+    [Fact]
+    public void PF01_004_missing_object_stays_paging_file()
+    {
+        var missing = new ScriptedInventory { Present = false };
+        var paths = PageFilePaths.For(new PageFileSampleOptions
+        {
+            IncludeFiles = true,
+            Inventory = missing
+        });
+        Assert.Equal(PageFileObjects.PagingFile, PageFilePaths.ObjectName);
+        Assert.All(paths, p => Assert.Equal(PageFileObjects.PagingFile, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == "Memory");
+        Assert.DoesNotContain(paths, p => p.Counter.Contains("Pages/sec", StringComparison.OrdinalIgnoreCase));
+        Assert.False(PageFileCounterCatalog.CategoryPresent(PageFileObjects.PagingFile, missing));
+        Assert.Null(typeof(PageFileSampleOptions).GetProperty("IncludeMemoryRates"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
