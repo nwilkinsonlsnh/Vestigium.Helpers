@@ -1,41 +1,36 @@
-# PerfMon PDH dump
+# PerfMon PDH tools
 
-Run on a Windows box. Does not sample values. Writes category + counter names plus identifiers for typed catalogs (`NetworkAdapter.BytesTotalPerSec`).
+These scripts are repo tools. They are not a .csproj. They live here on purpose:
 
-You are already in `tools\PerfMon`. Call the script. Do not `cd tools/PerfMon` again and do not paste that `cd` into the `.ps1`.
+`D:\Source\Clone\Vestigium.Helpers\tools\PerfMon`
 
-```powershell
-# from tools\PerfMon
-.\Dump-PdhCatalog.ps1 -Category 'Network Adapter','Network Interface' -OutFile .\dumps\network-adapter.json
+| Path | What |
+|---|---|
+| `tools\PerfMon\Dump-PdhCatalog.ps1` | Raw machine dump |
+| `tools\PerfMon\Filter-PdhCatalog.ps1` | Allow-list shard for one probe |
+| `tools\PerfMon\dumps\` | Raw dumps (`pdh-all.json`). Gitignored. |
+| `tools\PerfMon\fixtures\pdh-mini.json` | Tiny test dump |
+| `src\Vestigium.Helpers.PerfMon.<Probe>\EventCatalog\pdh-categories.json` | Shard that the library uses |
 
-# everything on this machine (large)
-.\Dump-PdhCatalog.ps1 -All -OutFile .\dumps\pdh-all.json
-```
-
-From the repo root:
-
-```powershell
-.\tools\PerfMon\Dump-PdhCatalog.ps1 -All -OutFile .\tools\PerfMon\dumps\pdh-all.json
-```
-
-Identifier rules:
-
-- `Bytes Total/sec` → `BytesTotalPerSec`
-- `% Usage` → `PercentUsage`
-- `Network Adapter` → `NetworkAdapter`
-
-
-## Filter a dump to one probe
-
-From `tools\PerfMon`. `-Probe` writes under the repo `src` tree. Do not pass `\src\...` — that is `C:\src\...`.
+Do not write to `C:\Users\...\dumps` or `C:\src\...`.
 
 ```powershell
-.\Filter-PdhCatalog.ps1 -Dump .\dumps\pdh-all.json -Probe PageFile
-.\Filter-PdhCatalog.ps1 -Dump .\dumps\pdh-all.json -Probe Network
+cd D:\Source\Clone\Vestigium.Helpers\tools\PerfMon
+
+# 1. dump this box (creates tools\PerfMon\dumps\pdh-all.json)
+.\Dump-PdhCatalog.ps1 -All
+
+# 2. shard into the PageFile project
+.\Filter-PdhCatalog.ps1 -Dump pdh-all.json -Probe PageFile
 ```
 
-That lands at:
+Step 2 writes:
 
 `D:\Source\Clone\Vestigium.Helpers\src\Vestigium.Helpers.PerfMon.PageFile\EventCatalog\pdh-categories.json`
 
-The shard keeps category, identifier, type, and counters. It drops instances and help. Categories not on the probe allow-list (CLR, SQL) are omitted.
+If `pdh-all.json` is still under `C:\Users\nwilkinson-admin\dumps`, move it once:
+
+```powershell
+New-Item -ItemType Directory -Force dumps | Out-Null
+Copy-Item C:\Users\nwilkinson-admin\dumps\pdh-all.json .\dumps\pdh-all.json
+```

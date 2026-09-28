@@ -9,3 +9,6 @@ TestResults/
 *.nupkg
 _deps/
 /_Documentation
+
+# Machine PDH dumps (instances, SKU-specific)
+tools/PerfMon/dumps/

@@ -123,7 +123,8 @@ $payload = [pscustomobject]@{
 $json = $payload | ConvertTo-Json -Depth 6
 
 if ($OutFile) {
-    $full = [System.IO.Path]::GetFullPath($OutFile)
+    $full = if ([System.IO.Path]::IsPathRooted($OutFile)) { $OutFile } else { Join-Path $PSScriptRoot $OutFile }
+    $full = [System.IO.Path]::GetFullPath($full)
     $dir = Split-Path -Parent $full
     if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
     Set-Content -Path $full -Value $json -Encoding UTF8
