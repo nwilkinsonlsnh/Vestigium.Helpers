@@ -108,6 +108,30 @@ public sealed class PerfMonMemoryMe01Tests
         Assert.Equal("/sec", paths.First(p => p.Counter == "Pages/sec").Unit);
     }
 
+    [Fact]
+    public void ME01_003_memory_job_does_not_expand_instances()
+    {
+        var names = typeof(MemorySampleOptions).GetProperties().Select(p => p.Name);
+        Assert.DoesNotContain(names, n => n.Equals("IncludeDisks", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Equals("IncludeCores", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Equals("IncludeAllInstances", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Equals("IncludeNodes", StringComparison.OrdinalIgnoreCase));
+
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Instances = ["0", "1", "_Total"]
+        };
+        var paths = MemoryPaths.For(new MemorySampleOptions { Inventory = inv });
+        Assert.Equal(MemoryPaths.ShortCounters.Length, paths.Count);
+        Assert.All(paths, p =>
+        {
+            Assert.Equal(MemoryObjects.Memory, p.Category);
+            Assert.Equal("", p.Instance);
+        });
+        Assert.DoesNotContain(paths, p => p.Category == MemoryObjects.NumaNodeMemory);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
