@@ -29,3 +29,6 @@ cd D:\Source\Clone\Vestigium.Helpers\tools\PerfMon
 Same `-Probe` values: `PageFile`, `Memory`, `Cpu`, `Disk`, `Gpu`, `Network`.
 
 Empty dump categories do not get a class. CLR / SQL never enter these probes.
+
+A second `Filter-PdhCatalog` / `New-PdhCatalogClasses` on the same dump must leave git clean.
+Empty shards (Gpu on this SKU) warn and exit 0. They do not invent classes.

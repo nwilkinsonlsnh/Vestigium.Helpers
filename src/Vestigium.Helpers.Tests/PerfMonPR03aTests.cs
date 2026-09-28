@@ -33,6 +33,18 @@ public sealed class PerfMonPr03aTests
     }
 
     [Fact]
+    public void PR03a_004_tools_readme_requires_clean_second_run()
+    {
+        var dump = FindNamed("Dump-PdhCatalog.ps1", "tools");
+        var readme = Path.Combine(Path.GetDirectoryName(dump)!, "README.md");
+        var text = File.ReadAllText(readme);
+        Assert.Contains("Filter-PdhCatalog", text);
+        Assert.Contains("New-PdhCatalogClasses", text);
+        Assert.Contains("leave git clean", text);
+        Assert.Contains("-Probe PageFile", text);
+    }
+
+    [Fact]
     public void PR03a_003_gpu_shard_is_empty()
     {
         var jsonPath = FindNamed("pdh-categories.json", "PerfMon.Gpu");
