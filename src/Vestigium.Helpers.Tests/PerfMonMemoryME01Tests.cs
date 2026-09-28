@@ -271,6 +271,34 @@ public sealed class PerfMonMemoryMe01Tests
         }
     }
 
+    [Fact]
+    public void ME01_008_probe_references_shared_only()
+    {
+        var text = File.ReadAllText(FindCsproj());
+        Assert.Contains("Vestigium.Helpers.PerfMon\\Vestigium.Helpers.PerfMon.csproj", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Charts", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Analytics", text);
+        Assert.DoesNotContain("Vestigium.Helpers.FileIo", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Processes", text);
+        Assert.DoesNotContain("Vestigium.Helpers.PerfMon.PageFile", text);
+        Assert.DoesNotContain("System.Diagnostics.PerformanceCounter", text);
+        Assert.Null(typeof(MemorySampleOptions).GetProperty("PageFile"));
+        Assert.Null(typeof(MemoryPerf).GetMethod("Initialize"));
+    }
+
+    private static string FindCsproj()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hit = dir.GetFiles("Vestigium.Helpers.PerfMon.Memory.csproj", SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+                return hit.FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Memory.csproj");
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
