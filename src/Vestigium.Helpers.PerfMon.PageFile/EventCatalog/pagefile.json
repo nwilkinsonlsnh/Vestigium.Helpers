@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon.PageFile",
+  "category": "PerfMon",
+  "block": { "start": 20000, "end": 20499 },
+  "events": [
+    { "eventId": 20000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "PageFile", "message": "enter probe" },
+    { "eventId": 20005, "name": "ProbeStarted", "severity": "Information", "subcategory": "PageFile", "message": "probe started" },
+    { "eventId": 20010, "name": "PathsBuilt", "severity": "Debug", "subcategory": "Paths", "message": "paths built" },
+    { "eventId": 20015, "name": "ProbeComplete", "severity": "Information", "subcategory": "PageFile", "message": "probe complete" },
+    { "eventId": 20020, "name": "ProbeCancelled", "severity": "Information", "subcategory": "PageFile", "message": "probe cancelled" },
+    { "eventId": 20025, "name": "ProbeRejected", "severity": "Error", "subcategory": "PageFile", "message": "probe rejected" },
+    { "eventId": 20030, "name": "ObjectMissing", "severity": "Warning", "subcategory": "Paths", "message": "Paging File absent" },
+    { "eventId": 20035, "name": "FilesCapped", "severity": "Warning", "subcategory": "Paths", "message": "file list truncated" },
+    { "eventId": 20040, "name": "SiblingSkipped", "severity": "Debug", "subcategory": "Paths", "message": "Memory not used" },
+    { "eventId": 20045, "name": "ProbeFailed", "severity": "Error", "subcategory": "PageFile", "message": "probe aborted after start" }
+  ]
+}
