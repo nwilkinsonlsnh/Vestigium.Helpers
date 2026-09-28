@@ -1,20 +1,11 @@
-# Vestigium.Helpers.PerfMon.PageFile — Implementation Plan
+# 001 -- Implementation Plan
 
-**Status:** skeleton + contract.
-**Date:** 27 September 2026
+**Library:** Vestigium.Helpers.PerfMon.PageFile
+**Status:** PF01 open. Catalog first. Package **0.1.0** (not published).
 
-## This pass
+Live paper:
 
-- Project file and README in `src/Vestigium.Helpers.PerfMon.PageFile/`
-- Requirements v1.0 and Design v1.0
-- Solution folder `Library/PerfMon`
+- [`PF01/PF01 -- Backlog.md`](PF01/PF01%20--%20Backlog.md)
+- [`PF01/PF01 -- Implementation Plan.md`](PF01/PF01%20--%20Implementation%20Plan.md)
 
-## Next pass (not this commit)
-
-- `ICounterSource` and `SampleJob` in shared
-- First live probe: Cpu `_Total` % Processor Time
-- xUnit against a fake source
-
-## Not this family
-
-Demo WPF. NuGet publish. Charts surface.
+Copy [`PM02 -- Catalog Fingerprint`](../../PerfMon/001%20--%20Implementation%20Plan/PM02/PM02%20--%20Catalog%20Fingerprint.md).

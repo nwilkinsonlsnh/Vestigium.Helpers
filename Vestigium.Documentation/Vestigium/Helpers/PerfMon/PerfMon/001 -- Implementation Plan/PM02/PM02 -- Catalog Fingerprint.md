@@ -95,7 +95,7 @@ Next probe: same façade name shape `{Probe}Objects` + `{Probe}CounterCatalog` +
 | Disk | FileSystem Disk Activity, LogicalDisk, Ntfs Bucketized Performance, PhysicalDisk, ReFS family, Storage Spaces family, Storport Unit *, VHD Bucketized Performance |
 | Gpu | GPU Engine, GPU Process Memory, GPU Adapter Memory, GPU Local Adapter Memory, GPU Non Local Adapter Memory |
 | Memory | Cache, Hyper-V Dynamic Memory Integration Service, Memory, NUMA Node Memory, ReadyBoost Cache |
-| PageFile | later plan — Paging File |
+| PageFile | Paging File |
 | Network | later plan — Network Interface / TCPv4 — not `Helpers.Network` ICMP |
 
 ---
