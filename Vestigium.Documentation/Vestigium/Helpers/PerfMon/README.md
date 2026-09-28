@@ -7,7 +7,7 @@ Solution folder: `Library/PerfMon`.
 | Project | Role | EVENTID |
 |---|---|---|
 | `Vestigium.Helpers.PerfMon` | Shared sample contract, job runner, counter source | 17000–17499 |
-| `Vestigium.Helpers.PerfMon.Network` | Adapter rates and errors | 17500–17999 |
+| `Vestigium.Helpers.PerfMon.Network` | Adapter rates plus the 63-object network catalog | 17500–17999 |
 | `Vestigium.Helpers.PerfMon.Cpu` | Processor time and queue | 18000–18499 |
 | `Vestigium.Helpers.PerfMon.Gpu` | GPU the OS exposes | 18500–18999 |
 | `Vestigium.Helpers.PerfMon.Memory` | Commit, available, working set | 19000–19499 |

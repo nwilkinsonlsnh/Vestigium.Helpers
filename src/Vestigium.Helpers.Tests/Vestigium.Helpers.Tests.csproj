@@ -38,6 +38,7 @@
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Disk\Vestigium.Helpers.PerfMon.Disk.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Gpu\Vestigium.Helpers.PerfMon.Gpu.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Memory\Vestigium.Helpers.PerfMon.Memory.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Network\Vestigium.Helpers.PerfMon.Network.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
