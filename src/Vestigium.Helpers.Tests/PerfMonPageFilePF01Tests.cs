@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.PageFile;
+using Vestigium.Logging;
 
 namespace Vestigium.Helpers.Tests;
 
+[Collection("Logger")]
 public sealed class PerfMonPageFilePf01Tests
 {
     [Fact]
@@ -195,6 +197,43 @@ public sealed class PerfMonPageFilePf01Tests
         if (row.Status != SampleStatus.Ok)
             return;
         Assert.NotNull(row.Value);
+    }
+
+    [Fact]
+    public void PF01_006_register_is_host_only()
+    {
+        var register = typeof(PageFilePerfCatalog).GetMethod("Register");
+        Assert.NotNull(register);
+        Assert.Equal(typeof(VestigiumLoggerOptions), register!.GetParameters()[0].ParameterType);
+        Assert.Null(typeof(PageFilePerfCatalog).GetMethod("Initialize"));
+
+        VestigiumLogger.Shutdown();
+        Assert.False(VestigiumLogger.IsInitialized);
+        Assert.Null(Record.Exception(() =>
+            PageFilePerfLog.Information(
+                PageFilePerfEvents.ProbeComplete,
+                VestigiumStatus.Success,
+                PageFilePerfCatalog.Subcategories.Probe,
+                "noop")));
+        Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void PF01_006_writes_noop_until_host_starts()
+    {
+        VestigiumLogger.Shutdown();
+        var fake = new FakeCounterSource();
+        foreach (var path in PageFilePaths.Usage("_Total"))
+            fake.Seed(path, SampleRecord.Ok(path, 1));
+
+        var ex = Record.Exception(() => PageFilePerf.RunAsync(new PageFileSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        }).GetAwaiter().GetResult());
+        Assert.Null(ex);
+        Assert.False(VestigiumLogger.IsInitialized);
     }
 
     private sealed class ScriptedInventory : ICounterInventory
