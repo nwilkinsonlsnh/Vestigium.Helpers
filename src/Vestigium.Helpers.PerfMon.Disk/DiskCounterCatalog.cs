@@ -108,8 +108,8 @@ public static class DiskCounterCatalog
         var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in DiskObjects.All)
             map[name] = [];
-        map[DiskObjects.PhysicalDisk] = DiskRates;
-        map[DiskObjects.LogicalDisk] = [.. DiskRates, .. LogicalExtra];
+        map[PhysicalDisk.Category] = [.. PhysicalDisk.Counters];
+        map[LogicalDisk.Category] = [.. LogicalDisk.Counters];
         return map;
     }
 }

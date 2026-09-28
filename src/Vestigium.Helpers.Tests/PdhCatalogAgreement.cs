@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 
 namespace Vestigium.Helpers.Tests;
@@ -5,15 +6,12 @@ namespace Vestigium.Helpers.Tests;
 internal static class PdhCatalogAgreement
 {
     public static void AssertMatches(
-        System.Reflection.Assembly probeAssembly,
+        Assembly probeAssembly,
         string category,
         IReadOnlyList<string> typedCounters,
         IReadOnlyList<string> counterSetKnown)
     {
-        var jsonPath = Path.Combine(
-            Path.GetDirectoryName(probeAssembly.Location)!,
-            "EventCatalog",
-            "pdh-categories.json");
+        var jsonPath = FindShard(probeAssembly);
         Xunit.Assert.True(File.Exists(jsonPath), jsonPath);
 
         using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
@@ -26,5 +24,22 @@ internal static class PdhCatalogAgreement
 
         Xunit.Assert.Equal(shard, typedCounters);
         Xunit.Assert.Equal(typedCounters, counterSetKnown);
+    }
+
+    private static string FindShard(Assembly probeAssembly)
+    {
+        var probe = probeAssembly.GetName().Name!;
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hits = dir.GetFiles("pdh-categories.json", SearchOption.AllDirectories)
+                .Where(f => f.FullName.Contains(probe, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (hits.Length > 0)
+                return hits[0].FullName;
+            dir = dir.Parent;
+        }
+
+        throw new FileNotFoundException($"pdh-categories.json for {probe}");
     }
 }

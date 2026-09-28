@@ -7,18 +7,18 @@ internal static class DiskPaths
 {
     public static readonly string[] PhysicalShort =
     [
-        "Disk Bytes/sec",
-        "Avg. Disk sec/Read",
-        "Avg. Disk sec/Write",
-        "Avg. Disk Queue Length",
-        "Current Disk Queue Length",
-        "% Disk Time"
+        PhysicalDisk.DiskBytesPerSec,
+        PhysicalDisk.AvgDiskSecRead,
+        PhysicalDisk.AvgDiskSecWrite,
+        PhysicalDisk.AvgDiskQueueLength,
+        PhysicalDisk.CurrentDiskQueueLength,
+        PhysicalDisk.PercentDiskTime
     ];
 
     public static string InstanceOrTotal(string? instance)
         => string.IsNullOrWhiteSpace(instance) ? "_Total" : instance.Trim();
 
-    public static string ObjectName => DiskObjects.PhysicalDisk;
+    public static string ObjectName => PhysicalDisk.Category;
 
     public static IReadOnlyList<string> Disks(ICounterInventory? inventory, int cap)
     {

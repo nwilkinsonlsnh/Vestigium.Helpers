@@ -338,6 +338,24 @@ public sealed class PerfMonDiskPd01Tests
         throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Disk.csproj");
     }
 
+    [Fact]
+    public void PR02b_004_disk_types_agree_with_shard()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(DiskPerfCatalog).Assembly,
+            PhysicalDisk.Category,
+            PhysicalDisk.Counters,
+            DiskCounterCatalog.Counters(PhysicalDisk.Category));
+        PdhCatalogAgreement.AssertMatches(
+            typeof(DiskPerfCatalog).Assembly,
+            LogicalDisk.Category,
+            LogicalDisk.Counters,
+            DiskCounterCatalog.Counters(LogicalDisk.Category));
+        Assert.Equal(PhysicalDisk.DiskBytesPerSec, DiskPaths.PhysicalShort[0]);
+        Assert.DoesNotContain(DiskPaths.Physical(), p => p.Category == LogicalDisk.Category);
+        Assert.Null(typeof(PhysicalDisk).Assembly.GetType("Vestigium.Helpers.PerfMon.Disk.ReFS"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

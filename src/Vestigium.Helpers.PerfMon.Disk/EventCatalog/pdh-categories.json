@@ -1,0 +1,219 @@
+{
+  "source": "pdh-all.json",
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "allowList": [
+    "FileSystem Disk Activity",
+    "LogicalDisk",
+    "Ntfs Bucketized Performance",
+    "PhysicalDisk",
+    "ReFS",
+    "ReFS Bucketized Performance",
+    "ReFS Dedup Minstore Perf Counters",
+    "ReFS Dedup Perf Counters",
+    "Storage Management WSP Spaces Runtime",
+    "Storage Spaces Drt",
+    "Storage Spaces Tier",
+    "Storage Spaces Virtual Disk",
+    "Storage Spaces Virtual Disk Io",
+    "Storage Spaces Virtual Disk Map",
+    "Storport Unit Queue",
+    "Storport Unit Reads",
+    "Storport Unit Transfers",
+    "Storport Unit Writes",
+    "VHD Bucketized Performance"
+  ],
+  "categoryCount": 2,
+  "categories": [
+    {
+      "category": "PhysicalDisk",
+      "identifier": "PhysicalDisk",
+      "type": "MultiInstance",
+      "counters": [
+        {
+          "name": "% Disk Read Time",
+          "identifier": "PercentDiskReadTime"
+        },
+        {
+          "name": "% Disk Time",
+          "identifier": "PercentDiskTime"
+        },
+        {
+          "name": "% Disk Write Time",
+          "identifier": "PercentDiskWriteTime"
+        },
+        {
+          "name": "% Idle Time",
+          "identifier": "PercentIdleTime"
+        },
+        {
+          "name": "Avg. Disk Bytes/Read",
+          "identifier": "AvgDiskBytesRead"
+        },
+        {
+          "name": "Avg. Disk Bytes/Transfer",
+          "identifier": "AvgDiskBytesTransfer"
+        },
+        {
+          "name": "Avg. Disk Bytes/Write",
+          "identifier": "AvgDiskBytesWrite"
+        },
+        {
+          "name": "Avg. Disk Queue Length",
+          "identifier": "AvgDiskQueueLength"
+        },
+        {
+          "name": "Avg. Disk Read Queue Length",
+          "identifier": "AvgDiskReadQueueLength"
+        },
+        {
+          "name": "Avg. Disk sec/Read",
+          "identifier": "AvgDiskSecRead"
+        },
+        {
+          "name": "Avg. Disk sec/Transfer",
+          "identifier": "AvgDiskSecTransfer"
+        },
+        {
+          "name": "Avg. Disk sec/Write",
+          "identifier": "AvgDiskSecWrite"
+        },
+        {
+          "name": "Avg. Disk Write Queue Length",
+          "identifier": "AvgDiskWriteQueueLength"
+        },
+        {
+          "name": "Current Disk Queue Length",
+          "identifier": "CurrentDiskQueueLength"
+        },
+        {
+          "name": "Disk Bytes/sec",
+          "identifier": "DiskBytesPerSec"
+        },
+        {
+          "name": "Disk Read Bytes/sec",
+          "identifier": "DiskReadBytesPerSec"
+        },
+        {
+          "name": "Disk Reads/sec",
+          "identifier": "DiskReadsPerSec"
+        },
+        {
+          "name": "Disk Transfers/sec",
+          "identifier": "DiskTransfersPerSec"
+        },
+        {
+          "name": "Disk Write Bytes/sec",
+          "identifier": "DiskWriteBytesPerSec"
+        },
+        {
+          "name": "Disk Writes/sec",
+          "identifier": "DiskWritesPerSec"
+        },
+        {
+          "name": "Split IO/Sec",
+          "identifier": "SplitIOPerSec"
+        }
+      ]
+    },
+    {
+      "category": "LogicalDisk",
+      "identifier": "LogicalDisk",
+      "type": "MultiInstance",
+      "counters": [
+        {
+          "name": "% Disk Read Time",
+          "identifier": "PercentDiskReadTime"
+        },
+        {
+          "name": "% Disk Time",
+          "identifier": "PercentDiskTime"
+        },
+        {
+          "name": "% Disk Write Time",
+          "identifier": "PercentDiskWriteTime"
+        },
+        {
+          "name": "% Free Space",
+          "identifier": "PercentFreeSpace"
+        },
+        {
+          "name": "% Idle Time",
+          "identifier": "PercentIdleTime"
+        },
+        {
+          "name": "Avg. Disk Bytes/Read",
+          "identifier": "AvgDiskBytesRead"
+        },
+        {
+          "name": "Avg. Disk Bytes/Transfer",
+          "identifier": "AvgDiskBytesTransfer"
+        },
+        {
+          "name": "Avg. Disk Bytes/Write",
+          "identifier": "AvgDiskBytesWrite"
+        },
+        {
+          "name": "Avg. Disk Queue Length",
+          "identifier": "AvgDiskQueueLength"
+        },
+        {
+          "name": "Avg. Disk Read Queue Length",
+          "identifier": "AvgDiskReadQueueLength"
+        },
+        {
+          "name": "Avg. Disk sec/Read",
+          "identifier": "AvgDiskSecRead"
+        },
+        {
+          "name": "Avg. Disk sec/Transfer",
+          "identifier": "AvgDiskSecTransfer"
+        },
+        {
+          "name": "Avg. Disk sec/Write",
+          "identifier": "AvgDiskSecWrite"
+        },
+        {
+          "name": "Avg. Disk Write Queue Length",
+          "identifier": "AvgDiskWriteQueueLength"
+        },
+        {
+          "name": "Current Disk Queue Length",
+          "identifier": "CurrentDiskQueueLength"
+        },
+        {
+          "name": "Disk Bytes/sec",
+          "identifier": "DiskBytesPerSec"
+        },
+        {
+          "name": "Disk Read Bytes/sec",
+          "identifier": "DiskReadBytesPerSec"
+        },
+        {
+          "name": "Disk Reads/sec",
+          "identifier": "DiskReadsPerSec"
+        },
+        {
+          "name": "Disk Transfers/sec",
+          "identifier": "DiskTransfersPerSec"
+        },
+        {
+          "name": "Disk Write Bytes/sec",
+          "identifier": "DiskWriteBytesPerSec"
+        },
+        {
+          "name": "Disk Writes/sec",
+          "identifier": "DiskWritesPerSec"
+        },
+        {
+          "name": "Free Megabytes",
+          "identifier": "FreeMegabytes"
+        },
+        {
+          "name": "Split IO/Sec",
+          "identifier": "SplitIOPerSec"
+        }
+      ]
+    }
+  ]
+}
