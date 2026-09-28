@@ -11,12 +11,12 @@ internal static class MemoryPaths
 
     public static readonly string[] ShortCounters =
     [
-        "Available MBytes",
-        "Committed Bytes",
-        "Commit Limit",
-        "% Committed Bytes In Use",
-        "Cache Bytes",
-        "Pages/sec"
+        Memory.AvailableMBytes,
+        Memory.CommittedBytes,
+        Memory.CommitLimit,
+        Memory.PercentCommittedBytesInUse,
+        Memory.CacheBytes,
+        Memory.PagesPerSec
     ];
 
     public static string InstanceOrNone(string? instance)

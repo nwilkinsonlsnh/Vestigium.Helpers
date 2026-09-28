@@ -299,6 +299,23 @@ public sealed class PerfMonMemoryMe01Tests
         throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Memory.csproj");
     }
 
+    [Fact]
+    public void PR02b_002_memory_types_agree_with_shard()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(MemoryPerfCatalog).Assembly,
+            Memory.Category,
+            Memory.Counters,
+            MemoryCounterCatalog.Counters(Memory.Category));
+        Assert.Equal(Memory.AvailableMBytes, MemoryPaths.ShortCounters[0]);
+        Assert.Equal(Memory.PagesPerSec, MemoryPaths.ShortCounters[^1]);
+        Assert.Contains("Copy Read Hits %", Cache.Counters);
+        Assert.Contains("Available MBytes", NUMANodeMemory.Counters);
+        Assert.Contains("Bytes cached", ReadyBoostCache.Counters);
+        Assert.Equal(MemoryObjects.HyperVDynamicMemory, "Hyper-V Dynamic Memory Integration Service");
+        Assert.False(MemoryCounterCatalog.IsKnownCounter(MemoryObjects.HyperVDynamicMemory, "Available MBytes"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

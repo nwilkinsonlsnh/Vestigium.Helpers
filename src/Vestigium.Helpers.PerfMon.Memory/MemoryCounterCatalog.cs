@@ -15,32 +15,10 @@ public static class MemoryCounterCatalog
         var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in MemoryObjects.All)
             map[name] = [];
-        map[MemoryObjects.Memory] =
-        [
-            "Available MBytes",
-            "Available Bytes",
-            "Committed Bytes",
-            "Commit Limit",
-            "% Committed Bytes In Use",
-            "Cache Bytes",
-            "Pages/sec",
-            "Page Faults/sec",
-            "Pool Paged Bytes",
-            "Pool Nonpaged Bytes"
-        ];
-        map[MemoryObjects.Cache] =
-        [
-            "Copy Read Hits %",
-            "Copy Reads/sec",
-            "Data Map Hits %",
-            "Lazy Write Flushes/sec",
-            "Lazy Write Pages/sec"
-        ];
-        map[MemoryObjects.NumaNodeMemory] =
-        [
-            "Available MBytes",
-            "Free & Zero Page List MBytes"
-        ];
+        map[Memory.Category] = [.. Memory.Counters];
+        map[Cache.Category] = [.. Cache.Counters];
+        map[NUMANodeMemory.Category] = [.. NUMANodeMemory.Counters];
+        map[ReadyBoostCache.Category] = [.. ReadyBoostCache.Counters];
         return map;
     }
 

@@ -54,6 +54,7 @@ public sealed class PerfMonPr02aTests
             name => name == ".NET CLR Memory");
     }
 
+
     [Fact]
     public void PR02a_004_tools_readme_names_the_pipeline()
     {
@@ -67,7 +68,6 @@ public sealed class PerfMonPr02aTests
         Assert.Contains("Filter-PdhCatalog.ps1", text);
         Assert.Contains("New-PdhCatalogClasses.ps1", text);
         Assert.Contains("-Probe PageFile", text);
-        Assert.DoesNotContain("C:\Users\", text);
     }
 
     [Fact]

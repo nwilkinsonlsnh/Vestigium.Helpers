@@ -1,0 +1,359 @@
+{
+  "source": "pdh-all.json",
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "allowList": [
+    "Cache",
+    "Hyper-V Dynamic Memory Integration Service",
+    "Memory",
+    "NUMA Node Memory",
+    "ReadyBoost Cache"
+  ],
+  "categoryCount": 4,
+  "categories": [
+    {
+      "category": "Cache",
+      "identifier": "Cache",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Async Copy Reads/sec",
+          "identifier": "AsyncCopyReadsPerSec"
+        },
+        {
+          "name": "Async Data Maps/sec",
+          "identifier": "AsyncDataMapsPerSec"
+        },
+        {
+          "name": "Async Fast Reads/sec",
+          "identifier": "AsyncFastReadsPerSec"
+        },
+        {
+          "name": "Async MDL Reads/sec",
+          "identifier": "AsyncMDLReadsPerSec"
+        },
+        {
+          "name": "Async Pin Reads/sec",
+          "identifier": "AsyncPinReadsPerSec"
+        },
+        {
+          "name": "Copy Read Hits %",
+          "identifier": "CopyReadHitsPercent"
+        },
+        {
+          "name": "Copy Reads/sec",
+          "identifier": "CopyReadsPerSec"
+        },
+        {
+          "name": "Data Flush Pages/sec",
+          "identifier": "DataFlushPagesPerSec"
+        },
+        {
+          "name": "Data Flushes/sec",
+          "identifier": "DataFlushesPerSec"
+        },
+        {
+          "name": "Data Map Hits %",
+          "identifier": "DataMapHitsPercent"
+        },
+        {
+          "name": "Data Map Pins/sec",
+          "identifier": "DataMapPinsPerSec"
+        },
+        {
+          "name": "Data Maps/sec",
+          "identifier": "DataMapsPerSec"
+        },
+        {
+          "name": "Dirty Page Threshold",
+          "identifier": "DirtyPageThreshold"
+        },
+        {
+          "name": "Dirty Pages",
+          "identifier": "DirtyPages"
+        },
+        {
+          "name": "Fast Read Not Possibles/sec",
+          "identifier": "FastReadNotPossiblesPerSec"
+        },
+        {
+          "name": "Fast Read Resource Misses/sec",
+          "identifier": "FastReadResourceMissesPerSec"
+        },
+        {
+          "name": "Fast Reads/sec",
+          "identifier": "FastReadsPerSec"
+        },
+        {
+          "name": "Lazy Write Flushes/sec",
+          "identifier": "LazyWriteFlushesPerSec"
+        },
+        {
+          "name": "Lazy Write Pages/sec",
+          "identifier": "LazyWritePagesPerSec"
+        },
+        {
+          "name": "MDL Read Hits %",
+          "identifier": "MDLReadHitsPercent"
+        },
+        {
+          "name": "MDL Reads/sec",
+          "identifier": "MDLReadsPerSec"
+        },
+        {
+          "name": "Pin Read Hits %",
+          "identifier": "PinReadHitsPercent"
+        },
+        {
+          "name": "Pin Reads/sec",
+          "identifier": "PinReadsPerSec"
+        },
+        {
+          "name": "Read Aheads/sec",
+          "identifier": "ReadAheadsPerSec"
+        },
+        {
+          "name": "Sync Copy Reads/sec",
+          "identifier": "SyncCopyReadsPerSec"
+        },
+        {
+          "name": "Sync Data Maps/sec",
+          "identifier": "SyncDataMapsPerSec"
+        },
+        {
+          "name": "Sync Fast Reads/sec",
+          "identifier": "SyncFastReadsPerSec"
+        },
+        {
+          "name": "Sync MDL Reads/sec",
+          "identifier": "SyncMDLReadsPerSec"
+        },
+        {
+          "name": "Sync Pin Reads/sec",
+          "identifier": "SyncPinReadsPerSec"
+        }
+      ]
+    },
+    {
+      "category": "Memory",
+      "identifier": "Memory",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "% Committed Bytes In Use",
+          "identifier": "PercentCommittedBytesInUse"
+        },
+        {
+          "name": "Available Bytes",
+          "identifier": "AvailableBytes"
+        },
+        {
+          "name": "Available KBytes",
+          "identifier": "AvailableKBytes"
+        },
+        {
+          "name": "Available MBytes",
+          "identifier": "AvailableMBytes"
+        },
+        {
+          "name": "Cache Bytes",
+          "identifier": "CacheBytes"
+        },
+        {
+          "name": "Cache Bytes Peak",
+          "identifier": "CacheBytesPeak"
+        },
+        {
+          "name": "Cache Faults/sec",
+          "identifier": "CacheFaultsPerSec"
+        },
+        {
+          "name": "Commit Limit",
+          "identifier": "CommitLimit"
+        },
+        {
+          "name": "Committed Bytes",
+          "identifier": "CommittedBytes"
+        },
+        {
+          "name": "Demand Zero Faults/sec",
+          "identifier": "DemandZeroFaultsPerSec"
+        },
+        {
+          "name": "Free & Zero Page List Bytes",
+          "identifier": "FreeZeroPageListBytes"
+        },
+        {
+          "name": "Free System Page Table Entries",
+          "identifier": "FreeSystemPageTableEntries"
+        },
+        {
+          "name": "Long-Term Average Standby Cache Lifetime (s)",
+          "identifier": "LongTermAverageStandbyCacheLifetimeS"
+        },
+        {
+          "name": "Modified Page List Bytes",
+          "identifier": "ModifiedPageListBytes"
+        },
+        {
+          "name": "Page Faults/sec",
+          "identifier": "PageFaultsPerSec"
+        },
+        {
+          "name": "Page Reads/sec",
+          "identifier": "PageReadsPerSec"
+        },
+        {
+          "name": "Page Writes/sec",
+          "identifier": "PageWritesPerSec"
+        },
+        {
+          "name": "Pages Input/sec",
+          "identifier": "PagesInputPerSec"
+        },
+        {
+          "name": "Pages Output/sec",
+          "identifier": "PagesOutputPerSec"
+        },
+        {
+          "name": "Pages/sec",
+          "identifier": "PagesPerSec"
+        },
+        {
+          "name": "Pool Nonpaged Allocs",
+          "identifier": "PoolNonpagedAllocs"
+        },
+        {
+          "name": "Pool Nonpaged Bytes",
+          "identifier": "PoolNonpagedBytes"
+        },
+        {
+          "name": "Pool Paged Allocs",
+          "identifier": "PoolPagedAllocs"
+        },
+        {
+          "name": "Pool Paged Bytes",
+          "identifier": "PoolPagedBytes"
+        },
+        {
+          "name": "Pool Paged Resident Bytes",
+          "identifier": "PoolPagedResidentBytes"
+        },
+        {
+          "name": "Standby Cache Core Bytes",
+          "identifier": "StandbyCacheCoreBytes"
+        },
+        {
+          "name": "Standby Cache Normal Priority Bytes",
+          "identifier": "StandbyCacheNormalPriorityBytes"
+        },
+        {
+          "name": "Standby Cache Reserve Bytes",
+          "identifier": "StandbyCacheReserveBytes"
+        },
+        {
+          "name": "System Cache Resident Bytes",
+          "identifier": "SystemCacheResidentBytes"
+        },
+        {
+          "name": "System Code Resident Bytes",
+          "identifier": "SystemCodeResidentBytes"
+        },
+        {
+          "name": "System Code Total Bytes",
+          "identifier": "SystemCodeTotalBytes"
+        },
+        {
+          "name": "System Driver Resident Bytes",
+          "identifier": "SystemDriverResidentBytes"
+        },
+        {
+          "name": "System Driver Total Bytes",
+          "identifier": "SystemDriverTotalBytes"
+        },
+        {
+          "name": "Transition Faults/sec",
+          "identifier": "TransitionFaultsPerSec"
+        },
+        {
+          "name": "Transition Pages RePurposed/sec",
+          "identifier": "TransitionPagesRePurposedPerSec"
+        },
+        {
+          "name": "Write Copies/sec",
+          "identifier": "WriteCopiesPerSec"
+        }
+      ]
+    },
+    {
+      "category": "NUMA Node Memory",
+      "identifier": "NUMANodeMemory",
+      "type": "MultiInstance",
+      "counters": [
+        {
+          "name": "Available MBytes",
+          "identifier": "AvailableMBytes"
+        },
+        {
+          "name": "Free & Zero Page List MBytes",
+          "identifier": "FreeZeroPageListMBytes"
+        },
+        {
+          "name": "Standby List MBytes",
+          "identifier": "StandbyListMBytes"
+        },
+        {
+          "name": "Total MBytes",
+          "identifier": "TotalMBytes"
+        }
+      ]
+    },
+    {
+      "category": "ReadyBoost Cache",
+      "identifier": "ReadyBoostCache",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Bytes cached",
+          "identifier": "BytesCached"
+        },
+        {
+          "name": "Cache read bytes/sec",
+          "identifier": "CacheReadBytesPerSec"
+        },
+        {
+          "name": "Cache reads/sec",
+          "identifier": "CacheReadsPerSec"
+        },
+        {
+          "name": "Cache space used",
+          "identifier": "CacheSpaceUsed"
+        },
+        {
+          "name": "Compression Ratio",
+          "identifier": "CompressionRatio"
+        },
+        {
+          "name": "Skipped read bytes/sec",
+          "identifier": "SkippedReadBytesPerSec"
+        },
+        {
+          "name": "Skipped reads/sec",
+          "identifier": "SkippedReadsPerSec"
+        },
+        {
+          "name": "Total cache size bytes",
+          "identifier": "TotalCacheSizeBytes"
+        },
+        {
+          "name": "Total read bytes/sec",
+          "identifier": "TotalReadBytesPerSec"
+        },
+        {
+          "name": "Total reads/sec",
+          "identifier": "TotalReadsPerSec"
+        }
+      ]
+    }
+  ]
+}
