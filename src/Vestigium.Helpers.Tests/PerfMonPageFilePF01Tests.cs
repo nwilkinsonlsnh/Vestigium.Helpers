@@ -301,6 +301,18 @@ public sealed class PerfMonPageFilePf01Tests
         throw new FileNotFoundException("Vestigium.Helpers.PerfMon.PageFile.csproj");
     }
 
+    [Fact]
+    public void PR02b_001_paths_use_typed_pagingfile()
+    {
+        Assert.Equal(PagingFile.Category, PageFilePaths.ObjectName);
+        Assert.Equal(PagingFile.PercentUsage, PageFilePaths.ShortCounters[0]);
+        Assert.Equal(PagingFile.PercentUsagePeak, PageFilePaths.ShortCounters[1]);
+        var paths = PageFilePaths.Usage();
+        Assert.All(paths, row => Assert.Equal(PagingFile.Category, row.Category));
+        Assert.Contains(paths, row => row.Counter == PagingFile.PercentUsage);
+        Assert.Contains(paths, row => row.Counter == PagingFile.PercentUsagePeak);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

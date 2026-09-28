@@ -67,9 +67,7 @@ public sealed class PerfMonPr02aTests
         Assert.Contains("Filter-PdhCatalog.ps1", text);
         Assert.Contains("New-PdhCatalogClasses.ps1", text);
         Assert.Contains("-Probe PageFile", text);
-        Assert.DoesNotContain("cd tools/PerfMon\n", text.Replace("
-", "
-"));
+        Assert.DoesNotContain("C:\Users\", text);
     }
 
     [Fact]

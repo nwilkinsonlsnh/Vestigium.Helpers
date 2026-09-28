@@ -5,12 +5,12 @@ namespace Vestigium.Helpers.PerfMon.PageFile;
 /// </summary>
 internal static class PageFilePaths
 {
-    public static string ObjectName => PageFileObjects.PagingFile;
+    public static string ObjectName => PagingFile.Category;
 
     public static readonly string[] ShortCounters =
     [
-        "% Usage",
-        "% Usage Peak"
+        PagingFile.PercentUsage,
+        PagingFile.PercentUsagePeak
     ];
 
     public static string InstanceOrTotal(string? instance)
