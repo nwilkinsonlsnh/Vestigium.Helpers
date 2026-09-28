@@ -68,6 +68,37 @@ public sealed class PerfMonPageFilePf01Tests
         Assert.Equal(2, hits.Count);
     }
 
+    [Fact]
+    public void PF01_002_empty_instance_becomes_total()
+    {
+        Assert.Equal("_Total", PageFilePaths.InstanceOrTotal(""));
+        Assert.Equal("_Total", PageFilePaths.InstanceOrTotal("   "));
+        Assert.Equal("_Total", PageFilePaths.InstanceOrTotal(null));
+        var paths = PageFilePaths.Usage("  ");
+        Assert.All(paths, p => Assert.Equal("_Total", p.Instance));
+        Assert.Equal(2, paths.Count);
+    }
+
+    [Fact]
+    public void PF01_002_named_instance_is_kept()
+    {
+        const string file = @"C:\pagefile.sys";
+        Assert.Equal(file, PageFilePaths.InstanceOrTotal(" " + file + " "));
+        var paths = PageFilePaths.Usage(file);
+        Assert.All(paths, p => Assert.Equal(file, p.Instance));
+    }
+
+    [Fact]
+    public void PF01_002_paths_are_paging_file()
+    {
+        var paths = PageFilePaths.Usage();
+        Assert.All(paths, p => Assert.Equal(PageFileObjects.PagingFile, p.Category));
+        Assert.Equal(PageFilePaths.ShortCounters, paths.Select(p => p.Counter));
+        Assert.All(paths, p => Assert.Equal("%", p.Unit));
+        Assert.DoesNotContain(paths, p => p.Category == "Memory");
+        Assert.DoesNotContain(paths, p => p.Counter.Contains("Pages/sec", StringComparison.OrdinalIgnoreCase));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
