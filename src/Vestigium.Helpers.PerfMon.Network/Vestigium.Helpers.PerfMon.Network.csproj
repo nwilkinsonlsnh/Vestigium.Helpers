@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.PerfMon.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.PerfMon.Network</AssemblyName>
     <Description>Adapter PDH rates and errors.</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>perfmon;network;diagnostics;vestigium</PackageTags>
