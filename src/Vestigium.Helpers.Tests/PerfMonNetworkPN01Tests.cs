@@ -373,6 +373,18 @@ public sealed class PerfMonNetworkPn01Tests
         Assert.Null(typeof(NetworkAdapter).Assembly.GetType("Vestigium.Helpers.PerfMon.Network.WinNAT"));
     }
 
+    [Fact]
+    public void PR02c_003_paths_use_typed_interface()
+    {
+        Assert.Equal(NetworkInterface.Category, NetworkPaths.ObjectName);
+        Assert.Equal(NetworkInterface.BytesTotalPerSec, NetworkPaths.InterfaceShort[0]);
+        Assert.Equal(NetworkInterface.OutputQueueLength, NetworkPaths.InterfaceShort[^1]);
+        var paths = NetworkPaths.Interface();
+        Assert.All(paths, p => Assert.Equal(NetworkInterface.Category, p.Category));
+        Assert.Contains(paths, p => p.Counter == NetworkInterface.BytesTotalPerSec);
+        Assert.DoesNotContain(paths, p => p.Category == NetworkAdapter.Category);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

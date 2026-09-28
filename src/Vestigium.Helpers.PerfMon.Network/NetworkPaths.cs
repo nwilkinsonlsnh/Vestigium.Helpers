@@ -5,17 +5,17 @@ namespace Vestigium.Helpers.PerfMon.Network;
 /// </summary>
 internal static class NetworkPaths
 {
-    public static string ObjectName => NetworkObjects.NetworkInterface;
+    public static string ObjectName => NetworkInterface.Category;
 
     public static readonly string[] InterfaceShort =
     [
-        "Bytes Total/sec",
-        "Bytes Received/sec",
-        "Bytes Sent/sec",
-        "Packets/sec",
-        "Packets Received Errors",
-        "Packets Outbound Errors",
-        "Output Queue Length"
+        NetworkInterface.BytesTotalPerSec,
+        NetworkInterface.BytesReceivedPerSec,
+        NetworkInterface.BytesSentPerSec,
+        NetworkInterface.PacketsPerSec,
+        NetworkInterface.PacketsReceivedErrors,
+        NetworkInterface.PacketsOutboundErrors,
+        NetworkInterface.OutputQueueLength
     ];
 
     public static string InstanceOrTotal(string? instance)
