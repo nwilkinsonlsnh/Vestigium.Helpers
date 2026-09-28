@@ -193,7 +193,7 @@ public sealed class PerfMonDiskPd01Tests
         Assert.Equal(paths.Count, result.Samples.Count);
         Assert.All(result.Samples, s =>
         {
-            Assert.Equal(DiskObjects.PhysicalDisk, s.Path.Category);
+            Assert.Equal(DiskObjects.PhysicalDisk, s.Category);
             Assert.Equal(12, s.Value);
         });
     }
