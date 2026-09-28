@@ -425,6 +425,45 @@ public sealed class PerfMonCpuPc01Tests
         Assert.Null(typeof(Processor).Assembly.GetType("Vestigium.Helpers.PerfMon.Cpu.ProcessorPerformance"));
     }
 
+    [Fact]
+    public void PR03b_003_processor_information_stays_name_only()
+    {
+        var jsonPath = FindCpuShard();
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var names = doc.RootElement.GetProperty("categories").EnumerateArray()
+            .Select(c => c.GetProperty("category").GetString())
+            .ToArray();
+        Assert.Equal(["Processor"], names);
+        Assert.Contains("Processor Information", doc.RootElement.GetProperty("allowList").EnumerateArray().Select(e => e.GetString()));
+        Assert.Contains("Processor Performance", doc.RootElement.GetProperty("allowList").EnumerateArray().Select(e => e.GetString()));
+        Assert.Null(typeof(Processor).Assembly.GetType("Vestigium.Helpers.PerfMon.Cpu.ProcessorInformation"));
+        Assert.Null(typeof(Processor).Assembly.GetType("Vestigium.Helpers.PerfMon.Cpu.ProcessorPerformance"));
+        Assert.Equal("Processor Information", CpuObjects.ProcessorInformation);
+        Assert.Equal("Processor Performance", CpuObjects.ProcessorPerformance);
+    }
+
+    [Fact]
+    public void PR03b_004_cpu_has_no_hypervisor_logical_processor_type()
+    {
+        Assert.Null(typeof(Processor).Assembly.GetType("Vestigium.Helpers.PerfMon.Cpu.HyperVHypervisorLogicalProcessor"));
+        Assert.DoesNotContain(CpuObjects.All, n => n.Contains("Hypervisor", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string FindCpuShard()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hits = dir.GetFiles("pdh-categories.json", SearchOption.AllDirectories)
+                .Where(f => f.FullName.Contains("PerfMon.Cpu", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (hits.Length > 0)
+                return hits[0].FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Cpu pdh-categories.json");
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
