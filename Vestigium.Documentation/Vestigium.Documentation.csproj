@@ -85,19 +85,12 @@
     <Folder Include="Vestigium\Helpers\Xml\000 -- Archived\004 -- Developers Guide\" />
     <Folder Include="Vestigium\Helpers\Xml\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\Xml\003 -- Design Document\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\Cpu\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\Cpu\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\Disk\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\Disk\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\Gpu\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\Gpu\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\Memory\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\Memory\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\Network\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\Network\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\PageFile\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\PageFile\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\PerfMon\PerfMon\000 -- Archived\" />
     <Folder Include="Vestigium\Helpers\PerfMon\PerfMon\001 -- Implementation Plan\" />
   </ItemGroup>
 
