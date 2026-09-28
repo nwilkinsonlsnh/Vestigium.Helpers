@@ -55,6 +55,24 @@ public sealed class PerfMonPr02aTests
     }
 
     [Fact]
+    public void PR02a_004_tools_readme_names_the_pipeline()
+    {
+        var readme = FindToolsReadme();
+        var tools = Path.GetDirectoryName(readme)!;
+        Assert.True(File.Exists(Path.Combine(tools, "Dump-PdhCatalog.ps1")));
+        Assert.True(File.Exists(Path.Combine(tools, "Filter-PdhCatalog.ps1")));
+        Assert.True(File.Exists(Path.Combine(tools, "New-PdhCatalogClasses.ps1")));
+        var text = File.ReadAllText(readme);
+        Assert.Contains("Dump-PdhCatalog.ps1", text);
+        Assert.Contains("Filter-PdhCatalog.ps1", text);
+        Assert.Contains("New-PdhCatalogClasses.ps1", text);
+        Assert.Contains("-Probe PageFile", text);
+        Assert.DoesNotContain("cd tools/PerfMon\n", text.Replace("
+", "
+"));
+    }
+
+    [Fact]
     public void PR02a_003_shard_class_and_counterset_agree()
     {
         PdhCatalogAgreement.AssertMatches(
