@@ -69,8 +69,25 @@ if (-not $OutFile) {
     throw "Pass -OutFile or -Probe so the shard lands under src\\Vestigium.Helpers.PerfMon.<Probe>\\EventCatalog."
 }
 
-$dumpPath = if ([System.IO.Path]::IsPathRooted($Dump)) { $Dump } else { [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Dump)) }
-if (-not (Test-Path $dumpPath)) { throw "Dump not found: $dumpPath" }
+function Resolve-DumpPath {
+    param([string] $Dump)
+    if ([System.IO.Path]::IsPathRooted($Dump) -and (Test-Path $Dump)) { return $Dump }
+    $candidates = @(
+        (Join-Path (Get-Location) $Dump),
+        (Join-Path $PSScriptRoot $Dump),
+        (Join-Path $PSScriptRoot (Join-Path 'dumps' $Dump)),
+        (Join-Path $PSScriptRoot 'dumps\pdh-all.json'),
+        (Join-Path $PSScriptRoot 'pdh-all.json'),
+        (Join-Path $repoRoot $Dump),
+        (Join-Path $repoRoot (Join-Path 'tools\PerfMon\dumps' $Dump))
+    )
+    foreach ($path in $candidates) {
+        if ($path -and (Test-Path $path)) { return (Resolve-Path $path).Path }
+    }
+    throw "Dump not found: $Dump. Pass the full path to pdh-all.json (it is not in git)."
+}
+
+$dumpPath = Resolve-DumpPath $Dump
 
 $outPath = $OutFile
 if (-not [System.IO.Path]::IsPathRooted($outPath)) {
