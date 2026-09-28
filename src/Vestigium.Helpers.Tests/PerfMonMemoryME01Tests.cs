@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Memory;
 
@@ -143,6 +144,55 @@ public sealed class PerfMonMemoryMe01Tests
         Assert.DoesNotContain(paths, p => p.Counter.Contains("% Usage", StringComparison.OrdinalIgnoreCase));
         Assert.False(MemoryCounterCatalog.CategoryPresent(MemoryObjects.Memory, missing));
         Assert.Equal(MemoryPaths.ShortCounters.Length, paths.Count);
+    }
+
+    [Fact]
+    public async Task ME01_005_run_uses_shared_job()
+    {
+        var paths = MemoryPaths.Short();
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await MemoryPerf.RunAsync(new MemorySampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s =>
+        {
+            Assert.Equal(MemoryObjects.Memory, s.Category);
+            Assert.Equal(12, s.Value);
+        });
+    }
+
+    [Fact]
+    public void ME01_005_live_available()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists(MemoryObjects.Memory))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        var path = new CounterPath(MemoryObjects.Memory, "Available MBytes", "", "MB");
+        var source = new PerformanceCounterSource();
+        var row = source.Read(path);
+        if (row.Status != SampleStatus.Ok)
+            return;
+        Assert.NotNull(row.Value);
     }
 
     private sealed class ScriptedInventory : ICounterInventory

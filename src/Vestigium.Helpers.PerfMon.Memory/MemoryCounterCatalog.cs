@@ -8,42 +8,43 @@ public static class MemoryCounterCatalog
 {
     public const int DefaultCap = CounterSet.DefaultCap;
 
-    private static readonly CounterSet Set = new(
-        new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-        {
-            [MemoryObjects.Memory] =
-            [
-                "Available MBytes",
-                "Available Bytes",
-                "Committed Bytes",
-                "Commit Limit",
-                "% Committed Bytes In Use",
-                "Cache Bytes",
-                "Pages/sec",
-                "Page Faults/sec",
-                "Pool Paged Bytes",
-                "Pool Nonpaged Bytes"
-            ],
-            [MemoryObjects.Cache] =
-            [
-                "Copy Read Hits %",
-                "Copy Reads/sec",
-                "Data Map Hits %",
-                "Lazy Write Flushes/sec",
-                "Lazy Write Pages/sec"
-            ],
-            [MemoryObjects.NumaNodeMemory] =
-            [
-                "Available MBytes",
-                "Free & Zero Page List MBytes"
-            ],
-            [MemoryObjects.ReadyBoostCache] = [],
-            [MemoryObjects.HyperVDynamicMemory] = []
-        },
-        "Category must be a Memory catalog object.",
-        UnitOf);
+    private static readonly CounterSet Set = new(BuildKnown(), "Category must be a Memory catalog object.", UnitOf);
 
-    public static IReadOnlyList<string> Categories => Set.Categories;
+    private static Dictionary<string, string[]> BuildKnown()
+    {
+        var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in MemoryObjects.All)
+            map[name] = [];
+        map[MemoryObjects.Memory] =
+        [
+            "Available MBytes",
+            "Available Bytes",
+            "Committed Bytes",
+            "Commit Limit",
+            "% Committed Bytes In Use",
+            "Cache Bytes",
+            "Pages/sec",
+            "Page Faults/sec",
+            "Pool Paged Bytes",
+            "Pool Nonpaged Bytes"
+        ];
+        map[MemoryObjects.Cache] =
+        [
+            "Copy Read Hits %",
+            "Copy Reads/sec",
+            "Data Map Hits %",
+            "Lazy Write Flushes/sec",
+            "Lazy Write Pages/sec"
+        ];
+        map[MemoryObjects.NumaNodeMemory] =
+        [
+            "Available MBytes",
+            "Free & Zero Page List MBytes"
+        ];
+        return map;
+    }
+
+    public static IReadOnlyList<string> Categories => MemoryObjects.All;
 
     public static bool IsKnownCategory(string category) => Set.IsKnownCategory(category);
 
