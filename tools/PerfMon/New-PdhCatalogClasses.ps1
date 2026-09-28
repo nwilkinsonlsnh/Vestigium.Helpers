@@ -67,7 +67,8 @@ foreach ($cat in @($data.categories)) {
     if (Test-Path $path) {
         $existing = [System.IO.File]::ReadAllText($path)
     }
-    if ($existing -ne $text) {
+    $norm = { param($s) if ($null -eq $s) { return "" }; return (($s -replace "`r`n", "`n") -replace "`r", "`n") }
+    if ((& $norm $existing) -ne (& $norm $text)) {
         $utf8 = New-Object System.Text.UTF8Encoding $false
         [System.IO.File]::WriteAllText($path, $text, $utf8)
     }

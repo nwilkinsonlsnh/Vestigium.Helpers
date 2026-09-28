@@ -33,6 +33,18 @@ public sealed class PerfMonPr03aTests
     }
 
     [Fact]
+    public void PR03a_003_gpu_shard_is_empty()
+    {
+        var jsonPath = FindNamed("pdh-categories.json", "PerfMon.Gpu");
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        Assert.Equal(0, doc.RootElement.GetProperty("categoryCount").GetInt32());
+        Assert.Empty(doc.RootElement.GetProperty("categories").EnumerateArray());
+        var allow = doc.RootElement.GetProperty("allowList").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("GPU Engine", allow);
+        Assert.DoesNotContain(allow, name => name!.StartsWith(".NET", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void PR03a_002_pagingfile_class_matches_committed_shape()
     {
         Assert.Equal("Paging File", PagingFile.Category);
