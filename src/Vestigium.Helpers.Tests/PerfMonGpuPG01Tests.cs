@@ -348,6 +348,33 @@ public sealed class PerfMonGpuPg01Tests
         throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Gpu.csproj");
     }
 
+    [Fact]
+    public void PR03b_001_gpu_stays_name_only_on_empty_shard()
+    {
+        var jsonPath = FindGpuShard();
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        Assert.Equal(0, doc.RootElement.GetProperty("categoryCount").GetInt32());
+        Assert.Empty(doc.RootElement.GetProperty("categories").EnumerateArray());
+        Assert.Null(typeof(GpuObjects).Assembly.GetType("Vestigium.Helpers.PerfMon.Gpu.GPUEngine"));
+        Assert.Null(typeof(GpuObjects).Assembly.GetType("Vestigium.Helpers.PerfMon.Gpu.GpuEngine"));
+        Assert.Equal("GPU Engine", GpuObjects.Engine);
+    }
+
+    private static string FindGpuShard()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hits = dir.GetFiles("pdh-categories.json", SearchOption.AllDirectories)
+                .Where(f => f.FullName.Contains("PerfMon.Gpu", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (hits.Length > 0)
+                return hits[0].FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Gpu pdh-categories.json");
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
