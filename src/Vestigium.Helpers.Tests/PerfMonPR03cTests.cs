@@ -107,6 +107,19 @@ public sealed class PerfMonPr03cTests
         }
     }
 
+    private static string FindProject(string name)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hit = dir.GetFiles(name, SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+                return hit.FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException(name);
+    }
+
     private static string FindShard(string probe)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
