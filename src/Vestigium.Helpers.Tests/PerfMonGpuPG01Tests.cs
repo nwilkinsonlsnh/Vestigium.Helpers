@@ -111,6 +111,46 @@ public sealed class PerfMonGpuPg01Tests
         Assert.DoesNotContain(paths, p => p.Category == GpuObjects.ProcessMemory);
     }
 
+    [Fact]
+    public void PG01_003_instances_respect_cap()
+    {
+        var names = Enumerable.Range(0, 10).Select(i => $"luid_0x0_0x{i}_phys_0").ToArray();
+        var inv = new ScriptedInventory { Present = true, Instances = names };
+        var live = GpuPaths.Instances(GpuObjects.AdapterMemory, inv, 3);
+        Assert.Equal(names.Take(3), live);
+        Assert.Empty(GpuPaths.Instances(GpuObjects.AdapterMemory, inv, 0));
+
+        var paths = GpuPaths.For(new GpuSampleOptions
+        {
+            IncludeAllInstances = true,
+            InstanceCap = 2,
+            Inventory = inv
+        });
+        Assert.Equal(2, paths.Count(p => p.Category == GpuObjects.Engine));
+        Assert.Equal(2, paths.Count(p => p.Category == GpuObjects.AdapterMemory));
+        Assert.DoesNotContain(paths, p => p.Instance.Equals("_Total", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void PG01_003_named_plus_live_keeps_name()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Instances = ["luid_0x0_0x1_phys_0", "luid_0x0_0x2_phys_0"]
+        };
+        const string named = "pid_9_luid_0x0_0x9_eng_0_engtype_3D";
+        var paths = GpuPaths.For(new GpuSampleOptions
+        {
+            Instance = named,
+            IncludeAllInstances = true,
+            InstanceCap = 8,
+            Inventory = inv
+        });
+        Assert.Contains(paths, p => p.Category == GpuObjects.Engine && p.Instance == named);
+        Assert.Contains(paths, p => p.Instance == "luid_0x0_0x1_phys_0");
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
