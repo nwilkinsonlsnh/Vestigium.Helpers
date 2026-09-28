@@ -134,5 +134,46 @@ $payload = [pscustomobject]@{
 
 $dir = Split-Path -Parent $outPath
 if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
-Set-Content -Path $outPath -Value ($payload | ConvertTo-Json -Depth 6) -Encoding UTF8
+function ConvertTo-StableJson {
+    param($Value, [int] $Level = 0)
+    $pad = "  " * $Level
+    $inner = "  " * ($Level + 1)
+    if ($null -eq $Value) { return "null" }
+    if ($Value -is [string]) { return '"' + ($Value.Replace("\", "\\").Replace('"', '\"')) + '"' }
+    if ($Value -is [bool]) { if ($Value) { return "true" } else { return "false" } }
+    if ($Value -is [int] -or $Value -is [long]) { return [string]$Value }
+    $arr = @()
+    if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+        $isMap = $false
+    }
+    if ($Value -is [System.Collections.IDictionary] -or $Value.PSObject.Properties["source"] -or ($Value.PSObject.TypeNames -contains "System.Management.Automation.PSCustomObject")) {
+        $order = @("source","machine","utc","allowList","categoryCount","categories","category","identifier","type","counters","name")
+        $props = @($Value.PSObject.Properties | Where-Object { $_.MemberType -eq "NoteProperty" -or $_.MemberType -eq "Property" })
+        $names = @()
+        foreach ($n in $order) {
+            if ($props | Where-Object { $_.Name -eq $n }) { $names += $n }
+        }
+        foreach ($pr in $props) {
+            if ($names -notcontains $pr.Name -and $pr.Name -notin @("Count","Length","Keys","Values","Item")) { $names += $pr.Name }
+        }
+        $parts = @()
+        foreach ($n in $names) {
+            $pv = $Value.$n
+            $parts += ($inner + '"' + $n + '": ' + (ConvertTo-StableJson $pv ($Level + 1)))
+        }
+        if ($parts.Count -eq 0) { return "{}" }
+        return "{`n" + ($parts -join ",`n") + "`n$pad}"
+    }
+    $items = @($Value)
+    if ($items.Count -eq 0) { return "[]" }
+    $parts = @()
+    foreach ($item in $items) {
+        $parts += ($inner + (ConvertTo-StableJson $item ($Level + 1)))
+    }
+    return "[`n" + ($parts -join ",`n") + "`n$pad]"
+}
+
+$json = ConvertTo-StableJson $payload
+if (-not $json.EndsWith("`n")) { $json += "`n" }
+[System.IO.File]::WriteAllText($outPath, $json, [System.Text.UTF8Encoding]::new($false))
 Write-Output $outPath
