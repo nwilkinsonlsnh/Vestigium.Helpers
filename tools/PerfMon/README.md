@@ -27,8 +27,15 @@ Identifier rules:
 
 ## Filter a dump to one probe
 
+From `tools\PerfMon`. `-Probe` writes under the repo `src` tree. Do not pass `\src\...` — that is `C:\src\...`.
+
 ```powershell
-.\Filter-PdhCatalog.ps1 -Dump .\dumps\pdh-all.json -AllowList @('Paging File') -OutFile ..\..\src\Vestigium.Helpers.PerfMon.PageFile\EventCatalog\pdh-categories.json
+.\Filter-PdhCatalog.ps1 -Dump .\dumps\pdh-all.json -Probe PageFile
+.\Filter-PdhCatalog.ps1 -Dump .\dumps\pdh-all.json -Probe Network
 ```
 
-The shard keeps category, identifier, type, and counters. It drops instances and help. Categories not on the allow-list (CLR, SQL, extra Network objects) are omitted.
+That lands at:
+
+`D:\Source\Clone\Vestigium.Helpers\src\Vestigium.Helpers.PerfMon.PageFile\EventCatalog\pdh-categories.json`
+
+The shard keeps category, identifier, type, and counters. It drops instances and help. Categories not on the probe allow-list (CLR, SQL) are omitted.
