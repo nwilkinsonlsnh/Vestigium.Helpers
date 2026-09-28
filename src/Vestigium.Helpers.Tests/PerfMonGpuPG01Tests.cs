@@ -77,6 +77,40 @@ public sealed class PerfMonGpuPg01Tests
         Assert.All(hits, s => Assert.Equal(["Dedicated Usage"], s.Counters));
     }
 
+    [Fact]
+    public void PG01_002_does_not_invent_total()
+    {
+        Assert.Equal("", GpuPaths.InstanceOrNone(null));
+        Assert.Equal("", GpuPaths.InstanceOrNone(""));
+        Assert.Equal("", GpuPaths.InstanceOrNone("   "));
+        var paths = GpuPaths.Short();
+        Assert.All(paths, p => Assert.Equal("", p.Instance));
+        Assert.DoesNotContain(paths, p => p.Instance.Equals("_Total", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void PG01_002_named_instance_is_kept()
+    {
+        const string name = "pid_1000_luid_0x0_0x1_eng_0_engtype_3D";
+        Assert.Equal(name, GpuPaths.InstanceOrNone(" " + name + " "));
+        var paths = GpuPaths.Short(name);
+        Assert.All(paths, p => Assert.Equal(name, p.Instance));
+    }
+
+    [Fact]
+    public void PG01_002_short_job_objects()
+    {
+        var paths = GpuPaths.Short("luid_0x0_0x1_phys_0");
+        Assert.Equal(2, paths.Count);
+        Assert.Equal(GpuObjects.Engine, paths[0].Category);
+        Assert.Equal(GpuPaths.Utilization, paths[0].Counter);
+        Assert.Equal("%", paths[0].Unit);
+        Assert.Equal(GpuObjects.AdapterMemory, paths[1].Category);
+        Assert.Equal(GpuPaths.Dedicated, paths[1].Counter);
+        Assert.Equal("B", paths[1].Unit);
+        Assert.DoesNotContain(paths, p => p.Category == GpuObjects.ProcessMemory);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
