@@ -71,6 +71,8 @@
     <Folder Include="Vestigium\Helpers\Network\000 -- Archived\003 -- Design Document\" />
     <Folder Include="Vestigium\Helpers\Network\000 -- Archived\004 -- Developers Guide\" />
     <Folder Include="Vestigium\Helpers\Network\000 -- Archived\001 -- Implementation Plan\PR07\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\000 -- Archived\" />
+    <Folder Include="Vestigium\Helpers\PerfMon\001 -- Implementation Plan\PR02\" />
     <Folder Include="Vestigium\Helpers\Processes\000 -- Archived\003 -- Design Document\" />
     <Folder Include="Vestigium\Helpers\Processes\000 -- Archived\004 -- Developers Guide\" />
     <Folder Include="Vestigium\Helpers\Processes\001 -- Implementation Plan\" />
