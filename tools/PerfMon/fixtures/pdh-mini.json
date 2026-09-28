@@ -1,0 +1,34 @@
+{
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "categoryCount": 3,
+  "categories": [
+    {
+      "category": ".NET CLR Memory",
+      "identifier": "NETCLRMemory",
+      "type": "MultiInstance",
+      "help": "skip",
+      "instances": ["devenv"],
+      "counters": [{ "name": "% Time in GC", "identifier": "PercentTimeInGC" }]
+    },
+    {
+      "category": "Paging File",
+      "identifier": "PagingFile",
+      "type": "MultiInstance",
+      "help": "pagefile",
+      "instances": ["_Total", "C:\\pagefile.sys"],
+      "counters": [
+        { "name": "% Usage", "identifier": "PercentUsage" },
+        { "name": "% Usage Peak", "identifier": "PercentUsagePeak" }
+      ]
+    },
+    {
+      "category": "Network Adapter",
+      "identifier": "NetworkAdapter",
+      "type": "MultiInstance",
+      "help": "skip",
+      "instances": ["Ethernet"],
+      "counters": [{ "name": "Bytes Total/sec", "identifier": "BytesTotalPerSec" }]
+    }
+  ]
+}

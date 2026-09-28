@@ -23,3 +23,12 @@ Identifier rules:
 - `Bytes Total/sec` → `BytesTotalPerSec`
 - `% Usage` → `PercentUsage`
 - `Network Adapter` → `NetworkAdapter`
+
+
+## Filter a dump to one probe
+
+```powershell
+.\Filter-PdhCatalog.ps1 -Dump .\dumps\pdh-all.json -AllowList @('Paging File') -OutFile ..\..\src\Vestigium.Helpers.PerfMon.PageFile\EventCatalog\pdh-categories.json
+```
+
+The shard keeps category, identifier, type, and counters. It drops instances and help. Categories not on the allow-list (CLR, SQL, extra Network objects) are omitted.

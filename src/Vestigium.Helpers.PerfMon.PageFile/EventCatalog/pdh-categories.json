@@ -1,0 +1,18 @@
+{
+  "source": "pdh-all.json",
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "allowList": [ "Paging File" ],
+  "categoryCount": 1,
+  "categories": [
+    {
+      "category": "Paging File",
+      "identifier": "PagingFile",
+      "type": "MultiInstance",
+      "counters": [
+        { "name": "% Usage", "identifier": "PercentUsage" },
+        { "name": "% Usage Peak", "identifier": "PercentUsagePeak" }
+      ]
+    }
+  ]
+}
