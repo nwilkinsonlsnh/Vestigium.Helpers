@@ -81,6 +81,38 @@ public sealed class PerfMonDiskPd01Tests
         Assert.All(hits, s => Assert.Equal(["Disk Bytes/sec"], s.Counters));
     }
 
+    [Fact]
+    public void PD01_002_empty_instance_becomes_total()
+    {
+        Assert.Equal("_Total", DiskPaths.InstanceOrTotal(""));
+        Assert.Equal("_Total", DiskPaths.InstanceOrTotal("   "));
+        Assert.Equal("_Total", DiskPaths.InstanceOrTotal(null));
+        var paths = DiskPaths.Physical("  ");
+        Assert.All(paths, p => Assert.Equal("_Total", p.Instance));
+        Assert.Equal(DiskPaths.PhysicalShort.Length, paths.Count);
+    }
+
+    [Fact]
+    public void PD01_002_named_instance_is_kept()
+    {
+        Assert.Equal("0 C:", DiskPaths.InstanceOrTotal(" 0 C: "));
+        var paths = DiskPaths.Physical("0 C:");
+        Assert.All(paths, p => Assert.Equal("0 C:", p.Instance));
+    }
+
+    [Fact]
+    public void PD01_002_paths_are_physical_disk()
+    {
+        var paths = DiskPaths.Physical();
+        Assert.All(paths, p => Assert.Equal(DiskObjects.PhysicalDisk, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == DiskObjects.LogicalDisk);
+        Assert.Equal(DiskPaths.PhysicalShort, paths.Select(p => p.Counter));
+        Assert.Equal("/sec", paths.First(p => p.Counter == "Disk Bytes/sec").Unit);
+        Assert.Equal("s", paths.First(p => p.Counter == "Avg. Disk sec/Read").Unit);
+        Assert.Equal("count", paths.First(p => p.Counter == "Current Disk Queue Length").Unit);
+        Assert.Equal("%", paths.First(p => p.Counter == "% Disk Time").Unit);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
