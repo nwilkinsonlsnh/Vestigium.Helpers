@@ -354,6 +354,25 @@ public sealed class PerfMonNetworkPn01Tests
         throw new FileNotFoundException("Network pdh-categories.json");
     }
 
+    [Fact]
+    public void PR02c_002_typed_network_classes_match_shard()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(NetworkPerfCatalog).Assembly,
+            NetworkAdapter.Category,
+            NetworkAdapter.Counters,
+            NetworkCounterCatalog.Counters(NetworkAdapter.Category));
+        PdhCatalogAgreement.AssertMatches(
+            typeof(NetworkPerfCatalog).Assembly,
+            NetworkInterface.Category,
+            NetworkInterface.Counters,
+            NetworkCounterCatalog.Counters(NetworkInterface.Category));
+        Assert.Equal("Bytes Total/sec", NetworkAdapter.BytesTotalPerSec);
+        Assert.Equal("Bytes Total/sec", NetworkInterface.BytesTotalPerSec);
+        Assert.Contains(TCPv4.ConnectionsEstablished, TCPv4.Counters);
+        Assert.Null(typeof(NetworkAdapter).Assembly.GetType("Vestigium.Helpers.PerfMon.Network.WinNAT"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

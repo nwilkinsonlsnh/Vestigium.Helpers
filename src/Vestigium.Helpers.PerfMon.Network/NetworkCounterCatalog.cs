@@ -88,8 +88,16 @@ public static class NetworkCounterCatalog
         var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in NetworkObjects.All)
             map[name] = [];
-        map[NetworkObjects.NetworkInterface] = InterfaceRates;
-        map[NetworkObjects.NetworkAdapter] = InterfaceRates;
+        map[NetworkAdapter.Category] = [.. NetworkAdapter.Counters];
+        map[NetworkInterface.Category] = [.. NetworkInterface.Counters];
+        map[IPv4.Category] = [.. IPv4.Counters];
+        map[IPv6.Category] = [.. IPv6.Counters];
+        map[ICMP.Category] = [.. ICMP.Counters];
+        map[ICMPv6.Category] = [.. ICMPv6.Counters];
+        map[TCPv4.Category] = [.. TCPv4.Counters];
+        map[TCPv6.Category] = [.. TCPv6.Counters];
+        map[UDPv4.Category] = [.. UDPv4.Counters];
+        map[UDPv6.Category] = [.. UDPv6.Counters];
         return map;
     }
 }
