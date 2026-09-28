@@ -18,6 +18,8 @@ internal static class DiskPaths
     public static string InstanceOrTotal(string? instance)
         => string.IsNullOrWhiteSpace(instance) ? "_Total" : instance.Trim();
 
+    public static string ObjectName => DiskObjects.PhysicalDisk;
+
     public static IReadOnlyList<string> Disks(ICounterInventory? inventory, int cap)
     {
         if (cap <= 0)
@@ -57,6 +59,6 @@ internal static class DiskPaths
     private static void AddInstance(List<CounterPath> rows, string instance)
     {
         foreach (var name in PhysicalShort)
-            rows.Add(new CounterPath(DiskObjects.PhysicalDisk, name, instance, DiskCounterCatalog.UnitOf(name)));
+            rows.Add(new CounterPath(ObjectName, name, instance, DiskCounterCatalog.UnitOf(name)));
     }
 }

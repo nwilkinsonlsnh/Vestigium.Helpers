@@ -152,6 +152,27 @@ public sealed class PerfMonDiskPd01Tests
         Assert.All(paths, p => Assert.Equal(DiskObjects.PhysicalDisk, p.Category));
     }
 
+    [Fact]
+    public void PD01_004_missing_object_stays_physical()
+    {
+        var onlyLogical = new ScriptedInventory
+        {
+            Present = true,
+            Counters = ["% Free Space", "Disk Bytes/sec"],
+            Instances = ["C:"]
+        };
+        var paths = DiskPaths.For(new DiskSampleOptions
+        {
+            IncludeDisks = true,
+            Inventory = onlyLogical
+        });
+        Assert.Equal(DiskObjects.PhysicalDisk, DiskPaths.ObjectName);
+        Assert.All(paths, p => Assert.Equal(DiskObjects.PhysicalDisk, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == DiskObjects.LogicalDisk);
+        Assert.DoesNotContain(paths, p => p.Counter == "% Free Space");
+        Assert.False(DiskCounterCatalog.CategoryPresent(DiskObjects.PhysicalDisk, new ScriptedInventory { Present = false }));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
