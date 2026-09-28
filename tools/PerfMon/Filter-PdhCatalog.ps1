@@ -123,70 +123,55 @@ foreach ($cat in @($data.categories)) {
     })
 }
 
-$payload = [pscustomobject]@{
-    source        = [System.IO.Path]::GetFileName($dumpPath)
-    machine       = [string]$data.machine
-    utc           = [string]$data.utc
-    allowList     = @($AllowList)
-    categoryCount = $rows.Count
-    categories    = $rows
+function Escape-JsonText {
+    param([string] $Text)
+    if ($null -eq $Text) { return '""' }
+    $safe = $Text.Replace('\', '\\').Replace('"', '\"')
+    return ('"' + $safe + '"')
 }
+
+$nl = [Environment]::NewLine
+$sb = New-Object System.Text.StringBuilder
+[void]$sb.Append("{" + $nl)
+[void]$sb.Append("  " + '"source": ' + (Escape-JsonText ([System.IO.Path]::GetFileName($dumpPath))) + "," + $nl)
+[void]$sb.Append("  " + '"machine": ' + (Escape-JsonText ([string]$data.machine)) + "," + $nl)
+[void]$sb.Append("  " + '"utc": ' + (Escape-JsonText ([string]$data.utc)) + "," + $nl)
+[void]$sb.Append("  " + '"allowList": [' + $nl)
+for ($i = 0; $i -lt $AllowList.Count; $i++) {
+    $comma = ","
+    if ($i -eq ($AllowList.Count - 1)) { $comma = "" }
+    [void]$sb.Append("    " + (Escape-JsonText ([string]$AllowList[$i])) + $comma + $nl)
+}
+[void]$sb.Append("  ]," + $nl)
+[void]$sb.Append("  " + '"categoryCount": ' + $rows.Count + "," + $nl)
+[void]$sb.Append("  " + '"categories": [' + $nl)
+for ($c = 0; $c -lt $rows.Count; $c++) {
+    $row = $rows[$c]
+    [void]$sb.Append("    {" + $nl)
+    [void]$sb.Append("      " + '"category": ' + (Escape-JsonText ([string]$row.category)) + "," + $nl)
+    [void]$sb.Append("      " + '"identifier": ' + (Escape-JsonText ([string]$row.identifier)) + "," + $nl)
+    [void]$sb.Append("      " + '"type": ' + (Escape-JsonText ([string]$row.type)) + "," + $nl)
+    [void]$sb.Append("      " + '"counters": [' + $nl)
+    $counters = @($row.counters)
+    for ($k = 0; $k -lt $counters.Count; $k++) {
+        $ctr = $counters[$k]
+        $ccomma = ","
+        if ($k -eq ($counters.Count - 1)) { $ccomma = "" }
+        [void]$sb.Append("        {" + $nl)
+        [void]$sb.Append("          " + '"name": ' + (Escape-JsonText ([string]$ctr.name)) + "," + $nl)
+        [void]$sb.Append("          " + '"identifier": ' + (Escape-JsonText ([string]$ctr.identifier)) + $nl)
+        [void]$sb.Append("        }" + $ccomma + $nl)
+    }
+    [void]$sb.Append("      ]" + $nl)
+    $rcomma = ","
+    if ($c -eq ($rows.Count - 1)) { $rcomma = "" }
+    [void]$sb.Append("    }" + $rcomma + $nl)
+}
+[void]$sb.Append("  ]" + $nl)
+[void]$sb.Append("}" + $nl)
 
 $dir = Split-Path -Parent $outPath
 if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
-function ConvertTo-StableJson {
-    param($Value, [int] $Level = 0)
-    $pad = "  " * $Level
-    $inner = "  " * ($Level + 1)
-
-    if ($null -eq $Value) { return "null" }
-
-    if ($Value -is [bool]) {
-        if ($Value) { return "true" }
-        return "false"
-    }
-
-    if ($Value -is [int] -or $Value -is [long] -or $Value -is [decimal] -or $Value -is [double]) {
-        return ([string]$Value)
-    }
-
-    if ($Value -is [string]) {
-        $escaped = $Value.Replace('\', '\\').Replace('"', '\"')
-        return ('"' + $escaped + '"')
-    }
-
-    $note = @($Value.PSObject.Properties | Where-Object { $_.MemberType -eq "NoteProperty" })
-    if ($note.Count -gt 0) {
-        $preferred = @("source","machine","utc","allowList","categoryCount","categories","category","identifier","type","counters","name")
-        $names = New-Object System.Collections.Generic.List[string]
-        foreach ($n in $preferred) {
-            foreach ($pr in $note) {
-                if ($pr.Name -eq $n) { [void]$names.Add($n) }
-            }
-        }
-        foreach ($pr in $note) {
-            if (-not $names.Contains($pr.Name)) { [void]$names.Add($pr.Name) }
-        }
-        $parts = New-Object System.Collections.Generic.List[string]
-        foreach ($n in $names) {
-            $rendered = ConvertTo-StableJson -Value $Value.$n -Level ($Level + 1)
-            [void]$parts.Add(($inner + '"' + $n + '": ' + $rendered))
-        }
-        if ($parts.Count -eq 0) { return "{}" }
-        return ("{`n" + ($parts -join ",`n") + "`n" + $pad + "}")
-    }
-
-    $items = @($Value)
-    if ($items.Count -eq 0) { return "[]" }
-    $parts = New-Object System.Collections.Generic.List[string]
-    foreach ($item in $items) {
-        [void]$parts.Add(($inner + (ConvertTo-StableJson -Value $item -Level ($Level + 1))))
-    }
-    return ("[`n" + ($parts -join ",`n") + "`n" + $pad + "]")
-}
-
-$json = ConvertTo-StableJson -Value $payload
-if (-not $json.EndsWith("`n")) { $json = $json + "`n" }
 $utf8 = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllText($outPath, $json, $utf8)
+[System.IO.File]::WriteAllText($outPath, $sb.ToString(), $utf8)
 Write-Output $outPath
