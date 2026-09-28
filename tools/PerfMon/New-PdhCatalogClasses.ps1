@@ -57,5 +57,8 @@ foreach ($cat in @($data.categories)) {
     [void]$written.Add($path)
 }
 
-if ($written.Count -eq 0) { throw "No classes emitted. Shard counters were empty." }
+if ($written.Count -eq 0) {
+    Write-Warning "No classes emitted for $Probe. Shard has no counters (category missing or empty on this box)."
+    return
+}
 $written
