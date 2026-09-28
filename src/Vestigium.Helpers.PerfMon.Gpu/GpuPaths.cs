@@ -45,7 +45,7 @@ internal static class GpuPaths
     private static IReadOnlyList<string> Resolve(string category, string named, GpuSampleOptions options)
     {
         if (!options.IncludeAllInstances)
-            return named.Length == 0 ? Array.Empty<string>() : [named];
+            return [named];
 
         var live = Instances(category, options.Inventory, options.InstanceCap);
         if (named.Length == 0)
