@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon.Network",
+  "category": "PerfMon",
+  "block": { "start": 17500, "end": 17999 },
+  "events": [
+    { "eventId": 17500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Network", "message": "enter probe" },
+    { "eventId": 17505, "name": "ProbeStarted", "severity": "Information", "subcategory": "Network", "message": "probe started" },
+    { "eventId": 17510, "name": "PathsBuilt", "severity": "Debug", "subcategory": "Paths", "message": "paths built" },
+    { "eventId": 17515, "name": "ProbeComplete", "severity": "Information", "subcategory": "Network", "message": "probe complete" },
+    { "eventId": 17520, "name": "ProbeCancelled", "severity": "Information", "subcategory": "Network", "message": "probe cancelled" },
+    { "eventId": 17525, "name": "ProbeRejected", "severity": "Error", "subcategory": "Network", "message": "probe rejected" },
+    { "eventId": 17530, "name": "ObjectMissing", "severity": "Warning", "subcategory": "Paths", "message": "Network Interface absent" },
+    { "eventId": 17535, "name": "AdaptersCapped", "severity": "Warning", "subcategory": "Paths", "message": "adapter list truncated" },
+    { "eventId": 17540, "name": "OptionalAbsent", "severity": "Debug", "subcategory": "Paths", "message": "optional network object absent" },
+    { "eventId": 17545, "name": "ProbeFailed", "severity": "Error", "subcategory": "Network", "message": "probe aborted after start" }
+  ]
+}
