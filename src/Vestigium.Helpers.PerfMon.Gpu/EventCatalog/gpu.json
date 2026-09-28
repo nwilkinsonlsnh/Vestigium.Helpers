@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon.Gpu",
+  "category": "PerfMon",
+  "block": { "start": 18500, "end": 18999 },
+  "events": [
+    { "eventId": 18500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Gpu", "message": "enter probe" },
+    { "eventId": 18505, "name": "ProbeStarted", "severity": "Information", "subcategory": "Gpu", "message": "probe started" },
+    { "eventId": 18510, "name": "PathsBuilt", "severity": "Debug", "subcategory": "Paths", "message": "paths built" },
+    { "eventId": 18515, "name": "ProbeComplete", "severity": "Information", "subcategory": "Gpu", "message": "probe complete" },
+    { "eventId": 18520, "name": "ProbeCancelled", "severity": "Information", "subcategory": "Gpu", "message": "probe cancelled" },
+    { "eventId": 18525, "name": "ProbeRejected", "severity": "Error", "subcategory": "Gpu", "message": "probe rejected" },
+    { "eventId": 18530, "name": "ObjectMissing", "severity": "Warning", "subcategory": "Paths", "message": "GPU object absent" },
+    { "eventId": 18535, "name": "InstancesCapped", "severity": "Warning", "subcategory": "Paths", "message": "instance list truncated" },
+    { "eventId": 18540, "name": "Headless", "severity": "Information", "subcategory": "Paths", "message": "both short-job objects absent" },
+    { "eventId": 18545, "name": "ProbeFailed", "severity": "Error", "subcategory": "Gpu", "message": "probe aborted after start" }
+  ]
+}
