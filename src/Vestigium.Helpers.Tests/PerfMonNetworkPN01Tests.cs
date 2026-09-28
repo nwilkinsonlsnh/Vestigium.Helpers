@@ -140,6 +140,23 @@ public sealed class PerfMonNetworkPn01Tests
         Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
     }
 
+    [Fact]
+    public void PN01_004_missing_object_stays_interface()
+    {
+        var missing = new ScriptedInventory { Present = false };
+        var paths = NetworkPaths.For(new NetworkSampleOptions
+        {
+            IncludeAdapters = true,
+            Inventory = missing
+        });
+        Assert.Equal(NetworkObjects.NetworkInterface, NetworkPaths.ObjectName);
+        Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == NetworkObjects.NetworkAdapter);
+        Assert.False(NetworkCounterCatalog.CategoryPresent(NetworkObjects.NetworkInterface, missing));
+        Assert.Null(typeof(NetworkSampleOptions).Assembly.GetType("Vestigium.Helpers.Network.NetworkHelpers"));
+        Assert.Null(typeof(NetworkSampleOptions).GetProperty("Ping"));
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }
