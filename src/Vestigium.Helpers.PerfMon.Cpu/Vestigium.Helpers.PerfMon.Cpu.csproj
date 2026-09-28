@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.PerfMon.Cpu</RootNamespace>
     <AssemblyName>Vestigium.Helpers.PerfMon.Cpu</AssemblyName>
     <Description>Processor PDH samples.</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>perfmon;cpu;diagnostics;vestigium</PackageTags>
