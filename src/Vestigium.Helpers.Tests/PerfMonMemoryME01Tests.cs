@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Vestigium.Helpers.PerfMon;
 using Vestigium.Helpers.PerfMon.Memory;
 using Vestigium.Logging;
@@ -232,6 +233,42 @@ public sealed class PerfMonMemoryMe01Tests
         }).GetAwaiter().GetResult());
         Assert.Null(ex);
         Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void ME01_007_catalog_matches_constants()
+    {
+        var jsonPath = Path.Combine(
+            Path.GetDirectoryName(typeof(MemoryPerfCatalog).Assembly.Location)!,
+            "EventCatalog",
+            "memory.json");
+        Assert.True(File.Exists(jsonPath), jsonPath);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var root = doc.RootElement;
+        Assert.Equal(MemoryPerfCatalog.AppId, root.GetProperty("app").GetString());
+        Assert.Equal(MemoryPerfCatalog.Category, root.GetProperty("category").GetString());
+        Assert.Equal(MemoryPerfEvents.BlockStart, root.GetProperty("block").GetProperty("start").GetInt32());
+        Assert.Equal(MemoryPerfEvents.BlockEnd, root.GetProperty("block").GetProperty("end").GetInt32());
+
+        var events = root.GetProperty("events").EnumerateArray().ToArray();
+        Assert.Equal(MemoryPerfCatalog.Rows.Length, events.Length);
+
+        var constants = typeof(MemoryPerfEvents)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(int) && f.Name is not ("BlockStart" or "BlockEnd"))
+            .ToDictionary(f => f.Name, f => (int)f.GetValue(null)!);
+
+        foreach (var (row, node) in MemoryPerfCatalog.Rows.Zip(events))
+        {
+            Assert.Equal(row.EventId, node.GetProperty("eventId").GetInt32());
+            Assert.Equal(row.Name, node.GetProperty("name").GetString());
+            Assert.Equal(row.Severity, node.GetProperty("severity").GetString());
+            Assert.Equal(row.Subcategory, node.GetProperty("subcategory").GetString());
+            Assert.Equal(0, row.EventId % 5);
+            Assert.InRange(row.EventId, MemoryPerfEvents.BlockStart, MemoryPerfEvents.BlockEnd);
+            Assert.Equal(constants[row.Name], row.EventId);
+        }
     }
 
     private sealed class ScriptedInventory : ICounterInventory

@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon.Memory",
+  "category": "PerfMon",
+  "block": { "start": 19000, "end": 19499 },
+  "events": [
+    { "eventId": 19000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Memory", "message": "enter probe" },
+    { "eventId": 19005, "name": "ProbeStarted", "severity": "Information", "subcategory": "Memory", "message": "probe started" },
+    { "eventId": 19010, "name": "PathsBuilt", "severity": "Debug", "subcategory": "Paths", "message": "paths built" },
+    { "eventId": 19015, "name": "ProbeComplete", "severity": "Information", "subcategory": "Memory", "message": "probe complete" },
+    { "eventId": 19020, "name": "ProbeCancelled", "severity": "Information", "subcategory": "Memory", "message": "probe cancelled" },
+    { "eventId": 19025, "name": "ProbeRejected", "severity": "Error", "subcategory": "Memory", "message": "probe rejected" },
+    { "eventId": 19030, "name": "ObjectMissing", "severity": "Warning", "subcategory": "Paths", "message": "Memory object absent" },
+    { "eventId": 19035, "name": "SiblingSkipped", "severity": "Debug", "subcategory": "Paths", "message": "PageFile not used" },
+    { "eventId": 19040, "name": "OptionalAbsent", "severity": "Debug", "subcategory": "Paths", "message": "Hyper-V / ReadyBoost / NUMA absent" },
+    { "eventId": 19045, "name": "ProbeFailed", "severity": "Error", "subcategory": "Memory", "message": "probe aborted after start" }
+  ]
+}
