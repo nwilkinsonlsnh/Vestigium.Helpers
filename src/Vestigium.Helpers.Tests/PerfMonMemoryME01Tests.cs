@@ -132,6 +132,19 @@ public sealed class PerfMonMemoryMe01Tests
         Assert.DoesNotContain(paths, p => p.Category == MemoryObjects.NumaNodeMemory);
     }
 
+    [Fact]
+    public void ME01_004_missing_object_stays_memory()
+    {
+        var missing = new ScriptedInventory { Present = false };
+        var paths = MemoryPaths.For(new MemorySampleOptions { Inventory = missing });
+        Assert.Equal(MemoryObjects.Memory, MemoryPaths.ObjectName);
+        Assert.All(paths, p => Assert.Equal(MemoryObjects.Memory, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == MemoryPaths.PageFileObject);
+        Assert.DoesNotContain(paths, p => p.Counter.Contains("% Usage", StringComparison.OrdinalIgnoreCase));
+        Assert.False(MemoryCounterCatalog.CategoryPresent(MemoryObjects.Memory, missing));
+        Assert.Equal(MemoryPaths.ShortCounters.Length, paths.Count);
+    }
+
     private sealed class ScriptedInventory : ICounterInventory
     {
         public bool Present { get; set; }

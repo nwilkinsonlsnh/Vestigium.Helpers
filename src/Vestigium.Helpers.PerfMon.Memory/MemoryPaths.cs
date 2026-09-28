@@ -7,6 +7,7 @@ namespace Vestigium.Helpers.PerfMon.Memory;
 internal static class MemoryPaths
 {
     public const string PageFileObject = "Paging File";
+    public static string ObjectName => MemoryObjects.Memory;
 
     public static readonly string[] ShortCounters =
     [
