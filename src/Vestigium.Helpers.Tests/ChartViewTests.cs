@@ -395,4 +395,77 @@ public sealed class ChartViewTests
         Assert.True(new FileInfo(Path.Combine(dir, "pareto-series.png")).Length > 8);
     }
 
+    [Fact]
+    public void Line_two_series_round_trip_keeps_both_names_and_own_x()
+    {
+        var spec = new ChartSpec
+        {
+            Kind = ChartKind.Line,
+            Series =
+            [
+                new ChartSeries { Name = "Receive", X = [0, 1, 2], Y = [1, 2, 3] },
+                new ChartSeries { Name = "Send", X = [0, 2, 4, 6], Y = [4, 5, 6, 7] }
+            ]
+        };
+
+        var lines = PlotBuilder.ResolveXy(spec);
+        Assert.Equal(2, lines.Count);
+        Assert.Equal("Receive", lines[0].Name);
+        Assert.Equal("Send", lines[1].Name);
+        Assert.Equal(new[] { 0d, 1d, 2d }, lines[0].X);
+        Assert.Equal(new[] { 1d, 2d, 3d }, lines[0].Y);
+        Assert.Equal(new[] { 0d, 2d, 4d, 6d }, lines[1].X);
+        Assert.Equal(new[] { 4d, 5d, 6d, 7d }, lines[1].Y);
+
+        var dir = Path.Combine(Path.GetTempPath(), "VestigiumHelpersTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "two.png");
+        ChartView.SavePng(spec, path, 320, 180);
+        Assert.True(new FileInfo(path).Length > 8);
+    }
+
+    [Fact]
+    public void Line_one_series_source_path_is_unchanged()
+    {
+        var series = NumericSeries.From(new[] { 1, 2, 3, 4, 5 }, "seq");
+        var spec = ChartView.Spec(ChartKind.Line, series, options: null);
+        var lines = PlotBuilder.ResolveXy(spec);
+        Assert.Single(lines);
+        Assert.Equal("seq", lines[0].Name);
+        Assert.Equal(new[] { 0d, 1d, 2d, 3d, 4d }, lines[0].X);
+        Assert.Equal(new[] { 1d, 2d, 3d, 4d, 5d }, lines[0].Y);
+    }
+
+    [Fact]
+    public void Line_rejects_three_series_empty_y_and_xy_mismatch()
+    {
+        var a = NumericSeries.From(new[] { 1, 2, 3 }, "a");
+        var b = NumericSeries.From(new[] { 4, 5, 6 }, "b");
+        var c = NumericSeries.From(new[] { 7, 8, 9 }, "c");
+        Assert.Throws<ArgumentException>(() => ChartView.Line([a, b, c]));
+        Assert.Throws<ArgumentException>(() =>
+            PlotBuilder.ResolveXy(new ChartSpec
+            {
+                Kind = ChartKind.Line,
+                Series =
+                [
+                    new ChartSeries { Name = "a", Y = [1, 2] },
+                    new ChartSeries { Name = "b", Y = [3, 4] },
+                    new ChartSeries { Name = "c", Y = [5, 6] }
+                ]
+            }));
+        Assert.Throws<ArgumentException>(() =>
+            PlotBuilder.ResolveXy(new ChartSpec
+            {
+                Kind = ChartKind.Line,
+                Series = [new ChartSeries { Name = "empty", Y = [] }]
+            }));
+        Assert.Throws<ArgumentException>(() =>
+            PlotBuilder.ResolveXy(new ChartSpec
+            {
+                Kind = ChartKind.Line,
+                Series = [new ChartSeries { Name = "bad", X = [0], Y = [1, 2] }]
+            }));
+    }
+
 }

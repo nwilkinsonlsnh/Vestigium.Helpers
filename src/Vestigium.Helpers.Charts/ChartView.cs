@@ -104,6 +104,9 @@ public static partial class ChartView
         return Line(series, trend, options);
     }
 
+    public static FrameworkElement Line(IReadOnlyList<NumericSeries> series, ChartOptions? options = null)
+        => From(SpecXy(ChartKind.Line, series, options));
+
     public static FrameworkElement Scatter(NumericSeries series, TrendKind trend = TrendKind.None, ChartOptions? options = null)
         => From(Spec(ChartKind.Scatter, series, With(options, trend: trend)));
 
@@ -134,6 +137,9 @@ public static partial class ChartView
             properties: ChartsLog.Props(("nx", x.Count.ToString()), ("ny", y.Count.ToString())));
         throw new ArgumentException("X and Y lengths must match.");
     }
+
+    public static FrameworkElement Scatter(IReadOnlyList<NumericSeries> series, ChartOptions? options = null)
+        => From(SpecXy(ChartKind.Scatter, series, options));
 
     public static FrameworkElement Column(NumericSeries series, ChartOptions? options = null)
         => From(Spec(ChartKind.Column, series, options));
@@ -224,6 +230,53 @@ public static partial class ChartView
     {
         ArgumentNullException.ThrowIfNull(series);
         return new ChartSpec { Kind = kind, Source = series, Options = options, Title = options?.Title ?? series.Name };
+    }
+
+    internal static ChartSpec SpecXy(ChartKind kind, IReadOnlyList<NumericSeries> series, ChartOptions? options)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        RequireNotEmpty(series, nameof(series));
+        if (series.Count > 2)
+            throw new ArgumentException("Line and Scatter accept at most two series.", nameof(series));
+
+        var charts = new ChartSeries[series.Count];
+        for (var i = 0; i < series.Count; i++)
+        {
+            ArgumentNullException.ThrowIfNull(series[i]);
+            charts[i] = ToChartSeries(series[i]);
+        }
+
+        return new ChartSpec
+        {
+            Kind = kind,
+            Series = charts,
+            Options = options,
+            Title = options?.Title ?? charts[0].Name
+        };
+    }
+
+    private static ChartSeries ToChartSeries(NumericSeries series)
+    {
+        if (series.HasTimestamps)
+        {
+            var timed = series.TimeSeriesPoints();
+            if (timed.Count > 0)
+            {
+                var t0 = timed[0].At.UtcTicks;
+                return new ChartSeries
+                {
+                    Name = series.Name,
+                    X = timed.Select(t => (t.At.UtcTicks - t0) / (double)TimeSpan.TicksPerSecond).ToArray(),
+                    Y = timed.Select(t => (double)t.Value).ToArray()
+                };
+            }
+        }
+
+        return new ChartSeries
+        {
+            Name = series.Name,
+            Y = series.Values.Select(v => (double)v).ToArray()
+        };
     }
 
     private static ChartOptions With(

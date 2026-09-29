@@ -40,6 +40,7 @@ ClosedXml the library still writes Excel charts itself. Its **demo** may host Ch
 | Layout-only math only | OLS, display bell, Pareto accumulate. KDE / percentile CI / capability stay in Analytics. |
 | One light palette | Print and Excel-adjacent. Dark is a second mode later, not a second product. |
 | Probe may compute limits | Suite smoke only. Public Control still requires caller fences. |
+| Line/Scatter cap of two | NicIQ Throughput is Receive + Send on one plot. Same Y unit, two colors, two legend names. N-series would be a different product. Trend and process fences stay on series 0 so the one-series path does not change meaning. Each series keeps its own X; Charts does not resample. |
 
 ---
 
@@ -51,6 +52,7 @@ ClosedXml the library still writes Excel charts itself. Its **demo** may host Ch
 | `ChartView.Interval.cs` | PercentileInterval door |
 | `ChartTypes.cs` | Kind, options, spec, palette, TrendFit |
 | `PlotBuilder.cs` | Fill switch + most kinds |
+| `PlotBuilder.Xy.cs` | Resolve 1–2 Line/Scatter strokes |
 | `PlotBuilder.Control.cs` | Control layer (fences, outside, run-rule marks, spec lines) |
 | `PlotBuilder.Interval.cs` | PercentileInterval fill |
 | `ChartControlOverlay.cs` | Map run-rule indexes → points |
@@ -93,7 +95,7 @@ PR05 (archived under `Archive/PR01/`):
 
 ## 6. Still out
 
-Refresh-in-place, dark palette, multi-series overlay, SaveSvg, host adapters, public `ScottPlot.Plot`, computing fences.
+Refresh-in-place, dark palette, N-series overlay, filled area, SaveSvg, host adapters, public `ScottPlot.Plot`, computing fences. Two-series Line/Scatter shipped in 1.0.6.
 
 ---
 
@@ -102,3 +104,4 @@ Refresh-in-place, dark palette, multi-series overlay, SaveSvg, host adapters, pu
 | Version | Date | Change |
 |---|---|---|
 | 2.0 | 19 Sep 2026 | First standalone Design. Content lifted from Guide v1.1 + PR05. |
+| 2.1 | 29 Sep 2026 | Two-series Line/Scatter. Cap 2. Same PlotBuilder. |

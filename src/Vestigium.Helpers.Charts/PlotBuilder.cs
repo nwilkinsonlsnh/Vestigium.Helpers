@@ -158,12 +158,17 @@ internal static partial class PlotBuilder
 
     private static void FillXy(Plot plot, ChartSpec spec, ChartOptions options, bool line)
     {
-        var (xs, ys) = Xy(spec);
-        var sc = line ? plot.Add.ScatterLine(xs, ys) : plot.Add.Scatter(xs, ys);
-        sc.Color = Primary(options);
-        sc.LegendText = spec.Source?.Name ?? "series";
-        ApplyLimits(plot, options.Limits ?? spec.Limits, xs, ys);
-        ApplyTrend(plot, options, xs, ys);
+        var lines = ResolveXy(spec);
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var pts = lines[i];
+            var sc = line ? plot.Add.ScatterLine(pts.X, pts.Y) : plot.Add.Scatter(pts.X, pts.Y);
+            sc.Color = SeriesColor(options, i);
+            sc.LegendText = pts.Name;
+        }
+
+        ApplyLimits(plot, options.Limits ?? spec.Limits, lines[0].X, lines[0].Y);
+        ApplyTrend(plot, options, lines[0].X, lines[0].Y);
     }
 
     private static void FillBars(Plot plot, ChartSpec spec, ChartOptions options, bool horizontal)
@@ -399,35 +404,6 @@ internal static partial class PlotBuilder
 
     private static NumericSeries RequireSeries(ChartSpec spec)
         => spec.Source ?? throw new ArgumentException("This chart kind needs a NumericSeries.");
-
-    private static (double[] X, double[] Y) Xy(ChartSpec spec)
-    {
-        if (spec.Series is { Count: > 0 } s)
-        {
-            var y = s[0].Y.ToArray();
-            var x = s[0].X?.ToArray() ?? Enumerable.Range(0, y.Length).Select(i => (double)i).ToArray();
-            if (x.Length != y.Length)
-                throw new ArgumentException("X and Y lengths must match.");
-            return (x, y);
-        }
-
-        var series = RequireSeries(spec);
-        if (series.HasTimestamps)
-        {
-            var timed = series.TimeSeriesPoints();
-            if (timed.Count > 0)
-            {
-                var t0 = timed[0].At.UtcTicks;
-                return (
-                    timed.Select(t => (t.At.UtcTicks - t0) / (double)TimeSpan.TicksPerSecond).ToArray(),
-                    timed.Select(t => (double)t.Value).ToArray());
-            }
-        }
-
-        return (
-            Enumerable.Range(0, series.Count).Select(i => (double)i).ToArray(),
-            series.Values.Select(v => (double)v).ToArray());
-    }
 
     private static (double[] X, double[] Y, string[] Labels) BarData(ChartSpec spec)
     {
