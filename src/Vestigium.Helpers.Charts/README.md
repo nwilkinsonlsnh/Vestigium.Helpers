@@ -8,7 +8,7 @@ It does not compute UCL / CL / LCL, run rules, spec fences, or KDE points. Scott
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Charts` 1.0.1 |
+| Package | `Vestigium.Helpers.Charts` 1.0.6 |
 | TFM | `net10.0-windows` (WPF) |
 | APPID | `Charts` (`ChartsCatalog.AppId`) |
 | EVENTID | Reserved 16500–16999 (used through 16545) |
@@ -19,7 +19,7 @@ It does not compute UCL / CL / LCL, run rules, spec fences, or KDE points. Scott
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Charts" Version="1.0.1" />
+<PackageReference Include="Vestigium.Helpers.Charts" Version="1.0.6" />
 ```
 
 ```csharp
@@ -46,7 +46,7 @@ Headless path: `ChartView.SavePng(spec, path)`.
 |---|---|---|
 | `ChartView.Control(series, limits, rules?)` | `FrameworkElement` | Requires UCL > CL > LCL. Does not invent fences. |
 | `ChartView.Histogram(series, options?)` | `FrameworkElement` | Optional bell curve / KDE via `ChartOptions`. |
-| `ChartView.Ecdf` / `Line` / `Scatter` | `FrameworkElement` | Scatter also accepts raw x/y of equal length. |
+| `ChartView.Ecdf` / `Line` / `Scatter` | `FrameworkElement` | Scatter also accepts raw x/y of equal length. Line and Scatter accept 1 or 2 `NumericSeries` or `ChartSeries`. |
 | `ChartView.Column` / `Bar` / `Pie` / `Pareto` | `FrameworkElement` | Pie/Pareto accept `ChartSlice` lists. |
 | `ChartView.Box` / `Bands` | `FrameworkElement` | Whisker kind is an option, not a calculation change in Charts. |
 | `ChartView.MeanInterval(series, γ)` | `FrameworkElement` | Calls Analytics `Confidence` then paints. |
@@ -59,6 +59,7 @@ Headless path: `ChartView.SavePng(spec, path)`.
 - Charts paints. Analytics computes.
 - ScottPlot types stay internal. Hosts receive `FrameworkElement`.
 - Empty series and x/y length mismatch are rejected.
+- Line and Scatter accept at most two series. Color 0 is primary / `options.Color`. Color 1 is palette secondary. Each series keeps its own X.
 - Control charts require well-ordered fences: UCL > CL > LCL.
 - On a non-Windows host, `From` returns a text stand-in. Use `SavePng`.
 - The library never calls `VestigiumLogger.Initialize`.
