@@ -9,7 +9,9 @@ internal static partial class PlotBuilder
     {
         var limits = spec.Limits ?? options.Limits
             ?? throw new ArgumentNullException(nameof(spec), "Control chart requires ControlLimits from Analytics.");
-        var (xs, ys) = Xy(spec);
+        var first = ResolveXy(spec)[0];
+        var xs = first.X;
+        var ys = first.Y;
         var inX = new List<double>();
         var inY = new List<double>();
         var outX = new List<double>();
