@@ -21,6 +21,6 @@ Not a CLI. Not `perfmon.exe`. Not a plot package.
 - The library never calls `VestigiumLogger.Initialize`.
 - Missing counter categories are `Unavailable`, not a fake zero.
 - No Demo project.
-- The one public source is `CachedPdhSource`. Hosts do not subclass it. `PerformanceCounterSource` is internal and still the `SampleJob` default until PR03c.002.
+- The one public source is `CachedPdhSource`. Hosts do not subclass it. `SampleJob` with no `Source` constructs it and disposes it. A host-passed source is not disposed. `PerformanceCounterSource` stays internal.
 
 Long-form documents live in [Vestigium.Documentation / Helpers / PerfMon / PerfMon](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/PerfMon/PerfMon).
