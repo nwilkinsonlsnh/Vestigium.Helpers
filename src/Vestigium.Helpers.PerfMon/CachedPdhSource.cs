@@ -8,6 +8,8 @@ namespace Vestigium.Helpers.PerfMon;
 /// Missing category, instance, or access denied is Unavailable.
 /// The first read of a rate counter is Unavailable. It is the prime, not a sample. Never 0.
 /// <see cref="Retain"/> drops counters the current job does not sample. A new NIC instance does not keep the old handle.
+/// Instance names come from <see cref="PdhCounterInventory.Shared"/>. That is the lister
+/// <c>NetworkCounterCatalog.LiveInstances</c> already calls. This type does not walk PDH a second time.
 /// Not a remote collector.
 /// </summary>
 public sealed class CachedPdhSource : ICounterSource, IDisposable
@@ -94,27 +96,7 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
     }
 
     public IReadOnlyList<string> ListInstances(string category, int cap)
-    {
-        if (cap <= 0 || string.IsNullOrWhiteSpace(category))
-            return [];
-
-        try
-        {
-            var cat = new PerformanceCounterCategory(category.Trim());
-            if (cat.CategoryType == PerformanceCounterCategoryType.SingleInstance)
-                return [];
-            var names = cat.GetInstanceNames();
-            return names.Length <= cap ? names : names.Take(cap).ToArray();
-        }
-        catch (InvalidOperationException)
-        {
-            return [];
-        }
-        catch (ArgumentException)
-        {
-            return [];
-        }
-    }
+        => PdhCounterInventory.Shared.LiveInstances(category, cap);
 
     public bool NeedsPrime(CounterPath path)
     {
