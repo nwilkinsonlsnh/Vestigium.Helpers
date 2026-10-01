@@ -25,6 +25,8 @@ public sealed class SampleJob
         Options.RejectIfUnbounded(cancellationToken);
         var owned = Options.Source is null;
         var source = Options.Source ?? new CachedPdhSource();
+        if (source is CachedPdhSource cached)
+            cached.Retain(Paths);
 
         var samples = new List<SampleRecord>();
         var terminal = SampleStatus.Ok;
