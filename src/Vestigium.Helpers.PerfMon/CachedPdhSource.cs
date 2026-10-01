@@ -5,12 +5,14 @@ namespace Vestigium.Helpers.PerfMon;
 /// <summary>
 /// The one public local PDH source. Keeps <see cref="PerformanceCounter"/> alive across reads
 /// so rate counters can return a rate. Hosts do not subclass this type.
-/// Missing category, instance, or access denied is Unavailable. Not a remote collector.
-/// SampleJob still constructs <c>PerformanceCounterSource</c> until PR03c.002.
+/// Missing category, instance, or access denied is Unavailable.
+/// The first read of a rate counter is Unavailable. It is the prime, not a sample. Never 0.
+/// Not a remote collector.
 /// </summary>
 public sealed class CachedPdhSource : ICounterSource, IDisposable
 {
     private readonly Dictionary<string, PerformanceCounter> _live = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _rates = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _primed = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
     private bool _disposed;
@@ -24,27 +26,29 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
             var key = Key(path);
             try
             {
-                if (!_live.TryGetValue(key, out var counter))
+                if (!TryOpen(path, key, out var counter))
+                    return Miss(path);
+
+                if (_rates.Contains(key) && _primed.Add(key))
                 {
-                    counter = Open(path);
-                    _live[key] = counter;
+                    _ = counter.NextValue();
+                    return SampleRecord.Unavailable(path);
                 }
 
-                var value = counter.NextValue();
                 _primed.Add(key);
-                return SampleRecord.Ok(path, value);
+                return SampleRecord.Ok(path, counter.NextValue());
             }
             catch (InvalidOperationException)
             {
-                return Miss(path, key);
+                return Miss(path);
             }
             catch (ArgumentException)
             {
-                return Miss(path, key);
+                return Miss(path);
             }
             catch (UnauthorizedAccessException)
             {
-                return Miss(path, key);
+                return Miss(path);
             }
             catch (Exception ex)
             {
@@ -86,7 +90,15 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
     {
         ArgumentNullException.ThrowIfNull(path);
         lock (_gate)
-            return !_primed.Contains(Key(path));
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var key = Key(path);
+            if (_primed.Contains(key))
+                return false;
+            if (!_rates.Contains(key) && !TryOpen(path, key, out _))
+                return false;
+            return _rates.Contains(key);
+        }
     }
 
     public void Dispose()
@@ -103,13 +115,25 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
             }
 
             _live.Clear();
+            _rates.Clear();
             _primed.Clear();
         }
     }
 
-    private SampleRecord Miss(CounterPath path, string key)
+    private bool TryOpen(CounterPath path, string key, out PerformanceCounter counter)
     {
-        _primed.Add(key);
+        if (_live.TryGetValue(key, out counter!))
+            return true;
+
+        counter = Open(path);
+        _live[key] = counter;
+        if (IsRate(counter.CounterType))
+            _rates.Add(key);
+        return true;
+    }
+
+    private SampleRecord Miss(CounterPath path)
+    {
         PerfMonLog.Warning(
             PerfMonEvents.SourceUnavailable,
             Vestigium.Logging.VestigiumStatus.Failed,
@@ -125,4 +149,24 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
         => path.Instance.Length == 0
             ? new PerformanceCounter(path.Category, path.Counter, readOnly: true)
             : new PerformanceCounter(path.Category, path.Counter, path.Instance, readOnly: true);
+
+    private static bool IsRate(PerformanceCounterType type)
+        => type is
+            PerformanceCounterType.RateOfCountsPerSecond32 or
+            PerformanceCounterType.RateOfCountsPerSecond64 or
+            PerformanceCounterType.CountPerTimeInterval32 or
+            PerformanceCounterType.CountPerTimeInterval64 or
+            PerformanceCounterType.CounterTimer or
+            PerformanceCounterType.CounterTimerInverse or
+            PerformanceCounterType.Timer100Ns or
+            PerformanceCounterType.Timer100NsInverse or
+            PerformanceCounterType.ElapsedTime or
+            PerformanceCounterType.SampleCounter or
+            PerformanceCounterType.SampleFraction or
+            PerformanceCounterType.CounterMultiTimer or
+            PerformanceCounterType.CounterMultiTimerInverse or
+            PerformanceCounterType.CounterMultiTimer100Ns or
+            PerformanceCounterType.CounterMultiTimer100NsInverse or
+            PerformanceCounterType.AverageTimer32 or
+            PerformanceCounterType.RawFraction;
 }
