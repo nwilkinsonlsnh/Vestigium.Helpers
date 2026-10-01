@@ -5,7 +5,6 @@ namespace Vestigium.Helpers.PerfMon;
 /// <summary>
 /// Open-and-dispose PDH adapter. Rate counters stay at zero because each read is a new counter.
 /// Not the public type. Public source is <see cref="CachedPdhSource"/>.
-/// SampleJob still constructs this until PR03c.002.
 /// Missing category or instance is Unavailable. Unexpected PDH failures throw. Not a remote collector.
 /// </summary>
 internal sealed class PerformanceCounterSource : ICounterSource
@@ -58,34 +57,7 @@ internal sealed class PerformanceCounterSource : ICounterSource
     }
 
     public IReadOnlyList<string> ListInstances(string category, int cap)
-    {
-        if (cap <= 0)
-            return Array.Empty<string>();
-
-        var name = category?.Trim() ?? string.Empty;
-        if (name.Length == 0 || !CategoryExists(name))
-            return Array.Empty<string>();
-
-        try
-        {
-            var cat = new PerformanceCounterCategory(name);
-            if (cat.CategoryType == PerformanceCounterCategoryType.SingleInstance)
-                return Array.Empty<string>();
-
-            var names = cat.GetInstanceNames();
-            if (names.Length <= cap)
-                return names;
-            return names.Take(cap).ToArray();
-        }
-        catch (InvalidOperationException)
-        {
-            return Array.Empty<string>();
-        }
-        catch (ArgumentException)
-        {
-            return Array.Empty<string>();
-        }
-    }
+        => PdhCounterInventory.Shared.LiveInstances(category, cap);
 
     public bool NeedsPrime(CounterPath path)
     {
