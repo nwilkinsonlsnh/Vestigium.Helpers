@@ -1,6 +1,6 @@
 namespace Vestigium.Helpers.PerfMon;
 
-/// <summary>Bounded sample clock. Default source is local PDH.</summary>
+/// <summary>Bounded sample clock. Default source is <see cref="CachedPdhSource"/>.</summary>
 public sealed class SampleJob
 {
     public SampleJob(IReadOnlyList<CounterPath> paths, SampleJobOptions? options = null)
@@ -23,7 +23,8 @@ public sealed class SampleJob
     {
         PerfMonLog.Debug(PerfMonEvents.JobEnter, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "enter job");
         Options.RejectIfUnbounded(cancellationToken);
-        var source = Options.Source ?? new PerformanceCounterSource();
+        var owned = Options.Source is null;
+        var source = Options.Source ?? new CachedPdhSource();
 
         var samples = new List<SampleRecord>();
         var terminal = SampleStatus.Ok;
@@ -32,65 +33,72 @@ public sealed class SampleJob
 
         try
         {
-            Prime(source, cancellationToken);
-            PerfMonLog.Information(PerfMonEvents.JobStarted, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "job started");
-        }
-        catch (OperationCanceledException)
-        {
-            return Result(SampleStatus.Cancelled, samples);
-        }
-
-
-        while (true)
-        {
-            if (cancellationToken.IsCancellationRequested)
-                return Result(SampleStatus.Cancelled, samples);
-
-            if (CountReached(ticks) || DurationReached(started))
-                break;
-
-            var tickOk = false;
-            var tickMiss = false;
-            foreach (var path in Paths)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    return Result(SampleStatus.Cancelled, samples);
-
-                var row = source.Read(path);
-                samples.Add(row);
-                if (row.Status == SampleStatus.Unavailable)
-                    tickMiss = true;
-                else
-                    tickOk = true;
-            }
-
-            ticks++;
-            PerfMonLog.Debug(
-                PerfMonEvents.JobTick,
-                Vestigium.Logging.VestigiumStatus.Success,
-                PerfMonCatalog.Subcategories.Job,
-                "job tick",
-                properties: PerfMonLog.Props(("ticks", ticks.ToString()), ("status", terminal.ToString())));
-            if (tickMiss && tickOk)
-                terminal = SampleStatus.Partial;
-
-            if (CountReached(ticks) || DurationReached(started))
-                break;
-
-            if (cancellationToken.IsCancellationRequested)
-                return Result(SampleStatus.Cancelled, samples);
-
             try
             {
-                await Task.Delay(Options.Interval, Options.Clock, cancellationToken).ConfigureAwait(false);
+                Prime(source, cancellationToken);
+                PerfMonLog.Information(PerfMonEvents.JobStarted, Vestigium.Logging.VestigiumStatus.Success, PerfMonCatalog.Subcategories.Job, "job started");
             }
             catch (OperationCanceledException)
             {
                 return Result(SampleStatus.Cancelled, samples);
             }
-        }
 
-        return Result(terminal, samples);
+            while (true)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return Result(SampleStatus.Cancelled, samples);
+
+                if (CountReached(ticks) || DurationReached(started))
+                    break;
+
+                var tickOk = false;
+                var tickMiss = false;
+                foreach (var path in Paths)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return Result(SampleStatus.Cancelled, samples);
+
+                    var row = source.Read(path);
+                    samples.Add(row);
+                    if (row.Status == SampleStatus.Unavailable)
+                        tickMiss = true;
+                    else
+                        tickOk = true;
+                }
+
+                ticks++;
+                PerfMonLog.Debug(
+                    PerfMonEvents.JobTick,
+                    Vestigium.Logging.VestigiumStatus.Success,
+                    PerfMonCatalog.Subcategories.Job,
+                    "job tick",
+                    properties: PerfMonLog.Props(("ticks", ticks.ToString()), ("status", terminal.ToString())));
+                if (tickMiss && tickOk)
+                    terminal = SampleStatus.Partial;
+
+                if (CountReached(ticks) || DurationReached(started))
+                    break;
+
+                if (cancellationToken.IsCancellationRequested)
+                    return Result(SampleStatus.Cancelled, samples);
+
+                try
+                {
+                    await Task.Delay(Options.Interval, Options.Clock, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return Result(SampleStatus.Cancelled, samples);
+                }
+            }
+
+            return Result(terminal, samples);
+        }
+        finally
+        {
+            if (owned && source is IDisposable disposable)
+                disposable.Dispose();
+        }
     }
 
     private void Prime(ICounterSource source, CancellationToken cancellationToken)
