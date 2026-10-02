@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.SystemInfo</RootNamespace>
     <AssemblyName>Vestigium.Helpers.SystemInfo</AssemblyName>
     <Description>Shared machine-fact records. Satellites own the native calls.</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>systeminfo;diagnostics;vestigium</PackageTags>
