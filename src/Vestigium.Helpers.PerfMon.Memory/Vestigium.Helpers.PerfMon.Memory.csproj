@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.PerfMon.Memory</RootNamespace>
     <AssemblyName>Vestigium.Helpers.PerfMon.Memory</AssemblyName>
     <Description>Commit, available, and machine memory samples.</Description>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>perfmon;memory;diagnostics;vestigium</PackageTags>
