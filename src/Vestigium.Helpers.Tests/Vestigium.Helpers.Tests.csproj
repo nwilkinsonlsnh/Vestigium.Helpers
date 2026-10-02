@@ -40,6 +40,9 @@
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Memory\Vestigium.Helpers.PerfMon.Memory.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.Network\Vestigium.Helpers.PerfMon.Network.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon.PageFile\Vestigium.Helpers.PerfMon.PageFile.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.SystemInfo\Vestigium.Helpers.SystemInfo.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.SystemInfo.Cpu\Vestigium.Helpers.SystemInfo.Cpu.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.SystemInfo.Memory\Vestigium.Helpers.SystemInfo.Memory.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
