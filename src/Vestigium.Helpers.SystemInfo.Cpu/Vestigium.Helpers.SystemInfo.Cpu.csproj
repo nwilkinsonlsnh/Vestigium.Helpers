@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.SystemInfo.Cpu</RootNamespace>
     <AssemblyName>Vestigium.Helpers.SystemInfo.Cpu</AssemblyName>
     <Description>Processor topology and census. Not a PDH sample.</Description>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>systeminfo;cpu;diagnostics;vestigium</PackageTags>
