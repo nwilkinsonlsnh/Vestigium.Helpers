@@ -8,7 +8,7 @@ Not a CLI. Not `perfmon.exe`. Not a plot package.
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.PerfMon` 0.1.2 |
+| Package | `Vestigium.Helpers.PerfMon` 0.1.3 |
 | TFM | `net10.0-windows` |
 | APPID | `PerfMon` |
 | EVENTID | Reserved 17000–17499 |
