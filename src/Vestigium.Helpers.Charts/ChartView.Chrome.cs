@@ -29,7 +29,7 @@ public static partial class ChartView
     {
         var options = spec.Options ?? new ChartOptions();
         ApplyColors(view.Plot, options);
-        ApplySpan(view.Plot, options);
+        ApplySpan(view.Plot, spec);
 
         if (options.Width is { } w)
             view.Width = w;
