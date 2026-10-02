@@ -1,10 +1,14 @@
 namespace Vestigium.Helpers.PerfMon.Memory;
 
-/// <summary>Custom catalog block 19000–19499 (count by 5). Used IDs this plan: 19000–19045.</summary>
+/// <summary>
+/// Custom catalog block 19000–19499, counted by 5.
+/// Used: 19000–19045. Next free id is 19050. HostPaths did not take an id.
+/// </summary>
 public static class MemoryPerfEvents
 {
     public const int BlockStart = 19000;
     public const int BlockEnd = 19499;
+    public const int NextFree = 19050;
 
     public const int ProbeEnter = 19000;
     public const int ProbeStarted = 19005;
