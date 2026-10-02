@@ -59,7 +59,9 @@ internal static partial class PlotBuilder
     }
 
     private static Color SeriesColor(ChartOptions options, int index)
-        => index == 0
-            ? Primary(options)
-            : Color.FromHex(Palette.Secondary);
+    {
+        if (options.SeriesColors is { } colors && index >= 0 && index < colors.Count && !string.IsNullOrWhiteSpace(colors[index]))
+            return Color.FromHex(colors[index]);
+        return index == 0 ? Primary(options) : Color.FromHex(Palette.Secondary);
+    }
 }
