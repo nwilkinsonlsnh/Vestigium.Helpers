@@ -8,7 +8,7 @@ Not a CLI. Not `perfmon.exe`. Not a plot package.
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.PerfMon` 0.1.0 |
+| Package | `Vestigium.Helpers.PerfMon` 0.1.2 |
 | TFM | `net10.0-windows` |
 | APPID | `PerfMon` |
 | EVENTID | Reserved 17000–17499 |
@@ -20,7 +20,9 @@ Not a CLI. Not `perfmon.exe`. Not a plot package.
 
 - The library never calls `VestigiumLogger.Initialize`.
 - Missing counter categories are `Unavailable`, not a fake zero.
+- The first read of a rate counter is Unavailable. It is the prime, not a sample.
 - No Demo project.
 - The one public source is `CachedPdhSource`. Hosts do not subclass it. `SampleJob` with no `Source` constructs it and disposes it. A host-passed source is not disposed. `PerformanceCounterSource` stays internal.
+- `ListInstances` uses `PdhCounterInventory.Shared`. It does not walk PDH a second time.
 
 Long-form documents live in [Vestigium.Documentation / Helpers / PerfMon / PerfMon](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/PerfMon/PerfMon).
