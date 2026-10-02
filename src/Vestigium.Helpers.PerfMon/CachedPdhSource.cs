@@ -72,10 +72,6 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
         }
     }
 
-    /// <summary>
-    /// Dispose counters whose path is not in <paramref name="keep"/>.
-    /// SampleJob calls this at the start of a run so an adapter switch does not leak the previous instance.
-    /// </summary>
     public void Retain(IReadOnlyList<CounterPath> keep)
     {
         ArgumentNullException.ThrowIfNull(keep);
@@ -137,11 +133,29 @@ public sealed class CachedPdhSource : ICounterSource, IDisposable
         if (_live.TryGetValue(key, out counter!))
             return true;
 
-        counter = Open(path);
-        _live[key] = counter;
-        if (IsRate(counter.CounterType))
-            _rates.Add(key);
-        return true;
+        try
+        {
+            counter = Open(path);
+            _live[key] = counter;
+            if (IsRate(counter.CounterType))
+                _rates.Add(key);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            counter = null!;
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            counter = null!;
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            counter = null!;
+            return false;
+        }
     }
 
     private SampleRecord Miss(CounterPath path, string key)
