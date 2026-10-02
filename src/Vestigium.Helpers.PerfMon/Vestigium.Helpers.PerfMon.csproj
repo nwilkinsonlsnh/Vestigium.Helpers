@@ -3,8 +3,8 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>Vestigium.Helpers.PerfMon</RootNamespace>
     <AssemblyName>Vestigium.Helpers.PerfMon</AssemblyName>
-    <Description>Shared performance sample contract, job runner, and counter source.</Description>
-    <Version>0.1.1</Version>
+    <Description>Shared performance sample contract, job runner, and cached PDH source.</Description>
+    <Version>0.1.2</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>perfmon;diagnostics;vestigium</PackageTags>
