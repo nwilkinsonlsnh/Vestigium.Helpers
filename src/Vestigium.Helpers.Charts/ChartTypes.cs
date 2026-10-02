@@ -54,6 +54,10 @@ public sealed record ChartOptions
     public string? AxisColor { get; init; }
     public string? GridColor { get; init; }
     public IReadOnlyList<string>? SeriesColors { get; init; }
+    public double? XMin { get; init; }
+    public double? XMax { get; init; }
+    public double? YMin { get; init; }
+    public double? YMax { get; init; }
     public double? IntervalLevel { get; init; }
     public double? PercentileP { get; init; }
     public RunRuleReport? RunRules { get; init; }
