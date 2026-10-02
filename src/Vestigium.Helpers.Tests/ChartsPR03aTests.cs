@@ -11,35 +11,19 @@ public sealed class ChartsPR03aTests
     [Fact]
     public void Themed_options_read_stub_tokens_and_keep_a_caller_color()
     {
-        Exception? err = null;
-        ChartOptions? themed = null;
-        var thread = new Thread(() =>
+        var themed = OnSta(() =>
         {
-            try
-            {
-                var resources = new ResourceDictionary();
-                resources[ChartTheme.AccentPrimary] = Brush(0x11, 0x22, 0x33);
-                resources[ChartTheme.SurfaceWindow] = Brush(0xAA, 0xBB, 0xCC);
-                resources[ChartTheme.SurfaceCard] = Brush(0x01, 0x02, 0x03);
-                resources[ChartTheme.TextPrimary] = Brush(0x10, 0x20, 0x30);
-                resources[ChartTheme.StrokeSubtle] = Brush(0x40, 0x50, 0x60);
-                resources[ChartTheme.SeriesKey(1)] = Brush(0x70, 0x80, 0x90);
-
-                themed = ChartTheme.Apply(new ChartOptions { Color = "#ABCDEF", Title = "keep" }, resources);
-            }
-            catch (Exception ex)
-            {
-                err = ex;
-            }
+            var resources = new ResourceDictionary();
+            resources[ChartTheme.AccentPrimary] = Brush(0x11, 0x22, 0x33);
+            resources[ChartTheme.SurfaceWindow] = Brush(0xAA, 0xBB, 0xCC);
+            resources[ChartTheme.SurfaceCard] = Brush(0x01, 0x02, 0x03);
+            resources[ChartTheme.TextPrimary] = Brush(0x10, 0x20, 0x30);
+            resources[ChartTheme.StrokeSubtle] = Brush(0x40, 0x50, 0x60);
+            resources[ChartTheme.SeriesKey(1)] = Brush(0x70, 0x80, 0x90);
+            return ChartTheme.Apply(new ChartOptions { Color = "#ABCDEF", Title = "keep" }, resources);
         });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (err is not null)
-            throw err;
 
-        Assert.NotNull(themed);
-        Assert.Equal("#ABCDEF", themed!.Color);
+        Assert.Equal("#ABCDEF", themed.Color);
         Assert.Equal("keep", themed.Title);
         Assert.Equal("#AABBCC", themed.FigureColor);
         Assert.Equal("#010203", themed.DataColor);
@@ -51,7 +35,7 @@ public sealed class ChartsPR03aTests
     [Fact]
     public void Missing_token_keeps_the_documented_fallback()
     {
-        var themed = ChartTheme.Apply(new ChartOptions(), new ResourceDictionary());
+        var themed = OnSta(() => ChartTheme.Apply(new ChartOptions(), new ResourceDictionary()));
         Assert.Equal(ChartTheme.SeriesFallback[0], themed.Color);
         Assert.Equal("#FFFFFF", themed.FigureColor);
         Assert.Equal("#FFFFFF", themed.DataColor);
@@ -98,6 +82,23 @@ public sealed class ChartsPR03aTests
             Series = [new ChartSeries { Name = "Receive", Y = [1, 2, 3] }]
         });
         Assert.DoesNotContain("UCL", LegendNames(plain));
+    }
+
+    private static T OnSta<T>(Func<T> action)
+    {
+        T? value = default;
+        Exception? err = null;
+        var thread = new Thread(() =>
+        {
+            try { value = action(); }
+            catch (Exception ex) { err = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (err is not null)
+            throw err;
+        return value!;
     }
 
     private static SolidColorBrush Brush(byte r, byte g, byte b)
