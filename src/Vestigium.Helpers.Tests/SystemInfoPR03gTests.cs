@@ -13,7 +13,15 @@ public sealed class SystemInfoPR03gTests
         var fact = Fact<ulong>.Unavailable();
         Assert.Equal(FactStatus.Unavailable, fact.Status);
         Assert.False(fact.IsOk);
-        Assert.Null(fact.Value);
+        Assert.Throws<InvalidOperationException>(() => _ = fact.Value);
+    }
+
+    [Fact]
+    public void Zero_is_a_real_measurement_when_ok()
+    {
+        var fact = Fact<ulong>.Ok(0);
+        Assert.True(fact.IsOk);
+        Assert.Equal(0ul, fact.Value);
     }
 
     [Fact]
