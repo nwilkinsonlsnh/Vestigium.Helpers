@@ -189,6 +189,7 @@ internal static partial class PlotBuilder
         added.Horizontal = horizontal;
         if (labels.Length == ys.Length)
             plot.Axes.Bottom.SetTicks(xs, labels);
+        DrawLimitLines(plot, options, spec.Limits);
     }
 
     private static void FillPie(Plot plot, ChartSpec spec)
@@ -372,9 +373,7 @@ internal static partial class PlotBuilder
     {
         if (limits is null)
             return;
-        AddHLine(plot, limits.Center, Palette.Cl, "CL");
-        AddHLine(plot, limits.Upper, Palette.Ucl, "UCL");
-        AddHLine(plot, limits.Lower, Palette.Lcl, "LCL");
+        DrawLimitLines(plot, new ChartOptions { Limits = limits }, null);
         var ox = new List<double>();
         var oy = new List<double>();
         for (var i = 0; i < ys.Length; i++)
@@ -392,14 +391,6 @@ internal static partial class PlotBuilder
             sc.Color = Color.FromHex(Palette.Outlier);
             sc.LegendText = "outside";
         }
-    }
-
-    private static void AddHLine(Plot plot, double y, string hex, string name)
-    {
-        var line = plot.Add.HorizontalLine(y);
-        line.Color = Color.FromHex(hex);
-        line.LegendText = name;
-        line.LinePattern = LinePattern.Dashed;
     }
 
     private static NumericSeries RequireSeries(ChartSpec spec)
