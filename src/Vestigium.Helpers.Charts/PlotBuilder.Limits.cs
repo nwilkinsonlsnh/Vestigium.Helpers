@@ -15,6 +15,9 @@ internal static partial class PlotBuilder
         AddHLine(plot, limits.Lower, ChartTheme.LimitColor(ChartTheme.StatusInfo, Palette.Lcl), "LCL", LinePattern.Dashed, 1.5f);
     }
 
+    private static void AddHLine(Plot plot, double y, string hex, string name)
+        => AddHLine(plot, y, hex, name, LinePattern.Dashed, 1.5f);
+
     private static void AddHLine(Plot plot, double y, string hex, string name, LinePattern pattern, float width)
     {
         var line = plot.Add.HorizontalLine(y);
