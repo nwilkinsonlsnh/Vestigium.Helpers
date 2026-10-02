@@ -3,6 +3,18 @@ namespace Vestigium.Helpers.PerfMon.Cpu;
 /// <summary>Cpu façade. Shared SampleJob owns the clock and PDH reads.</summary>
 public static class CpuPerf
 {
+    /// <summary>
+    /// Utilization paths for _Total. Processor Information when that object exists, otherwise Processor.
+    /// Does not include the System queue.
+    /// </summary>
+    public static IReadOnlyList<CounterPath> UtilizationPaths(ICounterInventory? inventory = null)
+        => CpuPaths.For(
+                new CpuSampleOptions { Instance = "_Total", IncludeParking = false, IncludeCores = false, Inventory = inventory },
+                inventory)
+            .Where(path => path.Category.Equals(CpuObjects.ProcessorInformation, StringComparison.OrdinalIgnoreCase)
+                || path.Category.Equals(CpuObjects.Processor, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
     public static Task<SampleJobResult> RunAsync(
         CpuSampleOptions? options = null,
         CancellationToken cancellationToken = default)
@@ -48,4 +60,3 @@ public static class CpuPerf
         }
     }
 }
-
