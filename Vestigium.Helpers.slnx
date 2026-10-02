@@ -16,6 +16,7 @@
     <Project Path="src/Vestigium.Helpers.Processes/Vestigium.Helpers.Processes.csproj" />
     <Project Path="src/Vestigium.Helpers.Services/Vestigium.Helpers.Services.csproj" />
     <Project Path="src/Vestigium.Helpers.SystemInfo/Vestigium.Helpers.SystemInfo.csproj" />
+    <Project Path="src/Vestigium.Helpers.SystemInfo.Cpu/Vestigium.Helpers.SystemInfo.Cpu.csproj" />
     <Project Path="src/Vestigium.Helpers.WinReg/Vestigium.Helpers.WinReg.csproj" />
     <Project Path="src/Vestigium.Helpers.Xml/Vestigium.Helpers.Xml.csproj" />
   </Folder>
