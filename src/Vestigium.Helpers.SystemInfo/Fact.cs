@@ -12,15 +12,21 @@ public readonly record struct Fact<T>
 {
     private readonly T _value;
 
-    public FactStatus Status { get; init; }
+    public FactStatus Status { get; }
 
     public bool IsOk => Status == FactStatus.Ok;
 
     public T Value => IsOk ? _value : throw new InvalidOperationException("Fact is unavailable.");
 
+    private Fact(FactStatus status, T value)
+    {
+        Status = status;
+        _value = value;
+    }
+
     public static Fact<T> Ok(T value)
-        => new() { Status = FactStatus.Ok, _value = value };
+        => new(FactStatus.Ok, value);
 
     public static Fact<T> Unavailable()
-        => new() { Status = FactStatus.Unavailable };
+        => new(FactStatus.Unavailable, default!);
 }
