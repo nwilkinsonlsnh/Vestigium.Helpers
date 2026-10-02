@@ -3,6 +3,19 @@ namespace Vestigium.Helpers.PerfMon.Memory;
 /// <summary>Memory façade. Shared SampleJob owns the clock and PDH reads.</summary>
 public static class MemoryPerf
 {
+    /// <summary>
+    /// The short Memory object list a host chart needs. Names come from the catalog, not the host.
+    /// </summary>
+    public static IReadOnlyList<CounterPath> HostPaths()
+        =>
+        [
+            new CounterPath(Memory.Category, Memory.AvailableMBytes, string.Empty, "MB"),
+            new CounterPath(Memory.Category, Memory.CommittedBytes, string.Empty, "bytes"),
+            new CounterPath(Memory.Category, Memory.PercentCommittedBytesInUse, string.Empty, "%"),
+            new CounterPath(Memory.Category, Memory.CommitLimit, string.Empty, "bytes"),
+            new CounterPath(Memory.Category, Memory.CacheBytes, string.Empty, "bytes")
+        ];
+
     public static Task<SampleJobResult> RunAsync(
         MemorySampleOptions? options = null,
         CancellationToken cancellationToken = default)
