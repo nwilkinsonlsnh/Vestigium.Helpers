@@ -6,6 +6,7 @@ namespace Vestigium.Helpers.Charts;
 /// <summary>
 /// Fills <see cref="ChartOptions"/> from Vestigium brush token strings.
 /// Does not reference Vestigium.Themes. A missing token keeps the documented hex fallback.
+/// Limit lines: CL is <see cref="AccentPrimary"/>, UCL is <see cref="StatusError"/>, LCL is <see cref="StatusInfo"/>.
 /// </summary>
 public static class ChartTheme
 {
@@ -14,6 +15,8 @@ public static class ChartTheme
     public const string SurfaceCard = "Vestigium.Brushes.Surface.Card";
     public const string TextPrimary = "Vestigium.Brushes.Text.Primary";
     public const string StrokeSubtle = "Vestigium.Brushes.Stroke.Subtle";
+    public const string StatusError = "Vestigium.Brushes.Status.Error";
+    public const string StatusInfo = "Vestigium.Brushes.Status.Info";
 
     public static readonly string[] SeriesFallback =
     [
@@ -47,6 +50,9 @@ public static class ChartTheme
             SeriesColors = source.SeriesColors ?? series
         };
     }
+
+    public static string LimitColor(string key, string fallback, ResourceDictionary? resources = null)
+        => Token(resources ?? Application.Current?.Resources, key, fallback);
 
     private static string[] Series(ResourceDictionary? lookup)
     {
