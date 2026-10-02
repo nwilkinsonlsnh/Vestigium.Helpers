@@ -6,12 +6,22 @@ namespace Vestigium.Helpers.Network;
 
 public sealed record WirelessAssociation
 {
-    public WirelessAssociation(string Ssid, string Phy, int Quality, string? Bssid = null)
+    public WirelessAssociation(
+        string Ssid,
+        string Phy,
+        int Quality,
+        string? Bssid = null,
+        int? ReceiveKbps = null,
+        int? TransmitKbps = null,
+        string? Security = null)
     {
         this.Ssid = Ssid;
         this.Phy = Phy;
         this.Quality = Math.Clamp(Quality, 0, 100);
         this.Bssid = string.IsNullOrWhiteSpace(Bssid) ? null : Bssid;
+        this.ReceiveKbps = ReceiveKbps is > 0 ? ReceiveKbps : null;
+        this.TransmitKbps = TransmitKbps is > 0 ? TransmitKbps : null;
+        this.Security = string.IsNullOrWhiteSpace(Security) ? null : Security;
     }
 
     public string Ssid { get; }
@@ -21,6 +31,12 @@ public sealed record WirelessAssociation
     public int Quality { get; }
 
     public string? Bssid { get; }
+
+    public int? ReceiveKbps { get; }
+
+    public int? TransmitKbps { get; }
+
+    public string? Security { get; }
 }
 
 public static partial class NetworkHelper
@@ -109,7 +125,10 @@ internal static class WirelessAssociationReader
                 ReadSsid(connection.Association.Ssid),
                 connection.Association.PhyType,
                 connection.Association.SignalQuality,
-                connection.Association.Mac);
+                connection.Association.Mac,
+                connection.Association.RxRate,
+                connection.Association.TxRate,
+                SecurityLabel(connection.Security));
         }
         finally
         {
@@ -118,13 +137,67 @@ internal static class WirelessAssociationReader
         }
     }
 
-    public static WirelessAssociation? FromFields(string? ssid, uint phy, uint quality, byte[]? bssid)
+    public static WirelessAssociation? FromFields(
+        string? ssid,
+        uint phy,
+        uint quality,
+        byte[]? bssid,
+        uint receiveKbps = 0,
+        uint transmitKbps = 0,
+        string? security = null)
     {
         if (string.IsNullOrWhiteSpace(ssid))
             return null;
 
-        return new WirelessAssociation(ssid.Trim(), PhyName(phy), (int)quality, FormatBssid(bssid));
+        return new WirelessAssociation(
+            ssid.Trim(),
+            PhyName(phy),
+            (int)quality,
+            FormatBssid(bssid),
+            receiveKbps == 0 ? null : (int)receiveKbps,
+            transmitKbps == 0 ? null : (int)transmitKbps,
+            security);
     }
+
+    public static string SecurityLabel(bool enabled, bool oneX, uint auth, uint cipher)
+    {
+        if (!enabled)
+            return "Open";
+
+        var parts = new List<string> { AuthName(auth) };
+        var cipherName = CipherName(cipher);
+        if (cipherName is not null)
+            parts.Add(cipherName);
+        if (oneX)
+            parts.Add("802.1X");
+        return string.Join(" \u00b7 ", parts);
+    }
+
+    private static string SecurityLabel(WlanSecurityAttributes security)
+        => SecurityLabel(security.SecurityEnabled, security.OneXEnabled, security.AuthAlgorithm, security.CipherAlgorithm);
+
+    private static string AuthName(uint auth) => auth switch
+    {
+        1 => "Open",
+        2 => "Shared",
+        3 => "WPA",
+        4 => "WPA-Personal",
+        6 => "WPA2-Enterprise",
+        7 => "WPA2-Personal",
+        8 => "WPA3-Enterprise",
+        9 => "WPA3-Personal",
+        10 => "OWE",
+        _ => "Secured"
+    };
+
+    private static string? CipherName(uint cipher) => cipher switch
+    {
+        2 => "TKIP",
+        4 => "CCMP",
+        8 or 9 => "GCMP",
+        10 => "CCMP",
+        _ => null
+    };
 
     public static string PhyName(uint phy) => phy switch
     {
