@@ -11,7 +11,7 @@ namespace Vestigium.Helpers.Network;
 /// <c>CreateIpForwardEntry2</c>, Linux IPv4 and IPv6 netlink. Typed deny only on missing
 /// admin / CAP_NET_ADMIN, ACL, or a default-route write. Never spawn route, ip, or netsh.
 /// </summary>
-public static class NetworkHelper
+public static partial class NetworkHelper
 {
     public static string Identity => "Vestigium.Helpers.Network";
     public static IReadOnlyList<CommonBot> CommonBots => BandwidthEngine.Catalog;
