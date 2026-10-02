@@ -11,6 +11,7 @@ internal static partial class PlotBuilder
     {
         if (spec.Series is { Count: > 0 } raw)
         {
+            // C-05. Rev1 pages are one or two series. Integrity stays Column.
             if (raw.Count > 2)
                 throw new ArgumentException("Line and Scatter accept at most two series.");
 
