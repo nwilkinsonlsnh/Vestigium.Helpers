@@ -56,9 +56,7 @@ internal static partial class PlotBuilder
             marks.LegendText = "run rule";
         }
 
-        AddHLine(plot, limits.Center, Palette.Cl, "CL");
-        AddHLine(plot, limits.Upper, Palette.Ucl, "UCL");
-        AddHLine(plot, limits.Lower, Palette.Lcl, "LCL");
+        DrawLimitLines(plot, options, spec.Limits);
 
         foreach (var (y, name, hex) in ChartSpecOverlay.Lines(spec.Spec ?? options.Spec))
             AddHLine(plot, y, hex, name);
