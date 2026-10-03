@@ -67,7 +67,8 @@ internal static class NetworkWindowsTables
                     addr,
                     mac,
                     InterfaceName(index),
-                    NeighborType(type));
+                    NeighborType(type),
+                    index);
                 offset += 24;
             }
         }
@@ -93,12 +94,19 @@ internal static class NetworkWindowsTables
                 var physLen = Marshal.ReadInt32(row + 72);
                 var mac = ReadMac(row + 40, physLen);
                 var state = Marshal.ReadInt32(row + 76);
+                var flags = Marshal.ReadByte(row + 80);
+                var lastReachable = unchecked((uint)Marshal.ReadInt32(row + 84));
                 yield return new NetworkNeighbor(
                     AddressFamily.InterNetworkV6,
                     address,
                     mac,
                     InterfaceName(index),
-                    NeighborState(state));
+                    NeighborState(state),
+                    index,
+                    null,
+                    (flags & 1) != 0,
+                    (flags & 2) != 0,
+                    lastReachable);
                 row += Ipv6NeighborRowSize;
             }
         }
