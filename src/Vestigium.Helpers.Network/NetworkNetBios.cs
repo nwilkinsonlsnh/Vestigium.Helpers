@@ -11,6 +11,7 @@ internal static class NetworkNetBios
     private const byte NcbAstat = 0x33;
     private const byte NcbEnum = 0x37;
     private const byte Good = 0x00;
+    private const byte EnvNotDefined = 0x34;
     private static string? _fault;
 
     public static NetBiosInfo Capture()
@@ -41,13 +42,7 @@ internal static class NetworkNetBios
 
         var rows = new List<NetworkNetBiosName>();
         foreach (var lana in lanas)
-        {
-            var reset = Call(NcbReset, lana, IntPtr.Zero, 0, null);
-            if (reset != Good)
-                _fault = "LANA " + lana + " reset 0x" + reset.ToString("X2");
             rows.AddRange(LocalNames(lana));
-        }
-
         if (rows.Count == 0)
             _fault ??= "no names";
         return rows;
@@ -61,8 +56,7 @@ internal static class NetworkNetBios
         var buffer = Marshal.AllocHGlobal(512);
         try
         {
-            for (var i = 0; i < 512; i++)
-                Marshal.WriteByte(buffer, i, 0);
+            Zero(buffer, 512);
             var code = Call(NcbEnum, 0, buffer, 255, null);
             if (code == 0x01)
                 code = Call(NcbEnum, 0, buffer, 256, null);
@@ -90,28 +84,30 @@ internal static class NetworkNetBios
         var buffer = Marshal.AllocHGlobal(size);
         try
         {
-            for (var i = 0; i < size; i++)
-                Marshal.WriteByte(buffer, i, 0);
-            var callname = new byte[16];
-            callname[0] = (byte)'*';
-            for (var i = 1; i < 16; i++)
-                callname[i] = (byte)' ';
+            Zero(buffer, size);
+            var callname = Star();
             var code = Call(NcbAstat, lana, buffer, size, callname);
+            if (code == EnvNotDefined)
+            {
+                Call(NcbReset, lana, IntPtr.Zero, 0, null);
+                code = Call(NcbAstat, lana, buffer, size, callname);
+            }
+
             if (code != Good)
             {
                 _fault = "LANA " + lana + " astat 0x" + code.ToString("X2");
                 yield break;
             }
 
-            var adapter = AdapterLabel(lana);
-            var node = NodeAddress(lana);
             var count = Marshal.ReadInt16(buffer, 58);
-            if (count < 0 || count > 250)
+            if (count <= 0 || count > 250)
             {
-                _fault = "LANA " + lana + " count " + count;
+                _fault = "LANA " + lana + " count " + count + " mac " + Mac(buffer);
                 yield break;
             }
 
+            var adapter = AdapterLabel(lana);
+            var node = NodeAddress(lana);
             var cursor = buffer + 60;
             for (var i = 0; i < count; i++)
             {
@@ -139,6 +135,28 @@ internal static class NetworkNetBios
         }
     }
 
+    private static byte[] Star()
+    {
+        var callname = new byte[16];
+        callname[0] = (byte)'*';
+        for (var i = 1; i < 16; i++)
+            callname[i] = (byte)' ';
+        return callname;
+    }
+
+    private static string Mac(IntPtr buffer)
+    {
+        var raw = new byte[6];
+        Marshal.Copy(buffer, raw, 0, 6);
+        return Convert.ToHexString(raw);
+    }
+
+    private static void Zero(IntPtr buffer, int size)
+    {
+        for (var i = 0; i < size; i++)
+            Marshal.WriteByte(buffer, i, 0);
+    }
+
     private static byte Call(byte command, byte lana, IntPtr buffer, int length, byte[]? callname)
     {
         var ncb = new Ncb
@@ -155,8 +173,7 @@ internal static class NetworkNetBios
         var ptr = Marshal.AllocHGlobal(size + 64);
         try
         {
-            for (var i = 0; i < size + 64; i++)
-                Marshal.WriteByte(ptr, i, 0);
+            Zero(ptr, size + 64);
             Marshal.StructureToPtr(ncb, ptr, false);
             return Netbios(ptr);
         }
