@@ -11,6 +11,7 @@ internal static class NetworkNetBios
     private const byte NcbAstat = 0x33;
     private const byte NcbEnum = 0x37;
     private const byte Good = 0x00;
+    private const int NcbSize = 76;
     private static string? _fault;
 
     public static NetBiosInfo Capture()
@@ -32,17 +33,17 @@ internal static class NetworkNetBios
             return [];
         }
 
-        var rows = new List<NetworkNetBiosName>();
         var lanas = Lanas();
         if (lanas.Count == 0)
         {
             _fault ??= "no LANA";
-            return rows;
+            return [];
         }
 
+        var rows = new List<NetworkNetBiosName>();
         foreach (var lana in lanas)
         {
-            var reset = Reset(lana);
+            var reset = Call(NcbReset, lana, IntPtr.Zero, 0, null);
             if (reset != Good)
                 _fault = "LANA " + lana + " reset 0x" + reset.ToString("X2");
             rows.AddRange(LocalNames(lana));
@@ -54,45 +55,32 @@ internal static class NetworkNetBios
     }
 
     public static NetworkNetBiosStats ReadStats()
-    {
-        var node = _fault ?? NodeType();
-        return new NetworkNetBiosStats(0, 0, 0, 0, node);
-    }
+        => new(0, 0, 0, 0, _fault ?? NodeType());
 
     private static IReadOnlyList<byte> Lanas()
     {
-        var list = new LanaEnum { lana = new byte[254] };
-        var ncb = Blank(NcbEnum);
-        ncb.buffer = Marshal.AllocHGlobal(255);
-        ncb.length = 255;
+        var buffer = Marshal.AllocHGlobal(255);
         try
         {
-            Marshal.StructureToPtr(list, ncb.buffer, false);
-            var code = Netbios(ref ncb);
+            var code = Call(NcbEnum, 0, buffer, 255, null);
+            if (code == 0x01)
+                code = Call(NcbEnum, 0, buffer, 256, null);
             if (code != Good)
             {
                 _fault = "enum 0x" + code.ToString("X2");
                 return [];
             }
 
-            list = Marshal.PtrToStructure<LanaEnum>(ncb.buffer);
-            var count = list.length;
+            var count = Marshal.ReadByte(buffer);
             var found = new List<byte>(count);
-            for (var i = 0; i < count && i < list.lana.Length; i++)
-                found.Add(list.lana[i]);
+            for (var i = 0; i < count && i < 254; i++)
+                found.Add(Marshal.ReadByte(buffer, 1 + i));
             return found;
         }
         finally
         {
-            Marshal.FreeHGlobal(ncb.buffer);
+            Marshal.FreeHGlobal(buffer);
         }
-    }
-
-    private static byte Reset(byte lana)
-    {
-        var ncb = Blank(NcbReset);
-        ncb.lana_num = lana;
-        return Netbios(ref ncb);
     }
 
     private static IEnumerable<NetworkNetBiosName> LocalNames(byte lana)
@@ -101,14 +89,11 @@ internal static class NetworkNetBios
         var buffer = Marshal.AllocHGlobal(size);
         try
         {
-            var ncb = Blank(NcbAstat);
-            ncb.lana_num = lana;
-            ncb.buffer = buffer;
-            ncb.length = size;
-            ncb.callname[0] = (byte)'*';
+            var callname = new byte[16];
+            callname[0] = (byte)'*';
             for (var i = 1; i < 16; i++)
-                ncb.callname[i] = (byte)' ';
-            var code = Netbios(ref ncb);
+                callname[i] = (byte)' ';
+            var code = Call(NcbAstat, lana, buffer, size, callname);
             if (code != Good)
             {
                 _fault = "LANA " + lana + " astat 0x" + code.ToString("X2");
@@ -151,14 +136,26 @@ internal static class NetworkNetBios
         }
     }
 
-    private static Ncb Blank(byte command)
-        => new()
+    private static byte Call(byte command, byte lana, IntPtr buffer, int length, byte[]? callname)
+    {
+        var ncb = Marshal.AllocHGlobal(NcbSize);
+        try
         {
-            command = command,
-            callname = new byte[16],
-            name = new byte[16],
-            reserve = new byte[10]
-        };
+            for (var i = 0; i < NcbSize; i++)
+                Marshal.WriteByte(ncb, i, 0);
+            Marshal.WriteByte(ncb, 0, command);
+            Marshal.WriteIntPtr(ncb, 4, buffer);
+            Marshal.WriteInt16(ncb, 12, (short)length);
+            if (callname is not null)
+                Marshal.Copy(callname, 0, ncb + 14, 16);
+            Marshal.WriteByte(ncb, 56, lana);
+            return Netbios(ncb);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ncb);
+        }
+    }
 
     private static string? AdapterLabel(byte lana)
     {
@@ -213,36 +210,5 @@ internal static class NetworkNetBios
         };
 
     [DllImport("netapi32.dll")]
-    private static extern byte Netbios(ref Ncb ncb);
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    private struct Ncb
-    {
-        public byte command;
-        public byte retcode;
-        public byte lsn;
-        public byte num;
-        public IntPtr buffer;
-        public ushort length;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
-        public byte[] callname;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
-        public byte[] name;
-        public byte rto;
-        public byte sto;
-        public IntPtr post;
-        public byte lana_num;
-        public byte cmd_cplt;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 10)]
-        public byte[] reserve;
-        public IntPtr eventHandle;
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    private struct LanaEnum
-    {
-        public byte length;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 254)]
-        public byte[] lana;
-    }
+    private static extern byte Netbios(IntPtr ncb);
 }
