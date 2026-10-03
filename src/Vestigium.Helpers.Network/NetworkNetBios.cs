@@ -7,9 +7,11 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NetworkNetBios
 {
+    private const byte NcbReset = 0x32;
     private const byte NcbAstat = 0x33;
     private const byte NcbEnum = 0x37;
     private const byte Good = 0x00;
+    private const byte EnvNotDefined = 0x34;
     private static string? _fault;
 
     public static NetBiosInfo Capture()
@@ -91,6 +93,15 @@ internal static class NetworkNetBios
         {
             Zero(buffer, size);
             var code = Call(NcbAstat, lana, buffer, size, Star());
+            if (code == EnvNotDefined)
+            {
+                var reset = Reset(lana);
+                if (reset != Good)
+                    return (rows, "LANA " + lana + " reset 0x" + reset.ToString("X2"));
+                Zero(buffer, size);
+                code = Call(NcbAstat, lana, buffer, size, Star());
+            }
+
             if (code != Good)
                 return (rows, "LANA " + lana + " astat 0x" + code.ToString("X2"));
 
@@ -127,6 +138,14 @@ internal static class NetworkNetBios
         {
             Marshal.FreeHGlobal(buffer);
         }
+    }
+
+    private static byte Reset(byte lana)
+    {
+        var slots = new byte[16];
+        slots[0] = 32;
+        slots[2] = 32;
+        return Call(NcbReset, lana, IntPtr.Zero, 0, slots);
     }
 
     private static int Guess(IntPtr buffer, int size)
