@@ -11,6 +11,7 @@ internal static class NetworkNetBios
     private const byte NcbAstat = 0x33;
     private const byte NcbEnum = 0x37;
     private const byte Good = 0x00;
+    private static string? _fault;
 
     public static NetBiosInfo Capture()
     {
@@ -24,41 +25,62 @@ internal static class NetworkNetBios
 
     public static IReadOnlyList<NetworkNetBiosName> Read()
     {
+        _fault = null;
         if (!OperatingSystem.IsWindows())
+        {
+            _fault = "not Windows";
             return [];
+        }
 
         var rows = new List<NetworkNetBiosName>();
-        foreach (var lana in Lanas())
+        var lanas = Lanas();
+        if (lanas.Count == 0)
         {
-            Reset(lana);
+            _fault ??= "no LANA";
+            return rows;
+        }
+
+        foreach (var lana in lanas)
+        {
+            var reset = Reset(lana);
+            if (reset != Good)
+                _fault = "LANA " + lana + " reset 0x" + reset.ToString("X2");
             rows.AddRange(LocalNames(lana));
         }
 
+        if (rows.Count == 0)
+            _fault ??= "no names";
         return rows;
     }
 
     public static NetworkNetBiosStats ReadStats()
     {
-        if (!OperatingSystem.IsWindows())
-            return new NetworkNetBiosStats(0, 0, 0, 0, null);
-        return new NetworkNetBiosStats(0, 0, 0, 0, NodeType());
+        var node = _fault ?? NodeType();
+        return new NetworkNetBiosStats(0, 0, 0, 0, node);
     }
 
-    private static IEnumerable<byte> Lanas()
+    private static IReadOnlyList<byte> Lanas()
     {
         var list = new LanaEnum { lana = new byte[254] };
         var ncb = Blank(NcbEnum);
-        ncb.buffer = Marshal.AllocHGlobal(Marshal.SizeOf<LanaEnum>());
-        ncb.length = (ushort)Marshal.SizeOf<LanaEnum>();
+        ncb.buffer = Marshal.AllocHGlobal(255);
+        ncb.length = 255;
         try
         {
             Marshal.StructureToPtr(list, ncb.buffer, false);
-            if (Netbios(ref ncb) != Good)
-                yield break;
+            var code = Netbios(ref ncb);
+            if (code != Good)
+            {
+                _fault = "enum 0x" + code.ToString("X2");
+                return [];
+            }
+
             list = Marshal.PtrToStructure<LanaEnum>(ncb.buffer);
             var count = list.length;
+            var found = new List<byte>(count);
             for (var i = 0; i < count && i < list.lana.Length; i++)
-                yield return list.lana[i];
+                found.Add(list.lana[i]);
+            return found;
         }
         finally
         {
@@ -66,11 +88,11 @@ internal static class NetworkNetBios
         }
     }
 
-    private static void Reset(byte lana)
+    private static byte Reset(byte lana)
     {
         var ncb = Blank(NcbReset);
         ncb.lana_num = lana;
-        Netbios(ref ncb);
+        return Netbios(ref ncb);
     }
 
     private static IEnumerable<NetworkNetBiosName> LocalNames(byte lana)
@@ -86,14 +108,22 @@ internal static class NetworkNetBios
             ncb.callname[0] = (byte)'*';
             for (var i = 1; i < 16; i++)
                 ncb.callname[i] = (byte)' ';
-            if (Netbios(ref ncb) != Good)
+            var code = Netbios(ref ncb);
+            if (code != Good)
+            {
+                _fault = "LANA " + lana + " astat 0x" + code.ToString("X2");
                 yield break;
+            }
 
             var adapter = AdapterLabel(lana);
             var node = NodeAddress(lana);
             var count = Marshal.ReadInt16(buffer, 58);
             if (count < 0 || count > 250)
+            {
+                _fault = "LANA " + lana + " count " + count;
                 yield break;
+            }
+
             var cursor = buffer + 60;
             for (var i = 0; i < count; i++)
             {
@@ -182,10 +212,10 @@ internal static class NetworkNetBios
             _ => "Other"
         };
 
-    [DllImport("netapi32.dll", CharSet = CharSet.Ansi)]
+    [DllImport("netapi32.dll")]
     private static extern byte Netbios(ref Ncb ncb);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct Ncb
     {
         public byte command;
@@ -208,7 +238,7 @@ internal static class NetworkNetBios
         public IntPtr eventHandle;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct LanaEnum
     {
         public byte length;
