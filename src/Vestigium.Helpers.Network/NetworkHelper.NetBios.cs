@@ -11,13 +11,13 @@ public static partial class NetworkHelper
     public static NetworkNetBiosStats GetNetBiosStats()
     {
         var stats = NetworkNetBios.ReadStats();
-        if (stats.ResolvedByBroadcast == 0 && stats.ResolvedByNameServer == 0 && stats.RegisteredByBroadcast == 0 && stats.RegisteredByNameServer == 0)
-        {
-            var table = NetworkNetBiosFallback.Stats();
-            if (table.RegisteredByBroadcast > 0 || table.ResolvedByBroadcast > 0 || table.RegisteredByNameServer > 0 || table.ResolvedByNameServer > 0)
-                return table with { NodeType = stats.NodeType ?? table.NodeType };
-        }
-
-        return stats;
+        var table = NetworkNetBiosFallback.Stats();
+        var hasTable = table.RegisteredByBroadcast > 0 || table.ResolvedByBroadcast > 0 || table.RegisteredByNameServer > 0 || table.ResolvedByNameServer > 0;
+        if (!hasTable)
+            return stats;
+        var node = stats.NodeType;
+        if (string.IsNullOrWhiteSpace(node) || node.StartsWith("LANA ", StringComparison.Ordinal) || node.StartsWith("enum ", StringComparison.Ordinal))
+            node = table.NodeType;
+        return table with { NodeType = node };
     }
 }
