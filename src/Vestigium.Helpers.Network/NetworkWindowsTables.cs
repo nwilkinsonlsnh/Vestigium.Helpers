@@ -8,8 +8,10 @@ namespace Vestigium.Helpers.Network;
 internal static class NetworkWindowsTables
 {
     private const int AfInet = 2;
+    private const int AfInet6 = 23;
     private const int TcpTableOwnerPidAll = 5;
     private const int UdpTableOwnerPid = 1;
+    private const int Ipv6RowSize = 104;
 
     public static IReadOnlyDictionary<(TransportProtocol, int, int), int> GetOwnerPids()
     {
@@ -26,6 +28,8 @@ internal static class NetworkWindowsTables
         var rows = new List<NetworkRoute>();
         if (family is RouteFamily.All or RouteFamily.Pv4)
             rows.AddRange(ReadIpv4Routes());
+        if (family is RouteFamily.All or RouteFamily.Pv6)
+            rows.AddRange(ReadIpv6Routes());
         return rows;
     }
 
@@ -154,13 +158,7 @@ internal static class NetworkWindowsTables
                     ifIndex,
                     metric,
                     proto == 3,
-                    proto switch
-                    {
-                        2 => "local",
-                        3 => "netmgmt",
-                        4 => "icmp",
-                        _ => proto.ToString()
-                    });
+                    ProtocolName(proto));
                 offset += 56;
             }
         }
@@ -169,6 +167,68 @@ internal static class NetworkWindowsTables
             Marshal.FreeHGlobal(buffer);
         }
     }
+
+    private static IEnumerable<NetworkRoute> ReadIpv6Routes()
+    {
+        if (GetIpForwardTable2(AfInet6, out var table) != 0 || table == 0)
+            yield break;
+
+        try
+        {
+            var count = Marshal.ReadInt32(table);
+            var row = table + 8;
+            for (var i = 0; i < count; i++)
+            {
+                var ifIndex = Marshal.ReadInt32(row + 8);
+                var prefixLength = Marshal.ReadByte(row + 40);
+                var dest = ReadSockAddress(row + 12);
+                var gateway = ReadSockAddress(row + 44);
+                var metric = Marshal.ReadInt32(row + 84);
+                var proto = Marshal.ReadInt32(row + 88);
+                yield return new NetworkRoute(
+                    AddressFamily.InterNetworkV6,
+                    dest,
+                    prefixLength,
+                    prefixLength.ToString(),
+                    gateway,
+                    InterfaceName(ifIndex),
+                    ifIndex,
+                    metric,
+                    proto == 3,
+                    ProtocolName(proto));
+                row += Ipv6RowSize;
+            }
+        }
+        finally
+        {
+            FreeMibTable(table);
+        }
+    }
+
+    private static string ReadSockAddress(nint ptr)
+    {
+        var family = Marshal.ReadInt16(ptr);
+        if (family == AfInet)
+            return ReadIpv4(ptr + 4);
+        if (family != AfInet6)
+            return string.Empty;
+
+        var bytes = new byte[16];
+        Marshal.Copy(ptr + 8, bytes, 0, 16);
+        return new IPAddress(bytes).ToString();
+    }
+
+    private static string ProtocolName(int proto) => proto switch
+    {
+        2 => "local",
+        3 => "netmgmt",
+        4 => "icmp",
+        8 => "rip",
+        13 => "ospf",
+        14 => "bgp",
+        19 => "dhcp",
+        _ => proto.ToString()
+    };
 
     private static string ReadIpv4(nint ptr)
     {
@@ -197,15 +257,34 @@ internal static class NetworkWindowsTables
         try
         {
             return NetworkInterface.GetAllNetworkInterfaces()
-                .FirstOrDefault(n =>
-                {
-                    try { return n.GetIPProperties().GetIPv4Properties().Index == index; }
-                    catch { return false; }
-                })?.Name;
+                .FirstOrDefault(n => InterfaceIndex(n) == index)?.Name;
         }
         catch (NetworkInformationException)
         {
             return null;
+        }
+    }
+
+    private static int InterfaceIndex(NetworkInterface nic)
+    {
+        try
+        {
+            var properties = nic.GetIPProperties();
+            try
+            {
+                var v4 = properties.GetIPv4Properties();
+                if (v4.Index == 0)
+                    return properties.GetIPv6Properties().Index;
+                return v4.Index;
+            }
+            catch (NetworkInformationException)
+            {
+                return properties.GetIPv6Properties().Index;
+            }
+        }
+        catch (NetworkInformationException)
+        {
+            return -1;
         }
     }
 
@@ -225,6 +304,12 @@ internal static class NetworkWindowsTables
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
     private static extern uint GetIpForwardTable(nint table, ref int size, bool order);
+
+    [DllImport("iphlpapi.dll", SetLastError = true)]
+    private static extern int GetIpForwardTable2(ushort family, out nint table);
+
+    [DllImport("iphlpapi.dll")]
+    private static extern void FreeMibTable(nint table);
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
     private static extern uint GetIpNetTable(nint table, ref int size, bool order);
