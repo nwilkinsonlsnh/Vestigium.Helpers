@@ -7,11 +7,9 @@ namespace Vestigium.Helpers.Network;
 
 internal static class NetworkNetBios
 {
-    private const byte NcbReset = 0x32;
     private const byte NcbAstat = 0x33;
     private const byte NcbEnum = 0x37;
     private const byte Good = 0x00;
-    private const byte EnvNotDefined = 0x34;
     private static string? _fault;
 
     public static NetBiosInfo Capture()
@@ -41,10 +39,16 @@ internal static class NetworkNetBios
         }
 
         var rows = new List<NetworkNetBiosName>();
+        var notes = new List<string>();
         foreach (var lana in lanas)
-            rows.AddRange(LocalNames(lana));
+        {
+            var (found, note) = LocalNames(lana);
+            rows.AddRange(found);
+            notes.Add(note);
+        }
+
         if (rows.Count == 0)
-            _fault ??= "no names";
+            _fault = string.Join("; ", notes);
         return rows;
     }
 
@@ -78,34 +82,20 @@ internal static class NetworkNetBios
         }
     }
 
-    private static IEnumerable<NetworkNetBiosName> LocalNames(byte lana)
+    private static (List<NetworkNetBiosName> Rows, string Note) LocalNames(byte lana)
     {
         const int size = 8192;
         var buffer = Marshal.AllocHGlobal(size);
+        var rows = new List<NetworkNetBiosName>();
         try
         {
             Zero(buffer, size);
-            var callname = Star();
-            var code = Call(NcbAstat, lana, buffer, size, callname);
-            if (code == EnvNotDefined)
-            {
-                Call(NcbReset, lana, IntPtr.Zero, 0, null);
-                code = Call(NcbAstat, lana, buffer, size, callname);
-            }
-
+            var code = Call(NcbAstat, lana, buffer, size, Star());
             if (code != Good)
-            {
-                _fault = "LANA " + lana + " astat 0x" + code.ToString("X2");
-                yield break;
-            }
+                return (rows, "LANA " + lana + " astat 0x" + code.ToString("X2"));
 
-            var count = Marshal.ReadInt16(buffer, 58);
-            if (count <= 0 || count > 250)
-            {
-                _fault = "LANA " + lana + " count " + count + " mac " + Mac(buffer);
-                yield break;
-            }
-
+            var counted = Marshal.ReadInt16(buffer, 58);
+            var count = counted is > 0 and <= 250 ? counted : Guess(buffer, size);
             var adapter = AdapterLabel(lana);
             var node = NodeAddress(lana);
             var cursor = buffer + 60;
@@ -113,6 +103,8 @@ internal static class NetworkNetBios
             {
                 var raw = new byte[16];
                 Marshal.Copy(cursor, raw, 0, 16);
+                if (!LooksNamed(raw))
+                    break;
                 var suffix = raw[15].ToString("X2");
                 var name = Encoding.ASCII.GetString(raw, 0, 15).Trim().TrimEnd('\0', ' ');
                 var flags = Marshal.ReadByte(cursor, 17);
@@ -125,14 +117,45 @@ internal static class NetworkNetBios
                     0x07 => "Duplicate deregistered",
                     _ => "Registering"
                 };
-                yield return new NetworkNetBiosName("Local", name, suffix, SuffixName(suffix), group ? "GROUP" : "UNIQUE", status, null, null, adapter, node, false);
+                rows.Add(new NetworkNetBiosName("Local", name, suffix, SuffixName(suffix), group ? "GROUP" : "UNIQUE", status, null, null, adapter, node, false));
                 cursor += 18;
             }
+
+            return (rows, "LANA " + lana + " count " + counted + " mac " + Mac(buffer));
         }
         finally
         {
             Marshal.FreeHGlobal(buffer);
         }
+    }
+
+    private static int Guess(IntPtr buffer, int size)
+    {
+        var count = 0;
+        var cursor = buffer + 60;
+        while (count < 64 && cursor + 18 <= buffer + size)
+        {
+            var raw = new byte[16];
+            Marshal.Copy(cursor, raw, 0, 16);
+            if (!LooksNamed(raw))
+                break;
+            count++;
+            cursor += 18;
+        }
+
+        return count;
+    }
+
+    private static bool LooksNamed(byte[] raw)
+    {
+        var letters = 0;
+        for (var i = 0; i < 15; i++)
+        {
+            if (raw[i] is (>= 32 and <= 126))
+                letters++;
+        }
+
+        return letters >= 2;
     }
 
     private static byte[] Star()
