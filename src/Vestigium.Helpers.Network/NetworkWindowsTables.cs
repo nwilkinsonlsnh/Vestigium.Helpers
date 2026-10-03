@@ -12,6 +12,7 @@ internal static class NetworkWindowsTables
     private const int TcpTableOwnerPidAll = 5;
     private const int UdpTableOwnerPid = 1;
     private const int Ipv6RowSize = 104;
+    private const int Ipv6NeighborRowSize = 88;
 
     public static IReadOnlyDictionary<(TransportProtocol, int, int), int> GetOwnerPids()
     {
@@ -36,15 +37,22 @@ internal static class NetworkWindowsTables
     public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
     {
         var rows = new List<NetworkNeighbor>();
+        rows.AddRange(ReadIpv4Neighbors());
+        rows.AddRange(ReadIpv6Neighbors());
+        return rows;
+    }
+
+    private static IEnumerable<NetworkNeighbor> ReadIpv4Neighbors()
+    {
         var size = 0;
         GetIpNetTable(IntPtr.Zero, ref size, true);
         if (size <= 0)
-            return rows;
+            yield break;
         var buffer = Marshal.AllocHGlobal(size);
         try
         {
             if (GetIpNetTable(buffer, ref size, true) != 0)
-                return rows;
+                yield break;
             var count = Marshal.ReadInt32(buffer);
             var offset = buffer + 4;
             for (var i = 0; i < count; i++)
@@ -54,12 +62,12 @@ internal static class NetworkWindowsTables
                 var mac = ReadMac(offset + 8, physLen);
                 var addr = ReadIpv4(offset + 16);
                 var type = Marshal.ReadInt32(offset + 20);
-                rows.Add(new NetworkNeighbor(
+                yield return new NetworkNeighbor(
                     AddressFamily.InterNetwork,
                     addr,
                     mac,
                     InterfaceName(index),
-                    NeighborType(type)));
+                    NeighborType(type));
                 offset += 24;
             }
         }
@@ -67,8 +75,37 @@ internal static class NetworkWindowsTables
         {
             Marshal.FreeHGlobal(buffer);
         }
+    }
 
-        return rows;
+    private static IEnumerable<NetworkNeighbor> ReadIpv6Neighbors()
+    {
+        if (GetIpNetTable2(AfInet6, out var table) != 0 || table == 0)
+            yield break;
+
+        try
+        {
+            var count = Marshal.ReadInt32(table);
+            var row = table + 8;
+            for (var i = 0; i < count; i++)
+            {
+                var address = ReadSockAddress(row);
+                var index = Marshal.ReadInt32(row + 28);
+                var physLen = Marshal.ReadInt32(row + 72);
+                var mac = ReadMac(row + 40, physLen);
+                var state = Marshal.ReadInt32(row + 76);
+                yield return new NetworkNeighbor(
+                    AddressFamily.InterNetworkV6,
+                    address,
+                    mac,
+                    InterfaceName(index),
+                    NeighborState(state));
+                row += Ipv6NeighborRowSize;
+            }
+        }
+        finally
+        {
+            FreeMibTable(table);
+        }
     }
 
     private static IEnumerable<(int Local, int Remote, int Pid)> ReadTcpOwners()
@@ -296,6 +333,18 @@ internal static class NetworkWindowsTables
         _ => "Other"
     };
 
+    private static string NeighborState(int state) => state switch
+    {
+        1 => "Unreachable",
+        2 => "Incomplete",
+        3 => "Probe",
+        4 => "Delay",
+        5 => "Stale",
+        6 => "Reachable",
+        7 => "Permanent",
+        _ => "Other"
+    };
+
     [DllImport("iphlpapi.dll", SetLastError = true)]
     private static extern uint GetExtendedTcpTable(nint table, ref int size, bool order, int family, int tableClass, uint reserved);
 
@@ -307,6 +356,9 @@ internal static class NetworkWindowsTables
 
     [DllImport("iphlpapi.dll", SetLastError = true)]
     private static extern int GetIpForwardTable2(ushort family, out nint table);
+
+    [DllImport("iphlpapi.dll", SetLastError = true)]
+    private static extern int GetIpNetTable2(ushort family, out nint table);
 
     [DllImport("iphlpapi.dll")]
     private static extern void FreeMibTable(nint table);
