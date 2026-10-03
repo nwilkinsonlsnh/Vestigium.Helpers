@@ -4,11 +4,11 @@
     <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
     <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. OUI lookup is a caller URL. The embedded snapshot is a stub.</Description>
-    <!-- 1.4.8 falls back to the NetBIOS name table when the API returns no rows. -->
-    <Version>1.4.4</Version>
+    <!-- 1.4.9 reads the LMHOSTS file. No write. -->
+    <Version>1.4.9</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
-    <PackageTags>network;icmp;dns;share;oui;netbios;vestigium</PackageTags>
+    <PackageTags>network;icmp;dns;share;oui;netbios;lmhosts;vestigium</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
     <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
