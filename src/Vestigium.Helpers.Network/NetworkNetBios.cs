@@ -46,15 +46,18 @@ internal static class NetworkNetBios
 
     private static IEnumerable<byte> Lanas()
     {
-        var list = new LanaEnum();
-        var ncb = new Ncb { command = NcbEnum, buffer = Marshal.AllocHGlobal(Marshal.SizeOf<LanaEnum>()), length = (ushort)Marshal.SizeOf<LanaEnum>() };
+        var list = new LanaEnum { lana = new byte[254] };
+        var ncb = Blank(NcbEnum);
+        ncb.buffer = Marshal.AllocHGlobal(Marshal.SizeOf<LanaEnum>());
+        ncb.length = (ushort)Marshal.SizeOf<LanaEnum>();
         try
         {
             Marshal.StructureToPtr(list, ncb.buffer, false);
             if (Netbios(ref ncb) != Good)
                 yield break;
             list = Marshal.PtrToStructure<LanaEnum>(ncb.buffer);
-            for (var i = 0; i < list.length && i < list.lana.Length; i++)
+            var count = list.length;
+            for (var i = 0; i < count && i < list.lana.Length; i++)
                 yield return list.lana[i];
         }
         finally
@@ -65,25 +68,21 @@ internal static class NetworkNetBios
 
     private static void Reset(byte lana)
     {
-        var ncb = new Ncb { command = NcbReset, lana_num = lana, callname = new byte[16] };
+        var ncb = Blank(NcbReset);
+        ncb.lana_num = lana;
         Netbios(ref ncb);
     }
 
     private static IEnumerable<NetworkNetBiosName> LocalNames(byte lana)
     {
-        var size = 1024;
+        const int size = 4096;
         var buffer = Marshal.AllocHGlobal(size);
         try
         {
-            var ncb = new Ncb
-            {
-                command = NcbAstat,
-                lana_num = lana,
-                buffer = buffer,
-                length = (ushort)size,
-                callname = new byte[16],
-                name = new byte[16]
-            };
+            var ncb = Blank(NcbAstat);
+            ncb.lana_num = lana;
+            ncb.buffer = buffer;
+            ncb.length = size;
             ncb.callname[0] = (byte)'*';
             for (var i = 1; i < 16; i++)
                 ncb.callname[i] = (byte)' ';
@@ -92,14 +91,16 @@ internal static class NetworkNetBios
 
             var adapter = AdapterLabel(lana);
             var node = NodeAddress(lana);
-            var count = Marshal.ReadInt16(buffer, 56);
+            var count = Marshal.ReadInt16(buffer, 58);
+            if (count < 0 || count > 250)
+                yield break;
             var cursor = buffer + 60;
             for (var i = 0; i < count; i++)
             {
                 var raw = new byte[16];
                 Marshal.Copy(cursor, raw, 0, 16);
                 var suffix = raw[15].ToString("X2");
-                var name = Encoding.ASCII.GetString(raw, 0, 15).Trim();
+                var name = Encoding.ASCII.GetString(raw, 0, 15).Trim().TrimEnd('\0', ' ');
                 var flags = Marshal.ReadByte(cursor, 17);
                 var group = (flags & 0x80) != 0;
                 var status = (flags & 0x07) switch
@@ -120,15 +121,24 @@ internal static class NetworkNetBios
         }
     }
 
+    private static Ncb Blank(byte command)
+        => new()
+        {
+            command = command,
+            callname = new byte[16],
+            name = new byte[16],
+            reserve = new byte[10]
+        };
+
     private static string? AdapterLabel(byte lana)
     {
-        var adapters = NetworkInterface.GetAllNetworkInterfaces();
+        var adapters = NetworkInterface.GetAllNetworkInterfaces().ToArray();
         return lana < adapters.Length ? adapters[lana].Name : "LANA " + lana;
     }
 
     private static string? NodeAddress(byte lana)
     {
-        var adapters = NetworkInterface.GetAllNetworkInterfaces();
+        var adapters = NetworkInterface.GetAllNetworkInterfaces().ToArray();
         if (lana >= adapters.Length)
             return null;
         return adapters[lana].GetIPProperties().UnicastAddresses
@@ -141,17 +151,9 @@ internal static class NetworkNetBios
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\NetBT\Parameters");
-            var value = key?.GetValue("NodeType");
-            return value switch
+            return key?.GetValue("NodeType") switch
             {
-                int code => code switch
-                {
-                    1 => "B-node",
-                    2 => "P-node",
-                    4 => "M-node",
-                    8 => "H-node",
-                    _ => code.ToString()
-                },
+                int code => code switch { 1 => "B-node", 2 => "P-node", 4 => "M-node", 8 => "H-node", _ => code.ToString() },
                 _ => null
             };
         }
