@@ -71,4 +71,9 @@ public sealed record NetworkNeighbor(
     string Address,
     string? MacAddress,
     string? InterfaceName,
-    string State);
+    string State,
+    int? InterfaceIndex = null,
+    string? Vendor = null,
+    bool? IsRouter = null,
+    bool? IsUnreachable = null,
+    long? LastReachable = null);
