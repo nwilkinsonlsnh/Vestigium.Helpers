@@ -1,10 +1,21 @@
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Text;
 
 namespace Vestigium.Helpers.Network;
 
 internal static class NetworkNetBios
 {
+    public static NetBiosInfo Capture()
+    {
+        var workstation = NetworkInventoryEngine.Capture();
+        var domain = IPGlobalProperties.GetIPGlobalProperties().DomainName;
+        var adapters = workstation.Adapters
+            .Select(adapter => new NetBiosAdapterStatus(adapter.Name, NetbiosOverTcp.Unknown, adapter.Description))
+            .ToArray();
+        return new NetBiosInfo(workstation.HostName, string.IsNullOrWhiteSpace(domain) ? null : domain, adapters);
+    }
+
     public static IReadOnlyList<NetworkNetBiosName> Read()
     {
         if (!OperatingSystem.IsWindows())
