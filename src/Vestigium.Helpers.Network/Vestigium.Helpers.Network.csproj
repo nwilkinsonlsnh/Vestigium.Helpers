@@ -4,8 +4,8 @@
     <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
     <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. OUI lookup is a caller URL. The embedded snapshot is a stub.</Description>
-    <!-- 1.4.1 keeps the adapter and the resolution counts on the NetBIOS read. -->
-    <Version>1.4.1</Version>
+    <!-- 1.4.2 reads NetBIOS names through netapi32. No nbtstat.exe. -->
+    <Version>1.4.2</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>network;icmp;dns;share;oui;netbios;vestigium</PackageTags>

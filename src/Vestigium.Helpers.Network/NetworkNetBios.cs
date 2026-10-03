@@ -1,12 +1,17 @@
-using System.Diagnostics;
-using System.Globalization;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32;
 
 namespace Vestigium.Helpers.Network;
 
 internal static class NetworkNetBios
 {
+    private const byte NcbReset = 0x32;
+    private const byte NcbAstat = 0x33;
+    private const byte NcbEnum = 0x37;
+    private const byte Good = 0x00;
+
     public static NetBiosInfo Capture()
     {
         var workstation = NetworkInventoryEngine.Capture();
@@ -23,8 +28,12 @@ internal static class NetworkNetBios
             return [];
 
         var rows = new List<NetworkNetBiosName>();
-        rows.AddRange(Parse(Run("nbtstat", "-n"), cache: false));
-        rows.AddRange(Parse(Run("nbtstat", "-c"), cache: true));
+        foreach (var lana in Lanas())
+        {
+            Reset(lana);
+            rows.AddRange(LocalNames(lana));
+        }
+
         return rows;
     }
 
@@ -32,132 +41,124 @@ internal static class NetworkNetBios
     {
         if (!OperatingSystem.IsWindows())
             return new NetworkNetBiosStats(0, 0, 0, 0, null);
+        return new NetworkNetBiosStats(0, 0, 0, 0, NodeType());
+    }
 
-        var broadcast = 0;
-        var server = 0;
-        var registeredBroadcast = 0;
-        var registeredServer = 0;
-        string? node = null;
-        var registration = false;
-        foreach (var line in Lines(Run("nbtstat", "-r")))
+    private static IEnumerable<byte> Lanas()
+    {
+        var list = new LanaEnum();
+        var ncb = new Ncb { command = NcbEnum, buffer = Marshal.AllocHGlobal(Marshal.SizeOf<LanaEnum>()), length = (ushort)Marshal.SizeOf<LanaEnum>() };
+        try
         {
-            if (line.Contains("Registration", StringComparison.OrdinalIgnoreCase))
-                registration = true;
-            if (line.StartsWith("Node Type", StringComparison.OrdinalIgnoreCase) || line.StartsWith("NetBIOS Node", StringComparison.OrdinalIgnoreCase))
-                node = line.Split('=').LastOrDefault()?.Trim();
-            var count = Count(line);
-            if (line.Contains("Broadcast", StringComparison.OrdinalIgnoreCase))
+            Marshal.StructureToPtr(list, ncb.buffer, false);
+            if (Netbios(ref ncb) != Good)
+                yield break;
+            list = Marshal.PtrToStructure<LanaEnum>(ncb.buffer);
+            for (var i = 0; i < list.length && i < list.lana.Length; i++)
+                yield return list.lana[i];
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ncb.buffer);
+        }
+    }
+
+    private static void Reset(byte lana)
+    {
+        var ncb = new Ncb { command = NcbReset, lana_num = lana, callname = new byte[16] };
+        Netbios(ref ncb);
+    }
+
+    private static IEnumerable<NetworkNetBiosName> LocalNames(byte lana)
+    {
+        var size = 1024;
+        var buffer = Marshal.AllocHGlobal(size);
+        try
+        {
+            var ncb = new Ncb
             {
-                if (registration) registeredBroadcast = count;
-                else broadcast = count;
-            }
-            else if (line.Contains("Name Server", StringComparison.OrdinalIgnoreCase) || line.Contains("WINS", StringComparison.OrdinalIgnoreCase))
+                command = NcbAstat,
+                lana_num = lana,
+                buffer = buffer,
+                length = (ushort)size,
+                callname = new byte[16],
+                name = new byte[16]
+            };
+            ncb.callname[0] = (byte)'*';
+            for (var i = 1; i < 16; i++)
+                ncb.callname[i] = (byte)' ';
+            if (Netbios(ref ncb) != Good)
+                yield break;
+
+            var adapter = AdapterLabel(lana);
+            var node = NodeAddress(lana);
+            var count = Marshal.ReadInt16(buffer, 56);
+            var cursor = buffer + 60;
+            for (var i = 0; i < count; i++)
             {
-                if (registration) registeredServer = count;
-                else server = count;
+                var raw = new byte[16];
+                Marshal.Copy(cursor, raw, 0, 16);
+                var suffix = raw[15].ToString("X2");
+                var name = Encoding.ASCII.GetString(raw, 0, 15).Trim();
+                var flags = Marshal.ReadByte(cursor, 17);
+                var group = (flags & 0x80) != 0;
+                var status = (flags & 0x07) switch
+                {
+                    0x04 => "Registered",
+                    0x05 => "Deregistered",
+                    0x06 => "Duplicate",
+                    0x07 => "Duplicate deregistered",
+                    _ => "Registering"
+                };
+                yield return new NetworkNetBiosName("Local", name, suffix, SuffixName(suffix), group ? "GROUP" : "UNIQUE", status, null, null, adapter, node, false);
+                cursor += 18;
             }
         }
-
-        return new NetworkNetBiosStats(broadcast, server, registeredBroadcast, registeredServer, node);
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 
-    private static int Count(string line)
+    private static string? AdapterLabel(byte lana)
     {
-        var mark = line.LastIndexOf('=');
-        if (mark < 0)
-            return 0;
-        return int.TryParse(line[(mark + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) ? count : 0;
+        var adapters = NetworkInterface.GetAllNetworkInterfaces();
+        return lana < adapters.Length ? adapters[lana].Name : "LANA " + lana;
     }
 
-    private static string Run(string file, string args)
+    private static string? NodeAddress(byte lana)
+    {
+        var adapters = NetworkInterface.GetAllNetworkInterfaces();
+        if (lana >= adapters.Length)
+            return null;
+        return adapters[lana].GetIPProperties().UnicastAddresses
+            .Select(row => row.Address.ToString())
+            .FirstOrDefault(text => text.Contains('.'));
+    }
+
+    private static string? NodeType()
     {
         try
         {
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\NetBT\Parameters");
+            var value = key?.GetValue("NodeType");
+            return value switch
             {
-                FileName = file,
-                Arguments = args,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8
+                int code => code switch
+                {
+                    1 => "B-node",
+                    2 => "P-node",
+                    4 => "M-node",
+                    8 => "H-node",
+                    _ => code.ToString()
+                },
+                _ => null
             };
-            process.Start();
-            var text = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(8000);
-            return text;
         }
         catch (Exception)
         {
-            return string.Empty;
+            return null;
         }
-    }
-
-    private static IEnumerable<NetworkNetBiosName> Parse(string text, bool cache)
-    {
-        var adapter = string.Empty;
-        var node = string.Empty;
-        foreach (var line in Lines(text))
-        {
-            if (line.StartsWith("Node IpAddress", StringComparison.OrdinalIgnoreCase))
-            {
-                node = Between(line, '[', ']');
-                continue;
-            }
-
-            if (line.EndsWith(':') && !line.Contains('<'))
-            {
-                adapter = line.TrimEnd(':').Trim();
-                node = string.Empty;
-                continue;
-            }
-
-            var mark = line.IndexOf('<');
-            var end = line.IndexOf('>');
-            if (mark < 1 || end <= mark)
-                continue;
-            var name = line[..mark].Trim();
-            var suffix = line[(mark + 1)..end].Trim();
-            var parts = line[(end + 1)..].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 1)
-                continue;
-            var type = parts[0];
-            string? address = null;
-            string status = string.Empty;
-            int? life = null;
-            if (cache)
-            {
-                address = parts.Length > 1 ? parts[1] : null;
-                life = parts.Length > 2 && int.TryParse(parts[2], out var seconds) ? seconds : null;
-                status = life?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-            }
-            else if (parts.Length > 1)
-            {
-                status = parts[1];
-            }
-
-            yield return new NetworkNetBiosName(
-                cache ? "Cache" : "Local",
-                name,
-                suffix,
-                SuffixName(suffix),
-                type,
-                status,
-                address,
-                life,
-                string.IsNullOrWhiteSpace(adapter) ? null : adapter,
-                string.IsNullOrWhiteSpace(node) ? null : node,
-                cache);
-        }
-    }
-
-    private static string Between(string line, char open, char close)
-    {
-        var start = line.IndexOf(open);
-        var end = line.IndexOf(close);
-        return start < 0 || end <= start ? string.Empty : line[(start + 1)..end];
     }
 
     private static string SuffixName(string suffix)
@@ -179,6 +180,37 @@ internal static class NetworkNetBios
             _ => "Other"
         };
 
-    private static IEnumerable<string> Lines(string text)
-        => text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    [DllImport("netapi32.dll", CharSet = CharSet.Ansi)]
+    private static extern byte Netbios(ref Ncb ncb);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Ncb
+    {
+        public byte command;
+        public byte retcode;
+        public byte lsn;
+        public byte num;
+        public IntPtr buffer;
+        public ushort length;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+        public byte[] callname;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+        public byte[] name;
+        public byte rto;
+        public byte sto;
+        public IntPtr post;
+        public byte lana_num;
+        public byte cmd_cplt;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 10)]
+        public byte[] reserve;
+        public IntPtr eventHandle;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LanaEnum
+    {
+        public byte length;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 254)]
+        public byte[] lana;
+    }
 }
