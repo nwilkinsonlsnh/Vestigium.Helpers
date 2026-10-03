@@ -70,6 +70,15 @@ foreach (var nic in enabled)
     Console.WriteLine();
 }
 
+var names = NetworkHelper.GetNetBiosNames();
+var stats = NetworkHelper.GetNetBiosStats();
+Console.WriteLine(new string('-', 72));
+Console.WriteLine($"NetBIOS  node={stats.NodeType ?? "—"}  names={names.Count}");
+foreach (var row in names)
+    Console.WriteLine($"  {row.Name}<{row.Suffix}>  {row.SuffixName}  {row.Type}  {row.Status}  adapter={row.Adapter ?? "—"}  node={row.NodeAddress ?? "—"}");
+if (names.Count == 0)
+    Console.WriteLine("  No names. The node value is the Netbios code when the call failed.");
+Console.WriteLine();
 Console.WriteLine("Done. Compare a physical NIC to ipconfig /all and the driver tab.");
 Console.WriteLine("Empty WINS, leases, or suffix on loopback is expected.");
 

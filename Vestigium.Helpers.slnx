@@ -33,6 +33,7 @@
   <Folder Name="/Samples/">
     <Project Path="samples/Vestigium.Helpers.Charts.MenuLab/Vestigium.Helpers.Charts.MenuLab.csproj" />
     <Project Path="samples/Vestigium.Helpers.Network.InventoryLab/Vestigium.Helpers.Network.InventoryLab.csproj" />
+    <Project Path="samples/Vestigium.Helpers.Network.Sample/Vestigium.Helpers.Network.Sample.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
