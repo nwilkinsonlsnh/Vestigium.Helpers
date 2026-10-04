@@ -20,6 +20,7 @@ internal static class KqlCompleter
         if (!TryTokens(finished, out var tokens))
             return KqlCompletion.Empty;
 
+        FoldPair(tokens, ref partial, ref partialStart);
         var slot = SlotOf(tokens, session, out var field);
         var rows = Rows(slot, field, session)
             .Where(row => row.Insert.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
@@ -29,8 +30,24 @@ internal static class KqlCompleter
             Slot = slot,
             Rows = rows,
             ReplaceStart = partialStart,
-            ReplaceLength = partial.Length
+            ReplaceLength = caret - partialStart
         };
+    }
+
+    private static void FoldPair(List<KqlToken> tokens, ref string partial, ref int partialStart)
+    {
+        if (tokens.Count == 0 || tokens[^1].Kind != KqlTokenKind.Ident)
+            return;
+        var word = tokens[^1].Text;
+        if (!word.Equals("BEGINS", StringComparison.OrdinalIgnoreCase) && !word.Equals("ENDS", StringComparison.OrdinalIgnoreCase))
+            return;
+        if (partial.Length > 0 && !"WITH".StartsWith(partial, StringComparison.OrdinalIgnoreCase))
+            return;
+        tokens.RemoveAt(tokens.Count - 1);
+        partial = word + " " + partial;
+        partialStart -= word.Length;
+        if (partialStart > 0 && char.IsWhiteSpace(partial[0]) == false)
+            partialStart = Math.Max(0, partialStart);
     }
 
     private static KqlCompletionSlot SlotOf(IReadOnlyList<KqlToken> tokens, KqlSession session, out KqlField? field)
@@ -44,7 +61,7 @@ internal static class KqlCompleter
             return KqlCompletionSlot.Field;
         if (last.Kind == KqlTokenKind.Ident && session.TryGetField(last.Text, out field!))
             return KqlCompletionSlot.Operator;
-        if (IsOperator(last.Kind))
+        if (IsOperator(last.Kind) || IsPair(last))
         {
             field = FieldBefore(tokens, session);
             return KqlCompletionSlot.Value;
@@ -201,13 +218,17 @@ internal static class KqlCompleter
 
     private static bool InsideConstructor(string head)
     {
-        var open = Math.Max(head.LastIndexOf("ipaddress(", StringComparison.OrdinalIgnoreCase), Math.Max(head.LastIndexOf("macaddress(", StringComparison.OrdinalIgnoreCase), head.LastIndexOf("string(", StringComparison.OrdinalIgnoreCase)));
+        var open = Math.Max(
+            head.LastIndexOf("ipaddress(", StringComparison.OrdinalIgnoreCase),
+            Math.Max(head.LastIndexOf("macaddress(", StringComparison.OrdinalIgnoreCase), head.LastIndexOf("string(", StringComparison.OrdinalIgnoreCase)));
         if (open < 0)
             return false;
         return head.IndexOf(')', open) < 0;
     }
 
     private static bool IsOperator(KqlTokenKind kind) => kind is KqlTokenKind.Eq or KqlTokenKind.Ne or KqlTokenKind.Lt or KqlTokenKind.Gt or KqlTokenKind.Le or KqlTokenKind.Ge or KqlTokenKind.Like or KqlTokenKind.NotLike or KqlTokenKind.Contains or KqlTokenKind.StartsWith or KqlTokenKind.EndsWith or KqlTokenKind.Between;
+
+    private static bool IsPair(KqlToken token) => token.Kind == KqlTokenKind.Ident && (token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsValue(KqlTokenKind kind) => kind is KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.True or KqlTokenKind.False or KqlTokenKind.IpAddress or KqlTokenKind.MacAddress or KqlTokenKind.StringValue or KqlTokenKind.TimeSpan;
 
