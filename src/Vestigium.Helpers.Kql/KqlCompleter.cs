@@ -2,7 +2,7 @@ namespace Vestigium.Helpers.Kql;
 
 internal static class KqlCompleter
 {
-    public static KqlCompletion Complete(string? text, int caret, KqlSession session)
+    public static KqlCompletion Complete(string? text, int caret, KqlSession session, IReadOnlyList<string>? hints)
     {
         text ??= string.Empty;
         if (caret < 0)
@@ -22,9 +22,7 @@ internal static class KqlCompleter
 
         FoldPair(tokens, ref partial, ref partialStart);
         var slot = SlotOf(tokens, session, out var field);
-        var rows = Rows(slot, field, session)
-            .Where(row => row.Insert.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        var rows = Rank(Rows(slot, field, session), partial, hints);
         return new KqlCompletion
         {
             Slot = slot,
@@ -32,6 +30,37 @@ internal static class KqlCompleter
             ReplaceStart = partialStart,
             ReplaceLength = caret - partialStart
         };
+    }
+
+    private static KqlCompletionRow[] Rank(IEnumerable<KqlCompletionRow> rows, string partial, IReadOnlyList<string>? hints)
+    {
+        var saved = hints ?? [];
+        return rows
+            .Select((row, index) => new { row, index, rank = RankOf(row.Insert, partial) })
+            .Where(item => item.rank > 0)
+            .OrderByDescending(item => item.rank)
+            .ThenByDescending(item => item.rank == 2 && Seen(item.row.Insert, saved))
+            .ThenBy(item => item.index)
+            .Select(item => item.row)
+            .ToArray();
+    }
+
+    private static int RankOf(string insert, string partial)
+    {
+        if (partial.Length == 0 || insert.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
+            return 2;
+        return insert.Contains(partial, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+    }
+
+    private static bool Seen(string insert, IReadOnlyList<string> hints)
+    {
+        foreach (var hint in hints)
+        {
+            if (!string.IsNullOrWhiteSpace(hint) && hint.Contains(insert, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private static void FoldPair(List<KqlToken> tokens, ref string partial, ref int partialStart)
@@ -46,8 +75,6 @@ internal static class KqlCompleter
         tokens.RemoveAt(tokens.Count - 1);
         partial = word + " " + partial;
         partialStart -= word.Length;
-        if (partialStart > 0 && char.IsWhiteSpace(partial[0]) == false)
-            partialStart = Math.Max(0, partialStart);
     }
 
     private static KqlCompletionSlot SlotOf(IReadOnlyList<KqlToken> tokens, KqlSession session, out KqlField? field)
@@ -228,7 +255,7 @@ internal static class KqlCompleter
 
     private static bool IsOperator(KqlTokenKind kind) => kind is KqlTokenKind.Eq or KqlTokenKind.Ne or KqlTokenKind.Lt or KqlTokenKind.Gt or KqlTokenKind.Le or KqlTokenKind.Ge or KqlTokenKind.Like or KqlTokenKind.NotLike or KqlTokenKind.Contains or KqlTokenKind.StartsWith or KqlTokenKind.EndsWith or KqlTokenKind.Between;
 
-    private static bool IsPair(KqlToken token) => token.Kind == KqlTokenKind.Ident && (token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase));
+    private static bool IsPair(KqlToken token) => token.Kind == KqlTokenKind.Ident && token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsValue(KqlTokenKind kind) => kind is KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.True or KqlTokenKind.False or KqlTokenKind.IpAddress or KqlTokenKind.MacAddress or KqlTokenKind.StringValue or KqlTokenKind.TimeSpan;
 

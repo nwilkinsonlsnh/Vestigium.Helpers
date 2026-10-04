@@ -57,7 +57,6 @@ public static class KqlHelper
     public static KqlCompletion Complete(string? text, int caret, KqlSession session, IReadOnlyList<string>? hints = null)
     {
         ArgumentNullException.ThrowIfNull(session);
-        _ = hints;
-        return KqlCompleter.Complete(text, caret, session);
+        return KqlCompleter.Complete(text, caret, session, hints);
     }
 }
