@@ -29,6 +29,9 @@ internal static class KqlCatalog
             KqlPack.Thread => KqlGroups.Thr | KqlGroups.Cpu,
             KqlPack.System => KqlGroups.Sys | KqlGroups.Cpu | KqlGroups.Mem | KqlGroups.Gpu | KqlGroups.Disk | KqlGroups.Io | KqlGroups.Net,
             KqlPack.Adapter => KqlGroups.Gpu | KqlGroups.Net,
+            KqlPack.Route => KqlGroups.Route,
+            KqlPack.Neighbor => KqlGroups.Neighbor,
+            KqlPack.Connection => KqlGroups.Conn,
             _ => KqlGroups.None
         });
     }
@@ -42,6 +45,9 @@ internal static class KqlCatalog
         var processSystem = new[] { KqlPack.Process, KqlPack.System };
         var processAdapterSystem = new[] { KqlPack.Process, KqlPack.Adapter, KqlPack.System };
         var systemAdapter = new[] { KqlPack.System, KqlPack.Adapter };
+        var route = new[] { KqlPack.Route };
+        var neighbor = new[] { KqlPack.Neighbor };
+        var connection = new[] { KqlPack.Connection };
 
         return
         [
@@ -162,7 +168,38 @@ internal static class KqlCatalog
 
             F("SYS.ProcessCount", KqlType.Integer, KqlGroups.Sys, system),
             F("SYS.ThreadCount", KqlType.Integer, KqlGroups.Sys, system),
-            F("SYS.HandleCount", KqlType.Integer, KqlGroups.Sys, system)
+            F("SYS.HandleCount", KqlType.Integer, KqlGroups.Sys, system),
+
+            N("route.destination", KqlType.String, KqlGroups.Route, route, KqlCompareAs.IpAddress, "Destination"),
+            N("route.prefixlength", KqlType.Integer, KqlGroups.Route, route, KqlCompareAs.Stored, "PrefixLength"),
+            N("route.subnetmask", KqlType.String, KqlGroups.Route, route, KqlCompareAs.IpAddress, "SubnetMask"),
+            N("route.gateway", KqlType.String, KqlGroups.Route, route, KqlCompareAs.IpAddress, "Gateway"),
+            N("route.interfacename", KqlType.String, KqlGroups.Route, route, KqlCompareAs.Stored, "InterfaceName"),
+            N("route.interfaceindex", KqlType.Integer, KqlGroups.Route, route, KqlCompareAs.Stored, "InterfaceIndex"),
+            N("route.metric", KqlType.Integer, KqlGroups.Route, route, KqlCompareAs.Stored, "Metric"),
+            N("route.protocol", KqlType.String, KqlGroups.Route, route, KqlCompareAs.Stored, ["netmgmt", "local"], "Protocol"),
+
+            N("neighbors.address", KqlType.String, KqlGroups.Neighbor, neighbor, KqlCompareAs.IpAddress, "Address"),
+            N("neighbors.class", KqlType.String, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, ["a", "b", "c", "d", "e"], "Class"),
+            N("neighbors.macaddress", KqlType.String, KqlGroups.Neighbor, neighbor, KqlCompareAs.MacAddress, "MacAddress"),
+            N("neighbors.interfacename", KqlType.String, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "InterfaceName"),
+            N("neighbors.state", KqlType.String, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, ["invalid", "static", "reachable"], "State"),
+            N("neighbors.ismulticast", KqlType.Boolean, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "IsMulticast"),
+            N("neighbors.isbroadcast", KqlType.Boolean, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "IsBroadcast"),
+            N("neighbors.vendor", KqlType.String, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "Vendor"),
+            N("neighbors.rtt", KqlType.Integer, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "RTT"),
+            N("neighbors.isrouter", KqlType.Boolean, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "IsRouter"),
+            N("neighbors.interfaceindex", KqlType.Integer, KqlGroups.Neighbor, neighbor, KqlCompareAs.Stored, "InterfaceIndex"),
+
+            N("connections.status", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, ["open", "added", "dropped", "reopened"], "Status"),
+            N("connections.local", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.IpAddress, "Local"),
+            N("connections.localport", KqlType.Integer, KqlGroups.Conn, connection, KqlCompareAs.Stored, "LocalPort", minimum: 1, maximum: 65535),
+            N("connections.remote", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.IpAddress, "Remote"),
+            N("connections.remoteport", KqlType.Integer, KqlGroups.Conn, connection, KqlCompareAs.Stored, "RemotePort", minimum: 1, maximum: 65535),
+            N("connections.process", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, "Process"),
+            N("connections.time", KqlType.Integer, KqlGroups.Conn, connection, KqlCompareAs.Stored, "Time"),
+            N("connections.protocol", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, ["tcp", "udp"], "Protocol"),
+            N("connections.state", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, ["listen", "established", "timewait"], "State")
         ];
     }
 
@@ -174,4 +211,34 @@ internal static class KqlCatalog
         bool watchOnly = false,
         params string[] aliases)
         => new(canonical, type, group, packs, aliases, watchOnly);
+
+    private static KqlField N(
+        string canonical,
+        KqlType type,
+        KqlGroups group,
+        IReadOnlyList<KqlPack> packs,
+        KqlCompareAs compareAs,
+        params string[] aliases)
+        => new(canonical, type, group, packs, aliases, false, null, compareAs);
+
+    private static KqlField N(
+        string canonical,
+        KqlType type,
+        KqlGroups group,
+        IReadOnlyList<KqlPack> packs,
+        KqlCompareAs compareAs,
+        string[] closed,
+        params string[] aliases)
+        => new(canonical, type, group, packs, aliases, false, closed, compareAs);
+
+    private static KqlField N(
+        string canonical,
+        KqlType type,
+        KqlGroups group,
+        IReadOnlyList<KqlPack> packs,
+        KqlCompareAs compareAs,
+        string alias,
+        int minimum,
+        int maximum)
+        => new(canonical, type, group, packs, [alias], false, null, compareAs, minimum, maximum);
 }

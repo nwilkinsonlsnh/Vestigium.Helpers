@@ -2,21 +2,21 @@
 
 **Document ID:** VEST-HLP-KQL-PLN-PR01  
 **Version:** PR01  
-**Status:** Accepted. Step 1 done. Implementation not started.  
+**Status:** Accepted. Step 2 done. Lexer not started.  
 **Date:** 4 October 2026  
 **Binding:** `PR01 -- Requirements.md`, then `PR01 -- Design.md`.
 
-Library code starts at step 2. Publish still waits on a host.
+Publish still waits on a host.
 
 ---
 
-## 0. Done for this step
+## 0. Done
 
-Step 1 closed 4 October 2026. Three documents reviewed and Accepted under `Vestigium.Documentation/Vestigium/Helpers/Kql/001 -- Implementation Plan/PR01/`.
+Step 1 closed 4 October 2026. Documents Accepted.
 
-Review fixes in that close: section order, `ipaddress(10.)` removed because an empty octet is illegal, `!` is not group NOT.
+Step 2 closed 4 October 2026. `KqlPack.Route`, `KqlPack.Neighbor`, `KqlPack.Connection`. Groups `Route`, `Neighbor`, `Conn`. Canonical names are the namespace column. Closed values and compare-as sit on `KqlField`. Port fields carry 1–65535. No `remoeport`. No `rtt(ms)`. `netmgmt` is not on `connections.protocol`.
 
-Not done: catalog, lexer, parser, tests, RouteIQ bar, NuGet.
+Not done: lexer, parser, binder, evaluator, tests, RouteIQ bar, NuGet.
 
 ---
 
@@ -25,7 +25,7 @@ Not done: catalog, lexer, parser, tests, RouteIQ bar, NuGet.
 | Step | Where | Exit |
 |---|---|---|
 | 1 | This folder | Done. Documents Accepted. |
-| 2 | `KqlEnums` / `KqlCatalog` | Packs `Route`, `Neighbor`, `Connection`. Fields and closed values from the requirements tables. |
+| 2 | `KqlEnums` / `KqlCatalog` | Done. Three packs, fields, closed values, compare-as, port bounds. |
 | 3 | Lexer / parser | `GTE` `LTE` `BEGINS WITH` `ENDS WITH` `CONTAINS` and the single-word aliases. Constructors `ipaddress` `macaddress` `string`. Closed call form. Do not reimplement `AND` `OR` `&&` `\|\|` or parentheses. Those already parse. |
 | 4 | Binder | Two-segment field. Third segment or call is a closed value. Wrong namespace is unknown field. Port range. `== ipaddress` requires four octets. `== macaddress` requires 12 hex digits. Empty octet fails. |
 | 5 | Evaluator | Octet list match. Normalized MAC match. String operators lower to literal `LIKE`. Grouped `AND` / `OR` already evaluate. |
@@ -33,23 +33,23 @@ Not done: catalog, lexer, parser, tests, RouteIQ bar, NuGet.
 | 7 | RouteIQ | Project reference. One bar per tab. View filter. Not in this package. |
 | 8 | Publish | After step 7 consumes the catalog. Not before. |
 
-Steps 2–6 are this repo. Step 7 is `Vestigium.Suite.Network`. Step 8 waits on step 7.
+Steps 3–6 are this repo. Step 7 is `Vestigium.Suite.Network`. Step 8 waits on step 7.
 
 ---
 
 ## 2. Catalog notes
 
-Canonical strings match the namespace column, lowercase.
+Canonical strings match the namespace column, lowercase. Session lookup already registers the bare suffix.
 
 Do not enter `connections.remoeport`. Do not enter `neighbors.rtt(ms)`. Do not copy `netmgmt` onto `connections.protocol`. Do not copy `established` onto `neighbors.state`.
 
-Aliases: grid header, bare suffix. No `CONN.` alias.
+Aliases: grid header. No `CONN.` alias. `neighbors.rtt` aliases `RTT` because the header is not the suffix.
 
 ---
 
 ## 3. Tests that define done
 
-Each reject is listed under the accept spelling that replaces it. Both sides are required.
+Each reject is listed under the accept spelling that replaces it. Both sides are required. These tests are step 6. The catalog does not parse them yet.
 
 Grouping is required. `AND` binds tighter than `OR`. Parentheses override. Word and symbol are the same operator. `NOT` negates a group. `!` does not.
 
@@ -132,7 +132,7 @@ Regression: `PID == 0` still compiles on `KqlPack.Process`. `(PID == 0 || Name L
 
 ## 4. Out of this plan
 
-LmHosts, NetBios, Settings, CIDR, cross-tab join, chips, a RouteIQ-local dialect, a single `&` or a single `|` as a logical operator, `!` as group NOT, publishing 1.0.0 as part of the doc commit.
+LmHosts, NetBios, Settings, CIDR, cross-tab join, chips, a RouteIQ-local dialect, a single `&` or a single `|` as a logical operator, `!` as group NOT, publishing 1.0.0 as part of this step.
 
 ---
 
@@ -144,3 +144,4 @@ LmHosts, NetBios, Settings, CIDR, cross-tab join, chips, a RouteIQ-local dialect
 | PR01 | 3 Oct 2026 | Each reject paired with the accepted spelling. |
 | PR01 | 3 Oct 2026 | Grouped AND/OR is a required test, not new parser work. |
 | PR01 | 4 Oct 2026 | Step 1 Accepted. Empty octet and `!` group form added to the reject list. |
+| PR01 | 4 Oct 2026 | Step 2. Catalog packs and closed values. |
