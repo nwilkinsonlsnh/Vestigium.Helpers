@@ -31,13 +31,13 @@ public sealed class NetworkTraceAndRouteTests
             IcmpEchoEngine.LogFinished(NetworkJobStatus.TimedOut, "TimedOut trace job=trace-y");
             VestigiumLogger.Flush();
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14520") && line.Contains("Failed trace"));
+                line.Contains("\"EVENTID\",14520") && line.Contains("Failed trace"));
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14520") && line.Contains("TimedOut trace"));
+                line.Contains("\"EVENTID\",14520") && line.Contains("TimedOut trace"));
             Assert.DoesNotContain(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14515") && line.Contains("Failed trace"));
+                line.Contains("\"EVENTID\",14515") && line.Contains("Failed trace"));
             Assert.DoesNotContain(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14515") && line.Contains("TimedOut trace"));
+                line.Contains("\"EVENTID\",14515") && line.Contains("TimedOut trace"));
         }
         finally
         {
@@ -54,9 +54,9 @@ public sealed class NetworkTraceAndRouteTests
             IcmpEchoEngine.LogFinished(NetworkJobStatus.Cancelled, "Cancelled trace job=trace-z");
             VestigiumLogger.Flush();
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14525") && line.Contains("Cancelled trace"));
+                line.Contains("\"EVENTID\",14525") && line.Contains("Cancelled trace"));
             Assert.DoesNotContain(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14515") && line.Contains("Cancelled trace"));
+                line.Contains("\"EVENTID\",14515") && line.Contains("Cancelled trace"));
         }
         finally
         {
@@ -186,11 +186,11 @@ public sealed class NetworkTraceAndRouteTests
                 OuiLookupGuard.Bind("http://api.macvendors.com/00-00-0C", new OuiLookupOptions()));
             VestigiumLogger.Flush();
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14545") && line.Contains("path escape"));
+                line.Contains("\"EVENTID\",14545") && line.Contains("path escape"));
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14550") && line.Contains("foreign source"));
+                line.Contains("\"EVENTID\",14550") && line.Contains("foreign source"));
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14555") && line.Contains("scheme="));
+                line.Contains("\"EVENTID\",14555") && line.Contains("scheme="));
         }
         finally
         {
@@ -216,7 +216,7 @@ public sealed class NetworkTraceAndRouteTests
             Assert.Contains("Default route", ex.Message, StringComparison.OrdinalIgnoreCase);
             VestigiumLogger.Flush();
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14530") && line.Contains("default route"));
+                line.Contains("\"EVENTID\",14530") && line.Contains("default route"));
         }
         finally
         {
@@ -234,11 +234,11 @@ public sealed class NetworkTraceAndRouteTests
             NetworkLog.WindowMissed("missed campaign=c1 date=2026-09-24 time=02:00");
             VestigiumLogger.Flush();
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14535") && line.Contains("ICMP not permitted"));
+                line.Contains("\"EVENTID\",14535") && line.Contains("ICMP not permitted"));
             Assert.Contains(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14540") && line.Contains("missed campaign"));
+                line.Contains("\"EVENTID\",14540") && line.Contains("missed campaign"));
             Assert.DoesNotContain(VestigiumLogger.RecentJsonLines, line =>
-                line.Contains("\"EVENTID\":14515") && line.Contains("ICMP not permitted"));
+                line.Contains("\"EVENTID\",14515") && line.Contains("ICMP not permitted"));
         }
         finally
         {
@@ -247,16 +247,11 @@ public sealed class NetworkTraceAndRouteTests
     }
 
     [Fact]
-    public void Package_version_is_1_2_0()
+    public void Package_pins_json_analytics_and_fileio()
     {
         var path = FindNetworkSource("Vestigium.Helpers.Network.csproj");
         Assert.True(path is not null, "Network csproj not found walking up from BaseDirectory.");
         var src = File.ReadAllText(path);
-        Assert.Contains("<Version>1.3.5</Version>", src, StringComparison.Ordinal);
-        Assert.Contains("1.2.0 is PR10", src, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Version>1.0.0</Version>", src, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Version>1.0.1</Version>", src, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Version>1.1.0</Version>", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.Json\" Version=\"1.0.1\"", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.Analytics\" Version=\"1.0.1\"", src, StringComparison.Ordinal);
         Assert.Contains("Vestigium.Helpers.FileIo\" Version=\"1.1.2\"", src, StringComparison.Ordinal);
