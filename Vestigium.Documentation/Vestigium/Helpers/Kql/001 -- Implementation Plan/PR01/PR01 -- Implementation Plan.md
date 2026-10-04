@@ -27,7 +27,7 @@ Not done: catalog, lexer, parser, tests, RouteIQ bar, NuGet.
 | 3 | Lexer / parser | `GTE` `LTE` `BEGINS WITH` `ENDS WITH` `CONTAINS` and the single-word aliases. Constructors `ipaddress` `macaddress` `string`. Closed call form. |
 | 4 | Binder | Two-segment field. Third segment or call is a closed value. Wrong namespace is unknown field. Port range. `== ipaddress` requires four octets. `== macaddress` requires 12 hex digits. |
 | 5 | Evaluator | Octet list match. Normalized MAC match. String operators lower to literal `LIKE`. |
-| 6 | Tests | Every accept example in Requirements §5. Every reject example in §6. Existing process/service queries still compile. |
+| 6 | Tests | Every accept line in Requirements §5 and §6. Every reject line in §6. Existing process/service queries still compile. |
 | 7 | RouteIQ | Project reference. One bar per tab. View filter. Not in this package. |
 | 8 | Publish | After step 7 consumes the catalog. Not before. |
 
@@ -47,35 +47,47 @@ Aliases: grid header, bare suffix. No `CONN.` alias.
 
 ## 3. Tests that define done
 
-Accept:
+Each reject is listed under the accept spelling that replaces it. Both sides are required.
 
 ```text
+route.protocol == route.protocol.netmgmt
+route.protocol == tcp
+
+connections.protocol == connections.protocol.tcp
+connections.protocol == netmgmt
+
+connections.protocol == connections.protocol.tcp
+route.protocol == route.protocol.netmgmt
+connections.protocol == route.protocol.netmgmt
+
+neighbors.state == neighbors.state.reachable
+connections.state == connections.state.established
+neighbors.state == established
+
+connections.state == connections.state.established
+neighbors.state == neighbors.state.reachable
+connections.state == reachable
+
 route.destination == ipaddress(172.16.0.15)
 route.destination BEGINS WITH ipaddress(172)
-route.destination CONTAINS ipaddress(16.0)
-route.protocol == route.protocol.netmgmt
-route.protocol == string(netmgmt)
-route.protocol CONTAINS string(mgm)
-neighbors.macaddress == macaddress(00-e0-4c-0f-31-b4)
-neighbors.macaddress CONTAINS macaddress(4c0f)
-neighbors.class == neighbors.class(a)
-neighbors.isrouter == false
-connections.localport LTE 1000
-connections.protocol == connections.protocol(udp)
-connections.status == added
-```
-
-Reject at compile, no throw:
-
-```text
-route.protocol == tcp
-connections.protocol == netmgmt
 route.destination == ipaddress(172)
+
+neighbors.macaddress == macaddress(00:e0:4c:0f:31:b4)
+neighbors.macaddress CONTAINS macaddress(4c:0f)
 neighbors.macaddress == macaddress(4c:0f)
+
+neighbors.macaddress CONTAINS macaddress(4c0f)
 neighbors.macaddress CONTAINS macaddress(4c0)
-connections.remoeport == 443
-neighbors.rtt(ms) >= 50
+
+route.destination == ipaddress(172.16.0.15)
+neighbors.address == ipaddress(172.16.0.15)
 route.destination == neighbors.address
+
+connections.remoteport == 443
+connections.remoeport == 443
+
+neighbors.rtt >= 50
+neighbors.rtt(ms) >= 50
 ```
 
 Octet trap: `CONTAINS ipaddress(16.0)` hits `172.16.0.15` and does not hit `172.160.1.1`.
@@ -97,3 +109,4 @@ LmHosts, NetBios, Settings, CIDR, cross-tab join, chips, a RouteIQ-local dialect
 | Version | Date | Change |
 |---|---|---|
 | PR01 | 3 Oct 2026 | Plan written. Implementation not started. |
+| PR01 | 3 Oct 2026 | Each reject paired with the accepted spelling. |

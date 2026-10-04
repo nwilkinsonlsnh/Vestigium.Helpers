@@ -204,6 +204,7 @@ route.protocol == string(netmgmt)
 route.protocol CONTAINS string(mgm)
 route.interfacename CONTAINS 'ethernet'
 
+neighbors.address == ipaddress(172.16.0.15)
 neighbors.macaddress == macaddress(00:e0:4c:0f:31:b4)
 neighbors.macaddress == macaddress(00-e0-4c-0f-31-b4)
 neighbors.macaddress == macaddress(00e04c0f31b4)
@@ -213,16 +214,22 @@ neighbors.macaddress CONTAINS macaddress(4c0f)
 neighbors.class == a
 neighbors.class == neighbors.class(a)
 neighbors.class == neighbors.class.a
+neighbors.state == reachable
+neighbors.state == neighbors.state.reachable
 neighbors.isrouter == true
 neighbors.isrouter == false
 neighbors.rtt >= 50
 neighbors.interfacename == 'Ethernet'
 
-connections.protocol == tcp && connections.state == established
+connections.protocol == tcp
+connections.protocol == udp
 connections.protocol == connections.protocol.tcp
 connections.protocol == connections.protocol(udp)
+connections.state == established
+connections.state == connections.state.established
 connections.localport == 443
 connections.localport LTE 1000
+connections.remoteport == 443
 connections.remote BEGINS WITH ipaddress(10.1)
 connections.process CONTAINS 'chrome'
 connections.process CONTAINS string(chrome)
@@ -233,27 +240,96 @@ connections.time BETWEEN 1 AND 30
 
 Bare suffix on the owning tab is also required: `protocol == tcp` on Connections, `destination BEGINS WITH ipaddress(172)` on Routes.
 
+The accept column in §6 is part of this set. A reject with no accept spelling above it is an incomplete requirement.
+
 ---
 
-## 6. Examples this revision must reject
+## 6. Rejected spellings, with the accepted spelling above each
+
+Each pair is the same intent. The first line compiles. The second fails compile, with line/column, and does not throw.
+
+Wrong closed set. `tcp` is not a route protocol.
 
 ```text
+route.protocol == route.protocol.netmgmt
 route.protocol == tcp
-connections.protocol == netmgmt
-connections.protocol == route.protocol.netmgmt
-neighbors.state == established
-connections.state == reachable
-route.destination == ipaddress(172)
-neighbors.macaddress == macaddress(4c:0f)
-neighbors.macaddress CONTAINS macaddress(4c0)
-route.destination == neighbors.address
-connections.remoeport == 443
-neighbors.rtt(ms) >= 50
 ```
 
-`route.destination == neighbors.address` is a cross-namespace field reference. Out. Unknown field, not a join.
+Wrong closed set. `netmgmt` is not a connection protocol.
 
-`connections.protocol == route.protocol.netmgmt` names a value from the wrong namespace. Compile error.
+```text
+connections.protocol == connections.protocol.tcp
+connections.protocol == netmgmt
+```
+
+Closed value from the wrong namespace.
+
+```text
+connections.protocol == connections.protocol.tcp
+route.protocol == route.protocol.netmgmt
+connections.protocol == route.protocol.netmgmt
+```
+
+Wrong state set. `established` is a connection state.
+
+```text
+neighbors.state == neighbors.state.reachable
+connections.state == connections.state.established
+neighbors.state == established
+```
+
+Wrong state set. `reachable` is a neighbor state.
+
+```text
+connections.state == connections.state.established
+neighbors.state == neighbors.state.reachable
+connections.state == reachable
+```
+
+`==` on an address requires a full quad. A prefix uses `BEGINS WITH`.
+
+```text
+route.destination == ipaddress(172.16.0.15)
+route.destination BEGINS WITH ipaddress(172)
+route.destination == ipaddress(172)
+```
+
+`==` on a MAC requires 12 hex digits. A fragment uses `CONTAINS`.
+
+```text
+neighbors.macaddress == macaddress(00:e0:4c:0f:31:b4)
+neighbors.macaddress CONTAINS macaddress(4c:0f)
+neighbors.macaddress == macaddress(4c:0f)
+```
+
+MAC fragment length must be even.
+
+```text
+neighbors.macaddress CONTAINS macaddress(4c0f)
+neighbors.macaddress CONTAINS macaddress(4c0)
+```
+
+No cross-namespace compare. Same address is two queries, one per tab.
+
+```text
+route.destination == ipaddress(172.16.0.15)
+neighbors.address == ipaddress(172.16.0.15)
+route.destination == neighbors.address
+```
+
+Typo is not a field.
+
+```text
+connections.remoteport == 443
+connections.remoeport == 443
+```
+
+Unit stays in the header. It is not part of the name.
+
+```text
+neighbors.rtt >= 50
+neighbors.rtt(ms) >= 50
+```
 
 ---
 
@@ -270,7 +346,7 @@ neighbors.rtt(ms) >= 50
 ## 8. Acceptance gate
 
 1. This file, the design, and the plan sit under `001 -- Implementation Plan/PR01/`.
-2. Every example in §5 compiles against the owning namespace and evaluates as specified.
-3. Every example in §6 fails compile, with line/column, and does not throw.
+2. Every accept line in §5 and §6 compiles against the owning namespace and evaluates as specified.
+3. Every reject line in §6 fails compile, with line/column, and does not throw.
 4. Process, Service, Thread, System, and Adapter packs still compile their existing queries.
 5. Status moves to Accepted only after that. Publish is a later decision, not this gate.
