@@ -21,6 +21,12 @@ internal enum KqlTokenKind
     And,
     Or,
     Not,
+    Contains,
+    StartsWith,
+    EndsWith,
+    IpAddress,
+    MacAddress,
+    StringValue,
     LParen,
     RParen,
     Comma,
@@ -119,6 +125,9 @@ internal sealed class KqlLexer(string? text)
 
         if (!IsIdentStart(ch)) throw new KqlLexException(line, column, $"unexpected '{ch}'");
         var ident = ReadIdent();
+        if (TryConstructor(ident, line, column, out var ctor))
+            return ctor;
+
         while (Peek(0) == '.')
         {
             Advance();
@@ -128,12 +137,59 @@ internal sealed class KqlLexer(string? text)
         }
 
         return Keyword(ident, line, column);
-
     }
 
     private const char Quote = (char)39;
     private const char DoubleQuote = (char)34;
     private const char Backslash = (char)92;
+
+    private bool TryConstructor(string ident, int line, int column, out KqlToken token)
+    {
+        token = default;
+        var kind = ident.ToLowerInvariant() switch
+        {
+            "ipaddress" => KqlTokenKind.IpAddress,
+            "macaddress" => KqlTokenKind.MacAddress,
+            "string" => KqlTokenKind.StringValue,
+            _ => (KqlTokenKind?)null
+        };
+        if (kind is null)
+            return false;
+
+        var index = _index;
+        var savedLine = _line;
+        var savedColumn = _column;
+        SkipWhite();
+        if (Peek(0) != '(')
+        {
+            _index = index;
+            _line = savedLine;
+            _column = savedColumn;
+            return false;
+        }
+
+        Advance();
+        SkipWhite();
+        var start = _index;
+        while (_index < _text.Length && _text[_index] != ')')
+            Advance();
+        if (_index >= _text.Length)
+            throw new KqlLexException(line, column, "unterminated constructor");
+
+        var body = Unquote(_text[start.._index].Trim());
+        Advance();
+        token = new KqlToken(kind.Value, body, line, column);
+        return true;
+    }
+
+    private static string Unquote(string body)
+    {
+        if (body.Length < 2)
+            return body;
+        if ((body[0] == Quote && body[^1] == Quote) || (body[0] == DoubleQuote && body[^1] == DoubleQuote))
+            return body[1..^1];
+        return body;
+    }
 
     private static KqlToken Keyword(string ident, int line, int column)
     {
@@ -153,10 +209,16 @@ internal sealed class KqlLexer(string? text)
             return new KqlToken(KqlTokenKind.Gt, ident, line, column);
         if (ident.Equals("LT", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.Lt, ident, line, column);
-        if (ident.Equals("GE", StringComparison.OrdinalIgnoreCase))
+        if (ident.Equals("GE", StringComparison.OrdinalIgnoreCase) || ident.Equals("GTE", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.Ge, ident, line, column);
-        if (ident.Equals("LE", StringComparison.OrdinalIgnoreCase))
+        if (ident.Equals("LE", StringComparison.OrdinalIgnoreCase) || ident.Equals("LTE", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.Le, ident, line, column);
+        if (ident.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.Contains, ident, line, column);
+        if (ident.Equals("STARTSWITH", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.StartsWith, ident, line, column);
+        if (ident.Equals("ENDSWITH", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.EndsWith, ident, line, column);
         if (ident.Equals("TRUE", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.True, ident, line, column);
         return ident.Equals("FALSE", StringComparison.OrdinalIgnoreCase) ? new KqlToken(KqlTokenKind.False, ident, line, column) : new KqlToken(KqlTokenKind.Ident, ident, line, column);
@@ -228,7 +290,6 @@ internal sealed class KqlLexer(string? text)
             return new KqlToken(KqlTokenKind.TimeSpan, _text[start.._index], line, column);
 
         throw new KqlLexException(line, column, $"unexpected number suffix '{unit}'");
-
     }
 
     private string ReadIdent()

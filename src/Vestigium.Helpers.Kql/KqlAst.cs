@@ -57,13 +57,26 @@ public enum KqlCompareOp
     Le = 4,
     Ge = 5,
     Like = 6,
-    NotLike = 7
+    NotLike = 7,
+    BeginsWith = 8,
+    EndsWith = 9,
+    Contains = 10
+}
+
+public enum KqlLiteralForm
+{
+    Plain = 0,
+    String = 1,
+    IpAddress = 2,
+    MacAddress = 3,
+    Closed = 4
 }
 
 public sealed class KqlLiteral
 {
     public required KqlType Type { get; init; }
     public required object? Value { get; init; }
+    public KqlLiteralForm Form { get; init; } = KqlLiteralForm.Plain;
 }
 
 public sealed class KqlError
