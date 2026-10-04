@@ -58,6 +58,9 @@ internal static class KqlEvaluator
             return hit ? KqlTriState.True : KqlTriState.False;
         }
 
+        if (cmp.Op is KqlCompareOp.BeginsWith or KqlCompareOp.EndsWith or KqlCompareOp.Contains)
+            return TextSpan(cmp.Op, left, right);
+
         var relation = CompareValues(left, right);
         if (relation is null)
             return KqlTriState.Unknown;
@@ -73,6 +76,22 @@ internal static class KqlEvaluator
             _ => false
         };
         return ok ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState TextSpan(KqlCompareOp op, KqlValue left, KqlLiteral right)
+    {
+        if (right.Form is KqlLiteralForm.IpAddress or KqlLiteralForm.MacAddress or KqlLiteralForm.Closed)
+            return KqlTriState.Unknown;
+
+        var text = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var pattern = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var hit = op switch
+        {
+            KqlCompareOp.BeginsWith => text.StartsWith(pattern, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.EndsWith => text.EndsWith(pattern, StringComparison.OrdinalIgnoreCase),
+            _ => text.Contains(pattern, StringComparison.OrdinalIgnoreCase)
+        };
+        return hit ? KqlTriState.True : KqlTriState.False;
     }
 
     private static KqlTriState In(KqlInExpression inn, IKqlRow row)
@@ -138,7 +157,6 @@ internal static class KqlEvaluator
         var ls = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
         var rs = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
         return string.Compare(ls, rs, StringComparison.OrdinalIgnoreCase);
-
     }
 
     private static bool TryNumber(object? value, out double number)
