@@ -122,6 +122,9 @@ internal sealed class KqlParser
 
         var field = _current;
         Advance();
+        if (_current.Kind == KqlTokenKind.LParen)
+            return ParseClosedCall(field);
+
         switch (_current)
         {
             case { Kind: KqlTokenKind.In }:
@@ -162,7 +165,26 @@ internal sealed class KqlParser
             Line = field.Line,
             Column = field.Column
         };
+    }
 
+    private KqlComparisonExpression ParseClosedCall(KqlToken field)
+    {
+        Advance();
+        if (_current.Kind is not (KqlTokenKind.Ident or KqlTokenKind.Number or KqlTokenKind.String))
+            throw Error(_current, "expected closed value");
+        var token = _current;
+        Advance();
+        if (_current.Kind != KqlTokenKind.RParen)
+            throw Error(_current, "expected ')'");
+        Advance();
+        return new KqlComparisonExpression
+        {
+            Field = field.Text,
+            Op = KqlCompareOp.Eq,
+            Value = new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Closed },
+            Line = field.Line,
+            Column = field.Column
+        };
     }
 
     private KqlInExpression ParseIn(KqlToken field, bool negated)
@@ -221,6 +243,20 @@ internal sealed class KqlParser
             return KqlCompareOp.NotLike;
         }
 
+        if (_current.Kind == KqlTokenKind.Ident)
+        {
+            var word = _current.Text;
+            if (word.Equals("BEGINS", StringComparison.OrdinalIgnoreCase) || word.Equals("ENDS", StringComparison.OrdinalIgnoreCase))
+            {
+                var begins = word.Equals("BEGINS", StringComparison.OrdinalIgnoreCase);
+                Advance();
+                if (_current.Kind != KqlTokenKind.Ident || !_current.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase))
+                    throw Error(_current, "expected WITH");
+                Advance();
+                return begins ? KqlCompareOp.BeginsWith : KqlCompareOp.EndsWith;
+            }
+        }
+
         var map = _current.Kind switch
         {
             KqlTokenKind.Eq => KqlCompareOp.Eq,
@@ -231,6 +267,9 @@ internal sealed class KqlParser
             KqlTokenKind.Ge => KqlCompareOp.Ge,
             KqlTokenKind.Like => KqlCompareOp.Like,
             KqlTokenKind.NotLike => KqlCompareOp.NotLike,
+            KqlTokenKind.Contains => KqlCompareOp.Contains,
+            KqlTokenKind.StartsWith => KqlCompareOp.BeginsWith,
+            KqlTokenKind.EndsWith => KqlCompareOp.EndsWith,
             _ => (KqlCompareOp?)null
         };
 
@@ -249,6 +288,15 @@ internal sealed class KqlParser
             case { Kind: KqlTokenKind.String }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.String, Value = token.Text };
+            case { Kind: KqlTokenKind.StringValue }:
+                Advance();
+                return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.String };
+            case { Kind: KqlTokenKind.IpAddress }:
+                Advance();
+                return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.IpAddress };
+            case { Kind: KqlTokenKind.MacAddress }:
+                Advance();
+                return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.MacAddress };
             case { Kind: KqlTokenKind.Number }:
                 Advance();
                 if (token.Text.Contains('.')
