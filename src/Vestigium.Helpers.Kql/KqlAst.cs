@@ -69,7 +69,8 @@ public enum KqlLiteralForm
     String = 1,
     IpAddress = 2,
     MacAddress = 3,
-    Closed = 4
+    Closed = 4,
+    Ident = 5
 }
 
 public sealed class KqlLiteral

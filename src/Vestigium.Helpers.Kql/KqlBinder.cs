@@ -75,7 +75,9 @@ internal static class KqlBinder
                     {
                         var field = RequireField(cmp.Field, cmp.Line, cmp.Column, session);
                         cmp.BoundField = field;
-                        CheckTypes(field, cmp.Op.ToString(), cmp.Value.Type, cmp.Line, cmp.Column, like: cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike);
+                        CheckRhs(field, cmp);
+                        var like = cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike or KqlCompareOp.BeginsWith or KqlCompareOp.EndsWith or KqlCompareOp.Contains;
+                        CheckTypes(field, cmp.Op.ToString(), cmp.Value.Type, cmp.Line, cmp.Column, like);
                         WarnExactWildcard(cmp, field, diagnostics);
                         break;
                     }
@@ -84,7 +86,11 @@ internal static class KqlBinder
                         var field = RequireField(inn.Field, inn.Line, inn.Column, session);
                         inn.BoundField = field;
                         if (inn.Values.Count == 0) throw new KqlParseException(inn.Line, inn.Column, "IN list is empty");
-                        foreach (var value in inn.Values) CheckTypes(field, "IN", value.Type, inn.Line, inn.Column, like: false);
+                        foreach (var value in inn.Values)
+                        {
+                            CheckLiteral(field, value, KqlCompareOp.Eq, inn.Line, inn.Column);
+                            CheckTypes(field, "IN", value.Type, inn.Line, inn.Column, like: false);
+                        }
                         break;
                     }
                     case KqlBetweenExpression between:
@@ -93,6 +99,8 @@ internal static class KqlBinder
                         between.BoundField = field;
                         CheckTypes(field, "BETWEEN", between.Low.Type, between.Line, between.Column, like: false);
                         CheckTypes(field, "BETWEEN", between.High.Type, between.Line, between.Column, like: false);
+                        CheckRange(field, between.Low, between.Line, between.Column);
+                        CheckRange(field, between.High, between.Line, between.Column);
                         break;
                     }
                     default:
@@ -106,7 +114,100 @@ internal static class KqlBinder
 
     private static KqlField RequireField(string name, int line, int column, KqlSession session)
     {
+        var dot = name.LastIndexOf('.');
+        if (dot > 0 && name.IndexOf('.') != dot && session.TryGetField(name[..dot], out _))
+            throw new KqlParseException(line, column, $"closed value '{name}' is not a field");
         return !session.TryGetField(name, out var field) ? throw new KqlParseException(line, column, UnknownFieldMessage(name, session)) : field;
+    }
+
+    private static void CheckRhs(KqlField field, KqlComparisonExpression cmp)
+    {
+        CheckLiteral(field, cmp.Value, cmp.Op, cmp.Line, cmp.Column);
+        if (cmp.Op == KqlCompareOp.Eq)
+            CheckRange(field, cmp.Value, cmp.Line, cmp.Column);
+    }
+
+    private static void CheckLiteral(KqlField field, KqlLiteral value, KqlCompareOp op, int line, int column)
+    {
+        switch (value.Form)
+        {
+            case KqlLiteralForm.Ident:
+                ResolveIdent(field, value.Value as string ?? string.Empty, line, column);
+                break;
+            case KqlLiteralForm.Closed:
+                RequireClosed(field, value.Value as string ?? string.Empty, line, column);
+                break;
+            case KqlLiteralForm.IpAddress:
+                ValidateIp(value.Value as string ?? string.Empty, op, line, column);
+                break;
+            case KqlLiteralForm.MacAddress:
+                ValidateMac(value.Value as string ?? string.Empty, op, line, column);
+                break;
+        }
+    }
+
+    private static void ResolveIdent(KqlField field, string text, int line, int column)
+    {
+        if (field.IsClosed(text))
+            return;
+        var dot = text.LastIndexOf('.');
+        if (dot > 0 && text.IndexOf('.') != dot)
+        {
+            var owner = text[..dot];
+            var tail = text[(dot + 1)..];
+            if (!owner.Equals(field.Canonical, StringComparison.OrdinalIgnoreCase) || !field.IsClosed(tail))
+                throw new KqlParseException(line, column, $"closed value '{text}' is not a value of {field.Canonical}");
+            return;
+        }
+
+        throw new KqlParseException(line, column, $"'{text}' is not a closed value of {field.Canonical}");
+    }
+
+    private static void RequireClosed(KqlField field, string text, int line, int column)
+    {
+        if (!field.IsClosed(text))
+            throw new KqlParseException(line, column, $"'{text}' is not a closed value of {field.Canonical}");
+    }
+
+    private static void ValidateIp(string text, KqlCompareOp op, int line, int column)
+    {
+        var parts = text.Split('.');
+        if (parts.Length is 0 or > 4 || parts.Any(part => part.Length == 0))
+            throw new KqlParseException(line, column, "empty or invalid ipaddress octet");
+        foreach (var part in parts)
+        {
+            if (!int.TryParse(part, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var octet) || octet is < 0 or > 255)
+                throw new KqlParseException(line, column, $"invalid ipaddress octet '{part}'");
+        }
+
+        if (op is KqlCompareOp.Eq or KqlCompareOp.Ne && parts.Length != 4)
+            throw new KqlParseException(line, column, "== ipaddress requires four octets");
+    }
+
+    private static void ValidateMac(string text, KqlCompareOp op, int line, int column)
+    {
+        var hex = new string(text.Where(ch => ch is not ':' and not '-' and not ' ').ToArray());
+        if (hex.Length == 0 || hex.Any(ch => !Uri.IsHexDigit(ch)))
+            throw new KqlParseException(line, column, "macaddress is not hex");
+        if (op is KqlCompareOp.Eq or KqlCompareOp.Ne)
+        {
+            if (hex.Length != 12)
+                throw new KqlParseException(line, column, "== macaddress requires 12 hex digits");
+            return;
+        }
+
+        if (hex.Length < 2 || hex.Length % 2 != 0)
+            throw new KqlParseException(line, column, "macaddress fragment length must be even");
+    }
+
+    private static void CheckRange(KqlField field, KqlLiteral value, int line, int column)
+    {
+        if (field.Minimum is null || field.Maximum is null)
+            return;
+        if (value.Value is not long number && !long.TryParse(value.Value?.ToString(), out number))
+            return;
+        if (number < field.Minimum || number > field.Maximum)
+            throw new KqlParseException(line, column, $"port {number} is outside {field.Minimum}-{field.Maximum}");
     }
 
     internal static string UnknownFieldMessage(string name, KqlSession session)
@@ -145,7 +246,7 @@ internal static class KqlBinder
     {
         if (cmp.Op is not (KqlCompareOp.Eq or KqlCompareOp.Ne))
             return;
-        if (cmp.Value.Type != KqlType.String || cmp.Value.Value is not string text)
+        if (cmp.Value.Form != KqlLiteralForm.Plain || cmp.Value.Type != KqlType.String || cmp.Value.Value is not string text)
             return;
 
         var chars = new System.Text.StringBuilder();
