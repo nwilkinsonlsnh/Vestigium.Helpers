@@ -297,6 +297,9 @@ internal sealed class KqlParser
             case { Kind: KqlTokenKind.MacAddress }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.MacAddress };
+            case { Kind: KqlTokenKind.Ident }:
+                Advance();
+                return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Ident };
             case { Kind: KqlTokenKind.Number }:
                 Advance();
                 if (token.Text.Contains('.')
