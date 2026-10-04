@@ -243,8 +243,18 @@ internal static class KqlEvaluator
                 _ => Comparer<object>.Default.Compare(left.Raw, right.Value)
             };
         var ls = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-        var rs = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var rs = ClosedTail(right);
         return string.Compare(ls, rs, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ClosedTail(KqlLiteral right)
+    {
+        var text = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        if (right.Form != KqlLiteralForm.Ident)
+            return text;
+        var first = text.IndexOf('.');
+        var last = text.LastIndexOf('.');
+        return first > 0 && first != last ? text[(last + 1)..] : text;
     }
 
     private static bool TryNumber(object? value, out double number)
