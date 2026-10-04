@@ -178,9 +178,9 @@ public sealed class NetworkTraceAndRouteTests
             Assert.Throws<ArgumentException>(() =>
                 OuiLookupGuard.Bind("http://api.macvendors.com/00-00-0C", new OuiLookupOptions()));
             VestigiumLogger.Flush();
-            AssertLogged(14545, "CampaignPathEscape", "campaign path escape", "recipe");
+            AssertLogged(14545, "CampaignPathEscape", "campaign path escape", "path escape");
             AssertLogged(14550, "DnsPeerMismatch", "DNS peer mismatch", "foreign source=192.0.2.9:53");
-            AssertLogged(14555, "OuiLookupRejected", "OUI lookup rejected", "scheme=");
+            AssertLogged(14555, "OuiLookupRejected", "OUI lookup rejected", "scheme=http");
         }
         finally
         {
@@ -205,7 +205,7 @@ public sealed class NetworkTraceAndRouteTests
             }));
             Assert.Contains("Default route", ex.Message, StringComparison.OrdinalIgnoreCase);
             VestigiumLogger.Flush();
-            AssertLogged(14530, "RouteDenied", "route write denied", "Default route");
+            AssertLogged(14530, "RouteDenied", "route write denied", "default route");
         }
         finally
         {
