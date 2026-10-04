@@ -299,7 +299,17 @@ internal sealed class KqlParser
                 return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.MacAddress };
             case { Kind: KqlTokenKind.Ident }:
                 Advance();
-                return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Ident };
+                if (_current.Kind != KqlTokenKind.LParen)
+                    return new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Ident };
+                Advance();
+                if (_current.Kind is not (KqlTokenKind.Ident or KqlTokenKind.Number or KqlTokenKind.String))
+                    throw Error(_current, "expected closed value");
+                var inner = _current.Text;
+                Advance();
+                if (_current.Kind != KqlTokenKind.RParen)
+                    throw Error(_current, "expected ')'");
+                Advance();
+                return new KqlLiteral { Type = KqlType.String, Value = token.Text + "." + inner, Form = KqlLiteralForm.Ident };
             case { Kind: KqlTokenKind.Number }:
                 Advance();
                 if (token.Text.Contains('.')
