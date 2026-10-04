@@ -42,6 +42,79 @@ This revision filters three grids already loaded in RouteIQ: Routes, Neighbors, 
 | 16 | Host maps rows | Kql does not call `GetSnapshot` and does not reference Suite.Network. |
 | 17 | Logging | Field names, line, column, operator. Never RHS text, never row values. |
 | 18 | Out of this revision | LmHosts, NetBios, Settings, chips-as-grammar, visual builder. |
+| 19 | Grouping | `AND` / `&&` and `OR` / `\|\|` combine comparisons. Parentheses group. `AND` binds tighter than `OR` unless parentheses say otherwise. |
+
+---
+
+## 3. Operators
+
+Already shipped, still required: `==` `!=` `<>` `<` `>` `<=` `>=` `GT` `LT` `GE` `LE` `LIKE` `!LIKE` `IN` `BETWEEN` `AND` `OR` `NOT` `&&` `\|\|` `(` `)`.
+
+PR01 adds:
+
+| Token | Means |
+|---|---|---|
+| `GTE` | alias of `GE` / `>=` |
+| `LTE` | alias of `LE` / `<=` |
+| `BEGINS WITH` | string prefix, unless RHS is `ipaddress` or `macaddress` |
+| `ENDS WITH` | string suffix, same exception |
+| `CONTAINS` | string substring, same exception |
+| `STARTSWITH` | single-word alias of `BEGINS WITH` |
+| `ENDSWITH` | single-word alias of `ENDS WITH` |
+
+`BEGINS WITH` / `ENDS WITH` / `CONTAINS` on a plain string or `string(...)` are `LIKE` sugar: prefix is `LIKE 'x%'`, suffix is `LIKE '%x'`, substring is `LIKE '%x%'`. Wildcards in the argument are literal when the operator is one of these three. `LIKE` keeps `*` `%` `?`.
+
+Space before a constructor parenthesis is ignored.
+
+### 3.1 Logical and, logical or, parentheses
+
+Both spellings are required. Same operator.
+
+| Word | Symbol |
+|---|---|
+| `AND` | `&&` |
+| `OR` | `\|\|` |
+| `NOT` | `!` before a group only |
+
+Precedence, already in the parser: `NOT`, then `AND`, then `OR`. Parentheses call the whole expression again, so a group of two comparisons joined by `OR` can itself be joined by `AND` to another group.
+
+A bare `&` is a parse error. A bare `|` is the pipe error. Those are not aliases. The accepted spellings are `&&` and `\|\|`.
+
+Accepted:
+
+```text
+route.protocol == route.protocol.netmgmt && route.prefixlength >= 16
+route.protocol == route.protocol.netmgmt AND route.prefixlength >= 16
+
+(route.protocol == route.protocol.netmgmt || route.protocol == route.protocol.local) && route.prefixlength >= 16
+(route.protocol == route.protocol.netmgmt OR route.protocol == route.protocol.local) AND route.prefixlength >= 16
+
+(connections.protocol == tcp && connections.localport == 443) || (connections.protocol == udp && connections.localport == 53)
+(connections.protocol == connections.protocol.tcp && connections.localport == 443) || (connections.protocol == connections.protocol.udp && connections.remoteport == 53)
+
+(neighbors.state == reachable || neighbors.state == static) && neighbors.isrouter == true
+neighbors.isrouter == false || (neighbors.class == a && neighbors.rtt LTE 50)
+
+connections.status == added && (connections.remote BEGINS WITH ipaddress(10.) || connections.remote BEGINS WITH ipaddress(172.16))
+NOT (connections.state == listen) && connections.protocol == tcp
+```
+
+`A && B || C` is `(A && B) || C`. It is not `A && (B || C)`. Use parentheses when the second reading is the one you want.
+
+Rejected, with the accepted spelling above each:
+
+```text
+route.protocol == netmgmt && route.prefixlength >= 16
+route.protocol == netmgmt & route.prefixlength >= 16
+
+route.protocol == netmgmt || route.protocol == local
+route.protocol == netmgmt | route.protocol == local
+
+(connections.protocol == tcp && connections.localport == 443)
+(connections.protocol == tcp && connections.localport == 443
+```
+
+The last reject is a missing `)`. Compile or parse failure. The grid keeps the last good predicate.
 
 ---
 
@@ -95,28 +168,6 @@ InterfaceName is one Neighbors field. The sheet listed it twice. That duplicate 
 | `connections.state` | State | string | `listen`, `established`, `timewait` |
 
 `netmgmt` and `local` are not connections protocol values. `invalid`, `static`, and `reachable` are not connections state values. The sheet mixed those cells. This table is the split.
-
----
-
-## 3. Operators
-
-Already shipped, still required: `==` `!=` `<>` `<` `>` `<=` `>=` `GT` `LT` `GE` `LE` `LIKE` `!LIKE` `IN` `BETWEEN` `AND` `OR` `NOT` `&&` `||`.
-
-PR01 adds:
-
-| Token | Means |
-|---|---|
-| `GTE` | alias of `GE` / `>=` |
-| `LTE` | alias of `LE` / `<=` |
-| `BEGINS WITH` | string prefix, unless RHS is `ipaddress` or `macaddress` |
-| `ENDS WITH` | string suffix, same exception |
-| `CONTAINS` | string substring, same exception |
-| `STARTSWITH` | single-word alias of `BEGINS WITH` |
-| `ENDSWITH` | single-word alias of `ENDS WITH` |
-
-`BEGINS WITH` / `ENDS WITH` / `CONTAINS` on a plain string or `string(...)` are `LIKE` sugar: prefix is `LIKE 'x%'`, suffix is `LIKE '%x'`, substring is `LIKE '%x%'`. Wildcards in the argument are literal when the operator is one of these three. `LIKE` keeps `*` `%` `?`.
-
-Space before a constructor parenthesis is ignored.
 
 ---
 
@@ -203,6 +254,8 @@ route.protocol == route.protocol(local)
 route.protocol == string(netmgmt)
 route.protocol CONTAINS string(mgm)
 route.interfacename CONTAINS 'ethernet'
+(route.protocol == route.protocol.netmgmt || route.protocol == route.protocol.local) && route.prefixlength >= 16
+(route.protocol == route.protocol.netmgmt OR route.protocol == route.protocol.local) AND route.prefixlength >= 16
 
 neighbors.address == ipaddress(172.16.0.15)
 neighbors.macaddress == macaddress(00:e0:4c:0f:31:b4)
@@ -220,6 +273,7 @@ neighbors.isrouter == true
 neighbors.isrouter == false
 neighbors.rtt >= 50
 neighbors.interfacename == 'Ethernet'
+(neighbors.state == reachable || neighbors.state == static) && neighbors.isrouter == true
 
 connections.protocol == tcp
 connections.protocol == udp
@@ -236,6 +290,8 @@ connections.process CONTAINS string(chrome)
 connections.status == added
 connections.status == connections.status.added
 connections.time BETWEEN 1 AND 30
+(connections.protocol == tcp && connections.localport == 443) || (connections.protocol == udp && connections.localport == 53)
+connections.status == added && (connections.remote BEGINS WITH ipaddress(10.) || connections.remote BEGINS WITH ipaddress(172.16))
 ```
 
 Bare suffix on the owning tab is also required: `protocol == tcp` on Connections, `destination BEGINS WITH ipaddress(172)` on Routes.
@@ -331,6 +387,19 @@ neighbors.rtt >= 50
 neighbors.rtt(ms) >= 50
 ```
 
+Bare `&` is not AND. Bare `|` is the pipe error, not OR. Missing `)` does not compile.
+
+```text
+route.protocol == netmgmt && route.prefixlength >= 16
+route.protocol == netmgmt & route.prefixlength >= 16
+
+route.protocol == netmgmt || route.protocol == local
+route.protocol == netmgmt | route.protocol == local
+
+(connections.protocol == tcp && connections.localport == 443)
+(connections.protocol == tcp && connections.localport == 443
+```
+
 ---
 
 ## 7. What this package does not do
@@ -340,13 +409,15 @@ neighbors.rtt(ms) >= 50
 - Publish a new package as part of accepting this document
 - Grow a pipe, `summarize`, or `let`
 - Treat `Protocol.Udp` as a category token
+- Treat a single `&` or a single `|` as a logical operator
 
 ---
 
 ## 8. Acceptance gate
 
 1. This file, the design, and the plan sit under `001 -- Implementation Plan/PR01/`.
-2. Every accept line in §5 and §6 compiles against the owning namespace and evaluates as specified.
+2. Every accept line in §3.1, §5, and §6 compiles against the owning namespace and evaluates as specified.
 3. Every reject line in §6 fails compile, with line/column, and does not throw.
-4. Process, Service, Thread, System, and Adapter packs still compile their existing queries.
-5. Status moves to Accepted only after that. Publish is a later decision, not this gate.
+4. `(A || B) && (C || D)` matches a row that satisfies one of A/B and one of C/D. It does not match a row that satisfies only one group.
+5. Process, Service, Thread, System, and Adapter packs still compile their existing queries.
+6. Status moves to Accepted only after that. Publish is a later decision, not this gate.
