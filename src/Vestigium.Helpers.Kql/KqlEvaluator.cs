@@ -49,6 +49,11 @@ internal static class KqlEvaluator
             return KqlTriState.Unknown;
 
         var right = cmp.Value;
+        if (right.Form == KqlLiteralForm.IpAddress)
+            return MatchIp(cmp.Op, left, right.Value as string ?? string.Empty);
+        if (right.Form == KqlLiteralForm.MacAddress)
+            return MatchMac(cmp.Op, left, right.Value as string ?? string.Empty);
+
         if (cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike)
         {
             var text = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
@@ -78,11 +83,94 @@ internal static class KqlEvaluator
         return ok ? KqlTriState.True : KqlTriState.False;
     }
 
-    private static KqlTriState TextSpan(KqlCompareOp op, KqlValue left, KqlLiteral right)
+    private static KqlTriState MatchIp(KqlCompareOp op, KqlValue left, string rightText)
     {
-        if (right.Form is KqlLiteralForm.IpAddress or KqlLiteralForm.MacAddress or KqlLiteralForm.Closed)
+        var row = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!TryOctets(row, requireQuad: true, out var have) || !TryOctets(rightText, requireQuad: false, out var want))
             return KqlTriState.Unknown;
 
+        var hit = op switch
+        {
+            KqlCompareOp.Eq or KqlCompareOp.Ne => have.SequenceEqual(want),
+            KqlCompareOp.BeginsWith => StartsWith(have, want),
+            KqlCompareOp.EndsWith => EndsWith(have, want),
+            KqlCompareOp.Contains => Contains(have, want),
+            _ => false
+        };
+        if (op == KqlCompareOp.Ne)
+            hit = !hit;
+        return hit ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState MatchMac(KqlCompareOp op, KqlValue left, string rightText)
+    {
+        var have = NormalizeMac(Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+        var want = NormalizeMac(rightText);
+        if (have.Length != 12 || want.Length == 0)
+            return KqlTriState.Unknown;
+
+        var hit = op switch
+        {
+            KqlCompareOp.Eq or KqlCompareOp.Ne => have.Equals(want, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.BeginsWith => have.StartsWith(want, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.EndsWith => have.EndsWith(want, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.Contains => have.Contains(want, StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+        if (op == KqlCompareOp.Ne)
+            hit = !hit;
+        return hit ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static bool TryOctets(string text, bool requireQuad, out int[] octets)
+    {
+        var parts = text.Split('.');
+        if (parts.Length == 0 || parts.Length > 4 || (requireQuad && parts.Length != 4) || parts.Any(part => part.Length == 0))
+        {
+            octets = [];
+            return false;
+        }
+
+        var parsed = new int[parts.Length];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var octet) || octet is < 0 or > 255)
+            {
+                octets = [];
+                return false;
+            }
+
+            parsed[i] = octet;
+        }
+
+        octets = parsed;
+        return true;
+    }
+
+    private static string NormalizeMac(string text)
+        => new(text.Where(ch => ch is not ':' and not '-' and not ' ').ToArray());
+
+    private static bool StartsWith(int[] have, int[] want)
+        => want.Length <= have.Length && have.Take(want.Length).SequenceEqual(want);
+
+    private static bool EndsWith(int[] have, int[] want)
+        => want.Length <= have.Length && have.Skip(have.Length - want.Length).SequenceEqual(want);
+
+    private static bool Contains(int[] have, int[] want)
+    {
+        if (want.Length == 0 || want.Length > have.Length)
+            return false;
+        for (var i = 0; i <= have.Length - want.Length; i++)
+        {
+            if (have.Skip(i).Take(want.Length).SequenceEqual(want))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static KqlTriState TextSpan(KqlCompareOp op, KqlValue left, KqlLiteral right)
+    {
         var text = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
         var pattern = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
         var hit = op switch
