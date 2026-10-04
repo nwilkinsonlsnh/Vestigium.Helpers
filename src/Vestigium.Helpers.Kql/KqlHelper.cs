@@ -58,15 +58,6 @@ public static class KqlHelper
     {
         ArgumentNullException.ThrowIfNull(session);
         _ = hints;
-        if (caret < 0)
-            return KqlCompletion.Empty;
-
-        text ??= string.Empty;
-        if (caret > text.Length)
-            caret = text.Length;
-
-        _ = text;
-        _ = caret;
-        return KqlCompletion.Empty;
+        return KqlCompleter.Complete(text, caret, session);
     }
 }
