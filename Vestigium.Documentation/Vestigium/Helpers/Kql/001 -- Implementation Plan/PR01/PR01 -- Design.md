@@ -2,8 +2,8 @@
 
 **Document ID:** VEST-HLP-KQL-DSN-PR01  
 **Version:** PR01  
-**Status:** Locked companion to PR01 Requirements. Not Accepted.  
-**Date:** 3 October 2026  
+**Status:** Accepted. Documents only. Implementation not started.  
+**Date:** 4 October 2026  
 **Binding:** `PR01 -- Requirements.md` wins on conflict.
 
 This page records how PR01 fits the pipeline that already shipped. It does not add requirements.
@@ -71,7 +71,7 @@ New keywords: `GTE`, `LTE`, `CONTAINS`, `STARTSWITH`, `ENDSWITH`. `BEGINS WITH` 
 
 Constructor: `ident '(' argument ')'` where the ident is `ipaddress`, `macaddress`, or `string`. Whitespace between the name and `(` is already skipped.
 
-`ipaddress` argument is a dotted token the current number reader cannot own. `172.16.0.15` is not a number. The constructor reader consumes hex, digits, dots, colons, and hyphens until `)`. It does not go through `ReadNumberOrTimeSpan`.
+`ipaddress` argument is a dotted token the current number reader cannot own. `172.16.0.15` is not a number. The constructor reader consumes hex, digits, dots, colons, and hyphens until `)`. It does not go through `ReadNumberOrTimeSpan`. A trailing dot is an empty octet and fails in the binder, not as a wildcard.
 
 `string` argument is an ident, a quoted string, or a number. An ident inside `string(...)` is text. It is not looked up as a field.
 
@@ -79,7 +79,9 @@ Closed call `neighbors.class(a)` is the same production as a constructor, dispat
 
 Closed dotted `route.protocol.netmgmt` is one ident token. Binder splits on the last dot only when the left part is a field and the right part is in its closed set. Otherwise unknown field.
 
-Pipe stays a lex error.
+Grouping is already parsed. `ParseOr` calls `ParseAnd`, `ParseAnd` calls `ParseNot`, parentheses in `ParsePrimary` call `ParseOr` again. `AND` and `&&` are one token kind. `OR` and `||` are one token kind. Do not add a second precedence. `NOT` before a parenthesis already works. `!` is only the `!LIKE` lex. It is not a group operator.
+
+Pipe stays a lex error. A bare `&` stays a lex error.
 
 ---
 
@@ -118,6 +120,8 @@ Row mapping is a host function: grid column to canonical name. Kql does not refe
 | Cross-namespace join | Different row kinds. A later host action can copy an address to another tab. |
 | Publish 1.0.0 with this catalog | Freezes a package the host does not consume yet. |
 | Chips as grammar | A chip may emit `connections.protocol == tcp`. The grammar does not grow a category axis. |
+| Bare `&` or bare `|` | Pipe collision, and `&` is already a lex error. `&&` and `\|\|` are the symbols. |
+| `!` as group NOT | Lexer only accepts `!LIKE`. Group negation is `NOT`. |
 
 ---
 
@@ -131,6 +135,8 @@ A bad keystroke must not blank the grid. Compile failure returns a result object
 
 `route.protocol == tcp` must fail compile, not return zero rows.
 
+`(A || B) && (C || D)` must not match a row that satisfies only one group.
+
 ---
 
 ## 9. Document control
@@ -138,3 +144,4 @@ A bad keystroke must not blank the grid. Compile failure returns a result object
 | Version | Date | Change |
 |---|---|---|
 | PR01 | 3 Oct 2026 | Namespace catalog, constructors, closed values, string operators. Docs only. |
+| PR01 | 4 Oct 2026 | Step 1. Grouping recorded as already parsed. Empty octet and `!` group form rejected. Accepted. |
