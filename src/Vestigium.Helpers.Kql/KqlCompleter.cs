@@ -47,9 +47,15 @@ internal static class KqlCompleter
 
     private static int RankOf(string insert, string partial)
     {
-        if (partial.Length == 0 || insert.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
+        if (partial.Length == 0 || insert.StartsWith(partial, StringComparison.OrdinalIgnoreCase) || Suffix(insert).StartsWith(partial, StringComparison.OrdinalIgnoreCase))
             return 2;
         return insert.Contains(partial, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+    }
+
+    private static string Suffix(string insert)
+    {
+        var dot = insert.LastIndexOf('.');
+        return dot < 0 ? insert : insert[(dot + 1)..];
     }
 
     private static bool Seen(string insert, IReadOnlyList<string> hints)
@@ -104,15 +110,7 @@ internal static class KqlCompleter
         {
             case KqlCompletionSlot.Field:
                 foreach (var item in session.Fields)
-                {
                     yield return Row(item.Canonical, KqlCompletionKind.Field);
-                    var dot = item.Canonical.LastIndexOf('.');
-                    if (dot < 0)
-                        continue;
-                    var suffix = item.Canonical[(dot + 1)..];
-                    if (session.Fields.Count(other => other.Canonical.EndsWith("." + suffix, StringComparison.OrdinalIgnoreCase)) == 1)
-                        yield return Row(suffix, KqlCompletionKind.Field);
-                }
                 yield break;
             case KqlCompletionSlot.Operator:
                 foreach (var op in Operators(field))
