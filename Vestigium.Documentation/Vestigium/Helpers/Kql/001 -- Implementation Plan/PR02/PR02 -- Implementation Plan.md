@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-KQL-PLN-PR02  
 **Version:** PR02  
-**Status:** Accepted. Step 1 done. Completion not started.  
+**Status:** Accepted. Step 2 done. Slot scan not started.  
 **Date:** 4 October 2026  
 **Binding:** `PR02 -- Requirements.md`, then `PR02 -- Design.md`.
 
@@ -14,7 +14,9 @@ Publish waits on RouteIQ calling Complete.
 
 Step 1 closed 4 October 2026. Documents Accepted.
 
-Not done: completion type, slot scan, ranking, tests, RouteIQ popup, NuGet.
+Step 2 closed 4 October 2026. `KqlCompletion`, `KqlCompletionRow`, `KqlCompletionSlot`, `KqlCompletionKind`. `KqlHelper.Complete(text, caret, session, hints)`. A negative caret returns `KqlCompletion.Empty`. A caret past the end clamps. No throw. Hints are accepted and not read yet.
+
+Not done: slot scan, ranking, tests, RouteIQ popup, NuGet.
 
 ---
 
@@ -23,7 +25,7 @@ Not done: completion type, slot scan, ranking, tests, RouteIQ popup, NuGet.
 | Step | Where | Exit |
 |---|---|---|
 | 1 | This folder | Done. Documents Accepted. |
-| 2 | `KqlCompletion` | Result and row types. `KqlHelper.Complete`. Empty list on a bad caret. No throw. |
+| 2 | `KqlCompletion` | Done. Result and row types. `KqlHelper.Complete`. Empty list on a bad caret. No throw. |
 | 3 | Slot scan | Field, operator, value, join, none. Uses the lexer. Does not bind a predicate. |
 | 4 | Rank | Prefix, then contains. MRU texts boost equal prefixes only. |
 | 5 | Tests | Every example in Requirements §6. Connections does not offer a route field. Insert of a value row compiles under PR01. |
@@ -63,3 +65,4 @@ A new package, a WPF control in Kql, a model, octet guessing, offering `IN`, pub
 | Version | Date | Change |
 |---|---|---|
 | PR02 | 4 Oct 2026 | Plan written. Step 1 Accepted. Implementation not started. |
+| PR02 | 4 Oct 2026 | Step 2. Completion types and Complete. Empty list on a bad caret. |

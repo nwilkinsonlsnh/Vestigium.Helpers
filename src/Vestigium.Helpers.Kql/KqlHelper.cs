@@ -53,4 +53,20 @@ public static class KqlHelper
 
     public static KqlCompileResult Compile(string text, KqlSession session)
         => KqlBinder.Compile(text, session);
+
+    public static KqlCompletion Complete(string? text, int caret, KqlSession session, IReadOnlyList<string>? hints = null)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        _ = hints;
+        if (caret < 0)
+            return KqlCompletion.Empty;
+
+        text ??= string.Empty;
+        if (caret > text.Length)
+            caret = text.Length;
+
+        _ = text;
+        _ = caret;
+        return KqlCompletion.Empty;
+    }
 }
