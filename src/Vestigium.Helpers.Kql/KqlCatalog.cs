@@ -196,6 +196,7 @@ internal static class KqlCatalog
             N("connections.localport", KqlType.Integer, KqlGroups.Conn, connection, KqlCompareAs.Stored, "LocalPort", minimum: 1, maximum: 65535),
             N("connections.remote", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.IpAddress, "Remote"),
             N("connections.remoteport", KqlType.Integer, KqlGroups.Conn, connection, KqlCompareAs.Stored, "RemotePort", minimum: 1, maximum: 65535),
+            N("connections.service", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, "Service"),
             N("connections.process", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, "Process"),
             N("connections.time", KqlType.Integer, KqlGroups.Conn, connection, KqlCompareAs.Stored, "Time"),
             N("connections.protocol", KqlType.String, KqlGroups.Conn, connection, KqlCompareAs.Stored, ["tcp", "udp"], "Protocol"),
