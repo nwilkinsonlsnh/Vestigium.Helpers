@@ -37,7 +37,7 @@ HarReader.ReadFile(string path) → LogReadResult
 | 2 | HAR-02 | Field extract per R01-01. | Done |
 | 3 | HAR-03 | Trimmed corpus tests. Oversize and missing-entries tests. | Done |
 | 4 | HAR-04 | `HarLog` + catalog. Pin Logging 1.7.1. | Done |
-| 5 | HAR-05 | Pack 1.0.0 after LogParser 1.0.0 is on the feed. | Open |
+| 5 | HAR-05 | Pack 1.0.0 after LogParser 1.0.0 is on the feed. | Done |
 
 ### HAR-03 fixtures
 
@@ -72,4 +72,4 @@ tests/Vestigium.Helpers.LogParser.Har.Tests/
 
 ## Next action
 
-HAR-05. Pack 1.0.0. Logging is the house facade. No host rows in the log.
+Har is packed. `1.0.0` is on nuget.org. Next library slice is URL-01.
