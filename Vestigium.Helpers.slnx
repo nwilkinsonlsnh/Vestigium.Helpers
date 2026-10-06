@@ -43,5 +43,6 @@
   <Folder Name="/Tests/">
     <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
     <Project Path="tests/Vestigium.Helpers.LogParser.Har.Tests/Vestigium.Helpers.LogParser.Har.Tests.csproj" />
+    <Project Path="tests/Vestigium.Helpers.LogParser.Url.Tests/Vestigium.Helpers.LogParser.Url.Tests.csproj" />
   </Folder>
 </Solution>
