@@ -11,7 +11,7 @@ public sealed class Url01SkeletonTests
     {
         var result = UrlReader.Read(new MemoryStream(Encoding.UTF8.GetBytes("https://q2prod.idbs-cloud.com:8443/")));
         Assert.Equal(LogFormat.Url, result.Format);
-        Assert.Empty(result.Hosts);
+        Assert.Equal(["q2prod.idbs-cloud.com"], result.Hosts.Select(h => h.Host));
     }
 
     [Fact]
