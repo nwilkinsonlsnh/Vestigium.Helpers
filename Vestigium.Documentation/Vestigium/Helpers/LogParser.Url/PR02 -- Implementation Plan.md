@@ -38,7 +38,7 @@ UrlReader.ReadFile(string path) → LogReadResult
 | 2 | URL-02 | Scheme, mailto, bare domain, localhost, IPv4. | Done |
 | 3 | URL-03 | Tests: three-host dump, `notes.txt` rejected, `e.g.` rejected, IPv4 skipped-shape. | Done |
 | 4 | URL-04 | `UrlLog` + catalog. Pin Logging 1.7.1. | Done |
-| 5 | URL-05 | Pack 1.0.0 after LogParser 1.0.0 is on the feed. | Open |
+| 5 | URL-05 | Pack 1.0.0 after LogParser 1.0.0 is on the feed. | Done |
 
 ### URL-03
 
@@ -68,4 +68,4 @@ tests/Vestigium.Helpers.LogParser.Url.Tests/
 
 ## Next action
 
-URL-05. Pack 1.0.0. Logging is the house facade. No host rows in the log.
+Url is packed. `1.0.0` is on nuget.org. Har and Url both consume LogParser 1.0.0.
