@@ -11,4 +11,12 @@
   <PackageReference Include="Vestigium.Helpers.LogParser" Version="1.0.0" />
 </ItemGroup>
 
+<ItemGroup>
+  <InternalsVisibleTo Include="Vestigium.Helpers.LogParser.Har.Tests" />
+</ItemGroup>
+
+<ItemGroup>
+  <None Include="EventCatalog/har.json" Pack="true" PackagePath="contentFiles/any/any/EventCatalog/" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+
 </Project>

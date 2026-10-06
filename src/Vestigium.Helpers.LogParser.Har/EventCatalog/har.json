@@ -1,0 +1,11 @@
+{
+  "app": "LogParser.Har",
+  "category": "Helpers",
+  "block": { "start": 21000, "end": 21499 },
+  "events": [
+    { "eventId": 21000, "name": "ParseStart", "severity": "Information", "subcategory": "Parse", "message": "parse start" },
+    { "eventId": 21005, "name": "ParseComplete", "severity": "Information", "subcategory": "Parse", "message": "parse complete" },
+    { "eventId": 21010, "name": "ParseFailed", "severity": "Error", "subcategory": "Parse", "message": "parse failed" },
+    { "eventId": 21015, "name": "Oversize", "severity": "Error", "subcategory": "Parse", "message": "har over 64 MB" }
+  ]
+}

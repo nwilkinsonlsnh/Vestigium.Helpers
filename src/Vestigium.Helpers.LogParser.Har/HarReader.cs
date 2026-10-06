@@ -17,7 +17,10 @@ public static class HarReader
         if (!info.Exists)
             throw new FileNotFoundException("HAR file was not found.", path);
         if (info.Length > MaxBytes)
+        {
+            HarLog.Error(HarEvents.Oversize, "har over 64 MB");
             throw new InvalidDataException("HAR file is over 64 MB.");
+        }
 
         using var stream = File.OpenRead(path);
         return Read(stream);
@@ -27,7 +30,12 @@ public static class HarReader
     {
         ArgumentNullException.ThrowIfNull(stream);
         if (stream.CanSeek && stream.Length > MaxBytes)
+        {
+            HarLog.Error(HarEvents.Oversize, "har over 64 MB");
             throw new InvalidDataException("HAR file is over 64 MB.");
+        }
+
+        HarLog.Information(HarEvents.ParseStart, "parse start");
 
         using var document = JsonDocument.Parse(stream, new JsonDocumentOptions
         {
@@ -36,9 +44,15 @@ public static class HarReader
         });
 
         if (!document.RootElement.TryGetProperty("log", out var log) || log.ValueKind != JsonValueKind.Object)
+        {
+            HarLog.Error(HarEvents.ParseFailed, "HAR is missing log.");
             throw new InvalidDataException("HAR is missing log.");
+        }
         if (!log.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
+        {
+            HarLog.Error(HarEvents.ParseFailed, "HAR is missing log.entries.");
             throw new InvalidDataException("HAR is missing log.entries.");
+        }
 
         var rows = new Dictionary<string, Bucket>(StringComparer.Ordinal);
         var order = new List<Bucket>();
@@ -89,6 +103,7 @@ public static class HarReader
             hosts[i] = new LogHost(row.Host, row.Ports, row.Hits, row.Sources, row.IsAddress);
         }
 
+        HarLog.Information(HarEvents.ParseComplete, "parse complete");
         return new LogReadResult(LogFormat.Har, entries.GetArrayLength(), pages, hosts, warnings);
     }
 
