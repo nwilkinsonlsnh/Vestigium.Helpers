@@ -38,7 +38,7 @@ No public `LogParserLog`. Children do not link to it.
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | LP-01 | Delete `Class1.cs`. Add the four types. | Done |
-| 2 | LP-02 | Pin `Vestigium.Logging` 1.7.1. `LogParserLog` + `EventCatalog`. No-op test. | Open |
+| 2 | LP-02 | Pin `Vestigium.Logging` 1.7.1. `LogParserLog` + `EventCatalog`. No-op test. | Done |
 | 3 | LP-03 | Har and Url csproj reference this project. Solution builds. | Open |
 | 4 | LP-04 | Pack 1.0.0 only after Har and Url tests are green against the project reference. | Open |
 
@@ -85,4 +85,4 @@ Do not add a Demo. Do not edit `LogParser.Domain` except to leave it out of the 
 
 ## Next action
 
-LP-02. Pin `Vestigium.Logging` 1.7.1. `LogParserLog` no-ops when the host has not initialized.
+LP-03. Har and Url csproj reference this project. Solution builds.

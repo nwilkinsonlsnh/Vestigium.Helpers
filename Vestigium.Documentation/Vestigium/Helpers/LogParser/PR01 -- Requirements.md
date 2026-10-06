@@ -21,7 +21,7 @@
 | 2 | Children | `LogParser.Har` and `LogParser.Url` reference this package. They do not copy the records. |
 | 3 | Domain | Dropped. Bare names live in `LogParser.Url`. |
 | 4 | Logging | Internal facade. No `Initialize`. No-op when the host has not initialized. Pin `Vestigium.Logging` 1.7.1. |
-| 5 | Identity | APPID `LogParser`. Folder follows the host process. DnsIQ already initializes with `HostIds.DnsIQ`. |
+| 5 | Identity | APPID `LogParser`. Host directory is `%ProgramData%\Vestigium\Logs\LogParser` (`LogParserCatalog.LogDirectory`). The library does not call `Initialize` and does not create the folder. One process has one log directory. A DnsIQ host that does not set this path still writes to the DnsIQ folder. |
 
 ## Must change
 

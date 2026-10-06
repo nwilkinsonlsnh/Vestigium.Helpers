@@ -12,9 +12,15 @@ public sealed record LogReadResult
         IReadOnlyList<string>? warnings = null)
     {
         if (entryCount < 0)
+        {
+            LogParserLog.Error(LogParserEvents.ResultRejected, Vestigium.Logging.VestigiumStatus.Failed, LogParserCatalog.Subcategories.Bag, "rejected entry count");
             throw new ArgumentOutOfRangeException(nameof(entryCount));
+        }
         if (pageCount < 0)
+        {
+            LogParserLog.Error(LogParserEvents.ResultRejected, Vestigium.Logging.VestigiumStatus.Failed, LogParserCatalog.Subcategories.Bag, "rejected page count");
             throw new ArgumentOutOfRangeException(nameof(pageCount));
+        }
         Format = format;
         EntryCount = entryCount;
         PageCount = pageCount;
