@@ -34,7 +34,7 @@ HarReader.ReadFile(string path) → LogReadResult
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | HAR-01 | Reference LogParser. Delete `Class1.cs`. `HarReader` skeleton. | Done |
-| 2 | HAR-02 | Field extract per R01-01. | Open |
+| 2 | HAR-02 | Field extract per R01-01. | Done |
 | 3 | HAR-03 | Trimmed corpus tests. Oversize and missing-entries tests. | Open |
 | 4 | HAR-04 | `HarLog` + catalog. Pin Logging 1.7.1. | Open |
 | 5 | HAR-05 | Pack 1.0.0 after LogParser 1.0.0 is on the feed. | Open |
@@ -72,4 +72,4 @@ tests/Vestigium.Helpers.LogParser.Har.Tests/
 
 ## Next action
 
-HAR-02. Field extract per R01-01. The skeleton counts entries and returns no hosts.
+HAR-03. Trimmed corpus fixtures for the two captures. Extract is in. Server IP is not a host.
