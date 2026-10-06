@@ -22,7 +22,6 @@
     <Project Path="src/Vestigium.Helpers.Xml/Vestigium.Helpers.Xml.csproj" />
   </Folder>
   <Folder Name="/Library/LogParser/">
-    <Project Path="src/Vestigium.Helpers.LogParser.Domain/Vestigium.Helpers.LogParser.Domain.csproj" Id="edcbddd5-ceda-437e-a26e-11afff863d69" />
     <Project Path="src/Vestigium.Helpers.LogParser.Har/Vestigium.Helpers.LogParser.Har.csproj" />
     <Project Path="src/Vestigium.Helpers.LogParser.Url/Vestigium.Helpers.LogParser.Url.csproj" Id="0832fff6-9363-49d4-a48a-04252fa834b8" />
     <Project Path="src/Vestigium.Helpers.LogParser/Vestigium.Helpers.LogParser.csproj" Id="c3d6b156-c8ba-437c-9808-49d0657a7bca" />
