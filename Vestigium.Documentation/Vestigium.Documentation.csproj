@@ -93,6 +93,16 @@
     <Folder Include="Vestigium\Helpers\PerfMon\Network\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\PerfMon\PageFile\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\PerfMon\PerfMon\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\LogParser\" />
+    <Folder Include="Vestigium\Helpers\LogParser.Har\" />
+    <Folder Include="Vestigium\Helpers\LogParser.Url\" />
+    <Content Include="Vestigium\Helpers\LogParser\README.md" />
+    <Content Include="Vestigium\Helpers\LogParser\PR01 -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\LogParser\PR02 -- Implementation Plan.md" />
+    <Content Include="Vestigium\Helpers\LogParser.Har\PR01 -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\LogParser.Har\PR02 -- Implementation Plan.md" />
+    <Content Include="Vestigium\Helpers\LogParser.Url\PR01 -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\LogParser.Url\PR02 -- Implementation Plan.md" />
   </ItemGroup>
 
 </Project>
