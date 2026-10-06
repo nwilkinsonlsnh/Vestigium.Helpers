@@ -31,6 +31,7 @@
     <ProjectReference Include="..\Vestigium.Helpers.Analytics\Vestigium.Helpers.Analytics.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Network\Vestigium.Helpers.Network.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Csv\Vestigium.Helpers.Csv.csproj" />
+    <ProjectReference Include="..\Vestigium.Helpers.LogParser\Vestigium.Helpers.LogParser.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Kql\Vestigium.Helpers.Kql.csproj" />
     <ProjectReference Include="..\Vestigium.Helpers.Charts\Vestigium.Helpers.Charts.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
     <ProjectReference Include="..\Vestigium.Helpers.PerfMon\Vestigium.Helpers.PerfMon.csproj" />
