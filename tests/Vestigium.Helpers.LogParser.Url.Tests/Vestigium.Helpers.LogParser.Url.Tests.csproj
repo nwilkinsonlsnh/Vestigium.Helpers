@@ -16,4 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vestigium.Helpers.LogParser.Url\Vestigium.Helpers.LogParser.Url.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
