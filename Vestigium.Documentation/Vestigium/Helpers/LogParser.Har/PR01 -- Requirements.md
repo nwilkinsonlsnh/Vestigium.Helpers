@@ -59,11 +59,11 @@ Cannot-reach (`USITHLWDU19031_24JUL_SiteCannotBeReached.har`):
 | `q2valprod.services.idbs-cloud.com` | Timed out. Status 0. Still a host. |
 | `quintiles.sharepoint.com` | Referrer page. |
 
-SSO (`USITHLWDU19031_SSO_SignInError.har`), ten hosts:
+SSO (`USITHLWDU19031_SSO_SignInError.har`), ten hosts from the field map, not from response bodies:
 
-`q2valprod.services.idbs-cloud.com`, `idbs-q2valprod.us.auth0.com`, `login.microsoftonline.com`, `login.windows.net`, `aadcdn.msauth.net`, `aadcdn.msftauth.net`, `login.microsoftonline.us`, `login.microsoftonline.cn`, `cdn.auth0.com`, `acdn.auth0.com`.
+`aadcdn.msauth.net`, `aadcdn.msftauth.net`, `cdn.auth0.com`, `idbs-q2valprod.us.auth0.com`, `idbs-themes.idbs-cloud.com`, `login.microsoftonline.com`, `q2prod.idbs-cloud.com`, `q2valprod.services.idbs-cloud.com`, `quintiles.sharepoint.com`, `static-resources.idbs-cloud.com`.
 
-Neither fixture yields `75.2.119.14` or `13.107.136.2` as a probe name.
+`login.windows.net`, `login.microsoftonline.us`, `login.microsoftonline.cn`, and `acdn.auth0.com` are not in `request.url`, `redirectURL`, `Location`, or page title. They are out of this reader. Port 8443 is on `q2prod`. Neither fixture yields `75.2.119.14` or `13.107.136.2` as a probe name.
 
 ### R01-03 Package
 
