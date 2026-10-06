@@ -74,9 +74,9 @@ internal static class NetworkStackEngine
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? NetworkWindowsTables.GetRoutes(family) : NetworkLinuxTables.GetRoutes(family);
     }
 
-    public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
+    public static IReadOnlyList<NetworkNeighbor> GetNeighbors(RouteFamily family = RouteFamily.All)
     {
-        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? NetworkWindowsTables.GetNeighbors() : NetworkLinuxTables.GetNeighbors();
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? NetworkWindowsTables.GetNeighbors(family) : NetworkLinuxTables.GetNeighbors(family);
     }
 
     private static NetworkConnection MapTcp(TcpConnectionInformation c)

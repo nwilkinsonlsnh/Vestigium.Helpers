@@ -34,15 +34,18 @@ internal static class NetworkWindowsTables
         return rows;
     }
 
-    public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
+    public static IReadOnlyList<NetworkNeighbor> GetNeighbors(RouteFamily family = RouteFamily.All)
     {
+        var names = InterfaceNames();
         var rows = new List<NetworkNeighbor>();
-        rows.AddRange(ReadIpv4Neighbors());
-        rows.AddRange(ReadIpv6Neighbors());
+        if (family is RouteFamily.All or RouteFamily.Pv4)
+            rows.AddRange(ReadIpv4Neighbors(names));
+        if (family is RouteFamily.All or RouteFamily.Pv6)
+            rows.AddRange(ReadIpv6Neighbors(names));
         return rows;
     }
 
-    private static IEnumerable<NetworkNeighbor> ReadIpv4Neighbors()
+    private static IEnumerable<NetworkNeighbor> ReadIpv4Neighbors(IReadOnlyDictionary<int, string> names)
     {
         var size = 0;
         GetIpNetTable(IntPtr.Zero, ref size, true);
@@ -66,7 +69,7 @@ internal static class NetworkWindowsTables
                     AddressFamily.InterNetwork,
                     addr,
                     mac,
-                    InterfaceName(index),
+                    NameOf(names, index),
                     NeighborType(type),
                     index);
                 offset += 24;
@@ -78,7 +81,7 @@ internal static class NetworkWindowsTables
         }
     }
 
-    private static IEnumerable<NetworkNeighbor> ReadIpv6Neighbors()
+    private static IEnumerable<NetworkNeighbor> ReadIpv6Neighbors(IReadOnlyDictionary<int, string> names)
     {
         if (GetIpNetTable2(AfInet6, out var table) != 0 || table == 0)
             yield break;
@@ -100,7 +103,7 @@ internal static class NetworkWindowsTables
                     AddressFamily.InterNetworkV6,
                     address,
                     mac,
-                    InterfaceName(index),
+                    NameOf(names, index),
                     NeighborState(state),
                     index,
                     null,
@@ -296,6 +299,54 @@ internal static class NetworkWindowsTables
         var bytes = BitConverter.GetBytes(networkOrder);
         return (bytes[0] << 8) | bytes[1];
     }
+
+    private static IReadOnlyDictionary<int, string> InterfaceNames()
+    {
+        var map = new Dictionary<int, string>();
+        try
+        {
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+                AddIndexes(map, nic);
+        }
+        catch (NetworkInformationException)
+        {
+        }
+
+        return map;
+    }
+
+    private static void AddIndexes(Dictionary<int, string> map, NetworkInterface nic)
+    {
+        try
+        {
+            var properties = nic.GetIPProperties();
+            try
+            {
+                var v4 = properties.GetIPv4Properties();
+                if (v4.Index >= 0)
+                    map.TryAdd(v4.Index, nic.Name);
+            }
+            catch (NetworkInformationException)
+            {
+            }
+
+            try
+            {
+                var v6 = properties.GetIPv6Properties();
+                if (v6.Index >= 0)
+                    map.TryAdd(v6.Index, nic.Name);
+            }
+            catch (NetworkInformationException)
+            {
+            }
+        }
+        catch (NetworkInformationException)
+        {
+        }
+    }
+
+    private static string? NameOf(IReadOnlyDictionary<int, string> names, int index)
+        => names.TryGetValue(index, out var name) ? name : null;
 
     private static string? InterfaceName(int index)
     {

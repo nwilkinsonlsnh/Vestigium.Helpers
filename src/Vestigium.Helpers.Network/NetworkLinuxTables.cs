@@ -21,9 +21,11 @@ internal static class NetworkLinuxTables
         return rows;
     }
 
-    public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
+    public static IReadOnlyList<NetworkNeighbor> GetNeighbors(RouteFamily family = RouteFamily.All)
     {
         var rows = new List<NetworkNeighbor>();
+        if (family == RouteFamily.Pv6)
+            return rows;
         var path = NetworkTestHooks.ProcPath("/proc/net/arp");
         if (!File.Exists(path))
             return rows;

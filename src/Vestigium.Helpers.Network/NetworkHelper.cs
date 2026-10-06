@@ -137,11 +137,11 @@ public static partial class NetworkHelper
         return rows;
     }
 
-    public static IReadOnlyList<NetworkNeighbor> GetNeighbors()
+    public static IReadOnlyList<NetworkNeighbor> GetNeighbors(RouteFamily family = RouteFamily.All)
     {
         using var scope = NetworkLog.Begin(HelperLog.Subcategories.Neighbor, nameof(GetNeighbors));
-        var rows = NetworkStackEngine.GetNeighbors();
-        NetworkLog.Success(HelperLog.Subcategories.Neighbor, $"neighbors={rows.Count}");
+        var rows = NetworkStackEngine.GetNeighbors(family);
+        NetworkLog.Success(HelperLog.Subcategories.Neighbor, $"neighbors={rows.Count} family={family}");
         return rows;
     }
 
