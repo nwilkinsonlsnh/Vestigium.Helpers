@@ -39,8 +39,8 @@ No public `LogParserLog`. Children do not link to it.
 | ---: | :--- | :--- | :--- |
 | 1 | LP-01 | Delete `Class1.cs`. Add the four types. | Done |
 | 2 | LP-02 | Pin `Vestigium.Logging` 1.7.1. `LogParserLog` + `EventCatalog`. No-op test. | Done |
-| 3 | LP-03 | Har and Url csproj reference this project. Solution builds. | Open |
-| 4 | LP-04 | Pack 1.0.0 only after Har and Url tests are green against the project reference. | Open |
+| 3 | LP-03 | Har and Url pin `Vestigium.Helpers.LogParser` 1.0.0. No project reference. | Done |
+| 4 | LP-04 | Pack 1.0.0. On nuget.org. | Done |
 
 ### LP-01
 
@@ -52,11 +52,11 @@ Do not call `Initialize` in the library or in the test. The no-op test asserts a
 
 ### LP-03
 
-Project reference, not a package reference, until 1.0.0 is on the feed. DnsIQ does not reference this project. Suite consumes the pack.
+Package reference `Vestigium.Helpers.LogParser` 1.0.0. Not a project reference. DnsIQ does not reference the project. Suite consumes the pack.
 
 ### LP-04
 
-Not this week if Har and Url are still red.
+Pushed 6 Oct 2026. Flat container lists 1.0.0. Readme warning only.
 
 ## Files
 
@@ -85,4 +85,4 @@ Do not add a Demo. Do not edit `LogParser.Domain` except to leave it out of the 
 
 ## Next action
 
-LP-03. Har and Url csproj reference this project. Solution builds.
+HAR-01 and URL-01. Readers against the 1.0.0 package. Do not add a project reference.

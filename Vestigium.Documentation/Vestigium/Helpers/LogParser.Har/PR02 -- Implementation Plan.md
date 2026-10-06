@@ -19,7 +19,7 @@ Stub. No reference to `LogParser`. No Logging pin.
 | Decision | Why |
 |---|---|
 | Static `HarReader` | Same shape as `NetworkHelper`. No façade interface. |
-| Project reference to LogParser | Pack is not on the feed. |
+| Package `Vestigium.Helpers.LogParser` 1.0.0 | On the feed. No project reference. |
 | Trimmed fixtures | The SSO original is 2.5 MB. Keep URLs, redirects, `Location`, status 0. Drop bodies. |
 
 ## Surface

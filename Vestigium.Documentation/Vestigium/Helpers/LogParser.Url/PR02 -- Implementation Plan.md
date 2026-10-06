@@ -18,6 +18,7 @@ Stub. No reference to `LogParser`. No Logging pin. `LogParser.Domain` still exis
 
 | Decision | Why |
 |---|---|
+| Package `Vestigium.Helpers.LogParser` 1.0.0 | On the feed. No project reference. |
 | One reader | Bare name and scheme URL are two patterns, one yield. |
 | File extension denylist | `report.txt` in a sheet is the false positive that ships. |
 | No public-suffix list | No buyer. Last-label letters plus the denylist is the cheap rule. |
