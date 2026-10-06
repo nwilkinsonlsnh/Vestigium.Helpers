@@ -68,9 +68,15 @@ internal static class NetworkNetBiosFallback
                 StandardOutputEncoding = Encoding.UTF8
             };
             process.Start();
-            var text = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(8000);
-            return text;
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(8000))
+            {
+                try { process.Kill(entireProcessTree: true); } catch (Exception) { }
+                return string.Empty;
+            }
+
+            return stdout.GetAwaiter().GetResult();
         }
         catch (Exception)
         {
