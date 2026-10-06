@@ -1,0 +1,11 @@
+{
+  "app": "LogParser.Url",
+  "category": "Helpers",
+  "block": { "start": 21500, "end": 21999 },
+  "events": [
+    { "eventId": 21500, "name": "ScanStart", "severity": "Information", "subcategory": "Scan", "message": "scan start" },
+    { "eventId": 21505, "name": "ScanComplete", "severity": "Information", "subcategory": "Scan", "message": "scan complete" },
+    { "eventId": 21510, "name": "ScanFailed", "severity": "Error", "subcategory": "Scan", "message": "scan failed" },
+    { "eventId": 21515, "name": "Oversize", "severity": "Error", "subcategory": "Scan", "message": "text over 64 MB" }
+  ]
+}

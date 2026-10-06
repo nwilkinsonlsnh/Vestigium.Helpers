@@ -23,7 +23,10 @@ public static partial class UrlReader
         if (!info.Exists)
             throw new FileNotFoundException("Text file was not found.", path);
         if (info.Length > MaxBytes)
+        {
+            UrlLog.Error(UrlEvents.Oversize, "text over 64 MB");
             throw new InvalidDataException("Text file is over 64 MB.");
+        }
 
         using var stream = File.OpenRead(path);
         return Read(stream);
@@ -33,7 +36,12 @@ public static partial class UrlReader
     {
         ArgumentNullException.ThrowIfNull(stream);
         if (stream.CanSeek && stream.Length > MaxBytes)
+        {
+            UrlLog.Error(UrlEvents.Oversize, "text over 64 MB");
             throw new InvalidDataException("Text file is over 64 MB.");
+        }
+
+        UrlLog.Information(UrlEvents.ScanStart, "scan start");
 
         using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
         var text = reader.ReadToEnd();
@@ -95,6 +103,7 @@ public static partial class UrlReader
             hosts[i] = new LogHost(row.Host, row.Ports, row.Hits, LogHostSource.Url, row.IsAddress);
         }
 
+        UrlLog.Information(UrlEvents.ScanComplete, "scan complete");
         return new LogReadResult(LogFormat.Url, hosts.Length, 0, hosts);
     }
 
