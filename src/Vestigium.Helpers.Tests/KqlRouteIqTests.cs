@@ -49,10 +49,10 @@ public sealed class KqlRouteIqTests
         AssertHit(KqlPack.Connection, "connections.localport == 443", ("connections.localport", 443));
         AssertHit(KqlPack.Connection, "connections.localport LTE 1000", ("connections.localport", 443));
         AssertHit(KqlPack.Connection, "connections.remoteport == 443", ("connections.remoteport", 443));
-        AssertHit(KqlPack.Connection, "connections.service == https", ("connections.service", "https"));
+        AssertHit(KqlPack.Connection, "connections.service == 'https'", ("connections.service", "https"));
         AssertHit(KqlPack.Connection, "connections.service == '--'", ("connections.service", "--"));
         AssertHit(KqlPack.Connection, "connections.service CONTAINS string(http)", ("connections.service", "https"));
-        AssertHit(KqlPack.Connection, "service == dns", ("connections.service", "dns"));
+        AssertHit(KqlPack.Connection, "service == 'dns'", ("connections.service", "dns"));
         AssertHit(KqlPack.Connection, "connections.remote BEGINS WITH ipaddress(10.1)", ("connections.remote", "10.1.2.3"));
         AssertHit(KqlPack.Connection, "connections.process CONTAINS 'chrome'", ("connections.process", "chrome.exe"));
         AssertHit(KqlPack.Connection, "connections.process CONTAINS string(chrome)", ("connections.process", "Chrome"));
