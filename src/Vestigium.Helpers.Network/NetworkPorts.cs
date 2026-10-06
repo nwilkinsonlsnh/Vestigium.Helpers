@@ -151,16 +151,46 @@ public static class NetworkPorts
         Row(27017, "mongodb", "Tcp", "MongoDB"),
         Row(27018, "mongodb", "Tcp", "MongoDB shard"),
         Row(50000, "sap", "Tcp", "SAP"),
-        Row(50070, "hadoop", "Tcp", "Hadoop NameNode")
+        Row(50070, "hadoop", "Tcp", "Hadoop NameNode"),
+        Row(443, "quic", "Udp", "QUIC"),
+        Row(512, "rexec", "Tcp", "Remote execution"),
+        Row(513, "rlogin", "Tcp", "Remote login"),
+        Row(514, "rsh", "Tcp", "Remote shell"),
+        Row(524, "ncp", "Both", "NetWare Core Protocol"),
+        Row(548, "afp", "Tcp", "Apple Filing Protocol"),
+        Row(691, "msexch-routing", "Tcp", "Microsoft Exchange routing"),
+        Row(749, "kerberos-adm", "Tcp", "Kerberos administration")
     ];
 
-    private static readonly Dictionary<int, NetworkPortGuess> ByPort = Catalog.ToDictionary(row => row.Port);
+    private static readonly Dictionary<int, NetworkPortGuess> ByPort = BuildByPort();
+    private static readonly Dictionary<(string Transport, int Port), NetworkPortGuess> ByTransport = BuildTransport();
     private static readonly Dictionary<string, NetworkPortGuess[]> ByService = BuildNames();
 
     public static IReadOnlyList<NetworkPortGuess> All => Catalog;
 
     public static bool TryByPort(int port, out NetworkPortGuess guess)
         => ByPort.TryGetValue(port, out guess!);
+
+    public static bool Try(string? transport, int port, out NetworkPortGuess guess)
+    {
+        guess = null!;
+        if (port is < 0 or > 65535)
+            return false;
+        var key = Normalize(transport);
+        if (ByTransport.TryGetValue((key, port), out var exact))
+        {
+            guess = exact;
+            return true;
+        }
+
+        if (key != "Both" && ByTransport.TryGetValue(("Both", port), out var either))
+        {
+            guess = either;
+            return true;
+        }
+
+        return false;
+    }
 
     public static IReadOnlyList<NetworkPortGuess> ByName(string name)
     {
@@ -184,7 +214,40 @@ public static class NetworkPorts
         Add(map, "remote-desktop", Catalog.First(row => row.Port == 3389));
         Add(map, "ms-wbt-server", Catalog.First(row => row.Port == 3389));
         Add(map, "postgresql", Catalog.First(row => row.Port == 5432));
+        Add(map, "dhcp-server", Catalog.First(row => row.Port == 67 && row.Name == "dhcp"));
+        Add(map, "snmptrap", Catalog.First(row => row.Port == 162));
+        Add(map, "dns-over-tls", Catalog.First(row => row.Port == 853));
+        Add(map, "ike", Catalog.First(row => row.Port == 500));
+        Add(map, "portmap", Catalog.First(row => row.Port == 111));
+        Add(map, "svrloc", Catalog.First(row => row.Port == 427));
         return map.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static Dictionary<int, NetworkPortGuess> BuildByPort()
+    {
+        var map = new Dictionary<int, NetworkPortGuess>();
+        foreach (var row in Catalog)
+            map.TryAdd(row.Port, row);
+        return map;
+    }
+
+    private static Dictionary<(string Transport, int Port), NetworkPortGuess> BuildTransport()
+    {
+        var map = new Dictionary<(string, int), NetworkPortGuess>();
+        foreach (var row in Catalog)
+            map[(Normalize(row.Transport), row.Port)] = row;
+        return map;
+    }
+
+    private static string Normalize(string? transport)
+    {
+        if (string.IsNullOrWhiteSpace(transport) || transport.Trim().Equals("TCP", StringComparison.OrdinalIgnoreCase))
+            return "Tcp";
+        if (transport.Trim().Equals("UDP", StringComparison.OrdinalIgnoreCase))
+            return "Udp";
+        if (transport.Trim().Equals("Both", StringComparison.OrdinalIgnoreCase))
+            return "Both";
+        return "Tcp";
     }
 
     private static void Add(Dictionary<string, List<NetworkPortGuess>> map, string name, NetworkPortGuess row)
