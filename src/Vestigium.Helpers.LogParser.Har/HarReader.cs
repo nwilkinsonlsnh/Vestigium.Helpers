@@ -64,20 +64,21 @@ public static class HarReader
             foreach (var page in pageArray.EnumerateArray())
             {
                 if (page.TryGetProperty("title", out var title))
-                    Add(rows, order, title.GetString(), LogHostSource.Page, countHit: false);
+                    Add(rows, order, title.GetString(), LogHostSource.Page, countHit: false, error: null);
             }
         }
 
         foreach (var entry in entries.EnumerateArray())
         {
+            var error = EntryError(entry);
             if (entry.TryGetProperty("request", out var request) && request.TryGetProperty("url", out var url))
-                Add(rows, order, url.GetString(), LogHostSource.Request, countHit: true);
+                Add(rows, order, url.GetString(), LogHostSource.Request, countHit: true, error);
 
             if (!entry.TryGetProperty("response", out var response))
                 continue;
 
             if (response.TryGetProperty("redirectURL", out var redirect))
-                Add(rows, order, redirect.GetString(), LogHostSource.Redirect, countHit: false);
+                Add(rows, order, redirect.GetString(), LogHostSource.Redirect, countHit: false, error);
 
             if (response.TryGetProperty("headers", out var headers) && headers.ValueKind == JsonValueKind.Array)
             {
@@ -87,7 +88,7 @@ public static class HarReader
                         continue;
                     if (!string.Equals(name.GetString(), "Location", StringComparison.OrdinalIgnoreCase))
                         continue;
-                    Add(rows, order, value.GetString(), LogHostSource.Location, countHit: false);
+                    Add(rows, order, value.GetString(), LogHostSource.Location, countHit: false, error);
                 }
             }
         }
@@ -100,7 +101,7 @@ public static class HarReader
         for (var i = 0; i < order.Count; i++)
         {
             var row = order[i];
-            hosts[i] = new LogHost(row.Host, row.Ports, row.Hits, row.Sources, row.IsAddress);
+            hosts[i] = new LogHost(row.Host, row.Ports, row.Hits, row.Sources, row.IsAddress, row.Error);
         }
 
         HarLog.Information(HarEvents.ParseComplete, "parse complete");
@@ -112,7 +113,8 @@ public static class HarReader
         List<Bucket> order,
         string? raw,
         LogHostSource source,
-        bool countHit)
+        bool countHit,
+        string? error)
     {
         if (!TryHost(raw, out var host, out var port, out var address))
             return;
@@ -127,6 +129,19 @@ public static class HarReader
             row.Hits++;
         if (port is int seen)
             row.Ports.Add(seen);
+        if (!string.IsNullOrWhiteSpace(error) && !row.Errors.Contains(error))
+            row.Errors.Add(error);
+    }
+
+    private static string EntryError(JsonElement entry)
+    {
+        if (entry.TryGetProperty("_error", out var error) && error.ValueKind == JsonValueKind.String)
+            return error.GetString() ?? "";
+        if (entry.TryGetProperty("response", out var response)
+            && response.TryGetProperty("_error", out var responseError)
+            && responseError.ValueKind == JsonValueKind.String)
+            return responseError.GetString() ?? "";
+        return "";
     }
 
     private static bool TryHost(string? raw, out string host, out int? port, out bool isAddress)
@@ -157,5 +172,7 @@ public static class HarReader
         public int Hits { get; set; }
         public LogHostSource Sources { get; set; }
         public SortedSet<int> Ports { get; } = [];
+        public List<string> Errors { get; } = [];
+        public string Error => string.Join("; ", Errors);
     }
 }

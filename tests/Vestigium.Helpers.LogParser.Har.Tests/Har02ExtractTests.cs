@@ -61,4 +61,14 @@ public sealed class Har02ExtractTests
         var ex = Assert.Throws<InvalidDataException>(() => HarReader.Read(new MemoryStream(Encoding.UTF8.GetBytes("{\"log\":{}}"))));
         Assert.Equal("HAR is missing log.entries.", ex.Message);
     }
+
+    [Fact]
+    public void HAR02_003_entry_error_stays_on_the_host()
+    {
+        const string json = """
+            {"log":{"version":"1.2","entries":[{"_error":"net::ERR_TIMED_OUT","request":{"url":"https://q2valprod.services.idbs-cloud.com/a"},"response":{"status":0}}]}}
+            """;
+        var result = HarReader.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)));
+        Assert.Equal("net::ERR_TIMED_OUT", result.Hosts.Single().Error);
+    }
 }

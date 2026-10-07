@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.LogParser;
 
 public sealed record LogHost
 {
-    public LogHost(string host, IEnumerable<int>? ports, int hitCount, LogHostSource sources, bool isAddress)
+    public LogHost(string host, IEnumerable<int>? ports, int hitCount, LogHostSource sources, bool isAddress, string? error = null)
     {
         Host = Normalize(host);
         Ports = Freeze(ports);
@@ -16,6 +16,7 @@ public sealed record LogHost
         HitCount = hitCount;
         Sources = sources;
         IsAddress = isAddress;
+        Error = error?.Trim() ?? "";
     }
 
     public string Host { get; }
@@ -27,6 +28,8 @@ public sealed record LogHost
     public LogHostSource Sources { get; }
 
     public bool IsAddress { get; }
+
+    public string Error { get; }
 
     public static string Normalize(string host)
     {
