@@ -21,10 +21,21 @@ public sealed class UnseenTests
     [Fact]
     public void Packet_line_names_the_holes()
     {
-        var row = Unseen.Line(packet: true);
+        var row = Unseen.Line(WatchSource.Port);
 
         Assert.Equal(Unseen.Packet, row.Answers);
-        Assert.Equal("packet", row.Mode);
+        Assert.Equal("port", row.Mode);
+    }
+
+    [Fact]
+    public void Both_names_both_holes()
+    {
+        var row = Unseen.Line(WatchSource.Both);
+
+        Assert.Contains("Raw sockets", row.Answers);
+        Assert.Contains("this host sends", row.Answers);
+        Assert.Contains("DoH, DoT, and DoQ", row.Answers);
+        Assert.Equal("both", row.Mode);
     }
 
     [Fact]

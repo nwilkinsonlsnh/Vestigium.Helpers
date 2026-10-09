@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR02-04 done. Unseen line is next.
+**Status:** Closed. PR02-05 done.
 **Date:** 9 October 2026
 **Binding:** [PR02 -- Requirements.md](PR02%20--%20Requirements.md) wins on this cut. PR01 wins on the clock, the pipe, and the elevation exits. This file wins on order.
 
@@ -32,7 +32,7 @@
 | 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | Done. Trailing dot folds. |
 | 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | Done. 100 Event adds are one key. |
 | 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | Done. Both keeps the survivor. |
-| 5 | PR02-05 | Unseen line matches the source. `Both` names both holes. | |
+| 5 | PR02-05 | Unseen line matches the source. `Both` names both holes. | Done. |
 
 ---
 
@@ -56,7 +56,7 @@ Done. `Both` keeps the survivor. Event-only still exits 3. Query rows come from 
 
 ### PR02-05
 
-`Unseen.Line(source)` for `Both` states both holes. `Event` and `Port` keep the PR01 sentences.
+Done. `Both` names the resolver holes and the bind holes. `Event` and `Port` keep the PR01 sentences.
 
 ---
 
@@ -77,4 +77,4 @@ Do not enable the Operational channel. Do not edit DnsIQ. Do not add a builder.
 
 ## Next action
 
-PR02-05. Unseen line matches the source. Both names both holes.
+None in this repo. DnsIQ PR08 may start. It still does not own the sensor.

@@ -22,7 +22,7 @@ public static class Program
         await using var open = pipe;
         try
         {
-            await open.WriteAsync(Unseen.Line(request!.Source == WatchSource.Port), CancellationToken.None).ConfigureAwait(false);
+            await open.WriteAsync(Unseen.Line(request!.Source), CancellationToken.None).ConfigureAwait(false);
             return await WatchRun.RunAsync(open, request, CancellationToken.None).ConfigureAwait(false);
         }
         finally
