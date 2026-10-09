@@ -96,10 +96,9 @@
     <Folder Include="Vestigium\Helpers\LogParser\" />
     <Folder Include="Vestigium\Helpers\LogParser.Har\" />
     <Folder Include="Vestigium\Helpers\LogParser.Url\" />
-    <Folder Include="Vestigium\Helpers\Watch\Dns\" />
     <Content Include="Vestigium\Helpers\Watch\Dns\README.md" />
-    <Content Include="Vestigium\Helpers\Watch\Dns\PR01 -- Requirements.md" />
-    <Content Include="Vestigium\Helpers\Watch\Dns\PR01 -- Implementation Plan.md" />
+    <Content Include="Vestigium\Helpers\Watch\Dns\Complete\PR01\PR01 -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\Watch\Dns\Complete\PR01\PR01 -- Implementation Plan.md" />
     <Content Include="Vestigium\Helpers\LogParser\README.md" />
     <Content Include="Vestigium\Helpers\LogParser\PR01 -- Requirements.md" />
     <Content Include="Vestigium\Helpers\LogParser\PR02 -- Implementation Plan.md" />
