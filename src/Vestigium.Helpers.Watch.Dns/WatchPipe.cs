@@ -81,7 +81,7 @@ public sealed class WatchPipe : IAsyncDisposable
         var security = new PipeSecurity();
         var user = WindowsIdentity.GetCurrent().User
             ?? throw new InvalidOperationException("The current user has no sid.");
-        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite, AccessControlType.Allow));
+        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
         security.AddAccessRule(new PipeAccessRule(
             new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
             PipeAccessRights.FullControl,

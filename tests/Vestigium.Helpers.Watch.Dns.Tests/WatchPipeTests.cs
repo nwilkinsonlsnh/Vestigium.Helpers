@@ -17,14 +17,14 @@ public sealed class WatchPipeTests
         await using var pipe = WatchPipe.Create(name);
         using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
         var connect = client.ConnectAsync(5_000);
-        await pipe.WaitForClientAsync(CancellationToken.None);
+        await pipe.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
         await connect;
 
         var row = new WatchRow(DateTimeOffset.Parse("2026-10-09T09:54:00Z"), "chrome", 44, "edge.example", "A", "0", "1.2.3.4", "resolver");
         await pipe.WriteAsync(row, CancellationToken.None);
 
         using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        var line = await reader.ReadLineAsync();
+        var line = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(2));
         var back = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.NotNull(back);

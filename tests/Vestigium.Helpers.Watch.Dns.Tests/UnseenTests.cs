@@ -56,12 +56,12 @@ public sealed class UnseenTests
         await using var open = pipe!;
         using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
         var connect = client.ConnectAsync(5_000);
-        await open.WaitForClientAsync(CancellationToken.None);
+        await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
         await connect;
 
         await open.WriteAsync(Unseen.Line(packet: false), CancellationToken.None);
         using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        var line = await reader.ReadLineAsync();
+        var line = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(2));
         var row = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.Equal("Unseen", row!.Status);

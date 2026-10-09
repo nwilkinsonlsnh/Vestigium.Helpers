@@ -35,7 +35,7 @@ public sealed class ResolverWatchTests
         await using var pipe = WatchPipe.Create(name);
         using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
         var connect = client.ConnectAsync(5_000);
-        await pipe.WaitForClientAsync(CancellationToken.None);
+        await pipe.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
         await connect;
         Assert.True(WatchClock.TryCreate(5, out var clock, out _));
 
@@ -46,7 +46,7 @@ public sealed class ResolverWatchTests
             CancellationToken.None);
 
         using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        var line = await reader.ReadLineAsync();
+        var line = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(2));
         var row = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.Equal(ResolverWatch.SessionFailed, code);
