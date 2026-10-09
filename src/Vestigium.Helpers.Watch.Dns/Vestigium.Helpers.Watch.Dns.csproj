@@ -22,7 +22,8 @@
 		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.15" />
 	</ItemGroup>
 	<ItemGroup>
-		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="build\" />
+		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="build\Vestigium.Helpers.Watch.Dns.targets" />
+		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="buildTransitive\Vestigium.Helpers.Watch.Dns.targets" />
 	</ItemGroup>
 </Project>
 
