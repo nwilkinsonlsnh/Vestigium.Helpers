@@ -50,6 +50,8 @@ public sealed class WatchRunTests
         var connect = client.ConnectAsync(1_000);
         await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
+        using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+        var reading = reader.ReadLineAsync();
         Assert.True(WatchRequest.TryCreate(WatchSource.Event, 5, out var request, out _));
 
         var code = await WatchRun.RunAsync(
@@ -60,6 +62,7 @@ public sealed class WatchRunTests
             CancellationToken.None);
 
         Assert.Equal(ResolverWatch.SessionFailed, code);
+        await reading.WaitAsync(TimeSpan.FromSeconds(1));
         request.Clock.Stop();
     }
 }
