@@ -2,8 +2,8 @@
 
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
-**Status:** Closed — [PR01 -- Implementation Plan.md](PR01%20--%20Implementation%20Plan.md)
-**Next slice:** none in this repo. DnsIQ PR08-01.
-**Blocked:** nothing. DnsIQ PR08 may start. It still does not own the sensor.
+**Status:** Live — [PR02 -- Implementation Plan.md](PR02%20--%20Implementation%20Plan.md)
+**Next slice:** PR02-01. Default is both sensors. One row per name.
+**Blocked:** DnsIQ PR08 can still start against PR01. PR02 is the rollup. It does not own the tab.
 
 This folder is the queue. The requirements file wins on the cut. The plan wins on order.
