@@ -14,7 +14,12 @@ public sealed record WatchRow(
     string Type,
     string Status,
     string Answers,
-    string Mode);
+    string Mode)
+{
+    public int ResolverCount { get; init; }
+    public int PacketCount { get; init; }
+    public int Total { get; init; }
+}
 
 public sealed class WatchPipe : IAsyncDisposable
 {

@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR02-02 done. Rollup is next.
+**Status:** Live. PR02-03 done. Both sensors are next.
 **Date:** 9 October 2026
 **Binding:** [PR02 -- Requirements.md](PR02%20--%20Requirements.md) wins on this cut. PR01 wins on the clock, the pipe, and the elevation exits. This file wins on order.
 
@@ -30,7 +30,7 @@
 |---|---|---|---|
 | 1 | PR02-01 | `TryCreate` requires `Event`, `Port`, or `Both`. Missing source rejects. `Main` passes `Both` only when the arg is absent. | Done. Reject opens no sensor. |
 | 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | Done. Trailing dot folds. |
-| 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | |
+| 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | Done. 100 Event adds are one key. |
 | 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | |
 | 5 | PR02-05 | Unseen line matches the source. `Both` names both holes. | |
 
@@ -48,7 +48,7 @@ Done. Trim. Drop one trailing dot. Lower-case is the key. A scheme, a path, or a
 
 ### PR02-03
 
-`WatchRollup.Add(name, type, source, pid)` returns the row to send. `resolverCount` and `packetCount` start at 0. `total` is the sum. A non-question port payload does not call `Add`. The second pid for a key clears pid. The test sends 100 Event adds and asserts one key with count 100. No socket. No ETW.
+Done. 100 Event adds are one key with resolver count 100. A second pid clears the caller. A URL does not increment. No socket. No ETW. The sensors do not call `Add` yet.
 
 ### PR02-04
 
@@ -77,4 +77,4 @@ Do not enable the Operational channel. Do not edit DnsIQ. Do not add a builder.
 
 ## Next action
 
-PR02-03. Rollup. Increment the source. Omit pid when mixed.
+PR02-04. Run the requested sensors. Exit 3 only if none remain.
