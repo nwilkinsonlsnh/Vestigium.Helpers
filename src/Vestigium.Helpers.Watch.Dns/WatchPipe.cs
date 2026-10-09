@@ -26,16 +26,27 @@ public sealed class WatchPipe : IAsyncDisposable
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private readonly NamedPipeServerStream _server;
-    private readonly StreamWriter _writer;
+    private StreamWriter? _writer;
 
     private WatchPipe(string name, NamedPipeServerStream server)
     {
         Name = name;
         _server = server;
-        _writer = new StreamWriter(server, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true)
+    }
+
+    private StreamWriter Writer
+    {
+        get
         {
-            AutoFlush = true
-        };
+            if (_writer is not null)
+                return _writer;
+
+            _writer = new StreamWriter(_server, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true)
+            {
+                AutoFlush = true
+            };
+            return _writer;
+        }
     }
 
     public string Name { get; }
@@ -82,11 +93,11 @@ public sealed class WatchPipe : IAsyncDisposable
         => _server.WaitForConnectionAsync(token);
 
     public Task WriteAsync(WatchRow row, CancellationToken token)
-        => _writer.WriteLineAsync(JsonSerializer.Serialize(row, Json).AsMemory(), token);
+        => Writer.WriteLineAsync(JsonSerializer.Serialize(row, Json).AsMemory(), token);
 
     public async ValueTask DisposeAsync()
     {
-        await _writer.DisposeAsync().ConfigureAwait(false);
+        if (_writer is not null) await _writer.DisposeAsync().ConfigureAwait(false);
         await _server.DisposeAsync().ConfigureAwait(false);
     }
 }

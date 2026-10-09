@@ -15,7 +15,7 @@ public sealed class UnseenTests
 
         Assert.Equal(Unseen.Resolver, row.Answers);
         Assert.Equal("Unseen", row.Status);
-        Assert.Equal("resolver", row.Mode);
+        Assert.Equal("event", row.Mode);
     }
 
     [Fact]
