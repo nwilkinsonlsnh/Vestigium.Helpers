@@ -1,8 +1,8 @@
-# Vestigium.Helpers.DnsWatch — PR01 Implementation Plan
+# Vestigium.Helpers.Watch.Dns — PR01 Implementation Plan
 
-**Document ID:** VEST-HELPERS-DNSWATCH-PR01-PLAN
-**Host:** `Vestigium.Helpers.DnsWatch`
-**APPID:** `DnsWatch`
+**Document ID:** VEST-HELPERS-WATCH-DNS-PR01-PLAN
+**Host:** `Vestigium.Helpers.Watch.Dns`
+**APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
 **Status:** Live. Not started.
 **Date:** 8 October 2026
@@ -26,7 +26,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 
 | Call | Why |
 |---|---|
-| `src/Vestigium.Helpers.DnsWatch` | Matches the other helper hosts. Exe, not a class library. |
+| `src/Vestigium.Helpers.Watch.Dns` | Matches the other helper hosts. Exe, not a class library. |
 | Args in, rows out | Duration, mode, pipe name. No config file in this PR. |
 | 3008 before packets | The caller and the name are the point. Packets are the second slice. |
 | Tests off the wire | Clock, arg reject, and row line. No live ETW in the unit tests. |
@@ -50,7 +50,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 
 ### PR01-01
 
-Create `src/Vestigium.Helpers.DnsWatch/Vestigium.Helpers.DnsWatch.csproj`. `OutputType` is `WinExe`. Target `net10.0-windows`. Application manifest `requestedExecutionLevel` is `requireAdministrator`. No `AllocConsole`. A run that is not elevated exits `2` before any sensor.
+Create `src/Vestigium.Helpers.Watch.Dns/Vestigium.Helpers.Watch.Dns.csproj`. `OutputType` is `WinExe`. Target `net10.0-windows`. Application manifest `requestedExecutionLevel` is `requireAdministrator`. No `AllocConsole`. A run that is not elevated exits `2` before any sensor.
 
 ### PR01-02
 
@@ -77,15 +77,15 @@ Before any event, write the unseen line. Resolver text: raw sockets and non-Wind
 ## Files this plan expects to touch
 
 ```
-src/Vestigium.Helpers.DnsWatch/Vestigium.Helpers.DnsWatch.csproj          [NEW]
-src/Vestigium.Helpers.DnsWatch/app.manifest                                [NEW]
-src/Vestigium.Helpers.DnsWatch/Program.cs                                  [NEW]
-src/Vestigium.Helpers.DnsWatch/WatchClock.cs                               [NEW]
-src/Vestigium.Helpers.DnsWatch/WatchPipe.cs                                [NEW]
-src/Vestigium.Helpers.DnsWatch/ResolverWatch.cs                            [NEW]
-src/Vestigium.Helpers.DnsWatch/PacketWatch.cs                              [NEW]
-tests/Vestigium.Helpers.DnsWatch.Tests/WatchClockTests.cs                  [NEW]
-tests/Vestigium.Helpers.DnsWatch.Tests/WatchPipeTests.cs                   [NEW]
+src/Vestigium.Helpers.Watch.Dns/Vestigium.Helpers.Watch.Dns.csproj          [NEW]
+src/Vestigium.Helpers.Watch.Dns/app.manifest                                [NEW]
+src/Vestigium.Helpers.Watch.Dns/Program.cs                                  [NEW]
+src/Vestigium.Helpers.Watch.Dns/WatchClock.cs                               [NEW]
+src/Vestigium.Helpers.Watch.Dns/WatchPipe.cs                                [NEW]
+src/Vestigium.Helpers.Watch.Dns/ResolverWatch.cs                            [NEW]
+src/Vestigium.Helpers.Watch.Dns/PacketWatch.cs                              [NEW]
+tests/Vestigium.Helpers.Watch.Dns.Tests/WatchClockTests.cs                  [NEW]
+tests/Vestigium.Helpers.Watch.Dns.Tests/WatchPipeTests.cs                   [NEW]
 ```
 
 Do not edit DnsIQ. Do not edit Helpers.Network.

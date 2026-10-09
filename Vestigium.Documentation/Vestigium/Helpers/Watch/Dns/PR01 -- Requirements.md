@@ -1,8 +1,8 @@
-# Vestigium.Helpers.DnsWatch — PR01 Requirements
+# Vestigium.Helpers.Watch.Dns — PR01 Requirements
 
-**Document ID:** VEST-HELPERS-DNSWATCH-PR01-REQ
-**Host:** `Vestigium.Helpers.DnsWatch`
-**APPID:** `DnsWatch`
+**Document ID:** VEST-HELPERS-WATCH-DNS-PR01-REQ
+**Host:** `Vestigium.Helpers.Watch.Dns`
+**APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
 **Status:** Live. Binding for PR01 until the implementation plan closes it.
 **Date:** 8 October 2026
@@ -18,7 +18,7 @@
 
 | Call | Why |
 |---|---|
-| Name is `DnsWatch` | A 180 second sample is a watch. Monitoring implies it stays up. |
+| Name is `Watch.Dns` | Family slot is `Watch.*`. This cut is Dns only. A 180 second sample is a watch, not a resident. |
 | Exe, not a DLL | A library cannot elevate. The process token is the process. DnsIQ stays unelevated. |
 | Windows subsystem | No console window while the clock runs. The caller is the only surface. |
 | Manifest `requireAdministrator` | The sensors do not open without it. UAC is the start, shown once by the caller via `runas`. |
@@ -27,7 +27,7 @@
 | Pipe, not a file | A five-second sample does not land in ProgramData. Named pipe. ACL is the starting user and Administrators. |
 | Failures ride the pipe | No console to read. A start failure is a row, then exit. Exit code is the backup if the pipe never opens. |
 
-Rejected: `Vestigium.Helpers.DnsIQ.Monitoring` as the project name. It reads as a DnsIQ library. Rejected: a hidden console. It eats the error. Rejected: a service. Wrong lifetime. Rejected: enabling the Operational channel. That is a machine change, off by default, 1 MB. Rejected: `pktmon` as the only sensor. It does not yield the caller.
+Rejected: `Vestigium.Helpers.DnsIQ.Monitoring` and `Watcher.Dns`. One reads as a DnsIQ library. The other says a resident. Rejected: a hidden console. It eats the error. Rejected: a service. Wrong lifetime. Rejected: enabling the Operational channel. That is a machine change, off by default, 1 MB. Rejected: `pktmon` as the only sensor. It does not yield the caller.
 
 ---
 
@@ -37,7 +37,7 @@ One exe. Two modes. One clock. One pipe.
 
 | Piece | PR01 |
 |---|---|
-| Host | `Vestigium.Helpers.DnsWatch.exe`. `WinExe`. No window. |
+| Host | `Vestigium.Helpers.Watch.Dns.exe`. `WinExe`. No window. |
 | Elevation | Manifest requires administrator. Refuses to run otherwise. |
 | Clock | Default 5 seconds. Step 5. Max 180. Stop ends it early. |
 | Default mode | Resolver. Event 3008 only. |
