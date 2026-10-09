@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR02-01 done. Name normalize is next.
+**Status:** Live. PR02-02 done. Rollup is next.
 **Date:** 9 October 2026
 **Binding:** [PR02 -- Requirements.md](PR02%20--%20Requirements.md) wins on this cut. PR01 wins on the clock, the pipe, and the elevation exits. This file wins on order.
 
@@ -29,7 +29,7 @@
 | Slice | Id | Work | Status |
 |---|---|---|---|
 | 1 | PR02-01 | `TryCreate` requires `Event`, `Port`, or `Both`. Missing source rejects. `Main` passes `Both` only when the arg is absent. | Done. Reject opens no sensor. |
-| 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | |
+| 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | Done. Trailing dot folds. |
 | 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | |
 | 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | |
 | 5 | PR02-05 | Unseen line matches the source. `Both` names both holes. | |
@@ -44,7 +44,7 @@ Done. A missing source rejects. A missing arg in `Main` is `Both`. A bad arg ret
 
 ### PR02-02
 
-`QueryName.TryNormalize(value, out name, out reject)`. Trim. Drop one trailing dot. Reject a scheme, a path, or an empty label. The test shows `Edge.Example.` and `edge.example` are one key, and `https://edge.example/a` rejects.
+Done. Trim. Drop one trailing dot. Lower-case is the key. A scheme, a path, or an empty label rejects. `Edge.Example.` and `edge.example` are one key.
 
 ### PR02-03
 
@@ -77,4 +77,4 @@ Do not enable the Operational channel. Do not edit DnsIQ. Do not add a builder.
 
 ## Next action
 
-PR02-02. Normalize the name. Scheme or path rejects.
+PR02-03. Rollup. Increment the source. Omit pid when mixed.
