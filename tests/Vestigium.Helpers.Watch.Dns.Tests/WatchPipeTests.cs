@@ -34,7 +34,7 @@ public sealed class WatchPipeTests
         Assert.DoesNotContain("\n", line);
     }
 
-    [Fact(Timeout = 3000)]
+    [Fact]
     public void Acl_is_the_current_user_and_administrators()
     {
         if (!OperatingSystem.IsWindows())

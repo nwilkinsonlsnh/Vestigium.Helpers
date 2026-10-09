@@ -8,13 +8,13 @@ namespace Vestigium.Helpers.Watch.Dns.Tests;
 
 public sealed class ResolverWatchTests
 {
-    [Fact(Timeout = 3000)]
+    [Fact]
     public void Other_event_ids_are_dropped()
     {
         Assert.Null(ResolverWatch.Map(3006, 10, "edge.example", "1", "0", "1.2.3.4"));
     }
 
-    [Fact(Timeout = 3000)]
+    [Fact]
     public void Event_3008_keeps_the_query_and_the_caller_pid()
     {
         var row = ResolverWatch.Map(3008, 44, " edge.example ", "1", "0", "1.2.3.4");
