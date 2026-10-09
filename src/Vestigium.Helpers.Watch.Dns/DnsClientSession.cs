@@ -10,7 +10,7 @@ internal static class DnsClientSession
         session.EnableProvider(ResolverWatch.ProviderId);
         session.Source.Dynamic.All += data =>
         {
-            if ((int)data.ID != ResolverWatch.QueryCompleted)
+            if ((int)data.ID != ResolverWatch.QueryCompleted && (int)data.ID != ResolverWatch.QuerySent)
                 return;
 
             var row = ResolverWatch.Map(

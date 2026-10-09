@@ -30,9 +30,10 @@ public static class PacketWatch
             udp = new UdpClient(DnsPort);
             tcp = new TcpListener(IPAddress.Any, DnsPort);
             tcp.Start();
+            var outbound = ReadOutboundAsync(pipe, rollup, token);
             var udpTask = ReadUdpAsync(pipe, rollup, udp, token);
             var tcpTask = ReadTcpAsync(pipe, rollup, tcp, token);
-            await Task.WhenAny(clock.Completion, udpTask, tcpTask).ConfigureAwait(false);
+            await Task.WhenAny(clock.Completion, outbound, udpTask, tcpTask).ConfigureAwait(false);
             return 0;
         }
         catch (Exception ex)
@@ -47,6 +48,41 @@ public static class PacketWatch
         {
             udp?.Dispose();
             tcp?.Stop();
+        }
+    }
+
+    private static async Task ReadOutboundAsync(WatchPipe pipe, WatchRollup rollup, CancellationToken token)
+    {
+        var sockets = OutboundFrame.Open();
+        if (sockets.Count == 0)
+        {
+            await pipe.WriteAsync(
+                new WatchRow(DateTimeOffset.UtcNow, "", 0, "", "", "Unseen", "Outbound port 53 capture did not open.", "packet"),
+                CancellationToken.None).ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            var tasks = sockets.Select(socket => ReadRawAsync(pipe, rollup, socket, token));
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+        finally
+        {
+            foreach (var socket in sockets)
+                socket.Dispose();
+        }
+    }
+
+    private static async Task ReadRawAsync(WatchPipe pipe, WatchRollup rollup, Socket socket, CancellationToken token)
+    {
+        var buffer = new byte[65535];
+        while (!token.IsCancellationRequested)
+        {
+            var read = await socket.ReceiveAsync(buffer, SocketFlags.None, token).ConfigureAwait(false);
+            if (!OutboundFrame.TryRead(buffer[..read], out var question))
+                continue;
+            await WriteQuestionAsync(pipe, rollup, question, token).ConfigureAwait(false);
         }
     }
 

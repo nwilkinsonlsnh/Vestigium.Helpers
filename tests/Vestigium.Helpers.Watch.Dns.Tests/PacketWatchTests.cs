@@ -37,6 +37,24 @@ public sealed class PacketWatchTests
         Assert.Equal("packet", row.Mode);
     }
 
+    [Fact]
+    public void An_outbound_udp_53_frame_keeps_the_question()
+    {
+        var question = Question("edge.example", 1);
+        var frame = new byte[20 + 8 + question.Length];
+        frame[0] = 0x45;
+        frame[9] = 17;
+        frame[20] = 0;
+        frame[21] = 53;
+        frame[24] = 0;
+        frame[25] = (byte)(8 + question.Length);
+        question.CopyTo(frame, 28);
+
+        Assert.True(OutboundFrame.TryRead(frame, out var payload));
+        var row = PacketWatch.Read(payload);
+        Assert.Equal("edge.example", row.Name);
+    }
+
     private static byte[] Question(string name, int type)
     {
         var labels = name.Split('.');

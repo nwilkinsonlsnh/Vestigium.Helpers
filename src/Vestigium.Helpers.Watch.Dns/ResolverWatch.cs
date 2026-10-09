@@ -3,12 +3,13 @@ namespace Vestigium.Helpers.Watch.Dns;
 public static class ResolverWatch
 {
     public static readonly Guid ProviderId = new("1C95126E-7EEA-49A9-A3FE-A378B03DDB4D");
+    public const int QuerySent = 3006;
     public const int QueryCompleted = 3008;
     public const int SessionFailed = 3;
 
     public static WatchRow? Map(int eventId, int pid, string? name, string? type, string? status, string? results)
     {
-        if (eventId != QueryCompleted)
+        if (eventId != QueryCompleted && eventId != QuerySent)
             return null;
 
         return new WatchRow(

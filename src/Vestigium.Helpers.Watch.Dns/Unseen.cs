@@ -6,9 +6,9 @@ public static class Unseen
 
     public const string Resolver = "Raw sockets and non-Windows DoH are not in this watch.";
 
-    public const string Packet = "DoH, DoT, and DoQ are not in this watch.";
+    public const string Packet = "Outbound port 53 is in this watch. Browser Secure DNS is not.";
 
-    public const string Both = "Raw sockets and non-Windows DoH are not in this watch. The bind does not see queries this host sends, and DoH, DoT, and DoQ are not in this watch.";
+    public const string Both = "Outbound port 53 and the Windows resolver are in this watch. Browser Secure DNS is not.";
 
     public static string Text(WatchSource source)
         => source switch
