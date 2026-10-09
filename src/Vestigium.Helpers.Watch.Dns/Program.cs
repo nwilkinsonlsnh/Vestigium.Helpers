@@ -6,12 +6,25 @@ public static class Program
 {
     public const int NotElevated = 2;
 
-    public static int Main()
+    public static async Task<int> Main()
     {
         if (!Elevation.IsElevated())
             return NotElevated;
 
-        return 0;
+        var name = "Vestigium.Watch.Dns." + Guid.NewGuid().ToString("N");
+        await using var pipe = WatchPipe.Create(name);
+        if (!WatchClock.TryCreate(null, out var clock, out _))
+            return 1;
+
+        try
+        {
+            return await ResolverWatch.RunAsync(pipe, clock!, ResolverWatch.StartSessionAsync, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            clock!.Stop();
+        }
     }
 }
 
