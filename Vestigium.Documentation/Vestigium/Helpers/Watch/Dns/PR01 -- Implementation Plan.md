@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR01-03 done. Resolver session is next.
+**Status:** Live. PR01-04 done. Packet mode is next.
 **Date:** 8 October 2026
 **Binding:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) wins on this cut. This file wins on order.
 
@@ -40,7 +40,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 | 1 | PR01-01 | WinExe project. Manifest `requireAdministrator`. No window. Unelevated exit. | Done. Exit 2. |
 | 2 | PR01-02 | Clock. Default 5. Step 5. Max 180. Reject the rest. Stop flag. | Done. Accept table. Stop does not wait. |
 | 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | Done. One JSON line. |
-| 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | |
+| 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | Done. Exit 3. |
 | 5 | PR01-05 | Packet mode. UDP/53 and TCP/53. Off unless asked. Empty name if the payload is not a question. | |
 | 6 | PR01-06 | First line states the mode and what it does not see. Exit code if the pipe cannot open. | |
 
@@ -62,7 +62,7 @@ Done. `WatchPipe.Create` serves one pipe. Windows ACL is the current user and Ad
 
 ### PR01-04
 
-`ResolverWatch` enables provider `{1C95126E-7EEA-49A9-A3FE-A378B03DDB4D}` and keeps event id 3008. Map `QueryName`, `QueryType`, `QueryStatus`, `QueryResults`. Pid is the event process id. Drop every other id. If the session throws, write one failure row and exit `3`. Do not call `wevtutil`. Do not enable `Microsoft-Windows-DNS-Client/Operational`.
+Done. Provider `{1C95126E-7EEA-49A9-A3FE-A378B03DDB4D}`. Event 3008 only. Pid is the event process id. A session that throws writes one failure row and returns 3. No `wevtutil`. Operational channel is not enabled.
 
 ### PR01-05
 
@@ -104,4 +104,4 @@ Do not edit DnsIQ. Do not edit Helpers.Network.
 
 ## Next action
 
-PR01-04. Resolver mode. Event 3008 only. Failure line if the session cannot start. Do not open DnsIQ PR08 in that turn.
+PR01-05. Packet mode. UDP/53 and TCP/53. Off unless asked. Do not open DnsIQ PR08 in that turn.
