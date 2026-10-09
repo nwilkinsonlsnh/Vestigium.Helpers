@@ -11,7 +11,7 @@ public sealed class ResolverWatchTests
     [Fact]
     public void Other_event_ids_are_dropped()
     {
-        Assert.Null(ResolverWatch.Map(3006, 10, "edge.example", "1", "0", "1.2.3.4"));
+        Assert.Null(ResolverWatch.Map(3010, 10, "edge.example", "1", "0", "1.2.3.4"));
     }
 
     [Fact]
