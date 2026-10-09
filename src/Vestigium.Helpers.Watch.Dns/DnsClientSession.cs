@@ -4,7 +4,7 @@ namespace Vestigium.Helpers.Watch.Dns;
 
 internal static class DnsClientSession
 {
-    public static async Task RunAsync(WatchPipe pipe, WatchClock clock, CancellationToken token)
+    public static async Task RunAsync(WatchPipe pipe, WatchRollup rollup, WatchClock clock, CancellationToken token)
     {
         using var session = new TraceEventSession("Vestigium-Watch-Dns-" + Guid.NewGuid().ToString("N"));
         session.EnableProvider(ResolverWatch.ProviderId);
@@ -23,7 +23,11 @@ internal static class DnsClientSession
             if (row is null)
                 return;
 
-            pipe.WriteAsync(row, CancellationToken.None).GetAwaiter().GetResult();
+            var rolled = rollup.Add(row.Name, row.Type, WatchSource.Event, row.Pid);
+            if (rolled is null)
+                return;
+
+            pipe.WriteAsync(rolled, CancellationToken.None).GetAwaiter().GetResult();
         };
 
         using var stop = token.Register(() => session.Stop());

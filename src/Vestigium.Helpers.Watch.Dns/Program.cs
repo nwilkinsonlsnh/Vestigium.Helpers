@@ -14,27 +14,20 @@ public static class Program
         if (!WatchRequest.ParseArgs(args, out var request, out _))
             return 1;
 
-        var packet = request!.Source == WatchSource.Port;
         var name = "Vestigium.Watch.Dns." + Guid.NewGuid().ToString("N");
         var opened = Unseen.OpenPipe(name, out var pipe);
         if (opened != 0 || pipe is null)
             return Unseen.PipeFailed;
 
         await using var open = pipe;
-        if (!WatchClock.TryCreate(null, out var clock, out _))
-            return 1;
-
         try
         {
-            await open.WriteAsync(Unseen.Line(packet), CancellationToken.None).ConfigureAwait(false);
-            var run = packet
-                ? PacketWatch.RunAsync(open, clock!, CancellationToken.None)
-                : ResolverWatch.RunAsync(open, clock!, ResolverWatch.StartSessionAsync, CancellationToken.None);
-            return await run.ConfigureAwait(false);
+            await open.WriteAsync(Unseen.Line(request!.Source == WatchSource.Port), CancellationToken.None).ConfigureAwait(false);
+            return await WatchRun.RunAsync(open, request, CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
-            clock!.Stop();
+            request.Clock.Stop();
         }
     }
 }

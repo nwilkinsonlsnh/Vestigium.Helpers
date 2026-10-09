@@ -18,7 +18,10 @@ public static class PacketWatch
         return new WatchRow(DateTimeOffset.UtcNow, "", 0, name, type, "", "", "packet");
     }
 
-    public static async Task<int> RunAsync(WatchPipe pipe, WatchClock clock, CancellationToken token)
+    public static Task<int> RunAsync(WatchPipe pipe, WatchClock clock, CancellationToken token)
+        => RunAsync(pipe, new WatchRollup(), clock, token);
+
+    public static async Task<int> RunAsync(WatchPipe pipe, WatchRollup rollup, WatchClock clock, CancellationToken token)
     {
         UdpClient? udp = null;
         TcpListener? tcp = null;
@@ -27,8 +30,8 @@ public static class PacketWatch
             udp = new UdpClient(DnsPort);
             tcp = new TcpListener(IPAddress.Any, DnsPort);
             tcp.Start();
-            var udpTask = ReadUdpAsync(pipe, udp, token);
-            var tcpTask = ReadTcpAsync(pipe, tcp, token);
+            var udpTask = ReadUdpAsync(pipe, rollup, udp, token);
+            var tcpTask = ReadTcpAsync(pipe, rollup, tcp, token);
             await Task.WhenAny(clock.Completion, udpTask, tcpTask).ConfigureAwait(false);
             return 0;
         }
@@ -47,16 +50,16 @@ public static class PacketWatch
         }
     }
 
-    private static async Task ReadUdpAsync(WatchPipe pipe, UdpClient udp, CancellationToken token)
+    private static async Task ReadUdpAsync(WatchPipe pipe, WatchRollup rollup, UdpClient udp, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
             var result = await udp.ReceiveAsync(token).ConfigureAwait(false);
-            await pipe.WriteAsync(Read(result.Buffer), token).ConfigureAwait(false);
+            await WriteQuestionAsync(pipe, rollup, result.Buffer, token).ConfigureAwait(false);
         }
     }
 
-    private static async Task ReadTcpAsync(WatchPipe pipe, TcpListener tcp, CancellationToken token)
+    private static async Task ReadTcpAsync(WatchPipe pipe, WatchRollup rollup, TcpListener tcp, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -69,8 +72,20 @@ public static class PacketWatch
             var payload = new byte[length];
             if (await stream.ReadAsync(payload, token).ConfigureAwait(false) < length)
                 continue;
-            await pipe.WriteAsync(Read(payload), token).ConfigureAwait(false);
+            await WriteQuestionAsync(pipe, rollup, payload, token).ConfigureAwait(false);
         }
+    }
+}
+
+    private static async Task WriteQuestionAsync(WatchPipe pipe, WatchRollup rollup, byte[] payload, CancellationToken token)
+    {
+        var parsed = Read(payload);
+        if (parsed.Status == "Not a question")
+            return;
+
+        var row = rollup.Add(parsed.Name, parsed.Type, WatchSource.Port, 0);
+        if (row is not null)
+            await pipe.WriteAsync(row, token).ConfigureAwait(false);
     }
 }
 

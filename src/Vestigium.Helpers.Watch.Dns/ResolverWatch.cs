@@ -43,11 +43,15 @@ public static class ResolverWatch
         }
     }
 
-    public static Task StartSessionAsync(WatchPipe pipe, WatchClock clock, CancellationToken token)
+    public static Task StartSessionAsync(WatchPipe pipe, WatchRollup rollup, WatchClock clock, CancellationToken token)
     {
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("The DNS client session requires Windows.");
 
-        return DnsClientSession.RunAsync(pipe, clock, token);
+        return DnsClientSession.RunAsync(pipe, rollup, clock, token);
     }
+
+    public static Task StartSessionAsync(WatchPipe pipe, WatchClock clock, CancellationToken token)
+        => StartSessionAsync(pipe, new WatchRollup(), clock, token);
+
 }

@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR02-03 done. Both sensors are next.
+**Status:** Live. PR02-04 done. Unseen line is next.
 **Date:** 9 October 2026
 **Binding:** [PR02 -- Requirements.md](PR02%20--%20Requirements.md) wins on this cut. PR01 wins on the clock, the pipe, and the elevation exits. This file wins on order.
 
@@ -31,7 +31,7 @@
 | 1 | PR02-01 | `TryCreate` requires `Event`, `Port`, or `Both`. Missing source rejects. `Main` passes `Both` only when the arg is absent. | Done. Reject opens no sensor. |
 | 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | Done. Trailing dot folds. |
 | 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | Done. 100 Event adds are one key. |
-| 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | |
+| 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | Done. Both keeps the survivor. |
 | 5 | PR02-05 | Unseen line matches the source. `Both` names both holes. | |
 
 ---
@@ -52,7 +52,7 @@ Done. 100 Event adds are one key with resolver count 100. A second pid clears th
 
 ### PR02-04
 
-`Main` starts each sensor the request asked for. A thrown session writes the PR01 failure row and, if the other sensor was requested, does not exit. If it was the only sensor, exit 3. The rollup is the only writer of query rows.
+Done. `Both` keeps the survivor. Event-only still exits 3. Query rows come from the rollup. A port payload that is not a question is not written.
 
 ### PR02-05
 
@@ -77,4 +77,4 @@ Do not enable the Operational channel. Do not edit DnsIQ. Do not add a builder.
 
 ## Next action
 
-PR02-04. Run the requested sensors. Exit 3 only if none remain.
+PR02-05. Unseen line matches the source. Both names both holes.
