@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR01-05 done. Unseen line is next.
+**Status:** Closed. PR01-06 done. DnsIQ PR08 may start.
 **Date:** 8 October 2026
 **Binding:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) wins on this cut. This file wins on order.
 
@@ -42,7 +42,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 | 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | Done. One JSON line. |
 | 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | Done. Exit 3. |
 | 5 | PR01-05 | Packet mode. UDP/53 and TCP/53. Off unless asked. Empty name if the payload is not a question. | Done. Default stays resolver. |
-| 6 | PR01-06 | First line states the mode and what it does not see. Exit code if the pipe cannot open. | |
+| 6 | PR01-06 | First line states the mode and what it does not see. Exit code if the pipe cannot open. | Done. Exit 4 writes nothing. |
 
 ---
 
@@ -70,7 +70,7 @@ Done. Arg `packet` binds UDP/53 and TCP/53. A response or a short payload is an 
 
 ### PR01-06
 
-Before any event, write the unseen line. Resolver text: raw sockets and non-Windows DoH are not in this watch. Packet text: DoH, DoT, and DoQ are not in this watch. If the pipe cannot be created, exit `4` and write nothing.
+Done. The first line is the unseen notice for the mode that ran. A pipe that cannot be created returns 4 and writes nothing.
 
 ---
 
@@ -104,4 +104,4 @@ Do not edit DnsIQ. Do not edit Helpers.Network.
 
 ## Next action
 
-PR01-06. First line states the mode and what it does not see. Exit 4 if the pipe cannot open. Do not open DnsIQ PR08 in that turn.
+DnsIQ PR08-01. The helper PR01 is closed. Do not add a sensor to DnsIQ.

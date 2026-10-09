@@ -11,16 +11,22 @@ public static class Program
         if (!Elevation.IsElevated())
             return NotElevated;
 
+        var packet = PacketWatch.Requested(args);
         var name = "Vestigium.Watch.Dns." + Guid.NewGuid().ToString("N");
-        await using var pipe = WatchPipe.Create(name);
+        var opened = Unseen.OpenPipe(name, out var pipe);
+        if (opened != 0 || pipe is null)
+            return Unseen.PipeFailed;
+
+        await using var open = pipe;
         if (!WatchClock.TryCreate(null, out var clock, out _))
             return 1;
 
         try
         {
-            var run = PacketWatch.Requested(args)
-                ? PacketWatch.RunAsync(pipe, clock!, CancellationToken.None)
-                : ResolverWatch.RunAsync(pipe, clock!, ResolverWatch.StartSessionAsync, CancellationToken.None);
+            await open.WriteAsync(Unseen.Line(packet), CancellationToken.None).ConfigureAwait(false);
+            var run = packet
+                ? PacketWatch.RunAsync(open, clock!, CancellationToken.None)
+                : ResolverWatch.RunAsync(open, clock!, ResolverWatch.StartSessionAsync, CancellationToken.None);
             return await run.ConfigureAwait(false);
         }
         finally
