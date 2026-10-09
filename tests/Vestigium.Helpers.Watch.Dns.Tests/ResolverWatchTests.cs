@@ -8,13 +8,13 @@ namespace Vestigium.Helpers.Watch.Dns.Tests;
 
 public sealed class ResolverWatchTests
 {
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void Other_event_ids_are_dropped()
     {
         Assert.Null(ResolverWatch.Map(3006, 10, "edge.example", "1", "0", "1.2.3.4"));
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void Event_3008_keeps_the_query_and_the_caller_pid()
     {
         var row = ResolverWatch.Map(3008, 44, " edge.example ", "1", "0", "1.2.3.4");
@@ -28,7 +28,7 @@ public sealed class ResolverWatchTests
         Assert.Equal("resolver", row.Mode);
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public async Task A_session_that_cannot_start_writes_one_failure_and_returns_3()
     {
         var name = "watch-dns-" + Guid.NewGuid().ToString("N");

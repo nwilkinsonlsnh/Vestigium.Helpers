@@ -8,7 +8,7 @@ namespace Vestigium.Helpers.Watch.Dns.Tests;
 
 public sealed class UnseenTests
 {
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void Resolver_line_names_the_holes()
     {
         var row = Unseen.Line(packet: false);
@@ -18,7 +18,7 @@ public sealed class UnseenTests
         Assert.Equal("event", row.Mode);
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void Packet_line_names_the_holes()
     {
         var row = Unseen.Line(WatchSource.Port);
@@ -27,7 +27,7 @@ public sealed class UnseenTests
         Assert.Equal("port", row.Mode);
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void Both_names_both_holes()
     {
         var row = Unseen.Line(WatchSource.Both);
@@ -38,7 +38,7 @@ public sealed class UnseenTests
         Assert.Equal("both", row.Mode);
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void A_pipe_that_cannot_open_exits_4_and_writes_nothing()
     {
         var code = Unseen.OpenPipe("", out var pipe);
@@ -47,7 +47,7 @@ public sealed class UnseenTests
         Assert.Null(pipe);
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public async Task The_unseen_line_is_the_first_line()
     {
         var name = "watch-dns-" + Guid.NewGuid().ToString("N");

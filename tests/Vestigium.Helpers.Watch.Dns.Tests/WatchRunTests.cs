@@ -8,7 +8,7 @@ namespace Vestigium.Helpers.Watch.Dns.Tests;
 
 public sealed class WatchRunTests
 {
-    [Fact]
+    [Fact(Timeout = 3000)]
     public async Task Both_keeps_the_port_when_the_event_session_throws()
     {
         var name = "watch-dns-" + Guid.NewGuid().ToString("N");
@@ -38,7 +38,7 @@ public sealed class WatchRunTests
         request.Clock.Stop();
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public async Task Event_only_exits_3_when_the_session_throws()
     {
         var name = "watch-dns-" + Guid.NewGuid().ToString("N");

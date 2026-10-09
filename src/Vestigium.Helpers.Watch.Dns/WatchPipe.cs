@@ -89,15 +89,22 @@ public sealed class WatchPipe : IAsyncDisposable
         return security;
     }
 
-    public Task WaitForClientAsync(CancellationToken token)
-        => _server.WaitForConnectionAsync(token);
+    public async Task WaitForClientAsync(CancellationToken token)
+    {
+        var wait = _server.WaitForConnectionAsync(CancellationToken.None);
+        var limit = Task.Delay(TimeSpan.FromSeconds(2), token);
+        if (await Task.WhenAny(wait, limit).ConfigureAwait(false) != wait)
+            throw new TimeoutException("No client connected.");
+        await wait.ConfigureAwait(false);
+    }
 
     public Task WriteAsync(WatchRow row, CancellationToken token)
         => Writer.WriteLineAsync(JsonSerializer.Serialize(row, Json).AsMemory(), token);
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_writer is not null) await _writer.DisposeAsync().ConfigureAwait(false);
-        await _server.DisposeAsync().ConfigureAwait(false);
+        _writer = null;
+        _server.Dispose();
+        return ValueTask.CompletedTask;
     }
 }

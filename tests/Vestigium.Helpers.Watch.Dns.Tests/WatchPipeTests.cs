@@ -10,7 +10,7 @@ namespace Vestigium.Helpers.Watch.Dns.Tests;
 
 public sealed class WatchPipeTests
 {
-    [Fact]
+    [Fact(Timeout = 3000)]
     public async Task A_row_is_one_json_line()
     {
         var name = "watch-dns-" + Guid.NewGuid().ToString("N");
@@ -34,7 +34,7 @@ public sealed class WatchPipeTests
         Assert.DoesNotContain("\n", line);
     }
 
-    [Fact]
+    [Fact(Timeout = 3000)]
     public void Acl_is_the_current_user_and_administrators()
     {
         if (!OperatingSystem.IsWindows())
