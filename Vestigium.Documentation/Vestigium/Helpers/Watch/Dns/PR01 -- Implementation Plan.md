@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR01-02 done. Pipe is next.
+**Status:** Live. PR01-03 done. Resolver session is next.
 **Date:** 8 October 2026
 **Binding:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) wins on this cut. This file wins on order.
 
@@ -39,7 +39,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 |---|---|---|---|
 | 1 | PR01-01 | WinExe project. Manifest `requireAdministrator`. No window. Unelevated exit. | Done. Exit 2. |
 | 2 | PR01-02 | Clock. Default 5. Step 5. Max 180. Reject the rest. Stop flag. | Done. Accept table. Stop does not wait. |
-| 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | |
+| 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | Done. One JSON line. |
 | 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | |
 | 5 | PR01-05 | Packet mode. UDP/53 and TCP/53. Off unless asked. Empty name if the payload is not a question. | |
 | 6 | PR01-06 | First line states the mode and what it does not see. Exit code if the pipe cannot open. | |
@@ -58,7 +58,7 @@ Done. Missing seconds is 5. Off-step rejects. `Stop` completes a 180 second cloc
 
 ### PR01-03
 
-`WatchPipe.Create(name)` makes the server pipe. ACL: current user and `BuiltinAdministratorsSid`. Rows are one JSON line each: time, process, pid, name, type, status, answers, mode. The test builds a pipe, writes one row, reads it back. No ETW.
+Done. `WatchPipe.Create` serves one pipe. Windows ACL is the current user and Administrators. A row is one JSON line. The test reads it back. No ETW.
 
 ### PR01-04
 
@@ -104,4 +104,4 @@ Do not edit DnsIQ. Do not edit Helpers.Network.
 
 ## Next action
 
-PR01-03. Named pipe. UTF-8 lines. ACL is the starting user and Administrators. Do not open DnsIQ PR08 in that turn.
+PR01-04. Resolver mode. Event 3008 only. Failure line if the session cannot start. Do not open DnsIQ PR08 in that turn.
