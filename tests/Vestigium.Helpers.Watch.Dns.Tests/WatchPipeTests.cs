@@ -20,11 +20,10 @@ public sealed class WatchPipeTests
         await pipe.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
 
-        var row = new WatchRow(DateTimeOffset.Parse("2026-10-09T09:54:00Z"), "chrome", 44, "edge.example", "A", "0", "1.2.3.4", "resolver");
-        await pipe.WriteAsync(row, CancellationToken.None);
-
         using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
         var reading = reader.ReadLineAsync();
+        var row = new WatchRow(DateTimeOffset.Parse("2026-10-09T09:54:00Z"), "chrome", 44, "edge.example", "A", "0", "1.2.3.4", "resolver");
+        await pipe.WriteAsync(row, CancellationToken.None);
         var line = await reading.WaitAsync(TimeSpan.FromSeconds(1));
         var back = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 

@@ -59,9 +59,9 @@ public sealed class UnseenTests
         await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
 
-        await open.WriteAsync(Unseen.Line(packet: false), CancellationToken.None);
         using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
         var reading = reader.ReadLineAsync();
+        await open.WriteAsync(Unseen.Line(packet: false), CancellationToken.None);
         var line = await reading.WaitAsync(TimeSpan.FromSeconds(1));
         var row = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 

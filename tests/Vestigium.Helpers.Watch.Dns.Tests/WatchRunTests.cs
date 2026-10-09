@@ -19,6 +19,8 @@ public sealed class WatchRunTests
         var connect = client.ConnectAsync(1_000);
         await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
+        using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+        var reading = reader.ReadLineAsync();
         Assert.True(WatchRequest.TryCreate(WatchSource.Both, 5, out var request, out _));
 
         var code = await WatchRun.RunAsync(
@@ -28,8 +30,6 @@ public sealed class WatchRunTests
             (_, _, _) => Task.FromResult(0),
             CancellationToken.None);
 
-        using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        var reading = reader.ReadLineAsync();
         var line = await reading.WaitAsync(TimeSpan.FromSeconds(1));
         var row = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 

@@ -37,6 +37,8 @@ public sealed class ResolverWatchTests
         var connect = client.ConnectAsync(1_000);
         await pipe.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
+        using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+        var reading = reader.ReadLineAsync();
         Assert.True(WatchClock.TryCreate(5, out var clock, out _));
 
         var code = await ResolverWatch.RunAsync(
@@ -45,8 +47,6 @@ public sealed class ResolverWatchTests
             (_, _, _) => throw new InvalidOperationException("session refused"),
             CancellationToken.None);
 
-        using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        var reading = reader.ReadLineAsync();
         var line = await reading.WaitAsync(TimeSpan.FromSeconds(1));
         var row = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
