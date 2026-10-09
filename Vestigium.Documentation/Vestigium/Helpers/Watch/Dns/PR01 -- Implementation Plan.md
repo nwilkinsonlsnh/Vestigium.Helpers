@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR01-01 done. Clock is next.
+**Status:** Live. PR01-02 done. Pipe is next.
 **Date:** 8 October 2026
 **Binding:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) wins on this cut. This file wins on order.
 
@@ -38,7 +38,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 | Slice | Id | Work | Status |
 |---|---|---|---|
 | 1 | PR01-01 | WinExe project. Manifest `requireAdministrator`. No window. Unelevated exit. | Done. Exit 2. |
-| 2 | PR01-02 | Clock. Default 5. Step 5. Max 180. Reject the rest. Stop flag. | |
+| 2 | PR01-02 | Clock. Default 5. Step 5. Max 180. Reject the rest. Stop flag. | Done. Accept table. Stop does not wait. |
 | 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | |
 | 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | |
 | 5 | PR01-05 | Packet mode. UDP/53 and TCP/53. Off unless asked. Empty name if the payload is not a question. | |
@@ -54,7 +54,7 @@ Create `src/Vestigium.Helpers.Watch.Dns/Vestigium.Helpers.Watch.Dns.csproj`. `Ou
 
 ### PR01-02
 
-`WatchClock.TryCreate(seconds, out clock, out reject)`. Missing seconds is 5. Accepted values are 5, 10, … 180. Anything else rejects. `Stop` completes the clock early. No sleep on the caller thread. The unit test does not wait 180 seconds. It checks the accept table.
+Done. Missing seconds is 5. Off-step rejects. `Stop` completes a 180 second clock without waiting it. `Main` does not sleep on the clock.
 
 ### PR01-03
 
@@ -104,4 +104,4 @@ Do not edit DnsIQ. Do not edit Helpers.Network.
 
 ## Next action
 
-PR01-02. Clock. Default 5. Step 5. Max 180. Do not open DnsIQ PR08 in that turn.
+PR01-03. Named pipe. UTF-8 lines. ACL is the starting user and Administrators. Do not open DnsIQ PR08 in that turn.
