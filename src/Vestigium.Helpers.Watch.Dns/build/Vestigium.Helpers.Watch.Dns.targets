@@ -1,0 +1,11 @@
+<Project>
+  <Target Name="CopyVestigiumWatchDns" AfterTargets="Build">
+    <ItemGroup>
+      <_WatchDnsFiles Include="$(PkgVestigium_Helpers_Watch_Dns)\tools\net10.0-windows\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_WatchDnsFiles)"
+          DestinationFiles="@(_WatchDnsFiles->'$(OutputPath)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_WatchDnsFiles)' != ''" />
+  </Target>
+</Project>

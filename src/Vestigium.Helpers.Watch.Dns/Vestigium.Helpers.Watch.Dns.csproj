@@ -9,6 +9,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Version>1.0.1</Version>
 		<IsPackable>true</IsPackable>
+		<PackageId>Vestigium.Helpers.Watch.Dns</PackageId>
+		<IncludeBuildOutput>true</IncludeBuildOutput>
+		<BuildOutputTargetFolder>tools</BuildOutputTargetFolder>
 		<Authors>Vestigium</Authors>
 		<Company>Wilkinson Business</Company>
 		<Description>Elevated DNS watch. Windowless. Clock 5 to 180 seconds. No console.</Description>
@@ -17,6 +20,9 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.15" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="build\" />
 	</ItemGroup>
 </Project>
 
