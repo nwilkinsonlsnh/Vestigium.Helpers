@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. Not started.
+**Status:** Live. PR02-01 done. Name normalize is next.
 **Date:** 9 October 2026
 **Binding:** [PR02 -- Requirements.md](PR02%20--%20Requirements.md) wins on this cut. PR01 wins on the clock, the pipe, and the elevation exits. This file wins on order.
 
@@ -28,7 +28,7 @@
 
 | Slice | Id | Work | Status |
 |---|---|---|---|
-| 1 | PR02-01 | `TryCreate` requires `Event`, `Port`, or `Both`. Missing source rejects. `Main` passes `Both` only when the arg is absent. | |
+| 1 | PR02-01 | `TryCreate` requires `Event`, `Port`, or `Both`. Missing source rejects. `Main` passes `Both` only when the arg is absent. | Done. Reject opens no sensor. |
 | 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | |
 | 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | |
 | 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | |
@@ -40,7 +40,7 @@
 
 ### PR02-01
 
-`WatchRequest.TryCreate(source, seconds, out request, out reject)`. Source is required. Duration rules are unchanged. `Main` maps a missing arg to `Both` and a bad arg to a reject. No sensor opens on a reject. No builder.
+Done. A missing source rejects. A missing arg in `Main` is `Both`. A bad arg returns 1 before the pipe opens. No builder.
 
 ### PR02-02
 
@@ -77,4 +77,4 @@ Do not enable the Operational channel. Do not edit DnsIQ. Do not add a builder.
 
 ## Next action
 
-PR02-01. Required source. Missing source rejects.
+PR02-02. Normalize the name. Scheme or path rejects.
