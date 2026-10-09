@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. PR01-04 done. Packet mode is next.
+**Status:** Live. PR01-05 done. Unseen line is next.
 **Date:** 8 October 2026
 **Binding:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) wins on this cut. This file wins on order.
 
@@ -41,7 +41,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 | 2 | PR01-02 | Clock. Default 5. Step 5. Max 180. Reject the rest. Stop flag. | Done. Accept table. Stop does not wait. |
 | 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | Done. One JSON line. |
 | 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | Done. Exit 3. |
-| 5 | PR01-05 | Packet mode. UDP/53 and TCP/53. Off unless asked. Empty name if the payload is not a question. | |
+| 5 | PR01-05 | Packet mode. UDP/53 and TCP/53. Off unless asked. Empty name if the payload is not a question. | Done. Default stays resolver. |
 | 6 | PR01-06 | First line states the mode and what it does not see. Exit code if the pipe cannot open. | |
 
 ---
@@ -66,7 +66,7 @@ Done. Provider `{1C95126E-7EEA-49A9-A3FE-A378B03DDB4D}`. Event 3008 only. Pid is
 
 ### PR01-05
 
-`PacketWatch` binds UDP/53 and TCP/53. Row mode is `packet`. If the payload is not a DNS question, name is empty and status says so. This path runs only when the arg is `packet`. Default remains `resolver`.
+Done. Arg `packet` binds UDP/53 and TCP/53. A response or a short payload is an empty name and status `Not a question`. No arg stays on the resolver session.
 
 ### PR01-06
 
@@ -104,4 +104,4 @@ Do not edit DnsIQ. Do not edit Helpers.Network.
 
 ## Next action
 
-PR01-05. Packet mode. UDP/53 and TCP/53. Off unless asked. Do not open DnsIQ PR08 in that turn.
+PR01-06. First line states the mode and what it does not see. Exit 4 if the pipe cannot open. Do not open DnsIQ PR08 in that turn.

@@ -6,7 +6,7 @@ public static class Program
 {
     public const int NotElevated = 2;
 
-    public static async Task<int> Main()
+    public static async Task<int> Main(string[] args)
     {
         if (!Elevation.IsElevated())
             return NotElevated;
@@ -18,8 +18,10 @@ public static class Program
 
         try
         {
-            return await ResolverWatch.RunAsync(pipe, clock!, ResolverWatch.StartSessionAsync, CancellationToken.None)
-                .ConfigureAwait(false);
+            var run = PacketWatch.Requested(args)
+                ? PacketWatch.RunAsync(pipe, clock!, CancellationToken.None)
+                : ResolverWatch.RunAsync(pipe, clock!, ResolverWatch.StartSessionAsync, CancellationToken.None);
+            return await run.ConfigureAwait(false);
         }
         finally
         {
