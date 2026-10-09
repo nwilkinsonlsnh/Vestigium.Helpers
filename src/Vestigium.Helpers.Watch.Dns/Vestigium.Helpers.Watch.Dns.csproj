@@ -7,7 +7,6 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<IsPackable>false</IsPackable>
 		<Version>1.0.0</Version>
 		<IsPackable>true</IsPackable>
 		<Authors>Vestigium</Authors>
