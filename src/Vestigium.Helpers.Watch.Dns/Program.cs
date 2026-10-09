@@ -14,7 +14,9 @@ public static class Program
         if (!WatchRequest.ParseArgs(args, out var request, out _))
             return 1;
 
-        var name = "Vestigium.Watch.Dns." + Guid.NewGuid().ToString("N");
+        var name = string.IsNullOrWhiteSpace(request!.PipeName)
+            ? "Vestigium.Watch.Dns." + Guid.NewGuid().ToString("N")
+            : request.PipeName;
         var opened = Unseen.OpenPipe(name, out var pipe);
         if (opened != 0 || pipe is null)
             return Unseen.PipeFailed;

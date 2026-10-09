@@ -19,6 +19,8 @@ public sealed class WatchRequest
 
     public WatchClock Clock { get; }
 
+    public string? PipeName { get; private set; }
+
     public static bool TryCreate(WatchSource? source, int? seconds, out WatchRequest? request, out string? reject)
     {
         if (source is null)
@@ -42,8 +44,21 @@ public sealed class WatchRequest
     {
         WatchSource? source = null;
         int? seconds = null;
+        string? pipe = null;
         foreach (var arg in args)
         {
+            if (arg.StartsWith("pipe:", StringComparison.OrdinalIgnoreCase))
+            {
+                pipe = arg[5..];
+                if (string.IsNullOrWhiteSpace(pipe))
+                {
+                    request = null;
+                    reject = "Pipe name is required.";
+                    return false;
+                }
+                continue;
+            }
+
             if (int.TryParse(arg, out var value))
             {
                 seconds = value;
@@ -60,7 +75,10 @@ public sealed class WatchRequest
             source = parsed;
         }
 
-        return TryCreate(source ?? WatchSource.Both, seconds, out request, out reject);
+        if (!TryCreate(source ?? WatchSource.Both, seconds, out request, out reject))
+            return false;
+        request!.PipeName = pipe;
+        return true;
     }
 
     public static bool TrySource(string value, out WatchSource source)

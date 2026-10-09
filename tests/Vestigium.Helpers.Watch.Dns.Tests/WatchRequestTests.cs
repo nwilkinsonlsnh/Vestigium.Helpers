@@ -46,3 +46,12 @@ public sealed class WatchRequestTests
         Assert.False(string.IsNullOrWhiteSpace(reject));
     }
 }
+
+    [Fact]
+    public void A_pipe_name_is_kept()
+    {
+        Assert.True(WatchRequest.ParseArgs(["Both", "10", "pipe:tab-pipe"], out var request, out _));
+        Assert.Equal("tab-pipe", request!.PipeName);
+        Assert.Equal(10, request.Clock.Seconds);
+        request.Clock.Stop();
+    }
