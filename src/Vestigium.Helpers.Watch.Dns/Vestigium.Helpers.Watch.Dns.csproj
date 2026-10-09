@@ -7,7 +7,7 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Version>1.0.8</Version>
+		<Version>1.0.11</Version>
 		<IsPackable>true</IsPackable>
 		<PackageId>Vestigium.Helpers.Watch.Dns</PackageId>
 		<IncludeBuildOutput>true</IncludeBuildOutput>
@@ -26,6 +26,7 @@
 		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="buildTransitive\Vestigium.Helpers.Watch.Dns.targets" />
 	</ItemGroup>
 	<Target Name="PackWatchExe" BeforeTargets="GenerateNuspec">
+		<Error Text="Watch exe was not built at $(TargetDir)$(AssemblyName).exe" Condition="!Exists('$(TargetDir)$(AssemblyName).exe')" />
 		<ItemGroup>
 			<_WatchPacked Include="$(TargetDir)$(AssemblyName).exe" />
 			<_WatchPacked Include="$(TargetDir)*.dll" />
@@ -35,5 +36,6 @@
 		<ItemGroup>
 			<None Include="@(_WatchPacked)" Pack="true" PackagePath="tools/$(TargetFramework)/%(Filename)%(Extension)" />
 		</ItemGroup>
+		<Message Importance="high" Text="Packing $(TargetDir)$(AssemblyName).exe into tools/$(TargetFramework)" />
 	</Target>
 </Project>
