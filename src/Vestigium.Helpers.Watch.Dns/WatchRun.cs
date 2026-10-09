@@ -3,7 +3,15 @@ namespace Vestigium.Helpers.Watch.Dns;
 public static class WatchRun
 {
     public static Task<int> RunAsync(WatchPipe pipe, WatchRequest request, CancellationToken token)
-        => RunAsync(pipe, request, ResolverWatch.StartSessionAsync, PacketWatch.RunAsync, token);
+    {
+        var rollup = new WatchRollup();
+        return RunAsync(
+            pipe,
+            request,
+            (open, clock, token) => ResolverWatch.StartSessionAsync(open, rollup, clock, token),
+            (open, clock, token) => PacketWatch.RunAsync(open, rollup, clock, token),
+            token);
+    }
 
     public static async Task<int> RunAsync(
         WatchPipe pipe,
