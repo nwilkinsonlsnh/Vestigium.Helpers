@@ -12,6 +12,6 @@ public sealed class ElevationTests
         if (Elevation.IsElevated())
             return;
 
-        Assert.Equal(Program.NotElevated, await Program.Main());
+        Assert.Equal(Program.NotElevated, await Program.Main([]));
     }
 }
