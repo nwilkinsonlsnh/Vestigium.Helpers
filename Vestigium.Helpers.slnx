@@ -35,6 +35,9 @@
     <Project Path="src/Vestigium.Helpers.PerfMon.PageFile/Vestigium.Helpers.PerfMon.PageFile.csproj" />
     <Project Path="src/Vestigium.Helpers.PerfMon/Vestigium.Helpers.PerfMon.csproj" />
   </Folder>
+  <Folder Name="/Library/Watch/">
+    <Project Path="src/Vestigium.Helpers.Watch.Dns/Vestigium.Helpers.Watch.Dns.csproj" />
+  </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/Vestigium.Helpers.Charts.MenuLab/Vestigium.Helpers.Charts.MenuLab.csproj" />
     <Project Path="samples/Vestigium.Helpers.Network.InventoryLab/Vestigium.Helpers.Network.InventoryLab.csproj" />
@@ -44,5 +47,6 @@
     <Project Path="src/Vestigium.Helpers.Tests/Vestigium.Helpers.Tests.csproj" />
     <Project Path="tests/Vestigium.Helpers.LogParser.Har.Tests/Vestigium.Helpers.LogParser.Har.Tests.csproj" />
     <Project Path="tests/Vestigium.Helpers.LogParser.Url.Tests/Vestigium.Helpers.LogParser.Url.Tests.csproj" />
+    <Project Path="tests/Vestigium.Helpers.Watch.Dns.Tests/Vestigium.Helpers.Watch.Dns.Tests.csproj" />
   </Folder>
 </Solution>

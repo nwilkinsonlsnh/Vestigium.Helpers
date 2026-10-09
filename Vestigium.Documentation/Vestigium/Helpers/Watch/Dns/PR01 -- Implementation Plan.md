@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Live. Not started.
+**Status:** Live. PR01-01 done. Clock is next.
 **Date:** 8 October 2026
 **Binding:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) wins on this cut. This file wins on order.
 
@@ -37,7 +37,7 @@ No project. No pipe. No session. The decision is in the requirements file.
 
 | Slice | Id | Work | Status |
 |---|---|---|---|
-| 1 | PR01-01 | WinExe project. Manifest `requireAdministrator`. No window. Unelevated exit. | |
+| 1 | PR01-01 | WinExe project. Manifest `requireAdministrator`. No window. Unelevated exit. | Done. Exit 2. |
 | 2 | PR01-02 | Clock. Default 5. Step 5. Max 180. Reject the rest. Stop flag. | |
 | 3 | PR01-03 | Named pipe. UTF-8 lines. ACL is starting user and Administrators. | |
 | 4 | PR01-04 | Resolver mode. Event 3008 only. Failure line if the session cannot start. | |
@@ -104,4 +104,4 @@ Do not edit DnsIQ. Do not edit Helpers.Network.
 
 ## Next action
 
-PR01-01. Project and manifest. Do not open DnsIQ PR08 in that turn.
+PR01-02. Clock. Default 5. Step 5. Max 180. Do not open DnsIQ PR08 in that turn.
