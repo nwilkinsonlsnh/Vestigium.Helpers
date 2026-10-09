@@ -75,7 +75,6 @@ public static class PacketWatch
             await WriteQuestionAsync(pipe, rollup, payload, token).ConfigureAwait(false);
         }
     }
-}
 
     private static async Task WriteQuestionAsync(WatchPipe pipe, WatchRollup rollup, byte[] payload, CancellationToken token)
     {
