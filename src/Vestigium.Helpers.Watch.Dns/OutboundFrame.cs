@@ -36,7 +36,7 @@ public static class OutboundFrame
     public static IReadOnlyList<Socket> Open()
     {
         var sockets = new List<Socket>();
-        foreach (var address in Dns.GetHostAddresses(Dns.GetHostName()))
+        foreach (var address in System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName()))
         {
             if (address.AddressFamily != AddressFamily.InterNetwork || IPAddress.IsLoopback(address))
                 continue;
