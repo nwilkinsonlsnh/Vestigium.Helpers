@@ -25,7 +25,6 @@
 		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="build\Vestigium.Helpers.Watch.Dns.targets" />
 		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="buildTransitive\Vestigium.Helpers.Watch.Dns.targets" />
 	</ItemGroup>
-	</ItemGroup>
 	<Target Name="PackWatchExe" BeforeTargets="GenerateNuspec">
 		<ItemGroup>
 			<_WatchPacked Include="$(TargetDir)$(AssemblyName).exe" />
