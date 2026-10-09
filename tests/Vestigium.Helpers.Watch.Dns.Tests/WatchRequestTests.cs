@@ -45,7 +45,6 @@ public sealed class WatchRequestTests
         Assert.Null(request);
         Assert.False(string.IsNullOrWhiteSpace(reject));
     }
-}
 
     [Fact]
     public void A_pipe_name_is_kept()
@@ -55,3 +54,4 @@ public sealed class WatchRequestTests
         Assert.Equal(10, request.Clock.Seconds);
         request.Clock.Stop();
     }
+}
