@@ -92,14 +92,18 @@ public sealed class WatchPipe : IAsyncDisposable
     public async Task WaitForClientAsync(CancellationToken token)
     {
         var wait = _server.WaitForConnectionAsync(CancellationToken.None);
-        var limit = Task.Delay(TimeSpan.FromSeconds(2), token);
+        var limit = Task.Delay(Timeout.Infinite, token);
         if (await Task.WhenAny(wait, limit).ConfigureAwait(false) != wait)
             throw new TimeoutException("No client connected.");
         await wait.ConfigureAwait(false);
     }
 
-    public Task WriteAsync(WatchRow row, CancellationToken token)
-        => Writer.WriteLineAsync(JsonSerializer.Serialize(row, Json).AsMemory(), token);
+    public async Task WriteAsync(WatchRow row, CancellationToken token)
+    {
+        if (!_server.IsConnected)
+            throw new InvalidOperationException("Pipe hasn't been connected yet.");
+        await Writer.WriteLineAsync(JsonSerializer.Serialize(row, Json).AsMemory(), token).ConfigureAwait(false);
+    }
 
     public ValueTask DisposeAsync()
     {

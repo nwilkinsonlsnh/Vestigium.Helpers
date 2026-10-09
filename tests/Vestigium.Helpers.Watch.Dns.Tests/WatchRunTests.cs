@@ -16,8 +16,8 @@ public sealed class WatchRunTests
         Assert.Equal(0, opened);
         await using var open = pipe!;
         using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-        var connect = client.ConnectAsync(5_000);
-        await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
+        var connect = client.ConnectAsync(1_000);
+        await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
         Assert.True(WatchRequest.TryCreate(WatchSource.Both, 5, out var request, out _));
 
@@ -29,7 +29,8 @@ public sealed class WatchRunTests
             CancellationToken.None);
 
         using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-        var line = await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(2));
+        var reading = reader.ReadLineAsync();
+        var line = await reading.WaitAsync(TimeSpan.FromSeconds(1));
         var row = JsonSerializer.Deserialize<WatchRow>(line!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.Equal(0, code);
@@ -46,8 +47,8 @@ public sealed class WatchRunTests
         Assert.Equal(0, opened);
         await using var open = pipe!;
         using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-        var connect = client.ConnectAsync(5_000);
-        await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(2)).Token);
+        var connect = client.ConnectAsync(1_000);
+        await open.WaitForClientAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
         await connect;
         Assert.True(WatchRequest.TryCreate(WatchSource.Event, 5, out var request, out _));
 
