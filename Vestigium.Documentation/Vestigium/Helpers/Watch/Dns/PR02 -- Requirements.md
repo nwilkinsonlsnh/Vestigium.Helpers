@@ -6,11 +6,11 @@
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
 **Status:** Live. Binding for PR02 until the implementation plan closes it.
 **Date:** 9 October 2026
-**Prior:** [PR01 -- Requirements.md](PR01%20--%20Requirements.md) is closed. The exe, the clock, the pipe, event 3008, and the port bind exist.
+**Prior:** [Complete/PR01](Complete/PR01/PR01%20--%20Requirements.md) is closed. The exe, the clock, the pipe, event 3008, and the port bind exist.
 
-**One sentence:** One row per name, with a count from the resolver, a count from the port, and a total.
+**One sentence:** The watch does not start without a source, and one query name is one row with a count from each source that was asked to run.
 
-**This version is not** the Event Log. Not a second watcher. Not a claim that the port bind sees outbound queries. Not the DnsIQ tab.
+**This version is not** a builder. Not the Event Log. Not a URL rollup. Not a raw outbound capture. Not the pipe name the tab must know. Not the DnsIQ tab.
 
 ---
 
@@ -18,53 +18,62 @@
 
 | Call | Why |
 |---|---|
-| Both sensors run | PR01 turns the resolver off when the arg is `packet`. A count by source needs both. Default is both. |
-| `resolver` and `packet` still narrow | An arg of one name runs that sensor only. The other count stays 0. |
+| Source is required | `Event`, `Port`, or `Both`. `TryCreate` rejects a missing source before a sensor opens. `Both` is a choice the caller makes. It is not a hidden default inside the type. |
+| No builder | Three values and a duration. A fluent chain adds nothing. |
 | Event means 3008 | `Microsoft-Windows-DNS-Client` event 3008. The Operational channel stays off. This is not the Event Log. |
-| Key is name + type | `edge.example` A and `edge.example` AAAA are two rows. One hundred A queries are one row. |
-| Counts are by source | `resolverCount`, `packetCount`, `total`. Total is the sum. It is not a third sensor. |
-| Replace, do not append the same name | The pipe still sends lines. A later line for the same name and type replaces the earlier one. The consumer does not stack 100 rows. |
-| Port bind is still a bind | UDP/53 and TCP/53 receive queries addressed to this host. They do not see queries this host sends. The unseen line keeps saying so. |
+| Key is the query name and the type | Not a URL. A scheme and a path are not the question. A and AAAA stay two rows. |
+| Name is normalized | Trim, drop a trailing dot, compare ignore-case. An empty label rejects and does not become a row. |
+| Pid is not the key | Event and Port are the sources. Two processes asking the same name are one row. Pid is omitted when the callers differ. |
+| Emit on change | A later line for the same name and type replaces the earlier one. The first line is the unseen notice, and it is not a query row. |
+| Status is not a count | The row carries counts. It does not flip status to whatever arrived last. A port payload that is not a question does not increment. |
+| Port bind is still a bind | UDP/53 and TCP/53 receive queries addressed to this host. They do not see queries this host sends. |
 
-Rejected: flipping one sensor off to run the other as the default. Rejected: enabling `Microsoft-Windows-DNS-Client/Operational`. Rejected: a raw capture in this PR. That is a different sensor. Rejected: collapsing A and AAAA into one row.
+Rejected: a builder. Rejected: a hidden `Both` inside the type. Rejected: collapsing a URL path into the key. Rejected: stuffing the last pid into the row and calling it the source. Rejected: a final snapshot only. Rejected: enabling the Operational channel. Rejected: a raw capture in this PR.
 
 ---
 
 ## 1. What this version is
 
-The same exe. The same clock. A rollup instead of a stream of duplicates.
+The same exe. The same clock. A required source. A rollup instead of a stream of duplicates.
 
 | Piece | PR01 | PR02 |
 |---|---|---|
-| Default | Resolver only. | Both. |
-| `packet` arg | Port only. Resolver off. | Port only. Resolver count stays 0. |
-| `resolver` arg | Resolver. Port off. | Resolver only. Port count stays 0. |
-| Row | One line per event. | One line per name and type. Later line replaces. |
-| Counts | None. | Resolver, port, total. |
+| Source | `packet` turns the resolver off. No arg is resolver only. | `TryCreate` requires `Event`, `Port`, or `Both`. |
+| Row | One line per event. | One line per normalized name and type. Later line replaces. |
+| Counts | None. | `resolverCount`, `packetCount`, `total`. A source that was not requested stays 0. |
+| Caller | Pid on the event. | Omitted when mixed. Not part of the key. |
 
 ---
 
 ## 2. Requirements
 
-### R02-01 Default runs both
+### R02-01 The watch does not construct without a source
 
-No mode arg starts event 3008 and the port bind. `resolver` starts only 3008. `packet` starts only the bind. A bad mode rejects and exits before a sensor.
+`TryCreate(source, seconds, out watch, out reject)`. Source is `Event`, `Port`, or `Both`. Missing source rejects. A bad duration still rejects. No sensor opens on a reject. `Main` may pass `Both` when the arg is absent. That choice is in the arg parse, not in the type.
 
-### R02-02 One hundred queries are one row
+### R02-02 The key is a normalized query name and a type
 
-The key is the normalized name and the type. A repeat increments the source that saw it. The line sent after the increment carries the new counts. The name is not emitted once per event.
+The name is trimmed and the trailing dot is dropped. Compare ignore-case. A scheme or a path is not accepted as a name. A and AAAA are two keys. One hundred `edge.example` A queries are one row.
 
-### R02-03 Counts name the source
+### R02-03 Counts name the source that was asked to run
 
-`resolverCount` is 3008 only. `packetCount` is a question read on the bind only. `total` is the sum. A response on the port does not increment. It stays the PR01 empty-name rejection.
+`resolverCount` is 3008 only. `packetCount` is a question read on the bind only. `total` is the sum. A source that was not requested stays 0. A response on the port does not increment.
 
-### R02-04 The first line is still the unseen notice
+### R02-04 The caller is not the key
 
-Both-mode text names both holes: the resolver misses raw sockets and non-Windows DoH, and the bind misses queries this host sends plus DoH, DoT, and DoQ. A single-mode run keeps that mode's PR01 sentence.
+Two processes asking the same name increment the same row. Pid is set only when every event for that key came from that pid. Mixed callers omit it. Process name follows the same rule.
 
-### R02-05 A failed sensor does not kill the other
+### R02-05 Emit on change
 
-If both were requested and the session throws, the failure row is written and the bind keeps running. If both were requested and the bind throws, the failure row is written and 3008 keeps running. If the only requested sensor throws, exit 3 as in PR01.
+The pipe sends a line when a count changes. The consumer replaces on name and type. The unseen notice is the first line and is not a query row. Stop does not wait to flush a second copy.
+
+### R02-06 A failed sensor does not kill the other
+
+If `Both` was requested and one sensor throws, the failure row is written and the other keeps running. If the only requested sensor throws, exit 3 as in PR01.
+
+### R02-07 The unseen line matches the source
+
+`Both` names both holes: the resolver misses raw sockets and non-Windows DoH, and the bind misses queries this host sends plus DoH, DoT, and DoQ. `Event` and `Port` keep the PR01 sentence for that source.
 
 ---
 
@@ -73,10 +82,11 @@ If both were requested and the session throws, the failure row is written and th
 - The clock. 5, step 5, max 180.
 - Exit 2 when not elevated. Exit 4 when the pipe cannot open.
 - The Operational channel. Do not enable it.
-- DnsIQ. This PR does not edit `Vestigium.Suite.Network`.
+- The bind. It is not an outbound capture.
+- DnsIQ. This PR does not edit `Vestigium.Suite.Network`. The pipe name the tab must know is PR08.
 
 ---
 
 ## 4. Done
 
-A new thread builds from the implementation plan. PR02-01 through PR02-04 are the order. DnsIQ PR08 still does not own the sensor.
+A new thread builds from the implementation plan. PR02-01 through PR02-05 are the order.
