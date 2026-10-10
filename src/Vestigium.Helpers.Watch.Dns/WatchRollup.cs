@@ -21,7 +21,7 @@ public sealed class WatchRollup
         if (!QueryName.TryNormalize(name, out var keyName, out _))
             return null;
 
-        var keyType = string.IsNullOrWhiteSpace(type) ? "" : type.Trim();
+        var keyType = DnsQueryTypes.Name(type);
         var key = keyName + " " + keyType;
         lock (_gate)
         {
