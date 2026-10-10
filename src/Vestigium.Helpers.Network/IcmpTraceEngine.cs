@@ -216,10 +216,7 @@ internal static class IcmpTraceEngine
         if (protocol() != ProbeProtocol.Tcp && IsSilent(row))
         {
             setProtocol(ProbeProtocol.Tcp);
-            NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} UDP silent; TCP fallback port={options.TcpPort}");
-            row = await TcpProbeAsync(
-                target, timeoutMs, ttl, probe, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress)
-                .ConfigureAwait(false);
+            NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} silent; later hops use TCP port={options.TcpPort}");
         }
 
         return row;
