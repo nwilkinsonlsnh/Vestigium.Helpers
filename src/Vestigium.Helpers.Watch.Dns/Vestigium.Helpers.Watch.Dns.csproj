@@ -25,16 +25,21 @@
 		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="build\Vestigium.Helpers.Watch.Dns.targets" />
 		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="buildTransitive\Vestigium.Helpers.Watch.Dns.targets" />
 	</ItemGroup>
-	<Target Name="PackWatchExe" BeforeTargets="GenerateNuspec">
+	<Target Name="PackWatchExe" AfterTargets="_GetPackageFiles">
 		<Error Text="Watch exe was not built at $(TargetDir)$(AssemblyName).exe" Condition="!Exists('$(TargetDir)$(AssemblyName).exe')" />
 		<ItemGroup>
-			<_WatchPacked Include="$(TargetDir)$(AssemblyName).exe" />
-			<_WatchPacked Include="$(TargetDir)*.dll" />
-			<_WatchPacked Include="$(TargetDir)$(AssemblyName).runtimeconfig.json" />
-			<_WatchPacked Include="$(TargetDir)$(AssemblyName).deps.json" />
-		</ItemGroup>
-		<ItemGroup>
-			<None Include="@(_WatchPacked)" Pack="true" PackagePath="tools/$(TargetFramework)/%(Filename)%(Extension)" />
+			<_PackageFiles Include="$(TargetDir)$(AssemblyName).exe">
+				<PackagePath>tools/$(TargetFramework)/$(AssemblyName).exe</PackagePath>
+			</_PackageFiles>
+			<_PackageFiles Include="$(TargetDir)*.dll">
+				<PackagePath>tools/$(TargetFramework)/%(Filename)%(Extension)</PackagePath>
+			</_PackageFiles>
+			<_PackageFiles Include="$(TargetDir)$(AssemblyName).runtimeconfig.json">
+				<PackagePath>tools/$(TargetFramework)/$(AssemblyName).runtimeconfig.json</PackagePath>
+			</_PackageFiles>
+			<_PackageFiles Include="$(TargetDir)$(AssemblyName).deps.json">
+				<PackagePath>tools/$(TargetFramework)/$(AssemblyName).deps.json</PackagePath>
+			</_PackageFiles>
 		</ItemGroup>
 		<Message Importance="high" Text="Packing $(TargetDir)$(AssemblyName).exe into tools/$(TargetFramework)" />
 	</Target>
