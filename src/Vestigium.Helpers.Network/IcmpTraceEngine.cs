@@ -25,10 +25,10 @@ internal static class IcmpTraceEngine
             throw new ArgumentOutOfRangeException(nameof(o.MaxHops), "MaxHops must be between 1 and 64.");
         }
 
-        if (o.ProbesPerHop is < 1 or > 10)
+        if (o.ProbesPerHop is < 1 or > 30)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"ProbesPerHop={o.ProbesPerHop}");
-            throw new ArgumentOutOfRangeException(nameof(o.ProbesPerHop), "ProbesPerHop must be between 1 and 10.");
+            throw new ArgumentOutOfRangeException(nameof(o.ProbesPerHop), "ProbesPerHop must be between 1 and 30.");
         }
 
         var timeoutMs = o.Timeout.TotalMilliseconds;
@@ -174,7 +174,7 @@ internal static class IcmpTraceEngine
                 .ConfigureAwait(false);
             probes.Add(row);
             hopAddress ??= row.Address;
-            if (row.Status == IcmpEchoStatus.Success)
+            if (row.Address is null && row.Status is IcmpEchoStatus.TimedOut or IcmpEchoStatus.Failed)
                 break;
         }
 
