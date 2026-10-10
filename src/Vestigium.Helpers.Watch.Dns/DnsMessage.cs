@@ -86,28 +86,35 @@ public static class DnsMessage
     {
         name = "";
         var labels = new List<string>();
-        var jumped = false;
+        var cursor = at;
+        var advanced = false;
         var guard = 0;
-        while (at < payload.Length && guard++ < 128)
+        while (cursor < payload.Length && guard++ < 128)
         {
-            var length = payload[at++];
+            var length = payload[cursor++];
             if (length == 0)
+            {
+                if (!advanced)
+                    at = cursor;
                 break;
+            }
             if ((length & 0xC0) == 0xC0)
             {
-                if (at >= payload.Length)
+                if (cursor >= payload.Length)
                     return false;
-                var pointer = ((length & 0x3F) << 8) | payload[at++];
-                if (!jumped)
-                    at = at;
-                jumped = true;
-                at = pointer;
+                var pointer = ((length & 0x3F) << 8) | payload[cursor++];
+                if (!advanced)
+                    at = cursor;
+                advanced = true;
+                cursor = pointer;
                 continue;
             }
-            if (at + length > payload.Length)
+            if (cursor + length > payload.Length)
                 return false;
-            labels.Add(System.Text.Encoding.ASCII.GetString(payload, at, length));
-            at += length;
+            labels.Add(System.Text.Encoding.ASCII.GetString(payload, cursor, length));
+            cursor += length;
+            if (!advanced)
+                at = cursor;
         }
 
         if (labels.Count == 0)
