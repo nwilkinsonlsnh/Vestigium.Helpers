@@ -261,7 +261,8 @@ internal static class IcmpTraceEngine
 
             var status = MapStatus(reply.Status);
             var address = MapAddress(reply.Address);
-            var rtt = reply.RoundtripTime > 0 ? reply.RoundtripTime : Math.Max(1, started.ElapsedMilliseconds);
+            var measured = started.Elapsed.TotalMilliseconds;
+            var rtt = reply.RoundtripTime > 0 ? reply.RoundtripTime : measured;
             return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, rtt, reply.Status.ToString());
         }
         catch (OperationCanceledException)
@@ -349,7 +350,7 @@ internal static class IcmpTraceEngine
                     ProbeProtocol.Udp,
                     reached ? IcmpEchoStatus.Success : IcmpEchoStatus.TtlExpired,
                     address,
-                    started.ElapsedMilliseconds,
+                    started.Elapsed.TotalMilliseconds,
                     reached ? "udp-reached" : "udp-hop");
             }
             catch (TimeoutException)
@@ -418,7 +419,7 @@ internal static class IcmpTraceEngine
             {
                 await socket.ConnectAsync(dest, port, timed.Token).ConfigureAwait(false);
                 return new IcmpTraceProbe(
-                    ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), started.ElapsedMilliseconds, "tcp-open");
+                    ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), started.Elapsed.TotalMilliseconds, "tcp-open");
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {
