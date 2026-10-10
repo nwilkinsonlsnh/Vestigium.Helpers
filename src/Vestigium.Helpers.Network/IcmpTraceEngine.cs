@@ -81,9 +81,9 @@ internal static class IcmpTraceEngine
             var next = 1;
             var inflight = new List<Task<IcmpTraceHop>>();
             using var fan = CancellationTokenSource.CreateLinkedTokenSource(token);
-            while ((next <= options.MaxHops || inflight.Count > 0) && !fan.IsCancellationRequested && !reached)
+            while ((next <= options.MaxHops || inflight.Count > 0) && !fan.IsCancellationRequested)
             {
-                while (inflight.Count < width && next <= options.MaxHops && !reached && !fan.IsCancellationRequested)
+                while (!reached && inflight.Count < width && next <= options.MaxHops && !fan.IsCancellationRequested)
                 {
                     var ttl = next++;
                     inflight.Add(ProbeHopAsync(
@@ -95,13 +95,19 @@ internal static class IcmpTraceEngine
 
                 var done = await Task.WhenAny(inflight).ConfigureAwait(false);
                 inflight.Remove(done);
-                var hop = await done.ConfigureAwait(false);
+                IcmpTraceHop hop;
+                try
+                {
+                    hop = await done.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    continue;
+                }
+
                 hops.Add(hop);
                 if (hop.Probes.Any(p => p.Status == IcmpEchoStatus.Success))
-                {
                     reached = true;
-                    fan.Cancel();
-                }
 
                 progress?.Report(new NetworkProgress
                 {
