@@ -6,11 +6,11 @@
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
 **Status:** Written. Binding for PR03 until the implementation plan closes it.
 **Date:** 10 October 2026
-**Prior:** [PR02 -- Requirements.md](../Complete/PR02/PR02%20--%20Requirements.md) is closed. The rollup key, the counts, and the emit-on-change exist. Status and Answers are mapped then discarded.
+**Prior:** [Complete/PR02](../Complete/PR02/PR02%20--%20Requirements.md) is closed. The rollup key, the counts, and the emit-on-change exist. Status and Answers are mapped then discarded.
 
-**One sentence:** The rollup keeps the last Status and Answers from the Event path so the pipe row the tab already reads actually contains them.
+**One sentence:** The rollup puts the current Status and Answers on every emitted line so the client can keep the full sequence of responses for the watch window.
 
-**This version is not** a new sensor. Not the Operational channel. Not a packet decoder that extracts source or destination IPs from the frame. Not a whois or HTTP client. Not a change to the Name+Type key. Not the DnsIQ tab.
+**This version is not** a new sensor. Not the Operational channel. Not a packet decoder. Not an accumulator of history inside the helper. Not a whois client. Not a change to the Name+Type key. Not the DnsIQ tab.
 
 ---
 
@@ -18,48 +18,48 @@
 
 | Call | Why |
 |---|---|
-| Preserve what Map already has | `ResolverWatch.Map` receives `QueryStatus` and `QueryResults`. `WatchRollup.Add` rebuilds the row with empty strings. The cheapest fix is to keep the last non-empty values on the key. |
-| Answers is the destination | The tool is local. Source IP is this machine. The useful destination is the data the resolver returned. That lives in Answers. |
-| No frame IP | `OutboundFrame` already peels the UDP payload. Extracting the remote address of the DNS server adds a field the tab does not need for this release. |
-| Key stays Name+Type | PR02 locked it. A and AAAA remain two rows. Status and Answers do not join the key. |
-| Last wins | A later Event for the same key replaces Status and Answers. A Port-only increment leaves the previous values. Empty stays empty. |
-| Client parses if it wants | The pipe carries the string. DnsIQ may split A/AAAA out of it. This exe does not add a structured list unless the string is already simple. |
+| Emit on every change | The pipe already sends a line when a count changes. Put Status and Answers on that line. The client receives the sequence. The helper does not need to store the past. |
+| Last on the key is fine | The stored row holds the latest so the next emit is correct. History lives in the stream the client already reads. |
+| Do not accumulate inside the helper | A list of every past answer on the row bloats the pipe and duplicates work the client must do anyway for the details pane. |
+| Answers is the destination | The tool is local. Source IP is this machine. The useful destination is the data the resolver returned. |
+| Key stays Name+Type | PR02 locked it. Status and Answers do not join the key. |
+| Port-only stays blank | A Port increment does not invent Status or Answers. It leaves the previous values so the next Event can update them. |
 
-Rejected: adding source IP. Rejected: changing the rollup key. Rejected: enabling the Operational channel. Rejected: a second pipe format. Rejected: automatic resolution inside the watch.
+Rejected: storing a history list in the helper. Rejected: last-only with no emit of the payload. Rejected: adding source IP. Rejected: changing the rollup key. Rejected: enabling the Operational channel.
 
 ---
 
 ## 1. What this version is
 
-The same exe. The same clock. The same key. The same counts. The row now keeps the payload the Event path already saw.
+The same exe. The same clock. The same key. The same counts. Every emitted line now carries the Status and Answers that were current when the count changed.
 
 | Piece | PR02 | PR03 |
 |---|---|---|
-| Status | Discarded | Last non-empty from Event. Blank if only Port. |
-| Answers | Discarded | Last non-empty from Event (`QueryResults`). Blank if only Port. |
+| Status | Discarded | On the emitted line. Latest kept on the key. |
+| Answers | Discarded | On the emitted line. Latest kept on the key. |
+| History | None | In the stream. Client keeps it. |
 | Key | Name + Type | Unchanged. |
 | Counts | Resolver / Packet / Total | Unchanged. |
-| Emit | On change | On change. The new fields travel with the row. |
 
 ---
 
 ## 2. Requirements
 
-### R03-01 The rollup keeps Status and Answers
+### R03-01 Every emitted line carries Status and Answers
 
-`Add` accepts the optional status and answers (or the caller sets them on the returned row before the pipe write). The stored row for that key holds the last non-empty values. A Port increment does not clear them. An empty Event does not wipe a previous value.
+When the Event path supplies them, the JSON line includes `status` and `answers`. The rollup stores the latest non-empty so a later Port increment does not clear them and a later Event can replace them. Empty does not wipe a prior value.
 
-### R03-02 The pipe row carries them
+### R03-02 The helper does not accumulate history
 
-`WatchRow` already has the properties. The JSON line the tab deserializes includes `status` and `answers` when present. No new fields required for this cut. No version bump on the pipe.
+No list of past answers on the row. No second channel. The emit-on-change stream is the record. DnsIQ PR09 keeps the lines.
 
-### R03-03 Port-only rows stay blank
+### R03-03 Port-only lines stay blank
 
-A question seen only on the bind or the outbound capture has empty Status and Answers. That is correct. The Event path is the one that knows the result.
+A question seen only on the bind or the outbound capture has empty Status and Answers unless a prior Event for that key already set them. The Event path is the one that knows the result.
 
 ### R03-04 Key and counts are untouched
 
-Normalization, Name+Type key, resolverCount, packetCount, total, pid-omission rule, and emit-on-change stay exactly as PR02 left them. A failure row is still a failure row.
+Normalization, Name+Type key, counts, pid-omission, and emit-on-change stay as PR02 left them.
 
 ---
 
@@ -76,7 +76,7 @@ Normalization, Name+Type key, resolverCount, packetCount, total, pid-omission ru
 
 ## 4. Done
 
-A thread follows the implementation plan. After PR03 the pipe line for an Event-sourced key contains the last Status and Answers. A Port-only key does not invent them. DnsIQ PR09 can consume them without a format change.
+After PR03 every Event-sourced line on the pipe contains Status and Answers. The client can keep the sequence. A Port-only line does not invent them. DnsIQ PR09 consumes the stream without a format change.
 
 ---
 
@@ -84,4 +84,4 @@ A thread follows the implementation plan. After PR03 the pipe line for an Event-
 
 | Version | Date | Change |
 |---|---|---|
-| PR03 | 10 Oct 2026 | Preserve Status and Answers on the rollup so the pipe carries the destination data the Event path already saw. |
+| PR03 | 10 Oct 2026 | Emit Status and Answers on every line. History stays in the stream. Helper does not accumulate. |
