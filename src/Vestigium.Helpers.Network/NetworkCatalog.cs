@@ -37,6 +37,7 @@ public static class NetworkCatalog
         Row(NetworkEvents.CampaignPathEscape, "CampaignPathEscape", "Error", "campaign path escape"),
         Row(NetworkEvents.DnsPeerMismatch, "DnsPeerMismatch", "Warning", "DNS peer mismatch"),
         Row(NetworkEvents.OuiLookupRejected, "OuiLookupRejected", "Error", "OUI lookup rejected"),
+        Row(NetworkEvents.BindRejected, "BindRejected", "Error", "bind rejected"),
     ];
 
     private static CatalogRow Row(int eventId, string name, string severity, string description)
