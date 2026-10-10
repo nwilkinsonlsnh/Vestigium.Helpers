@@ -52,4 +52,42 @@ public sealed class WatchRollupTests
         Assert.Null(rollup.Add("https://edge.example/a", "A", WatchSource.Event, 1));
         Assert.Equal(0, rollup.Keys);
     }
+
+    [Fact]
+    public void Event_then_port_keeps_answers()
+    {
+        var rollup = new WatchRollup();
+        rollup.Add("edge.example", "A", WatchSource.Event, 1, "Success", "1.2.3.4");
+        var row = rollup.Add("edge.example", "A", WatchSource.Port, 0);
+
+        Assert.Equal("Success", row!.Status);
+        Assert.Equal("1.2.3.4", row.Answers);
+        Assert.Equal(1, row.ResolverCount);
+        Assert.Equal(1, row.PacketCount);
+    }
+
+    [Fact]
+    public void Port_then_event_fills_answers()
+    {
+        var rollup = new WatchRollup();
+        rollup.Add("edge.example", "A", WatchSource.Port, 0);
+        var row = rollup.Add("edge.example", "A", WatchSource.Event, 1, "Success", "1.2.3.4");
+
+        Assert.Equal("Success", row!.Status);
+        Assert.Equal("1.2.3.4", row.Answers);
+        Assert.Equal(1, row.ResolverCount);
+        Assert.Equal(1, row.PacketCount);
+    }
+
+    [Fact]
+    public void Empty_does_not_wipe_prior()
+    {
+        var rollup = new WatchRollup();
+        rollup.Add("edge.example", "A", WatchSource.Event, 1, "Success", "1.2.3.4");
+        var row = rollup.Add("edge.example", "A", WatchSource.Event, 1, "", "");
+
+        Assert.Equal("Success", row!.Status);
+        Assert.Equal("1.2.3.4", row.Answers);
+        Assert.Equal(2, row.ResolverCount);
+    }
 }

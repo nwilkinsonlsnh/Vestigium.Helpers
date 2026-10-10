@@ -14,7 +14,7 @@ public sealed class WatchRollup
         }
     }
 
-    public WatchRow? Add(string? name, string? type, WatchSource source, int pid)
+    public WatchRow? Add(string? name, string? type, WatchSource source, int pid, string? status = null, string? answers = null)
     {
         if (source == WatchSource.Both)
             throw new ArgumentOutOfRangeException(nameof(source), "A row comes from Event or Port.");
@@ -37,7 +37,10 @@ public sealed class WatchRollup
                 ? pid
                 : current.Pid == pid ? pid : 0;
 
-            var row = new WatchRow(DateTimeOffset.UtcNow, "", keptPid, keyName, keyType, "", "", "rollup")
+            var keptStatus = Keep(current?.Status, status);
+            var keptAnswers = Keep(current?.Answers, answers);
+
+            var row = new WatchRow(DateTimeOffset.UtcNow, "", keptPid, keyName, keyType, keptStatus, keptAnswers, "rollup")
             {
                 ResolverCount = resolver,
                 PacketCount = packet,
@@ -46,5 +49,12 @@ public sealed class WatchRollup
             _rows[key] = row;
             return row;
         }
+    }
+
+    private static string Keep(string? current, string? incoming)
+    {
+        if (!string.IsNullOrWhiteSpace(incoming))
+            return incoming.Trim();
+        return current ?? "";
     }
 }

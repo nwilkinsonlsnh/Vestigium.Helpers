@@ -23,7 +23,7 @@ internal static class DnsClientSession
             if (row is null)
                 return;
 
-            var rolled = rollup.Add(row.Name, row.Type, WatchSource.Event, row.Pid);
+            var rolled = rollup.Add(row.Name, row.Type, WatchSource.Event, row.Pid, row.Status, row.Answers);
             if (rolled is null)
                 return;
 
