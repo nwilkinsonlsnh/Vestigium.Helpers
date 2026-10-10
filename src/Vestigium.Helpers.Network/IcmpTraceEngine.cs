@@ -247,6 +247,7 @@ internal static class IcmpTraceEngine
         {
             PingReply reply;
             var options = new PingOptions(ttl, true);
+            var started = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), buffer, options, token)
@@ -260,7 +261,8 @@ internal static class IcmpTraceEngine
 
             var status = MapStatus(reply.Status);
             var address = MapAddress(reply.Address);
-            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, reply.RoundtripTime, reply.Status.ToString());
+            var rtt = reply.RoundtripTime > 0 ? reply.RoundtripTime : Math.Max(1, started.ElapsedMilliseconds);
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, rtt, reply.Status.ToString());
         }
         catch (OperationCanceledException)
         {
