@@ -15,6 +15,7 @@ public sealed class IcmpTraceOptions
 
     public int MaxHops { get; set; } = DefaultMaxHops;
     public int ProbesPerHop { get; set; } = DefaultProbesPerHop;
+    public int ParallelHops { get; set; } = 1;
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(4);
     public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
     public bool PreferUdp { get; set; }
