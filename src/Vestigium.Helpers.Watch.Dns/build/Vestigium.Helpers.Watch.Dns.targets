@@ -4,7 +4,7 @@
       <_WatchDnsFiles Include="$(PkgVestigium_Helpers_Watch_Dns)\tools\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(_WatchDnsFiles)"
-          DestinationFolder="$(OutputPath)"
+          DestinationFiles="@(_WatchDnsFiles->'$(OutputPath)watch\%(Filename)%(Extension)')"
           SkipUnchangedFiles="true"
           Condition="'@(_WatchDnsFiles)' != ''" />
   </Target>
