@@ -247,7 +247,6 @@ internal static class NetworkInventoryWindows
             ? loose
             : null;
     }
-}
 
     public static IReadOnlyList<UnicastAddress> ReadInterfaceAddresses(string id)
     {
@@ -310,3 +309,4 @@ internal static class NetworkInventoryWindows
             }
         }
     }
+}
