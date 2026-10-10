@@ -26,21 +26,27 @@
 		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="buildTransitive\Vestigium.Helpers.Watch.Dns.targets" />
 	</ItemGroup>
 	<Target Name="PackWatchExe" AfterTargets="_GetPackageFiles">
+		<PropertyGroup>
+			<_WatchToolFolder>tools/$(TargetFramework)$(TargetPlatformVersion)</_WatchToolFolder>
+		</PropertyGroup>
 		<Error Text="Watch exe was not built at $(TargetDir)$(AssemblyName).exe" Condition="!Exists('$(TargetDir)$(AssemblyName).exe')" />
 		<ItemGroup>
 			<_PackageFiles Include="$(TargetDir)$(AssemblyName).exe">
-				<PackagePath>tools/$(TargetFramework)/$(AssemblyName).exe</PackagePath>
+				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).exe</PackagePath>
 			</_PackageFiles>
-			<_PackageFiles Include="$(TargetDir)*.dll">
-				<PackagePath>tools/$(TargetFramework)/%(Filename)%(Extension)</PackagePath>
+			<_PackageFiles Include="$(TargetDir)$(AssemblyName).dll">
+				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).dll</PackagePath>
 			</_PackageFiles>
 			<_PackageFiles Include="$(TargetDir)$(AssemblyName).runtimeconfig.json">
-				<PackagePath>tools/$(TargetFramework)/$(AssemblyName).runtimeconfig.json</PackagePath>
+				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).runtimeconfig.json</PackagePath>
 			</_PackageFiles>
 			<_PackageFiles Include="$(TargetDir)$(AssemblyName).deps.json">
-				<PackagePath>tools/$(TargetFramework)/$(AssemblyName).deps.json</PackagePath>
+				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).deps.json</PackagePath>
+			</_PackageFiles>
+			<_PackageFiles Include="$(TargetDir)*.dll" Exclude="$(TargetDir)$(AssemblyName).dll">
+				<PackagePath>$(_WatchToolFolder)/%(Filename)%(Extension)</PackagePath>
 			</_PackageFiles>
 		</ItemGroup>
-		<Message Importance="high" Text="Packing $(TargetDir)$(AssemblyName).exe into tools/$(TargetFramework)" />
+		<Message Importance="high" Text="Packing $(AssemblyName).exe into $(_WatchToolFolder)" />
 	</Target>
 </Project>
