@@ -105,9 +105,15 @@ internal static class IcmpTraceEngine
                     continue;
                 }
 
-                hops.Add(hop);
                 if (hop.Probes.Any(p => p.Status == IcmpEchoStatus.Success))
+                {
                     reached = true;
+                    if (hops.Any(h => h.Ttl < hop.Ttl && h.Probes.Any(p => p.Status == IcmpEchoStatus.Success)))
+                        continue;
+                    hops.RemoveAll(h => h.Ttl > hop.Ttl);
+                }
+
+                hops.Add(hop);
 
                 progress?.Report(new NetworkProgress
                 {
