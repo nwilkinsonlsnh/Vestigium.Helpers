@@ -22,19 +22,21 @@ public sealed class PacketWatchTests
         Assert.Equal("1", row.Type);
         Assert.Equal("packet", row.Mode);
         Assert.Equal("", row.Status);
+        Assert.Equal(1, row.ResolverCount);
+        Assert.Equal(0, row.PacketCount);
     }
 
     [Fact]
-    public void A_response_is_not_a_question()
+    public void A_response_carries_status_and_answers()
     {
-        var payload = Question("edge.example", 1);
-        payload[2] = 0x80;
+        var row = PacketWatch.Read(Response("edge.example", 1, "1.2.3.4"));
 
-        var row = PacketWatch.Read(payload);
-
-        Assert.Equal("", row.Name);
-        Assert.Equal("Not a question", row.Status);
-        Assert.Equal("packet", row.Mode);
+        Assert.Equal("edge.example", row.Name);
+        Assert.Equal("1", row.Type);
+        Assert.Equal("NOERROR", row.Status);
+        Assert.Equal("1.2.3.4", row.Answers);
+        Assert.Equal(0, row.ResolverCount);
+        Assert.Equal(1, row.PacketCount);
     }
 
     [Fact]
@@ -69,6 +71,33 @@ public sealed class PacketWatchTests
         body.Add((byte)type);
         body.Add(0);
         body.Add(1);
+        return body.ToArray();
+    }
+
+    private static byte[] Response(string name, int type, string address)
+    {
+        var question = Question(name, type);
+        var answer = new List<byte>();
+        answer.Add(0xC0);
+        answer.Add(12);
+        answer.Add((byte)(type >> 8));
+        answer.Add((byte)type);
+        answer.Add(0);
+        answer.Add(1);
+        answer.Add(0);
+        answer.Add(0);
+        answer.Add(0);
+        answer.Add(60);
+        var octets = address.Split('.').Select(byte.Parse).ToArray();
+        answer.Add(0);
+        answer.Add((byte)octets.Length);
+        answer.AddRange(octets);
+
+        var body = question.ToList();
+        body[2] = 0x80;
+        body[6] = 0;
+        body[7] = 1;
+        body.AddRange(answer);
         return body.ToArray();
     }
 }

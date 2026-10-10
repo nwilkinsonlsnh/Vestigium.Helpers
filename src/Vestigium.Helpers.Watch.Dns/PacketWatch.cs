@@ -12,10 +12,15 @@ public static class PacketWatch
 
     public static WatchRow Read(byte[]? payload)
     {
-        if (!DnsQuestion.TryRead(payload, out var name, out var type))
+        if (!DnsMessage.TryRead(payload, out var name, out var type, out var response, out var status, out var answers))
             return new WatchRow(DateTimeOffset.UtcNow, "", 0, "", "", "Not a question", "", "packet");
 
-        return new WatchRow(DateTimeOffset.UtcNow, "", 0, name, type, "", "", "packet");
+        return new WatchRow(DateTimeOffset.UtcNow, "", 0, name, type, response ? status : "", response ? answers : "", "packet")
+        {
+            ResolverCount = response ? 0 : 1,
+            PacketCount = response ? 1 : 0,
+            Total = 1
+        };
     }
 
     public static Task<int> RunAsync(WatchPipe pipe, WatchClock clock, CancellationToken token)
@@ -82,7 +87,7 @@ public static class PacketWatch
             var read = await socket.ReceiveAsync(buffer, SocketFlags.None, token).ConfigureAwait(false);
             if (!OutboundFrame.TryRead(buffer[..read], out var question))
                 continue;
-            await WriteQuestionAsync(pipe, rollup, question, token).ConfigureAwait(false);
+            await WriteMessageAsync(pipe, rollup, question, token).ConfigureAwait(false);
         }
     }
 
@@ -91,7 +96,7 @@ public static class PacketWatch
         while (!token.IsCancellationRequested)
         {
             var result = await udp.ReceiveAsync(token).ConfigureAwait(false);
-            await WriteQuestionAsync(pipe, rollup, result.Buffer, token).ConfigureAwait(false);
+            await WriteMessageAsync(pipe, rollup, result.Buffer, token).ConfigureAwait(false);
         }
     }
 
@@ -108,53 +113,17 @@ public static class PacketWatch
             var payload = new byte[length];
             if (await stream.ReadAsync(payload, token).ConfigureAwait(false) < length)
                 continue;
-            await WriteQuestionAsync(pipe, rollup, payload, token).ConfigureAwait(false);
+            await WriteMessageAsync(pipe, rollup, payload, token).ConfigureAwait(false);
         }
     }
 
-    private static async Task WriteQuestionAsync(WatchPipe pipe, WatchRollup rollup, byte[] payload, CancellationToken token)
+    private static async Task WriteMessageAsync(WatchPipe pipe, WatchRollup rollup, byte[] payload, CancellationToken token)
     {
-        var parsed = Read(payload);
-        if (parsed.Status == "Not a question")
+        if (!DnsMessage.TryRead(payload, out var name, out var type, out var response, out var status, out var answers))
             return;
 
-        var row = rollup.Add(parsed.Name, parsed.Type, WatchSource.Port, 0);
+        var row = rollup.Add(name, type, WatchSource.Port, 0, response ? status : null, response ? answers : null, response);
         if (row is not null)
             await pipe.WriteAsync(row, token).ConfigureAwait(false);
-    }
-}
-
-public static class DnsQuestion
-{
-    public static bool TryRead(byte[]? payload, out string name, out string type)
-    {
-        name = "";
-        type = "";
-        if (payload is null || payload.Length < 12)
-            return false;
-        if ((payload[2] & 0x80) != 0)
-            return false;
-        if (payload[4] == 0 && payload[5] == 0)
-            return false;
-
-        var at = 12;
-        var labels = new List<string>();
-        while (at < payload.Length)
-        {
-            var length = payload[at++];
-            if (length == 0)
-                break;
-            if ((length & 0xC0) == 0xC0 || at + length > payload.Length)
-                return false;
-            labels.Add(System.Text.Encoding.ASCII.GetString(payload, at, length));
-            at += length;
-        }
-
-        if (labels.Count == 0 || at + 2 > payload.Length)
-            return false;
-
-        name = string.Join(".", labels);
-        type = ((payload[at] << 8) | payload[at + 1]).ToString();
-        return true;
     }
 }

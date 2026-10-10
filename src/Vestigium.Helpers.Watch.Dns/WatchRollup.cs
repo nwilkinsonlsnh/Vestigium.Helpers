@@ -14,7 +14,7 @@ public sealed class WatchRollup
         }
     }
 
-    public WatchRow? Add(string? name, string? type, WatchSource source, int pid, string? status = null, string? answers = null)
+    public WatchRow? Add(string? name, string? type, WatchSource source, int pid, string? status = null, string? answers = null, bool response = false)
     {
         if (source == WatchSource.Both)
             throw new ArgumentOutOfRangeException(nameof(source), "A row comes from Event or Port.");
@@ -30,8 +30,10 @@ public sealed class WatchRollup
             var packet = current?.PacketCount ?? 0;
             if (source == WatchSource.Event)
                 resolver++;
-            else
+            else if (response)
                 packet++;
+            else
+                resolver++;
 
             var keptPid = current is null
                 ? pid
