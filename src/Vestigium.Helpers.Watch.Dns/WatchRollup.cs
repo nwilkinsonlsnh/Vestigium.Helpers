@@ -31,7 +31,11 @@ public sealed class WatchRollup
             if (source == WatchSource.Event)
                 resolver++;
             else if (response)
+            {
                 packet++;
+                if (resolver < packet)
+                    resolver = packet;
+            }
             else
                 resolver++;
 

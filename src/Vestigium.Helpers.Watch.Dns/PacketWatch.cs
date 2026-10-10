@@ -17,9 +17,9 @@ public static class PacketWatch
 
         return new WatchRow(DateTimeOffset.UtcNow, "", 0, name, type, response ? status : "", response ? answers : "", "packet")
         {
-            ResolverCount = response ? 0 : 1,
+            ResolverCount = response ? 1 : 1,
             PacketCount = response ? 1 : 0,
-            Total = 1
+            Total = response ? 2 : 1
         };
     }
 
