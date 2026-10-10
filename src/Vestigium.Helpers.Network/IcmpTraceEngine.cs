@@ -122,7 +122,8 @@ internal static class IcmpTraceEngine
                     Sent = hops.Count,
                     Received = hops.Count(h => h.Address is not null),
                     Sequence = hop.Ttl,
-                    LastStatus = hop.Address ?? "*"
+                    LastStatus = hop.Address ?? "*",
+                    LastRoundtripMs = hop.Probes.FirstOrDefault(p => p.Address is not null)?.RoundtripTimeMs
                 });
             }
 
