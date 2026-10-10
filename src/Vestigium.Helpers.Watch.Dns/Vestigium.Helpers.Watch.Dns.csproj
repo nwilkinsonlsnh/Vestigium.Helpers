@@ -43,7 +43,3 @@
 		</ItemGroup>
 		<Message Importance="high" Text="Packing $(AssemblyName).exe and @(_WatchPacked->Count()) files into $(_WatchToolFolder)" />
 	</Target>
-</Project>
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
