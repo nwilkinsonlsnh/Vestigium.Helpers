@@ -31,7 +31,7 @@ public sealed record IcmpTraceProbe(
     ProbeProtocol Protocol,
     IcmpEchoStatus Status,
     string? Address,
-    long RoundtripTimeMs,
+    double RoundtripTimeMs,
     string? Detail);
 
 public sealed record IcmpTraceHop(
