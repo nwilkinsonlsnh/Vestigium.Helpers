@@ -7,7 +7,7 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Version>1.0.10</Version>
+		<Version>1.0.11</Version>
 		<IsPackable>true</IsPackable>
 		<PackageId>Vestigium.Helpers.Watch.Dns</PackageId>
 		<IncludeBuildOutput>true</IncludeBuildOutput>
