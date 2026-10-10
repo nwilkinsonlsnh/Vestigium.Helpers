@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using Microsoft.Win32;
 
 namespace Vestigium.Helpers.Network;
@@ -246,3 +248,65 @@ internal static class NetworkInventoryWindows
             : null;
     }
 }
+
+    public static IReadOnlyList<UnicastAddress> ReadInterfaceAddresses(string id)
+    {
+        if (!OperatingSystem.IsWindows() || string.IsNullOrWhiteSpace(id))
+            return [];
+
+        var found = new List<UnicastAddress>();
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(TcpipParameters + @"\Interfaces\" + id);
+            Add(found, key?.GetValue("DhcpIPAddress"), AddressFamily.InterNetwork, true);
+            Add(found, key?.GetValue("IPAddress"), AddressFamily.InterNetwork, false);
+        }
+        catch (Exception)
+        {
+        }
+
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces\" + id);
+            Add(found, key?.GetValue("DhcpIPAddress"), AddressFamily.InterNetworkV6, true);
+            Add(found, key?.GetValue("IPAddress"), AddressFamily.InterNetworkV6, false);
+        }
+        catch (Exception)
+        {
+        }
+
+        return found
+            .GroupBy(a => a.Address, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToArray();
+    }
+
+    private static void Add(List<UnicastAddress> found, object? value, AddressFamily family, bool dhcp)
+    {
+        foreach (var raw in Values(value))
+        {
+            if (!IPAddress.TryParse(raw, out var ip) || IPAddress.IsLoopback(ip) || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.IPv6Any))
+                continue;
+            if (ip.AddressFamily != family)
+                continue;
+            found.Add(new UnicastAddress(family, ip.ToString(), null, null, dhcp));
+        }
+    }
+
+    private static IEnumerable<string> Values(object? value)
+    {
+        if (value is string one && !string.IsNullOrWhiteSpace(one))
+        {
+            yield return one.Trim();
+            yield break;
+        }
+
+        if (value is string[] many)
+        {
+            foreach (var item in many)
+            {
+                if (!string.IsNullOrWhiteSpace(item))
+                    yield return item.Trim();
+            }
+        }
+    }
