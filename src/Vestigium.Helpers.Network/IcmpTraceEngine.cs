@@ -262,8 +262,11 @@ internal static class IcmpTraceEngine
             var status = MapStatus(reply.Status);
             var address = MapAddress(reply.Address);
             var measured = started.Elapsed.TotalMilliseconds;
-            var rtt = reply.RoundtripTime > 0 ? reply.RoundtripTime : measured;
-            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, rtt, reply.Status.ToString());
+            var rtt = reply.RoundtripTime > 0 ? reply.RoundtripTime : (long)Math.Max(1, measured);
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, rtt, reply.Status.ToString())
+            {
+                RoundtripMs = measured
+            };
         }
         catch (OperationCanceledException)
         {
@@ -350,8 +353,11 @@ internal static class IcmpTraceEngine
                     ProbeProtocol.Udp,
                     reached ? IcmpEchoStatus.Success : IcmpEchoStatus.TtlExpired,
                     address,
-                    started.Elapsed.TotalMilliseconds,
-                    reached ? "udp-reached" : "udp-hop");
+                    (long)Math.Max(1, started.Elapsed.TotalMilliseconds),
+                    reached ? "udp-reached" : "udp-hop")
+                {
+                    RoundtripMs = started.Elapsed.TotalMilliseconds
+                };
             }
             catch (TimeoutException)
             {
@@ -419,7 +425,10 @@ internal static class IcmpTraceEngine
             {
                 await socket.ConnectAsync(dest, port, timed.Token).ConfigureAwait(false);
                 return new IcmpTraceProbe(
-                    ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), started.Elapsed.TotalMilliseconds, "tcp-open");
+                    ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), (long)Math.Max(1, started.Elapsed.TotalMilliseconds), "tcp-open")
+                {
+                    RoundtripMs = started.Elapsed.TotalMilliseconds
+                };
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {
