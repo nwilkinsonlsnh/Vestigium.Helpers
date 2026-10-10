@@ -78,6 +78,7 @@
     <Folder Include="Vestigium\Helpers\Services\000 -- Archived\003 -- Design Document\" />
     <Folder Include="Vestigium\Helpers\Services\000 -- Archived\004 -- Developers Guide\" />
     <Folder Include="Vestigium\Helpers\Services\001 -- Implementation Plan\" />
+    <Folder Include="Vestigium\Helpers\Watch\Dns\PR03\" />
     <Folder Include="Vestigium\Helpers\WinReg\000 -- Archived\004 -- Developers Guide\" />
     <Folder Include="Vestigium\Helpers\WinReg\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\Xml\000 -- Archived\001 -- Implementation Plan\" />
@@ -93,9 +94,6 @@
     <Folder Include="Vestigium\Helpers\PerfMon\Network\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\PerfMon\PageFile\001 -- Implementation Plan\" />
     <Folder Include="Vestigium\Helpers\PerfMon\PerfMon\001 -- Implementation Plan\" />
-    <Folder Include="Vestigium\Helpers\Watch\" />
-    <Folder Include="Vestigium\Helpers\Watch\Dns\" />
-    <Folder Include="Vestigium\Helpers\Watch\Dns\Complete\" />
     <Folder Include="Vestigium\Helpers\Watch\Dns\Complete\PR01\" />
     <Folder Include="Vestigium\Helpers\LogParser\" />
     <Folder Include="Vestigium\Helpers\LogParser.Har\" />
@@ -103,8 +101,8 @@
     <Content Include="Vestigium\Helpers\Watch\Dns\README.md" />
     <Content Include="Vestigium\Helpers\Watch\Dns\Complete\PR01\PR01 -- Requirements.md" />
     <Content Include="Vestigium\Helpers\Watch\Dns\Complete\PR01\PR01 -- Implementation Plan.md" />
-    <Content Include="Vestigium\Helpers\Watch\Dns\PR02 -- Requirements.md" />
-    <Content Include="Vestigium\Helpers\Watch\Dns\PR02 -- Implementation Plan.md" />
+    <Content Include="Vestigium\Helpers\Watch\Dns\Complete\PR02\PR02 -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\Watch\Dns\Complete\PR02\PR02 -- Implementation Plan.md" />
     <Content Include="Vestigium\Helpers\LogParser\README.md" />
     <Content Include="Vestigium\Helpers\LogParser\PR01 -- Requirements.md" />
     <Content Include="Vestigium\Helpers\LogParser\PR02 -- Implementation Plan.md" />
