@@ -4,7 +4,7 @@
 **Host:** `Vestigium.Helpers.Watch.Dns`
 **APPID:** `Watch.Dns`
 **Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
-**Status:** Written.
+**Status:** Written. PR03-01 and PR03-02 done.
 **Date:** 10 October 2026
 **Binding:** [PR03 -- Requirements.md](PR03%20--%20Requirements.md) wins on this cut. PR02 wins on the key, the counts, and the emit. This file wins on order.
 
@@ -28,9 +28,9 @@
 
 | Slice | Id | Work | Status |
 |---|---|---|---|
-| 1 | PR03-01 | Rollup stores latest non-empty Status and Answers. Port does not clear them. | |
-| 2 | PR03-02 | Event path supplies the values. Every emitted line contains them when known. | |
-| 3 | PR03-03 | Tests: Event then Port keeps Answers; Port then Event fills them. Counts still sum. | |
+| 1 | PR03-01 | Rollup stores latest non-empty Status and Answers. Port does not clear them. | Done. |
+| 2 | PR03-02 | Event path supplies the values. Every emitted line contains them when known. | Done. |
+| 3 | PR03-03 | Tests: Event then Port keeps Answers; Port then Event fills them. Counts still sum. | Done. |
 
 ---
 
@@ -38,15 +38,15 @@
 
 ### PR03-01
 
-Extend the rollup so the stored row retains the latest non-empty Status and Answers. A Port-only increment leaves the previous strings. An empty string does not overwrite a prior value.
+Done. Rollup keeps latest non-empty Status and Answers. Port increment leaves them. Empty does not wipe.
 
 ### PR03-02
 
-Event path passes status and results into the rollup before the pipe write. Confirm the JSON line includes the fields on every emit. Port-only path does not invent them.
+Done. DnsClientSession passes Status and Answers into Add. WatchPipe camelCase JSON includes status and answers. PacketWatch calls Add with no payload; Port-only does not invent them.
 
 ### PR03-03
 
-Rollup tests cover Event-then-Port (Answers survive) and Port-then-Event (Answers appear). Key and counts unchanged.
+Done. Tests cover Event-then-Port, Port-then-Event, and empty-does-not-wipe. Key and counts unchanged.
 
 ---
 
@@ -65,4 +65,4 @@ Do not touch the packet parsers. Do not add a history list. Do not add source or
 
 ## Next action
 
-Land PR03. DnsIQ PR09 keeps the lines and shows the sequence in details.
+None in this repo. DnsIQ PR09 keeps the lines and shows the sequence in details.
