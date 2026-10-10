@@ -17,7 +17,8 @@
 		<Description>Elevated DNS watch. Windowless. Clock 5 to 180 seconds. No console.</Description>
 		<PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
-	</PropertyGroup>
+	    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.15" />
 	</ItemGroup>
