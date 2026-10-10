@@ -32,9 +32,10 @@ public sealed class UnseenTests
     {
         var row = Unseen.Line(WatchSource.Both);
 
-        Assert.Contains("Raw sockets", row.Answers);
-        Assert.Contains("this host sends", row.Answers);
-        Assert.Contains("DoH, DoT, and DoQ", row.Answers);
+        Assert.Equal(Unseen.Both, row.Answers);
+        Assert.Contains("Outbound port 53", row.Answers);
+        Assert.Contains("Windows resolver", row.Answers);
+        Assert.Contains("Browser Secure DNS", row.Answers);
         Assert.Equal("both", row.Mode);
     }
 
