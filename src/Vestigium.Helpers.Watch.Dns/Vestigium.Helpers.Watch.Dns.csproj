@@ -31,22 +31,15 @@
 		</PropertyGroup>
 		<Error Text="Watch exe was not built at $(TargetDir)$(AssemblyName).exe" Condition="!Exists('$(TargetDir)$(AssemblyName).exe')" />
 		<ItemGroup>
-			<_PackageFiles Include="$(TargetDir)$(AssemblyName).exe">
-				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).exe</PackagePath>
-			</_PackageFiles>
-			<_PackageFiles Include="$(TargetDir)$(AssemblyName).dll">
-				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).dll</PackagePath>
-			</_PackageFiles>
-			<_PackageFiles Include="$(TargetDir)$(AssemblyName).runtimeconfig.json">
-				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).runtimeconfig.json</PackagePath>
-			</_PackageFiles>
-			<_PackageFiles Include="$(TargetDir)$(AssemblyName).deps.json">
-				<PackagePath>$(_WatchToolFolder)/$(AssemblyName).deps.json</PackagePath>
-			</_PackageFiles>
-			<_PackageFiles Include="$(TargetDir)*.dll" Exclude="$(TargetDir)$(AssemblyName).dll">
+			<_WatchPacked Include="$(TargetDir)$(AssemblyName).exe" />
+			<_WatchPacked Include="$(TargetDir)*.dll" />
+			<_WatchPacked Include="$(TargetDir)$(AssemblyName).runtimeconfig.json" />
+			<_WatchPacked Include="$(TargetDir)$(AssemblyName).deps.json" />
+			<_WatchPacked>
 				<PackagePath>$(_WatchToolFolder)/%(Filename)%(Extension)</PackagePath>
-			</_PackageFiles>
+			</_WatchPacked>
+			<_PackageFiles Include="@(_WatchPacked)" />
 		</ItemGroup>
-		<Message Importance="high" Text="Packing $(AssemblyName).exe into $(_WatchToolFolder)" />
+		<Message Importance="high" Text="Packing $(AssemblyName).exe and @(_WatchPacked->Count()) files into $(_WatchToolFolder)" />
 	</Target>
 </Project>
