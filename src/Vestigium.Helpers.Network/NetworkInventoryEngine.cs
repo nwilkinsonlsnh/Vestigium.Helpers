@@ -112,6 +112,9 @@ internal static class NetworkInventoryEngine
             }
         }
 
+        if (unicast.Count == 0)
+            unicast.AddRange(NetworkInventoryWindows.ReadInterfaceAddresses(nic.Id));
+
         var gateways = props is null
             ? Array.Empty<string>()
             : props.GatewayAddresses
