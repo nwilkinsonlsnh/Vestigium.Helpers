@@ -40,6 +40,7 @@ public sealed record ChartOptions
     public bool ShowGrid { get; init; } = true;
     public bool ShowBellCurve { get; init; }
     public bool ShowKde { get; init; }
+    public bool ShowEcdf { get; init; }
     public TrendKind Trend { get; init; } = TrendKind.None;
     public bool ShowParetoLine { get; init; } = true;
     public BoxWhiskerKind BoxWhisker { get; init; } = BoxWhiskerKind.FiveNumber;
