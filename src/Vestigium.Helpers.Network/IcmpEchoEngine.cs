@@ -266,20 +266,23 @@ internal static class IcmpEchoEngine
             sequence++;
             next += interval;
             var seq = sequence;
-            pending.Add(TrackAsync(target, timeoutMs, options, seq, token, replies, () =>
+            pending.Add(TrackAsync(target, timeoutMs, options, seq, token, replies, reply =>
             {
-                sent++;
-                return (sent, received);
-            }, reply =>
-            {
-                if (reply.Status == IcmpEchoStatus.Success)
-                    received++;
+                int s, r;
+                lock (replies)
+                {
+                    if (reply.Status == IcmpEchoStatus.Success)
+                        received++;
+                    sent++;
+                    s = sent;
+                    r = received;
+                }
                 progress?.Report(new NetworkProgress
                 {
                     JobId = jobId,
                     Phase = "Echo",
-                    Sent = sent,
-                    Received = received,
+                    Sent = s,
+                    Received = r,
                     Sequence = reply.Sequence,
                     LastStatus = reply.Status.ToString(),
                     LastRoundtripMs = reply.Status == IcmpEchoStatus.Success ? reply.RoundtripTimeMs : null
@@ -292,11 +295,10 @@ internal static class IcmpEchoEngine
 
     private static async Task TrackAsync(
         string target, int timeoutMs, IcmpEchoOptions options, int sequence, CancellationToken token,
-        List<IcmpEchoReply> replies, Func<(int Sent, int Received)> note, Action<IcmpEchoReply> report)
+        List<IcmpEchoReply> replies, Action<IcmpEchoReply> report)
     {
         var reply = await SendPacedAsync(target, timeoutMs, options, sequence, token).ConfigureAwait(false);
         lock (replies) replies.Add(reply);
-        note();
         report(reply);
     }
 
