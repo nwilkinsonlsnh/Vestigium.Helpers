@@ -19,6 +19,7 @@ public sealed class IcmpTraceOptions
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(4);
     public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
     public bool PreferUdp { get; set; }
+    public ProbeProtocol? Protocol { get; set; }
     public int TcpPort { get; set; } = DefaultTcpPort;
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
