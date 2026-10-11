@@ -62,7 +62,7 @@ internal static class IcmpTraceEngine
             $"trace job={jobId} target={target} maxHops={options.MaxHops} probes={options.ProbesPerHop}");
 
         var hops = new List<IcmpTraceHop>();
-        var protocol = options.Protocol ?? (options.PreferUdp ? ProbeProtocol.Udp : ProbeProtocol.Icmp);
+        var protocol = options.Protocol ?? ProbeProtocol.Icmp;
         var reached = false;
         var resolved = IPAddress.TryParse(target, out var parsed) ? parsed.ToString() : null;
         var probeTarget = target;
@@ -73,6 +73,12 @@ internal static class IcmpTraceEngine
         }
         var timeoutMs = Math.Clamp((int)options.Timeout.TotalMilliseconds, IcmpEchoOptions.MinTimeoutMs, IcmpEchoOptions.MaxTimeoutMs);
         var buffer = new byte[Math.Clamp(options.BufferSize, 0, IcmpEchoOptions.MaxBufferSize)];
+        var hybrid = options.Protocol is null && !options.PreferUdp;
+        if (hybrid)
+        {
+            protocol = await DecideAsync(probeTarget, buffer, timeoutMs, options, token).ConfigureAwait(false);
+            options.Protocol = protocol;
+        }
 
         try
         {
@@ -138,6 +144,8 @@ internal static class IcmpTraceEngine
         IReadOnlyList<IcmpTraceHop> named = hops;
         if (!token.IsCancellationRequested)
             named = await HopPtr.FillTraceAsync(hops, token).ConfigureAwait(false);
+        if (hybrid && options.SecondPass && !token.IsCancellationRequested)
+            named = await FillSilentAsync(named, probeTarget, buffer, timeoutMs, protocol, options, token).ConfigureAwait(false);
 
         var status = DecideStatus(token.IsCancellationRequested, reached, named);
         var line = $"{status} trace job={jobId} target={target} hops={named.Count} reached={reached} protocol={protocol}";
