@@ -47,6 +47,65 @@ internal static class IcmpTraceEngine
         TraceResolve.Guard(o.Family);
     }
 
+    private static async Task<ProbeProtocol> DecideAsync(
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        IcmpTraceOptions options,
+        CancellationToken token)
+    {
+        using var ping = new Ping();
+        var icmp = await IcmpProbeAsync(ping, target, buffer, timeoutMs, options.MaxHops, 1, token).ConfigureAwait(false);
+        if (icmp.Status != IcmpEchoStatus.ProtocolForbidden)
+            return ProbeProtocol.Icmp;
+
+        var udp = await UdpProbeAsync(target, timeoutMs, options.MaxHops, 1, token, options.Family, options.InterfaceIndex, options.SourceAddress)
+            .ConfigureAwait(false);
+        if (!IsSilent(udp))
+            return ProbeProtocol.Udp;
+
+        var tcp = await TcpProbeAsync(target, timeoutMs, options.MaxHops, 1, token, options.Family, 443, options.InterfaceIndex, options.SourceAddress)
+            .ConfigureAwait(false);
+        if (IsSilent(tcp))
+            tcp = await TcpProbeAsync(target, timeoutMs, options.MaxHops, 1, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress)
+                .ConfigureAwait(false);
+        return IsSilent(tcp) ? ProbeProtocol.Icmp : ProbeProtocol.Tcp;
+    }
+
+    private static async Task<IReadOnlyList<IcmpTraceHop>> FillSilentAsync(
+        IReadOnlyList<IcmpTraceHop> hops,
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        ProbeProtocol locked,
+        IcmpTraceOptions options,
+        CancellationToken token)
+    {
+        var next = locked == ProbeProtocol.Icmp ? ProbeProtocol.Udp : ProbeProtocol.Tcp;
+        var filled = new List<IcmpTraceHop>(hops.Count);
+        foreach (var hop in hops)
+        {
+            if (!string.IsNullOrWhiteSpace(hop.Address) || token.IsCancellationRequested)
+            {
+                filled.Add(hop);
+                continue;
+            }
+
+            var probe = next == ProbeProtocol.Udp
+                ? await UdpProbeAsync(target, timeoutMs, hop.Ttl, 1, token, options.Family, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false)
+                : await TcpProbeAsync(target, timeoutMs, hop.Ttl, 1, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false);
+            if (IsSilent(probe) || string.IsNullOrWhiteSpace(probe.Address))
+            {
+                filled.Add(hop);
+                continue;
+            }
+
+            filled.Add(hop with { Address = probe.Address, Name = next.ToString().ToLowerInvariant(), Probes = [probe] });
+        }
+
+        return filled;
+    }
+
     internal static bool IsSilent(IcmpTraceProbe row)
         => row.Address is null && row.Status is IcmpEchoStatus.TimedOut or IcmpEchoStatus.Failed;
 
