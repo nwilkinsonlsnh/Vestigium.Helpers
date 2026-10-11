@@ -118,15 +118,21 @@ internal static class IcmpEchoEngine
             var sequence = 0;
             while (!token.IsCancellationRequested)
             {
-                if (options.MaxDuration is { } cap && started.Elapsed >= cap)
-                    break;
+                var budget = timeoutMs;
+                if (options.MaxDuration is { } cap)
+                {
+                    var left = cap - started.Elapsed;
+                    if (left <= TimeSpan.Zero)
+                        break;
+                    budget = Math.Min(timeoutMs, Math.Max(1, (int)left.TotalMilliseconds));
+                }
                 if (options.Count > 0 && sequence >= options.Count)
                     break;
 
                 sequence++;
                 var reply = pinned
-                    ? await BoundIcmpEcho.SendAsync(target, buffer, timeoutMs, options, sequence, token).ConfigureAwait(false)
-                    : await SendOnceAsync(ping!, target, buffer, timeoutMs, pingOptions, sequence, token).ConfigureAwait(false);
+                    ? await BoundIcmpEcho.SendAsync(target, buffer, budget, options, sequence, token).ConfigureAwait(false)
+                    : await SendOnceAsync(ping!, target, buffer, budget, pingOptions, sequence, token).ConfigureAwait(false);
                 if (reply.PayloadRestricted)
                 {
                     payloadRestricted = true;
