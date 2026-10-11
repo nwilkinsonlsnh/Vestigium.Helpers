@@ -115,13 +115,7 @@ internal static class IcmpEchoEngine
         try
         {
             using var ping = pinned ? null : new Ping();
-            if (options.Pace && !pinned)
-            {
-                await PaceAsync(jobId, target, options, timeoutMs, started, replies, progress, token).ConfigureAwait(false);
-            }
             var sequence = 0;
-            if (options.Pace && !pinned)
-                sequence = options.Count;
             while (!token.IsCancellationRequested)
             {
                 var budget = timeoutMs;
@@ -239,79 +233,6 @@ internal static class IcmpEchoEngine
                 NetworkLog.Failed(HelperLog.Subcategories.Icmp, line);
                 break;
         }
-    }
-
-    private static async Task PaceAsync(
-        string jobId, string target, IcmpEchoOptions options, int timeoutMs, Stopwatch started,
-        List<IcmpEchoReply> replies, IProgress<NetworkProgress>? progress, CancellationToken token)
-    {
-        await Task.Delay(1).ConfigureAwait(false);
-        var interval = options.Interval <= TimeSpan.Zero ? TimeSpan.FromMilliseconds(1) : options.Interval;
-        var pending = new List<Task>();
-        var sequence = 0;
-        var next = TimeSpan.Zero;
-        var sent = 0;
-        var received = 0;
-        while (!token.IsCancellationRequested)
-        {
-            if (options.MaxDuration is { } cap && started.Elapsed >= cap)
-                break;
-            if (options.Count > 0 && sequence >= options.Count)
-                break;
-            var wait = next - started.Elapsed;
-            if (wait > TimeSpan.Zero)
-            {
-                try { await Task.Delay(wait, token).ConfigureAwait(false); }
-                catch (OperationCanceledException) { break; }
-            }
-            if (options.StopAfterMisses > 0 && received == 0 && sequence >= options.StopAfterMisses)
-                break;
-            sequence++;
-            next += interval;
-            var seq = sequence;
-            progress?.Report(new NetworkProgress { JobId = jobId, Phase = "Echo", Sent = sequence, Received = received });
-            pending.Add(TrackAsync(target, timeoutMs, options, seq, token, replies, reply =>
-            {
-                int s, r;
-                lock (replies)
-                {
-                    if (reply.Status == IcmpEchoStatus.Success)
-                        received++;
-                    sent++;
-                    s = sent;
-                    r = received;
-                }
-                progress?.Report(new NetworkProgress
-                {
-                    JobId = jobId,
-                    Phase = "Echo",
-                    Sent = s,
-                    Received = r,
-                    Sequence = reply.Sequence,
-                    LastStatus = reply.Status.ToString(),
-                    LastRoundtripMs = reply.Status == IcmpEchoStatus.Success ? reply.RoundtripTimeMs : null
-                });
-            }));
-        }
-        try { await Task.WhenAll(pending).ConfigureAwait(false); }
-        catch (OperationCanceledException) { }
-    }
-
-    private static async Task TrackAsync(
-        string target, int timeoutMs, IcmpEchoOptions options, int sequence, CancellationToken token,
-        List<IcmpEchoReply> replies, Action<IcmpEchoReply> report)
-    {
-        var reply = await SendPacedAsync(target, timeoutMs, options, sequence, token).ConfigureAwait(false);
-        lock (replies) replies.Add(reply);
-        report(reply);
-    }
-
-    private static async Task<IcmpEchoReply> SendPacedAsync(string target, int timeoutMs, IcmpEchoOptions options, int sequence, CancellationToken token)
-    {
-        using var ping = new Ping();
-        var buffer = new byte[options.BufferSize];
-        var pingOptions = new PingOptions(options.Ttl, options.DontFragment);
-        return await SendOnceAsync(ping, target, buffer, timeoutMs, pingOptions, sequence, token).ConfigureAwait(false);
     }
 
     private static async Task<IcmpEchoReply> SendOnceAsync(
