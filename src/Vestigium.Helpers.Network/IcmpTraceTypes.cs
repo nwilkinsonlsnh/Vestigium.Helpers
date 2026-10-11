@@ -20,6 +20,7 @@ public sealed class IcmpTraceOptions
     public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
     public bool PreferUdp { get; set; }
     public ProbeProtocol? Protocol { get; set; }
+    public bool SecondPass { get; set; }
     public int TcpPort { get; set; } = DefaultTcpPort;
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
