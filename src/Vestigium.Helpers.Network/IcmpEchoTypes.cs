@@ -35,6 +35,7 @@ public sealed class IcmpEchoOptions
     public TimeSpan? MaxDuration { get; set; }
     public bool AllowBurst { get; set; }
     public bool Pace { get; set; }
+    public int StopAfterMisses { get; set; }
     public string? StatsPath { get; set; }
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
