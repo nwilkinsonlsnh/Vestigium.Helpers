@@ -245,7 +245,7 @@ internal static class IcmpEchoEngine
         string jobId, string target, IcmpEchoOptions options, int timeoutMs, Stopwatch started,
         List<IcmpEchoReply> replies, IProgress<NetworkProgress>? progress, CancellationToken token)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         var interval = options.Interval <= TimeSpan.Zero ? TimeSpan.FromMilliseconds(1) : options.Interval;
         var pending = new List<Task>();
         var sequence = 0;
