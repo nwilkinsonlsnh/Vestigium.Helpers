@@ -155,7 +155,7 @@ internal static class IcmpTraceEngine
                         jobId, probeTarget, buffer, timeoutMs, ttl, options, () => protocol, p => protocol = p, fan.Token));
                 }
 
-                if (inflight.Count == 0)
+                if (inflight.Count == 0 || fan.IsCancellationRequested)
                     break;
 
                 var done = await Task.WhenAny(inflight).ConfigureAwait(false);
