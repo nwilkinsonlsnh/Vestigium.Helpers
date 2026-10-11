@@ -7,6 +7,7 @@
 *.sln.docstates
 TestResults/
 *.nupkg
+*.snupkg
 _deps/
 /_Documentation
 
