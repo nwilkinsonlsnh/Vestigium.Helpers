@@ -288,7 +288,7 @@ internal static class NetworkInventoryWindows
                 continue;
             if (ip.AddressFamily != family)
                 continue;
-            found.Add(new UnicastAddress(family, ip.ToString(), null, null, dhcp));
+            found.Add(new UnicastAddress(family, ip.ToString(), 0, null, dhcp));
         }
     }
 
