@@ -62,7 +62,7 @@ internal static class IcmpTraceEngine
             $"trace job={jobId} target={target} maxHops={options.MaxHops} probes={options.ProbesPerHop}");
 
         var hops = new List<IcmpTraceHop>();
-        var protocol = options.PreferUdp ? ProbeProtocol.Udp : ProbeProtocol.Icmp;
+        var protocol = options.Protocol ?? (options.PreferUdp ? ProbeProtocol.Udp : ProbeProtocol.Icmp);
         var reached = false;
         var resolved = IPAddress.TryParse(target, out var parsed) ? parsed.ToString() : null;
         var probeTarget = target;
@@ -208,7 +208,7 @@ internal static class IcmpTraceEngine
         if (current == ProbeProtocol.Icmp && !options.PreferUdp)
         {
             row = await IcmpProbeAsync(ping, target, buffer, timeoutMs, ttl, probe, token).ConfigureAwait(false);
-            if (row.Status == IcmpEchoStatus.ProtocolForbidden)
+            if (options.Protocol is null && row.Status == IcmpEchoStatus.ProtocolForbidden)
             {
                 setProtocol(ProbeProtocol.Udp);
                 NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} ICMP forbidden; UDP fallback");
@@ -228,7 +228,7 @@ internal static class IcmpTraceEngine
                 .ConfigureAwait(false);
         }
 
-        if (protocol() != ProbeProtocol.Tcp && IsSilent(row))
+        if (options.Protocol is null && protocol() != ProbeProtocol.Tcp && IsSilent(row))
         {
             setProtocol(ProbeProtocol.Tcp);
             NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} silent; later hops use TCP port={options.TcpPort}");
