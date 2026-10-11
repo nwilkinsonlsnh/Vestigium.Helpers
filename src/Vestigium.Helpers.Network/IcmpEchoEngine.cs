@@ -249,6 +249,8 @@ internal static class IcmpEchoEngine
         var pending = new List<Task<IcmpEchoReply>>();
         var sequence = 0;
         var next = TimeSpan.Zero;
+        var sent = 0;
+        var received = 0;
         while (!token.IsCancellationRequested)
         {
             if (options.MaxDuration is { } cap && started.Elapsed >= cap)
@@ -264,15 +266,38 @@ internal static class IcmpEchoEngine
             sequence++;
             next += interval;
             var seq = sequence;
-            pending.Add(SendPacedAsync(target, timeoutMs, options, seq, token));
+            pending.Add(TrackAsync(target, timeoutMs, options, seq, token, replies, () =>
+            {
+                sent++;
+                return (sent, received);
+            }, reply =>
+            {
+                if (reply.Status == IcmpEchoStatus.Success)
+                    received++;
+                progress?.Report(new NetworkProgress
+                {
+                    JobId = jobId,
+                    Phase = "Echo",
+                    Sent = sent,
+                    Received = received,
+                    Sequence = reply.Sequence,
+                    LastStatus = reply.Status.ToString(),
+                    LastRoundtripMs = reply.Status == IcmpEchoStatus.Success ? reply.RoundtripTimeMs : null
+                });
+            }));
         }
-        try
-        {
-            var done = await Task.WhenAll(pending).ConfigureAwait(false);
-            replies.AddRange(done.OrderBy(r => r.Sequence));
-        }
+        try { await Task.WhenAll(pending).ConfigureAwait(false); }
         catch (OperationCanceledException) { }
-        progress?.Report(new NetworkProgress { JobId = jobId, Phase = "Echo", Sent = replies.Count, Received = replies.Count(r => r.Status == IcmpEchoStatus.Success) });
+    }
+
+    private static async Task TrackAsync(
+        string target, int timeoutMs, IcmpEchoOptions options, int sequence, CancellationToken token,
+        List<IcmpEchoReply> replies, Func<(int Sent, int Received)> note, Action<IcmpEchoReply> report)
+    {
+        var reply = await SendPacedAsync(target, timeoutMs, options, sequence, token).ConfigureAwait(false);
+        lock (replies) replies.Add(reply);
+        note();
+        report(reply);
     }
 
     private static async Task<IcmpEchoReply> SendPacedAsync(string target, int timeoutMs, IcmpEchoOptions options, int sequence, CancellationToken token)
