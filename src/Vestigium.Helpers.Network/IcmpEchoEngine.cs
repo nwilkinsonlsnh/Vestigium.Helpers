@@ -153,8 +153,19 @@ internal static class IcmpEchoEngine
 
                 if (options.Count > 0 && sequence >= options.Count)
                     break;
+                if (options.MaxDuration is { } after && started.Elapsed >= after)
+                    break;
                 if (options.Interval <= TimeSpan.Zero) continue;
-                try { await Task.Delay(options.Interval, token).ConfigureAwait(false); }
+                var gap = options.Interval;
+                if (options.MaxDuration is { } remain)
+                {
+                    var left = remain - started.Elapsed;
+                    if (left <= TimeSpan.Zero)
+                        break;
+                    if (gap > left)
+                        gap = left;
+                }
+                try { await Task.Delay(gap, token).ConfigureAwait(false); }
                 catch (OperationCanceledException) { break; }
             }
         }
