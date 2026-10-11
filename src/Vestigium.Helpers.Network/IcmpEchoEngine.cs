@@ -246,7 +246,7 @@ internal static class IcmpEchoEngine
         List<IcmpEchoReply> replies, IProgress<NetworkProgress>? progress, CancellationToken token)
     {
         var interval = options.Interval <= TimeSpan.Zero ? TimeSpan.FromMilliseconds(1) : options.Interval;
-        var pending = new List<Task<IcmpEchoReply>>();
+        var pending = new List<Task>();
         var sequence = 0;
         var next = TimeSpan.Zero;
         var sent = 0;
