@@ -263,9 +263,12 @@ internal static class IcmpEchoEngine
                 try { await Task.Delay(wait, token).ConfigureAwait(false); }
                 catch (OperationCanceledException) { break; }
             }
+            if (options.StopAfterMisses > 0 && received == 0 && sequence >= options.StopAfterMisses)
+                break;
             sequence++;
             next += interval;
             var seq = sequence;
+            progress?.Report(new NetworkProgress { JobId = jobId, Phase = "Echo", Sent = sequence, Received = received });
             pending.Add(TrackAsync(target, timeoutMs, options, seq, token, replies, reply =>
             {
                 int s, r;
