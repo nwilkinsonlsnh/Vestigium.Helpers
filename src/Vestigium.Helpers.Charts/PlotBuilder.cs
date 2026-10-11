@@ -105,6 +105,23 @@ internal static partial class PlotBuilder
         if (binWidth <= 0)
             binWidth = Math.Max(1e-9, (max - min) / Math.Max(1, bins.Count));
 
+        if (options.ShowEcdf)
+        {
+            var points = series.EcdfPoints();
+            if (points.Count > 0)
+            {
+                var line = plot.Add.ScatterLine(
+                    points.Select(p => p.X).ToArray(),
+                    points.Select(p => p.Y * 100).ToArray());
+                line.Axes.YAxis = plot.Axes.Right;
+                line.Color = Color.FromHex(Palette.Secondary);
+                line.LegendText = "ECDF";
+                plot.Axes.Right.Label.Text = "%";
+                plot.Axes.Right.Min = 0;
+                plot.Axes.Right.Max = 100;
+            }
+        }
+
         if (options.ShowBellCurve && series.Full is { Mean: { } mu, StdDev: { } s and not 0 })
         {
             var lo = Math.Min(min, mu - 3.5 * s);
