@@ -3,7 +3,7 @@ using System.Management;
 namespace Vestigium.Helpers.SystemInfo;
 
 /// <summary>Inventory doors. Structured records. No text, no files.</summary>
-public static class SystemInventory
+public static partial class SystemInventory
 {
     /// <summary>
     /// Reads ComputerSystem, OperatingSystem, BIOS, and Processor.
@@ -121,8 +121,14 @@ public static class SystemInventory
     private static int Int(ManagementObject mo, string name)
         => int.TryParse(mo[name]?.ToString(), out var n) ? n : 0;
 
+    private static uint UInt(ManagementObject mo, string name)
+        => uint.TryParse(mo[name]?.ToString(), out var n) ? n : 0;
+
     private static ulong ULong(ManagementObject mo, string name)
         => ulong.TryParse(mo[name]?.ToString(), out var n) ? n : 0;
+
+    private static bool Bool(ManagementObject mo, string name)
+        => bool.TryParse(mo[name]?.ToString(), out var b) && b;
 
     private static DateTime? Date(ManagementObject mo, string name)
     {
