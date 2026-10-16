@@ -2,7 +2,7 @@
 
 **Companion:** PR01 -- Requirements.md  
 **Package:** Vestigium.Helpers.SystemInfo  
-**Goal:** Collapse the three packages into one. Move the base `Collector` (five Win32 classes) out of SysInfoIQ into a structured door. Host keeps SummaryFormatter and file layout.
+**Goal:** Collapse the three packages into one. Move the base Collector (five Win32 classes) out of SysInfoIQ into a structured door. Host keeps SummaryFormatter and file layout.
 
 ## Scope
 
@@ -19,14 +19,15 @@
 - EVENTID catalog registration.
 - Changes to PerfMon or other helpers.
 
-## Steps
+## Sub-steps
 
-1. Move CpuFacts.cs / MemoryFacts.cs and their private structs into SystemInfo (Native folder or internal).
-2. Update namespaces and project references. Remove the two satellite projects from the solution.
-3. Add BaseInventory records + `SystemInventory.ReadBase()` using ManagementObjectSearcher. Map the fields SysInfoIQ currently extracts for the Summary block.
-4. Point SysInfoIQ Collector at the door. Delete the WMI Query path for the five base classes. Keep SummaryFormatter.
-5. Tests for Unavailable and for the record shapes.
-6. README update. Pack.
+| ID | Step | Action | Done when |
+|---|---|---|---|
+| PR01.001 | Move native readers | Move `CpuFacts.cs` and `MemoryFacts.cs` (and private structs) from the satellite projects into `SystemInfo` under `Native/` or internal. Update namespaces. | Files exist in SystemInfo. Satellites no longer contain the source. |
+| PR01.002 | Collapse projects | Update project references. Remove `Vestigium.Helpers.SystemInfo.Cpu` and `.Memory` from the solution and Directory.Build.props. Public doors remain identical. | Solution builds with one SystemInfo project. Existing callers compile. |
+| PR01.003 | Add base inventory door | Add `BaseInventory` records and `SystemInventory.ReadBase()`. Map the five Win32 classes (ComputerSystem, OperatingSystem, BIOS, Processor, PhysicalMemory) to the fields SysInfoIQ currently extracts for its Summary. | Door returns structured records or Unavailable. No text. |
+| PR01.004 | Point SysInfoIQ at the door | Update `Collector.cs` in the host to call `SystemInventory.ReadBase()`. Delete the ManagementObjectSearcher path for the five base classes. Keep SummaryFormatter and export. | Host base collect no longer owns the five WMI queries. Summary text matches (or difference is listed). |
+| PR01.005 | Tests and pack | Add tests for Unavailable paths and record shapes. Update README. Pack 0.2.0. | Tests green. Package published. |
 
 ## Risks
 
