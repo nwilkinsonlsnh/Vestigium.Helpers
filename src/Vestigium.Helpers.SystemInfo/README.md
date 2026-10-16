@@ -1,14 +1,27 @@
 # Vestigium.Helpers.SystemInfo
 
-Shared machine-fact records. Satellites own the native calls. This package has no P/Invoke.
+Machine facts and inventory reads. Native readers and CIM doors live here. No text, no files.
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.SystemInfo` 0.1.0 |
+| Package | `Vestigium.Helpers.SystemInfo` |
 | TFM | `net10.0-windows` |
-| APPID | `SystemInfo` |
-| Depends on | none |
+| Depends on | `System.Management`, `System.ServiceProcess.ServiceController` |
 
-A failed read is `Fact<T>.Unavailable()`. It is not a zero GHz or zero GB record.
+## Doors
+
+| Door | Returns |
+|---|---|
+| `CpuFacts.Host` / `Live` | Topology and live CPU |
+| `MemoryFacts.Read` | Memory snapshot |
+| `SystemInventory.ReadBase` | ComputerSystem, OperatingSystem, BIOS, Processor |
+| `SystemInventory.ReadStorage` | Disk drives, logical disks, partitions, volumes |
+| `SystemInventory.ReadNetwork` | Adapters, routes, ARP, listeners, TCP |
+| `SystemInventory.ReadSecurity` | Firewall profiles, rules, certificates, drivers |
+| `SystemInventory.ReadSoftware` | Installed, hotfixes, features, ODBC, environment, SQL services |
+
+A failed section is `Fact<T>.Unavailable()`. It is not a zero record. Partial success is allowed.
+
+Raw numbers. No display strings. Host formats.
 
 EVENTID 19000–19499 is already `PerfMon.Memory`. This package does not register a catalog until that block is confirmed.
