@@ -50,6 +50,16 @@ Rejected: keep three packages. Rejected: leave the collectors in the host. Rejec
 | PR03 | Move `SecurityCollector` and `SoftwareCollector`. Reuse WinReg where it already covers Uninstall keys. | Host Security and Software pages call library doors. |
 | Later | Remaining catalog sections (events, drivers, tasks, shares) as needed. Elevation notes stay in host. | — |
 
+### PR01 sub-steps
+
+| ID | Step | Action | Done when |
+|---|---|---|---|
+| PR01.001 | Move native readers | Move `CpuFacts.cs` and `MemoryFacts.cs` (and private structs) from the satellite projects into `SystemInfo` under `Native/` or internal. Update namespaces. | Files exist in SystemInfo. Satellites no longer contain the source. |
+| PR01.002 | Collapse projects | Update project references. Remove `Vestigium.Helpers.SystemInfo.Cpu` and `.Memory` from the solution and Directory.Build.props. Public doors remain identical. | Solution builds with one SystemInfo project. Existing callers compile. |
+| PR01.003 | Add base inventory door | Add `BaseInventory` records and `SystemInventory.ReadBase()`. Map the five Win32 classes (ComputerSystem, OperatingSystem, BIOS, Processor, PhysicalMemory) to the fields SysInfoIQ currently extracts for its Summary. | Door returns structured records or Unavailable. No text. |
+| PR01.004 | Point SysInfoIQ at the door | Update `Collector.cs` in the host to call `SystemInventory.ReadBase()`. Delete the ManagementObjectSearcher path for the five base classes. Keep SummaryFormatter and export. | Host base collect no longer owns the five WMI queries. Summary text matches (or difference is listed). |
+| PR01.005 | Tests and pack | Add tests for Unavailable paths and record shapes. Update README. Pack 0.2.0. | Tests green. Package published. |
+
 ## Constraints
 
 - Failed read is `Fact.Unavailable()` or an error record. Never a zero that looks like a measurement.
@@ -60,4 +70,4 @@ Rejected: keep three packages. Rejected: leave the collectors in the host. Rejec
 
 ## Next action
 
-PR01 papers locked. Then code the package collapse and the base collector move. No code until the papers are the ones we keep.
+PR01.001. Then PR01.002. No code until the papers are the ones we keep.
