@@ -3,7 +3,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>Vestigium.Helpers.SystemInfo</RootNamespace>
     <AssemblyName>Vestigium.Helpers.SystemInfo</AssemblyName>
-    <Description>Shared machine-fact records. Satellites own the native calls.</Description>
+    <Description>Machine facts and inventory reads. Native readers and CIM doors live here.</Description>
     <Version>0.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
