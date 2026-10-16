@@ -1,5 +1,4 @@
-using Vestigium.Helpers.SystemInfo.Cpu;
-using MemoryDoor = Vestigium.Helpers.SystemInfo.Memory.MemoryFacts;
+using Vestigium.Helpers.SystemInfo;
 
 namespace Vestigium.Helpers.Tests;
 
@@ -33,7 +32,7 @@ public sealed class SystemInfoPR03gLiveTests
     [Fact]
     public void Memory_read_returns_bytes()
     {
-        var read = MemoryDoor.Read();
+        var read = MemoryFacts.Read();
         Assert.True(read.TotalBytes.IsOk, "physical total was Unavailable");
         Assert.True(read.AvailableBytes.IsOk);
         Assert.True(read.InUseBytes.IsOk);
