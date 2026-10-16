@@ -30,14 +30,8 @@ public sealed class WatchRollup
             var packet = current?.PacketCount ?? 0;
             if (source == WatchSource.Event)
                 resolver++;
-            else if (response)
-            {
-                packet++;
-                if (resolver < packet)
-                    resolver = packet;
-            }
             else
-                resolver++;
+                packet++;
 
             var keptPid = current is null
                 ? pid
