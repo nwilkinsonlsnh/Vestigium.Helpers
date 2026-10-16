@@ -3,7 +3,7 @@
 **Status:** Active  
 **Owner:** Helpers  
 **Companion:** Requirements.md  
-**Goal:** Move the query logic that currently lives in SysInfoIQ collectors into this library. The host becomes a thin orchestrator that formats and exports.
+**Goal:** Move all inventory query logic out of SysInfoIQ. After this sequence the host is a skeleton: it calls library doors, formats the locked Summary, and writes the export folder. It owns no WMI, no Registry inventory queries, and no NetworkInterface inventory queries.
 
 ## What we are building
 
@@ -18,7 +18,24 @@ A single `Vestigium.Helpers.SystemInfo` package (`net10.0-windows`) that owns th
   - `SecurityCollector` (firewall profiles/rules, certs, signed drivers)
   - `SoftwareCollector` (installed software, hotfixes, features, ODBC, environment, SQL services)
 - Each door returns structured records (or `Fact<T>` / error records). No text dumps, no file I/O, no SummaryFormatter.
-- SysInfoIQ calls the doors, builds its Summary text, and writes the export folder. It no longer owns WMI, Registry, or NetworkInterface queries for inventory.
+- SysInfoIQ calls the doors, builds its Summary text, and writes the export folder.
+
+## End state (locked)
+
+After PR01 + PR02 + PR03:
+
+| Host file | Status |
+|---|---|
+| `Collector.cs` | Deleted or reduced to a door call + SummaryFormatter. No ManagementObjectSearcher. |
+| `StorageCollector.cs` | Deleted. |
+| `NetworkCollector.cs` | Deleted. |
+| `SecurityCollector.cs` | Deleted. |
+| `SoftwareCollector.cs` | Deleted. |
+| `SummaryFormatter.cs` | Stays. Host owns text. |
+| `Exporter.cs` | Stays. Host owns files. |
+| ViewModels that call WMI / Registry / NetworkInterface for inventory | Gone. |
+
+The application is a skeleton. All query logic lives in the library (or in helpers the library calls).
 
 ## What we are not building
 
@@ -39,15 +56,15 @@ One assembly. No satellites.
 | Inventory doors | `Inventory/` | One static class per former collector. Structured results. |
 | Shared CIM helper | internal | ManagementObjectSearcher wrapper that returns rows or Unavailable. |
 
-Rejected: keep three packages. Rejected: leave the collectors in the host. Rejected: one package per collector.
+Rejected: keep three packages. Rejected: leave any collector in the host. Rejected: one package per collector.
 
 ## PR sequence
 
 | PR | Scope | Done when |
 |---|---|---|
 | PR01 | Collapse to one package. Move native. Move the base `Collector` (five Win32 classes) as structured records. SysInfoIQ base path calls the door. | Host no longer runs ManagementObjectSearcher for ComputerSystem/OS/BIOS/Processor/Memory. Summary text matches. |
-| PR02 | Move `StorageCollector` and `NetworkCollector`. Reuse Network helper where it already covers adapters/TCP. | Host Storage and Network pages call library doors. |
-| PR03 | Move `SecurityCollector` and `SoftwareCollector`. Reuse WinReg where it already covers Uninstall keys. | Host Security and Software pages call library doors. |
+| PR02 | Move `StorageCollector` and `NetworkCollector`. Reuse Network helper where it already covers adapters/TCP. | Host Storage and Network pages call library doors. Those two collector files are deleted. |
+| PR03 | Move `SecurityCollector` and `SoftwareCollector`. Reuse WinReg where it already covers Uninstall keys. | Host Security and Software pages call library doors. Those two collector files are deleted. |
 | Later | Remaining catalog sections (events, drivers, tasks, shares) as needed. Elevation notes stay in host. | — |
 
 ### PR01 sub-steps
