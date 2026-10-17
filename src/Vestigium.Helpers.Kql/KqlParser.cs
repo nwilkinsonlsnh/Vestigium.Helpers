@@ -122,6 +122,8 @@ internal sealed class KqlParser
 
         var field = _current;
         Advance();
+        if (KqlMethods.TrySplit(field.Text, out var owner, out var method))
+            return ParseMethod(field, owner, method);
         if (_current.Kind == KqlTokenKind.LParen)
             return ParseClosedCall(field);
 
@@ -231,8 +233,80 @@ internal sealed class KqlParser
         };
     }
 
+    private KqlExpression ParseMethod(KqlToken token, string field, string method)
+    {
+        if (_current.Kind != KqlTokenKind.LParen)
+            throw Error(_current, "expected '(' after method");
+        Advance();
+        var name = KqlMethods.Canonical(method) ?? method;
+        if (KqlMethods.IsNullary(name))
+        {
+            if (_current.Kind != KqlTokenKind.RParen)
+                throw Error(_current, "expected ')'");
+            Advance();
+            var value = name switch
+            {
+                "isTrue" => new KqlLiteral { Type = KqlType.Boolean, Value = true },
+                "isFalse" => new KqlLiteral { Type = KqlType.Boolean, Value = false },
+                _ => new KqlLiteral { Type = KqlType.String, Value = string.Empty }
+            };
+            return new KqlComparisonExpression
+            {
+                Field = field,
+                Op = KqlMethods.ToOp(name),
+                Value = value,
+                Line = token.Line,
+                Column = token.Column
+            };
+        }
+
+        if (KqlMethods.IsBetween(name))
+        {
+            var low = ReadLiteral();
+            if (_current.Kind == KqlTokenKind.Comma)
+                Advance();
+            var high = ReadLiteral();
+            if (_current.Kind != KqlTokenKind.RParen)
+                throw Error(_current, "expected ')'");
+            Advance();
+            return new KqlBetweenExpression
+            {
+                Field = field,
+                Low = low,
+                High = high,
+                Line = token.Line,
+                Column = token.Column
+            };
+        }
+
+        var arg = ReadLiteral();
+        if (_current.Kind != KqlTokenKind.RParen)
+            throw Error(_current, "expected ')'");
+        Advance();
+        return new KqlComparisonExpression
+        {
+            Field = field,
+            Op = KqlMethods.ToOp(name),
+            Value = arg,
+            Line = token.Line,
+            Column = token.Column
+        };
+    }
+
     private KqlCompareOp ReadCompareOp()
     {
+        if (_current.Kind == KqlTokenKind.Eq && _current.Text.Equals("IS", StringComparison.OrdinalIgnoreCase))
+        {
+            Advance();
+            if (_current.Kind == KqlTokenKind.Not)
+            {
+                Advance();
+                return KqlCompareOp.Ne;
+            }
+
+            return KqlCompareOp.Eq;
+        }
+
         if (_current.Kind == KqlTokenKind.Not)
         {
             var token = _current;
