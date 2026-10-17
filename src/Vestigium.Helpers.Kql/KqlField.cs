@@ -26,6 +26,29 @@ public sealed class KqlField
         Maximum = maximum;
     }
 
+    public static KqlField Create(
+        string canonical,
+        KqlType type,
+        IReadOnlyList<string>? aliases = null,
+        IReadOnlyList<string>? closed = null,
+        KqlCompareAs compareAs = KqlCompareAs.Stored,
+        int? minimum = null,
+        int? maximum = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(canonical);
+        return new KqlField(
+            canonical.Trim(),
+            type,
+            KqlGroups.None,
+            [],
+            aliases ?? [],
+            false,
+            closed,
+            compareAs,
+            minimum,
+            maximum);
+    }
+
     public string Canonical { get; }
     public KqlType Type { get; }
     public KqlGroups Group { get; }
