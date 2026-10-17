@@ -26,6 +26,9 @@ public sealed class KqlField
         Maximum = maximum;
     }
 
+    public static KqlField Create(string canonical, Type type, IReadOnlyList<string>? aliases = null, IReadOnlyList<string>? closed = null)
+        => Create(canonical, KqlTypes.From(type), aliases, closed);
+
     public static KqlField Create(
         string canonical,
         KqlType type,
