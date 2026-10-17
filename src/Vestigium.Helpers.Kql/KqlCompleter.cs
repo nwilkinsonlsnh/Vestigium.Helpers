@@ -163,7 +163,7 @@ internal static class KqlCompleter
             yield break;
         }
 
-        if (field.Type is KqlType.Integer or KqlType.Number)
+        if (field.Type is KqlType.Integer or KqlType.Number or KqlType.DateTime)
         {
             yield return "<";
             yield return ">";
@@ -196,6 +196,8 @@ internal static class KqlCompleter
 
         if (field.Type == KqlType.String)
             yield return "string(";
+        if (field.Type == KqlType.DateTime)
+            yield return "date(";
     }
 
     private static KqlField? FieldBefore(IReadOnlyList<KqlToken> tokens, KqlSession session)
@@ -245,7 +247,7 @@ internal static class KqlCompleter
     {
         var open = Math.Max(
             head.LastIndexOf("ipaddress(", StringComparison.OrdinalIgnoreCase),
-            Math.Max(head.LastIndexOf("macaddress(", StringComparison.OrdinalIgnoreCase), head.LastIndexOf("string(", StringComparison.OrdinalIgnoreCase)));
+            Math.Max(head.LastIndexOf("macaddress(", StringComparison.OrdinalIgnoreCase), Math.Max(head.LastIndexOf("string(", StringComparison.OrdinalIgnoreCase), head.LastIndexOf("date(", StringComparison.OrdinalIgnoreCase))));
         if (open < 0)
             return false;
         return head.IndexOf(')', open) < 0;
@@ -255,7 +257,7 @@ internal static class KqlCompleter
 
     private static bool IsPair(KqlToken token) => token.Kind == KqlTokenKind.Ident && token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsValue(KqlTokenKind kind) => kind is KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.True or KqlTokenKind.False or KqlTokenKind.IpAddress or KqlTokenKind.MacAddress or KqlTokenKind.StringValue or KqlTokenKind.TimeSpan;
+    private static bool IsValue(KqlTokenKind kind) => kind is KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.True or KqlTokenKind.False or KqlTokenKind.IpAddress or KqlTokenKind.MacAddress or KqlTokenKind.StringValue or KqlTokenKind.DateValue or KqlTokenKind.TimeSpan;
 
     private static KqlCompletionRow Row(string insert, KqlCompletionKind kind) => new() { Insert = insert, Display = insert, Kind = kind };
 }
