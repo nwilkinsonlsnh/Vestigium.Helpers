@@ -148,6 +148,8 @@ internal static class KqlBinder
 
     private static void ResolveIdent(KqlField field, string text, int line, int column)
     {
+        if (field.Type == KqlType.Boolean && KqlBooleans.TryParse(text, out _))
+            return;
         if (field.IsClosed(text))
             return;
         var dot = text.LastIndexOf('.');
@@ -165,6 +167,8 @@ internal static class KqlBinder
 
     private static void RequireClosed(KqlField field, string text, int line, int column)
     {
+        if (field.Type == KqlType.Boolean && KqlBooleans.TryParse(text, out _))
+            return;
         if (!field.IsClosed(text))
             throw new KqlParseException(line, column, $"'{text}' is not a closed value of {field.Canonical}");
     }
@@ -270,10 +274,17 @@ internal static class KqlBinder
     {
         if (field == literal)
             return true;
+        var numeric = field is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal
+            && literal is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal;
+        if (numeric)
+            return true;
         return field switch
         {
-            KqlType.Integer or KqlType.Number when literal is KqlType.Integer or KqlType.Number => true,
+            KqlType.Boolean when literal is KqlType.Boolean or KqlType.String or KqlType.Integer => true,
             KqlType.DateTime when literal is KqlType.DateTime or KqlType.String => true,
+            KqlType.TimeSpan when literal is KqlType.TimeSpan or KqlType.String => true,
+            KqlType.Char when literal is KqlType.Char or KqlType.String => true,
+            KqlType.IpAddress or KqlType.MacAddress when literal is KqlType.String or KqlType.IpAddress or KqlType.MacAddress => true,
             _ => false
         };
     }
