@@ -82,3 +82,20 @@ Long-form documents live in [Vestigium.Documentation / Helpers / Kql](https://gi
 | 002 -- Requirements Document | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Kql/002%20--%20Requirements%20Document) |
 | 003 -- Design Document | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Kql/003%20--%20Design%20Document) |
 | 004 -- Developers Guide | [folder](https://github.com/nwilkinsonlsnh/Vestigium.Helpers/tree/main/Vestigium.Documentation/Vestigium/Helpers/Kql/004%20--Developers%20Guide) |
+
+## Methods (2.2.0)
+
+`<field>.<method>(<value>)`. The catalog declares the type. The library owns the methods.
+
+```
+publisher.contains("Microsoft")
+installed.equals(yes)
+installed.isTrue()
+size.greaterThan(500)
+InstallDate.after(date(-5))
+InstallDate.between(date(-30), date(0))
+```
+
+Boolean `equals` and the closed form accept `true` `false` `yes` `no` `y` `n` `t` `f` `1` `0`, any case.
+
+`IS` is `==`. `IS NOT` is `!=`. Operator form is unchanged.
