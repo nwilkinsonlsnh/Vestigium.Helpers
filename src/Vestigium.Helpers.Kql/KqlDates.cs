@@ -16,6 +16,8 @@ public static class KqlDates
         "MM/dd/yyyy",
         "d-MMM-yyyy",
         "dd-MMM-yyyy",
+        "dMMMyyyy",
+        "ddMMMyyyy",
         "d MMM yyyy",
         "dd MMM yyyy",
         "d MMMM yyyy",
