@@ -126,6 +126,10 @@ internal sealed class KqlParser
             return ParseMethod(field, owner, method);
         if (_current.Kind == KqlTokenKind.LParen)
             return ParseClosedCall(field);
+        if (IsLooseValue(_current))
+            return ParseLoose(field);
+        if (_current.Kind is KqlTokenKind.Eof or KqlTokenKind.And or KqlTokenKind.Or or KqlTokenKind.RParen)
+            return BareTrue(field);
 
         switch (_current)
         {
@@ -232,6 +236,35 @@ internal sealed class KqlParser
             Column = field.Column
         };
     }
+
+    private static bool IsLooseValue(KqlToken token)
+        => token.Kind is KqlTokenKind.String or KqlTokenKind.StringValue or KqlTokenKind.Number
+            or KqlTokenKind.True or KqlTokenKind.False or KqlTokenKind.Ident or KqlTokenKind.DateValue;
+
+    private KqlExpression ParseLoose(KqlToken field)
+    {
+        var value = ReadLiteral();
+        var boolean = value.Type == KqlType.Boolean || (value.Value is string text && KqlBooleans.TryParse(text, out _));
+        var number = value.Type is KqlType.Integer or KqlType.Number;
+        return new KqlComparisonExpression
+        {
+            Field = field.Text,
+            Op = boolean || number ? KqlCompareOp.Eq : KqlCompareOp.Contains,
+            Value = value,
+            Line = field.Line,
+            Column = field.Column
+        };
+    }
+
+    private static KqlComparisonExpression BareTrue(KqlToken field)
+        => new()
+        {
+            Field = field.Text,
+            Op = KqlCompareOp.Eq,
+            Value = new KqlLiteral { Type = KqlType.Boolean, Value = true },
+            Line = field.Line,
+            Column = field.Column
+        };
 
     private KqlExpression ParseMethod(KqlToken token, string field, string method)
     {
@@ -391,6 +424,8 @@ internal sealed class KqlParser
                 return new KqlLiteral { Type = KqlType.String, Value = token.Text + "." + inner, Form = KqlLiteralForm.Ident };
             case { Kind: KqlTokenKind.Number }:
                 Advance();
+                if (KqlUnits.TryParse(token.Text, out var scaled) && token.Text.Any(char.IsLetter))
+                    return new KqlLiteral { Type = KqlType.Number, Value = scaled };
                 if (token.Text.Contains('.')
                     && double.TryParse(token.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var real))
                     return new KqlLiteral { Type = KqlType.Number, Value = real };
