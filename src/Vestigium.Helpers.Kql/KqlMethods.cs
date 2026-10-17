@@ -57,12 +57,13 @@ public static class KqlMethods
 
         return name switch
         {
-            "contains" or "startsWith" or "endsWith" or "like" => type is KqlType.String or KqlType.Char,
+            "contains" or "startsWith" or "endsWith" or "like" => type is KqlType.String,
             "isEmpty" => type is KqlType.String or KqlType.Char or KqlType.DateTime,
             "isTrue" or "isFalse" => type == KqlType.Boolean,
-            "greaterThan" or "greaterThanOrEqual" or "lessThan" or "lessThanOrEqual" or "between"
+            "after" or "before" or "on" => type == KqlType.DateTime,
+            "between" => type is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal or KqlType.TimeSpan or KqlType.DateTime,
+            "greaterThan" or "greaterThanOrEqual" or "lessThan" or "lessThanOrEqual"
                 => type is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal or KqlType.TimeSpan,
-            "after" or "before" or "on" or "between" => type == KqlType.DateTime,
             "equals" => true,
             _ => false
         };
