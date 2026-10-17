@@ -13,7 +13,6 @@ public static class PackageAdapter
             .Set("app.version", facts.Version)
             .Set("app.MajorVersion", facts.MajorVersion)
             .Set("app.MinorVersion", facts.MinorVersion)
-            .Set("app.InstallDate", facts.InstallDate)
             .Set("app.IsX64", facts.IsX64)
             .Set("app.IsX86", !facts.IsX64)
             .Set("app.IsGlobal", facts.IsGlobal)
@@ -23,6 +22,9 @@ public static class PackageAdapter
             .Set("app.NoRemove", facts.NoRemove)
             .Set("app.NoRepair", facts.NoRepair)
             .Set("app.HasIcon", facts.HasIcon);
+
+        if (KqlDates.TryParse(facts.InstallDate, out var installed))
+            row.Set("app.InstallDate", installed);
 
         if (facts.EstimatedSizeKb is { } kb)
         {
