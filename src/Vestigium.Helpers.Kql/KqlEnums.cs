@@ -38,7 +38,12 @@ public enum KqlType
     Number = 2,
     Boolean = 3,
     TimeSpan = 4,
-    DateTime = 5
+    DateTime = 5,
+    Char = 6,
+    Long = 7,
+    Decimal = 8,
+    IpAddress = 9,
+    MacAddress = 10
 }
 
 public enum KqlCompareAs
