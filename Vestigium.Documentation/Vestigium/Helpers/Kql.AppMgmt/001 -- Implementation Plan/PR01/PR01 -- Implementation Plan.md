@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-KQL-AM-PLN-PR01  
 **Version:** PR01  
-**Status:** Live. Adapters are in. Tests not started.  
+**Status:** Live. Tests are in. Host not started.  
 **Date:** 17 October 2026  
 **Binding:** `PR01 -- Requirements.md`.
 
@@ -20,6 +20,8 @@ PR01.004 closed 17 October 2026. `AppMgmtKql.Packages()` and `AppMgmtKql.Feature
 
 PR01.005 closed 17 October 2026. `PackageAdapter` and `FeatureAdapter`. Blank and missing stay unknown. Size is projected from kilobytes. `IsX86` is the inverse of `IsX64`.
 
+PR01.006 closed 17 October 2026. `AppMgmtKqlTests`. Accepts, cross-session rejects, case and suffix, blank publisher, missing size, IsX86 inverse, closed state completion, core pack still compiles.
+
 ---
 
 ## Implementation table
@@ -31,11 +33,11 @@ PR01.005 closed 17 October 2026. `PackageAdapter` and `FeatureAdapter`. Blank an
 | 3 | PR01.003 | `PackageCatalog` and `FeatureCatalog`. Fields from the PR03 factory. | Done |
 | 4 | PR01.004 | `AppMgmtKql.Packages()` and `AppMgmtKql.Features()`. | Done |
 | 5 | PR01.005 | Package row and feature row adapters. Blank and missing stay unknown. | Done |
-| 6 | PR01.006 | Tests. Requirements §5. Cross-session rejects included. | |
+| 6 | PR01.006 | Tests. Requirements §5. Cross-session rejects included. | Done |
 | 7 | PR01.007 | AppMgmtIQ. QueryBar on the package page, then the features page. Host filter. Not in this package. | |
 | 8 | PR01.008 | Publish. After PR01.007 consumes the sessions. Not before. | |
 
-PR01.006 is this repo. PR01.007 is `Vestigium.Suite.Windows`. PR01.008 waits on PR01.007.
+PR01.007 is `Vestigium.Suite.Windows`. PR01.008 waits on PR01.007.
 
 ---
 
@@ -53,3 +55,4 @@ Dashboard charts, enable and disable, uninstall, export, saved-query persistence
 | PR01 | 17 Oct 2026 | Steps renumbered PR01.001–PR01.008. |
 | PR01 | 17 Oct 2026 | PR01.001–PR01.004 closed. Catalog and sessions in. |
 | PR01 | 17 Oct 2026 | PR01.005 closed. Adapters in. |
+| PR01 | 17 Oct 2026 | PR01.006 closed. Tests in. |
