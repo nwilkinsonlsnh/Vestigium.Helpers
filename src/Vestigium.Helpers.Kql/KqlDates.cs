@@ -53,6 +53,18 @@ public static class KqlDates
         if (body.Length == 0)
             return false;
 
+        if (body.Equals("today", StringComparison.OrdinalIgnoreCase) || body.Equals("now", StringComparison.OrdinalIgnoreCase))
+        {
+            value = new DateTimeOffset(DateTime.Today);
+            return true;
+        }
+
+        if (body.Equals("yesterday", StringComparison.OrdinalIgnoreCase))
+        {
+            value = new DateTimeOffset(DateTime.Today.AddDays(-1));
+            return true;
+        }
+
         if (body[0] is '+' or '-')
         {
             if (!int.TryParse(body, NumberStyles.Integer, CultureInfo.InvariantCulture, out var days))
