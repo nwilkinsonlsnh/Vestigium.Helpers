@@ -11,6 +11,19 @@ internal static class KqlCompleter
             caret = text.Length;
 
         var head = text[..caret];
+        if (MethodSlot(head, session, out var methodField, out var methodPartial, out var methodStart))
+        {
+            var methods = KqlMethods.For(methodField!.Type, methodField.CompareAs)
+                .Select(name => Row(name + "(", KqlCompletionKind.Operator));
+            return new KqlCompletion
+            {
+                Slot = KqlCompletionSlot.Operator,
+                Rows = Rank(methods, methodPartial, hints),
+                ReplaceStart = methodStart,
+                ReplaceLength = caret - methodStart
+            };
+        }
+
         if (InsideConstructor(head))
             return new KqlCompletion { Slot = KqlCompletionSlot.None };
 
@@ -115,6 +128,11 @@ internal static class KqlCompleter
             case KqlCompletionSlot.Operator:
                 foreach (var op in Operators(field))
                     yield return Row(op, KqlCompletionKind.Operator);
+                if (field is not null)
+                {
+                    foreach (var method in KqlMethods.For(field.Type, field.CompareAs))
+                        yield return Row(method + "(", KqlCompletionKind.Operator);
+                }
                 yield break;
             case KqlCompletionSlot.Value:
                 if (field is null)
@@ -180,6 +198,8 @@ internal static class KqlCompleter
         yield return "BEGINS WITH";
         yield return "ENDS WITH";
         yield return "LIKE";
+        yield return "IS";
+        yield return "IS NOT";
     }
 
     private static IEnumerable<string> Constructors(KqlField field)
@@ -231,6 +251,25 @@ internal static class KqlCompleter
         {
             return false;
         }
+    }
+
+    private static bool MethodSlot(string head, KqlSession session, out KqlField? field, out string partial, out int start)
+    {
+        field = null;
+        partial = string.Empty;
+        start = head.Length;
+        var dot = head.LastIndexOf('.');
+        if (dot <= 0)
+            return false;
+        var owner = head[..dot].Trim();
+        if (!session.TryGetField(owner, out field!))
+            return false;
+        var tail = head[(dot + 1)..];
+        if (tail.Length > 0 && tail.Any(ch => !char.IsLetter(ch)))
+            return false;
+        partial = tail;
+        start = dot + 1;
+        return true;
     }
 
     private static int PartialStart(string head)
