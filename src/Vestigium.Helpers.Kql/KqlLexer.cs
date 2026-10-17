@@ -293,6 +293,13 @@ internal sealed class KqlLexer(string? text)
             || unit.Equals("d", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.TimeSpan, _text[start.._index], line, column);
 
+        if (unit.Equals("b", StringComparison.OrdinalIgnoreCase)
+            || unit.Equals("kb", StringComparison.OrdinalIgnoreCase)
+            || unit.Equals("mb", StringComparison.OrdinalIgnoreCase)
+            || unit.Equals("gb", StringComparison.OrdinalIgnoreCase)
+            || unit.Equals("tb", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.Number, _text[start.._index], line, column);
+
         throw new KqlLexException(line, column, $"unexpected number suffix '{unit}'");
     }
 
