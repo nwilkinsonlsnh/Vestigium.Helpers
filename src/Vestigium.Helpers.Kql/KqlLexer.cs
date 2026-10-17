@@ -205,6 +205,8 @@ internal sealed class KqlLexer(string? text)
             return new KqlToken(KqlTokenKind.Like, ident, line, column);
         if (ident.Equals("IN", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.In, ident, line, column);
+        if (ident.Equals("IS", StringComparison.OrdinalIgnoreCase))
+            return new KqlToken(KqlTokenKind.Eq, ident, line, column);
         if (ident.Equals("BETWEEN", StringComparison.OrdinalIgnoreCase))
             return new KqlToken(KqlTokenKind.Between, ident, line, column);
         if (ident.Equals("GT", StringComparison.OrdinalIgnoreCase))
