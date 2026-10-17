@@ -228,7 +228,8 @@ internal static class KqlEvaluator
 
     private static int? CompareValues(KqlValue left, KqlLiteral right)
     {
-        if (left.Type is KqlType.Integer or KqlType.Number || right.Type is KqlType.Integer or KqlType.Number)
+        if (left.Type is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal
+            || right.Type is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal)
         {
             if (!TryNumber(left.Raw, out var lv) || !TryNumber(right.Value, out var rv))
                 return null;
@@ -245,7 +246,7 @@ internal static class KqlEvaluator
         if (left.Type != KqlType.String && right.Type != KqlType.String)
             return left.Type switch
             {
-                KqlType.Boolean when right.Value is bool rb && left.Raw is bool lb => lb.CompareTo(rb),
+                KqlType.Boolean when BoolOf(right.Value) is bool rb && BoolOf(left.Raw) is bool lb => lb.CompareTo(rb),
                 KqlType.TimeSpan when left.Raw is TimeSpan lt && right.Value is TimeSpan rt => lt.CompareTo(rt),
                 _ => Comparer<object>.Default.Compare(left.Raw, right.Value)
             };
@@ -262,6 +263,23 @@ internal static class KqlEvaluator
         var first = text.IndexOf('.');
         var last = text.LastIndexOf('.');
         return first > 0 && first != last ? text[(last + 1)..] : text;
+    }
+
+    private static bool? BoolOf(object? value)
+    {
+        switch (value)
+        {
+            case bool flag:
+                return flag;
+            case string text when KqlBooleans.TryParse(text, out var parsed):
+                return parsed;
+            case int number when number is 0 or 1:
+                return number == 1;
+            case long number when number is 0 or 1:
+                return number == 1;
+            default:
+                return null;
+        }
     }
 
     private static bool TryDate(object? value, out DateTimeOffset date)
