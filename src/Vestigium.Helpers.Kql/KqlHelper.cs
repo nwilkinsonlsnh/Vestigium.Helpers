@@ -36,6 +36,12 @@ public static class KqlHelper
         return new KqlSession(packs, groups, fields);
     }
 
+    public static KqlSession Create(IReadOnlyList<KqlField> fields)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+        return new KqlSession([], KqlGroups.None, fields);
+    }
+
     public static KqlParseResult Parse(string text)
     {
         var result = KqlParser.Parse(text);
