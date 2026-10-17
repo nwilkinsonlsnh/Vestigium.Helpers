@@ -99,3 +99,24 @@ InstallDate.between(date(-30), date(0))
 Boolean `equals` and the closed form accept `true` `false` `yes` `no` `y` `n` `t` `f` `1` `0`, any case.
 
 `IS` is `==`. `IS NOT` is `!=`. Operator form is unchanged.
+
+## Types
+
+A catalog declares the type, or passes `typeof`.
+
+```csharp
+KqlField.Create("size", typeof(long));
+KqlField.Create("route.destination", typeof(KqlIpAddress));
+KqlField.Create("installed", KqlType.Boolean);
+```
+
+`KqlIpAddress` and `KqlMacAddress` are library types. Subscribing unlocks their methods. `CompareAs` still works.
+
+## Loose forms
+
+A boolean field alone means true: `IsX64`.
+
+A field then a value, with no operator, means contains for a string and equals for a number or boolean: `publisher Microsoft`, `installed yes`.
+
+Size units: `500mb`, `1.5gb`, `100kb`. Date words: `today`, `yesterday`, `now`, and `date(-5)`.
+
