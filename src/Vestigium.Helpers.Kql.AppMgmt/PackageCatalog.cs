@@ -9,7 +9,7 @@ public static class PackageCatalog
         F("app.version", KqlType.String, "version"),
         F("app.MajorVersion", KqlType.Integer, "MajorVersion"),
         F("app.MinorVersion", KqlType.Integer, "MinorVersion"),
-        F("app.InstallDate", KqlType.String, "InstallDate"),
+        F("app.InstallDate", KqlType.DateTime, "InstallDate"),
         F("app.size.kb", KqlType.Number),
         F("app.size.mb", KqlType.Number),
         F("app.size.gb", KqlType.Number),
