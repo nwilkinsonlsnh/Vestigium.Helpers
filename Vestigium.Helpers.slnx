@@ -12,6 +12,7 @@
     <Project Path="src/Vestigium.Helpers.Hashing/Vestigium.Helpers.Hashing.csproj" />
     <Project Path="src/Vestigium.Helpers.Json/Vestigium.Helpers.Json.csproj" />
     <Project Path="src/Vestigium.Helpers.Kql/Vestigium.Helpers.Kql.csproj" />
+    <Project Path="src/Vestigium.Helpers.Kql.AppMgmt/Vestigium.Helpers.Kql.AppMgmt.csproj" />
     <Project Path="src/Vestigium.Helpers.Network/Vestigium.Helpers.Network.csproj" />
     <Project Path="src/Vestigium.Helpers.Processes/Vestigium.Helpers.Processes.csproj" />
     <Project Path="src/Vestigium.Helpers.Services/Vestigium.Helpers.Services.csproj" />
