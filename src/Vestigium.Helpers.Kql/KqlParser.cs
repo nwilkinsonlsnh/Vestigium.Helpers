@@ -162,6 +162,8 @@ internal sealed class KqlParser
         }
 
         var op = ReadCompareOp();
+        if (op is KqlCompareOp.IsNull or KqlCompareOp.IsNotNull)
+            return NullCompare(field, op);
         var value = ReadLiteral();
         return new KqlComparisonExpression
         {
@@ -176,6 +178,13 @@ internal sealed class KqlParser
     private KqlComparisonExpression ParseClosedCall(KqlToken field)
     {
         Advance();
+        if (LooksLikeNull() && TryReadNull(out var op))
+        {
+            if (_current.Kind != KqlTokenKind.RParen)
+                throw Error(_current, "expected ')'");
+            Advance();
+            return NullCompare(field, op);
+        }
         if (!IsValue(_current))
             throw Error(_current, "expected closed value");
         var token = _current;
@@ -183,6 +192,8 @@ internal sealed class KqlParser
         if (_current.Kind != KqlTokenKind.RParen)
             throw Error(_current, "expected ')'");
         Advance();
+        if (token.Kind == KqlTokenKind.String && token.Text.Length == 0)
+            return NullCompare(field, KqlCompareOp.IsNull);
         var literal = new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Closed };
         return new KqlComparisonExpression
         {
@@ -193,6 +204,40 @@ internal sealed class KqlParser
             Column = field.Column
         };
     }
+
+    private bool LooksLikeNull()
+        => _current.Kind is KqlTokenKind.RParen or KqlTokenKind.Null or KqlTokenKind.Not
+            || (_current.Kind == KqlTokenKind.Eq && _current.Text.Equals("IS", StringComparison.OrdinalIgnoreCase));
+
+    private bool TryReadNull(out KqlCompareOp op)
+    {
+        op = KqlCompareOp.IsNull;
+        if (_current.Kind == KqlTokenKind.RParen)
+            return true;
+        var not = false;
+        if (_current.Kind == KqlTokenKind.Eq && _current.Text.Equals("IS", StringComparison.OrdinalIgnoreCase))
+            Advance();
+        if (_current.Kind == KqlTokenKind.Not)
+        {
+            not = true;
+            Advance();
+        }
+        if (_current.Kind != KqlTokenKind.Null)
+            throw Error(_current, "expected NULL");
+        Advance();
+        op = not ? KqlCompareOp.IsNotNull : KqlCompareOp.IsNull;
+        return true;
+    }
+
+    private static KqlComparisonExpression NullCompare(KqlToken field, KqlCompareOp op)
+        => new()
+        {
+            Field = field.Text,
+            Op = op,
+            Value = new KqlLiteral { Type = KqlType.String, Value = string.Empty },
+            Line = field.Line,
+            Column = field.Column
+        };
 
     private KqlInExpression ParseIn(KqlToken field, bool negated)
     {
@@ -371,6 +416,21 @@ internal sealed class KqlParser
                 Advance();
                 return begins ? KqlCompareOp.BeginsWith : KqlCompareOp.EndsWith;
             }
+        }
+
+        if (_current.Kind == KqlTokenKind.Eq && _current.Text.Equals("IS", StringComparison.OrdinalIgnoreCase))
+        {
+            Advance();
+            var not = false;
+            if (_current.Kind == KqlTokenKind.Not)
+            {
+                not = true;
+                Advance();
+            }
+            if (_current.Kind != KqlTokenKind.Null)
+                throw Error(_current, "expected NULL");
+            Advance();
+            return not ? KqlCompareOp.IsNotNull : KqlCompareOp.IsNull;
         }
 
         var map = _current.Kind switch
