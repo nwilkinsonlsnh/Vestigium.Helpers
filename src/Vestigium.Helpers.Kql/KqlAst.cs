@@ -60,7 +60,9 @@ public enum KqlCompareOp
     NotLike = 7,
     BeginsWith = 8,
     EndsWith = 9,
-    Contains = 10
+    Contains = 10,
+    IsNull = 11,
+    IsNotNull = 12
 }
 
 public enum KqlLiteralForm
