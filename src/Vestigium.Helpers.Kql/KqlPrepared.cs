@@ -42,7 +42,7 @@ public static class KqlPrepare
             return false;
         var open = body.IndexOf('(');
         if (open >= 0)
-            return body.IndexOf(')', open + 1) > open + 1;
+            return body.IndexOf(')', open + 1) >= open + 1;
         if (body.IndexOfAny(['=', '!', '<', '>']) >= 0)
             return true;
         if (body.Contains(' ') && HasOperator(body))
@@ -84,5 +84,6 @@ public static class KqlPrepare
             || text.Contains(" LIKE ", StringComparison.OrdinalIgnoreCase)
             || text.Contains(" CONTAINS ", StringComparison.OrdinalIgnoreCase)
             || text.Contains(" BETWEEN ", StringComparison.OrdinalIgnoreCase)
-            || text.Contains(" IN ", StringComparison.OrdinalIgnoreCase);
+            || text.Contains(" IN ", StringComparison.OrdinalIgnoreCase)
+            || text.Contains(" IS ", StringComparison.OrdinalIgnoreCase);
 }
