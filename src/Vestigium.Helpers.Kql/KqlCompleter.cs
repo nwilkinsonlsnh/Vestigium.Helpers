@@ -200,6 +200,8 @@ internal static class KqlCompleter
         yield return "LIKE";
         yield return "IS";
         yield return "IS NOT";
+        yield return "IS NULL";
+        yield return "IS NOT NULL";
     }
 
     private static IEnumerable<string> Constructors(KqlField field)
