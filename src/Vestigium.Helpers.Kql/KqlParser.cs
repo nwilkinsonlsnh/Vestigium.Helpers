@@ -183,12 +183,7 @@ internal sealed class KqlParser
         if (_current.Kind != KqlTokenKind.RParen)
             throw Error(_current, "expected ')'");
         Advance();
-        var literal = token.Kind switch
-        {
-            KqlTokenKind.True => new KqlLiteral { Type = KqlType.Boolean, Value = true, Form = KqlLiteralForm.Closed },
-            KqlTokenKind.False => new KqlLiteral { Type = KqlType.Boolean, Value = false, Form = KqlLiteralForm.Closed },
-            _ => new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Closed }
-        };
+        var literal = new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Closed };
         return new KqlComparisonExpression
         {
             Field = field.Text,
