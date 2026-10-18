@@ -176,7 +176,7 @@ internal sealed class KqlParser
     private KqlComparisonExpression ParseClosedCall(KqlToken field)
     {
         Advance();
-        if (_current.Kind is not (KqlTokenKind.Ident or KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.True or KqlTokenKind.False))
+        if (!IsValue(_current))
             throw Error(_current, "expected closed value");
         var token = _current;
         Advance();
@@ -242,6 +242,14 @@ internal sealed class KqlParser
             Column = field.Column
         };
     }
+
+    private static bool IsValue(KqlToken token)
+        => token.Kind is KqlTokenKind.Ident or KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.StringValue
+            or KqlTokenKind.True or KqlTokenKind.False or KqlTokenKind.DateValue or KqlTokenKind.TimeSpan
+            or KqlTokenKind.IpAddress or KqlTokenKind.MacAddress
+            or KqlTokenKind.And or KqlTokenKind.Or or KqlTokenKind.Not or KqlTokenKind.Like or KqlTokenKind.In
+            or KqlTokenKind.Between or KqlTokenKind.Contains or KqlTokenKind.StartsWith or KqlTokenKind.EndsWith
+            or KqlTokenKind.Gt or KqlTokenKind.Lt or KqlTokenKind.Ge or KqlTokenKind.Le or KqlTokenKind.Eq;
 
     private static bool IsLooseValue(KqlToken token)
         => token.Kind is KqlTokenKind.String or KqlTokenKind.StringValue or KqlTokenKind.Number
@@ -442,6 +450,9 @@ internal sealed class KqlParser
             case { Kind: KqlTokenKind.False }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.Boolean, Value = false };
+            case { Kind: KqlTokenKind.And or KqlTokenKind.Or or KqlTokenKind.Not or KqlTokenKind.Like or KqlTokenKind.In or KqlTokenKind.Between or KqlTokenKind.Contains or KqlTokenKind.StartsWith or KqlTokenKind.EndsWith or KqlTokenKind.Gt or KqlTokenKind.Lt or KqlTokenKind.Ge or KqlTokenKind.Le or KqlTokenKind.Eq }:
+                Advance();
+                return new KqlLiteral { Type = KqlType.String, Value = token.Text };
             case { Kind: KqlTokenKind.TimeSpan }:
                 Advance();
                 return new KqlLiteral { Type = KqlType.TimeSpan, Value = ParseTimeSpan(token.Text) };
