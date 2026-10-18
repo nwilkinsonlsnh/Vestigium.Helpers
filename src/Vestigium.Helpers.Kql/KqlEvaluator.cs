@@ -45,6 +45,12 @@ internal static class KqlEvaluator
     {
         var field = cmp.BoundField ?? throw new InvalidOperationException("comparison is not bound");
         var left = row.Get(field.Canonical);
+        if (cmp.Op is KqlCompareOp.IsNull or KqlCompareOp.IsNotNull)
+        {
+            var isNull = left.IsUnknown || left.Raw is null || left.Raw is string text && text.Length == 0;
+            var hit = cmp.Op == KqlCompareOp.IsNull ? isNull : !isNull;
+            return hit ? KqlTriState.True : KqlTriState.False;
+        }
         if (left.IsUnknown)
             return KqlTriState.Unknown;
 
