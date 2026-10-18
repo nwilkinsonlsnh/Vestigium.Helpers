@@ -10,7 +10,7 @@ public static class FeatureAdapter
         return new KqlRow(session)
             .Set("feature.caption", facts.Caption)
             .Set("feature.name", facts.Name)
-            .Set("feature.state", facts.State)
+            .Set("feature.state", facts.IsEnabled)
             .Set("feature.IsEnabled", facts.IsEnabled)
             .Set("feature.parent", facts.Parent);
     }
