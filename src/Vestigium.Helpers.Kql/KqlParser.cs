@@ -176,18 +176,24 @@ internal sealed class KqlParser
     private KqlComparisonExpression ParseClosedCall(KqlToken field)
     {
         Advance();
-        if (_current.Kind is not (KqlTokenKind.Ident or KqlTokenKind.Number or KqlTokenKind.String))
+        if (_current.Kind is not (KqlTokenKind.Ident or KqlTokenKind.Number or KqlTokenKind.String or KqlTokenKind.True or KqlTokenKind.False))
             throw Error(_current, "expected closed value");
         var token = _current;
         Advance();
         if (_current.Kind != KqlTokenKind.RParen)
             throw Error(_current, "expected ')'");
         Advance();
+        var literal = token.Kind switch
+        {
+            KqlTokenKind.True => new KqlLiteral { Type = KqlType.Boolean, Value = true, Form = KqlLiteralForm.Closed },
+            KqlTokenKind.False => new KqlLiteral { Type = KqlType.Boolean, Value = false, Form = KqlLiteralForm.Closed },
+            _ => new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Closed }
+        };
         return new KqlComparisonExpression
         {
             Field = field.Text,
             Op = KqlCompareOp.Eq,
-            Value = new KqlLiteral { Type = KqlType.String, Value = token.Text, Form = KqlLiteralForm.Closed },
+            Value = literal,
             Line = field.Line,
             Column = field.Column
         };
