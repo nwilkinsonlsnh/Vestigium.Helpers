@@ -135,7 +135,7 @@ internal static class KqlBinder
                 ResolveIdent(field, value.Value as string ?? string.Empty, line, column);
                 break;
             case KqlLiteralForm.Closed:
-                RequireClosed(field, value.Value as string ?? string.Empty, line, column);
+                RequireClosed(field, ClosedText(value.Value), line, column);
                 break;
             case KqlLiteralForm.IpAddress:
                 ValidateIp(value.Value as string ?? string.Empty, op, line, column);
@@ -164,6 +164,14 @@ internal static class KqlBinder
 
         throw new KqlParseException(line, column, $"'{text}' is not a closed value of {field.Canonical}");
     }
+
+    private static string ClosedText(object? value)
+        => value switch
+        {
+            string text => text,
+            bool flag => flag ? "true" : "false",
+            _ => string.Empty
+        };
 
     private static void RequireClosed(KqlField field, string text, int line, int column)
     {
