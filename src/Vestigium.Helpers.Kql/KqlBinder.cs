@@ -129,6 +129,8 @@ internal static class KqlBinder
 
     private static void CheckLiteral(KqlField field, KqlLiteral value, KqlCompareOp op, int line, int column)
     {
+        if (op is KqlCompareOp.IsNull or KqlCompareOp.IsNotNull)
+            return;
         switch (value.Form)
         {
             case KqlLiteralForm.Ident:
