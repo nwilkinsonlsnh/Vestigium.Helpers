@@ -125,6 +125,7 @@ public static class KqlBooleans
             case "yes":
             case "y":
             case "1":
+            case "enabled":
                 value = true;
                 return true;
             case "false":
@@ -132,6 +133,7 @@ public static class KqlBooleans
             case "no":
             case "n":
             case "0":
+            case "disabled":
                 return true;
             default:
                 return false;
