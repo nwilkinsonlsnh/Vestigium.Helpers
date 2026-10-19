@@ -10,7 +10,8 @@ public static class StartupCatalog
         F("startup.scope", KqlType.String, "scope"),
         F("startup.isX64", KqlType.Boolean, "isX64"),
         F("startup.isX86", KqlType.Boolean, "isX86"),
-        F("startup.package", KqlType.String, "package")
+        F("startup.package", KqlType.String, "package"),
+        F("startup.enabled", KqlType.Boolean, "enabled")
     ];
 
     private static KqlField F(string canonical, KqlType type, params string[] aliases)
