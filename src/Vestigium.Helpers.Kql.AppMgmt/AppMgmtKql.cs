@@ -9,4 +9,6 @@ public static class AppMgmtKql
     public static KqlSession Features() => KqlHelper.Create(FeatureCatalog.Fields);
 
     public static KqlSession Bloatware() => KqlHelper.Create(BloatwareCatalog.Fields);
+
+    public static KqlSession Startup() => KqlHelper.Create(StartupCatalog.Fields);
 }
