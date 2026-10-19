@@ -12,7 +12,8 @@ public static class StartupAdapter
             .Set("startup.command", facts.Command)
             .Set("startup.source", facts.Source)
             .Set("startup.scope", facts.Scope)
-            .Set("startup.package", facts.Package);
+            .Set("startup.package", facts.Package)
+            .Set("startup.enabled", facts.Enabled);
 
         if (facts.IsX64 is { } isX64)
             row.Set("startup.isX64", isX64)
