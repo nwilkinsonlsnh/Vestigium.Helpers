@@ -10,11 +10,14 @@ public sealed class AppMgmtKqlTests
     {
         using var packages = AppMgmtKql.Packages();
         using var features = AppMgmtKql.Features();
+        using var startup = AppMgmtKql.Startup();
 
         Assert.Empty(packages.Packs);
         Assert.Empty(features.Packs);
+        Assert.Empty(startup.Packs);
         Assert.Equal(18, packages.Fields.Count);
         Assert.Equal(5, features.Fields.Count);
+        Assert.Equal(7, startup.Fields.Count);
     }
 
     [Theory]
@@ -59,6 +62,22 @@ public sealed class AppMgmtKqlTests
     }
 
     [Theory]
+    [InlineData("startup.name LIKE '%OneDrive%'")]
+    [InlineData("startup.command LIKE '%exe%'")]
+    [InlineData("startup.source == 'Run'")]
+    [InlineData("startup.scope == 'HKLM'")]
+    [InlineData("startup.isX64 == true")]
+    [InlineData("startup.isX86 == true")]
+    [InlineData("startup.package LIKE '%Chrome%'")]
+    [InlineData("name LIKE '%Teams%'")]
+    public void Startup_Accepts_Compile(string text)
+    {
+        using var session = AppMgmtKql.Startup();
+        var compiled = KqlHelper.Compile(text, session);
+        Assert.True(compiled.Ok, compiled.Error?.Message);
+    }
+
+    [Theory]
     [InlineData("app.size GT 100")]
     [InlineData("feature.state == Enabled")]
     [InlineData("app.IsX86 == app.IsX64")]
@@ -74,6 +93,15 @@ public sealed class AppMgmtKqlTests
     public void Feature_Rejects(string text)
     {
         using var session = AppMgmtKql.Features();
+        Assert.False(KqlHelper.Compile(text, session).Ok);
+    }
+
+    [Theory]
+    [InlineData("app.displayname LIKE '%chrome%'")]
+    [InlineData("startup.missing == true")]
+    public void Startup_Rejects(string text)
+    {
+        using var session = AppMgmtKql.Startup();
         Assert.False(KqlHelper.Compile(text, session).Ok);
     }
 
@@ -125,6 +153,24 @@ public sealed class AppMgmtKqlTests
         using var session = AppMgmtKql.Packages();
         var row = PackageAdapter.ToRow(session, new PackageFacts { IsX64 = false });
         var compiled = KqlHelper.Compile("app.IsX86 == true", session);
+        Assert.True(compiled.Query!.Matches(row));
+    }
+
+    [Fact]
+    public void Startup_Folder_Leaves_Bit_Unknown()
+    {
+        using var session = AppMgmtKql.Startup();
+        var row = StartupAdapter.ToRow(session, new StartupFacts { Source = "Startup folder", Scope = "User" });
+        Assert.True(row.Get("startup.isX64").IsUnknown);
+        Assert.True(row.Get("startup.isX86").IsUnknown);
+    }
+
+    [Fact]
+    public void Startup_Bit_Is_The_Inverse()
+    {
+        using var session = AppMgmtKql.Startup();
+        var row = StartupAdapter.ToRow(session, new StartupFacts { IsX64 = false });
+        var compiled = KqlHelper.Compile("startup.isX86 == true", session);
         Assert.True(compiled.Query!.Matches(row));
     }
 
