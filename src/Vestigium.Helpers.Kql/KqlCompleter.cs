@@ -132,6 +132,11 @@ internal static class KqlCompleter
                 {
                     foreach (var method in KqlMethods.For(field.Type, field.CompareAs))
                         yield return Row(method + "(", KqlCompletionKind.Operator);
+                    if (field.Type == KqlType.Boolean)
+                    {
+                        foreach (var word in BooleanWords)
+                            yield return Row("(" + word + ")", KqlCompletionKind.Value);
+                    }
                 }
                 yield break;
             case KqlCompletionSlot.Value:
@@ -146,8 +151,11 @@ internal static class KqlCompleter
                     yield return Row(ctor, KqlCompletionKind.Constructor);
                 if (field.Type == KqlType.Boolean)
                 {
-                    yield return Row("true", KqlCompletionKind.Value);
-                    yield return Row("false", KqlCompletionKind.Value);
+                    foreach (var word in BooleanWords)
+                    {
+                        yield return Row(word, KqlCompletionKind.Value);
+                        yield return Row(field.Canonical + "(" + word + ")", KqlCompletionKind.Value);
+                    }
                 }
                 yield break;
             case KqlCompletionSlot.Join:
@@ -159,6 +167,8 @@ internal static class KqlCompleter
                 yield break;
         }
     }
+
+    private static readonly string[] BooleanWords = ["true", "false", "t", "f", "yes", "no", "y", "n", "enabled", "disabled"];
 
     private static IEnumerable<string> Operators(KqlField? field)
     {
