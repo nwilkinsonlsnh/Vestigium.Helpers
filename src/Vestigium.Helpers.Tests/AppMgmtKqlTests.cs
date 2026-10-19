@@ -17,7 +17,7 @@ public sealed class AppMgmtKqlTests
         Assert.Empty(startup.Packs);
         Assert.Equal(18, packages.Fields.Count);
         Assert.Equal(5, features.Fields.Count);
-        Assert.Equal(7, startup.Fields.Count);
+        Assert.Equal(8, startup.Fields.Count);
     }
 
     [Theory]
@@ -69,6 +69,7 @@ public sealed class AppMgmtKqlTests
     [InlineData("startup.isX64 == true")]
     [InlineData("startup.isX86 == true")]
     [InlineData("startup.package LIKE '%Chrome%'")]
+    [InlineData("startup.enabled == false")]
     [InlineData("name LIKE '%Teams%'")]
     public void Startup_Accepts_Compile(string text)
     {
@@ -172,6 +173,14 @@ public sealed class AppMgmtKqlTests
         var row = StartupAdapter.ToRow(session, new StartupFacts { IsX64 = false });
         var compiled = KqlHelper.Compile("startup.isX86 == true", session);
         Assert.True(compiled.Query!.Matches(row));
+    }
+
+    [Fact]
+    public void Startup_Enabled_Defaults_True()
+    {
+        using var session = AppMgmtKql.Startup();
+        var row = StartupAdapter.ToRow(session, new StartupFacts());
+        Assert.Equal(true, row.Get("startup.enabled").Raw);
     }
 
     [Fact]
