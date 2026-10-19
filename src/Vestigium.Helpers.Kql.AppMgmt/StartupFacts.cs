@@ -8,4 +8,5 @@ public sealed class StartupFacts
     public string? Scope { get; init; }
     public bool? IsX64 { get; init; }
     public string? Package { get; init; }
+    public bool Enabled { get; init; } = true;
 }
