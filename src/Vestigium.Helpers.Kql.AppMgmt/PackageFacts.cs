@@ -17,4 +17,9 @@ public sealed class PackageFacts
     public bool NoRemove { get; init; }
     public bool NoRepair { get; init; }
     public bool HasIcon { get; init; }
+    public bool HasModify { get; init; }
+    public bool HasRepair { get; init; }
+    public bool IsOrphan { get; init; }
+    public string? BaselineStatus { get; init; }
+    public bool PendingReboot { get; init; }
 }
