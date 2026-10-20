@@ -21,7 +21,12 @@ public static class PackageAdapter
             .Set("app.NoModify", facts.NoModify)
             .Set("app.NoRemove", facts.NoRemove)
             .Set("app.NoRepair", facts.NoRepair)
-            .Set("app.HasIcon", facts.HasIcon);
+            .Set("app.HasIcon", facts.HasIcon)
+            .Set("app.HasModify", facts.HasModify)
+            .Set("app.HasRepair", facts.HasRepair)
+            .Set("app.IsOrphan", facts.IsOrphan)
+            .Set("app.BaselineStatus", facts.BaselineStatus)
+            .Set("app.PendingReboot", facts.PendingReboot);
 
         if (KqlDates.TryParse(facts.InstallDate, out var installed))
             row.Set("app.InstallDate", installed);
