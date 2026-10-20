@@ -11,13 +11,16 @@ public sealed class AppMgmtKqlTests
         using var packages = AppMgmtKql.Packages();
         using var features = AppMgmtKql.Features();
         using var startup = AppMgmtKql.Startup();
+        using var footprints = AppMgmtKql.Footprints();
 
         Assert.Empty(packages.Packs);
         Assert.Empty(features.Packs);
         Assert.Empty(startup.Packs);
+        Assert.Empty(footprints.Packs);
         Assert.Equal(18, packages.Fields.Count);
         Assert.Equal(5, features.Fields.Count);
         Assert.Equal(8, startup.Fields.Count);
+        Assert.Equal(6, footprints.Fields.Count);
     }
 
     [Theory]
@@ -79,6 +82,21 @@ public sealed class AppMgmtKqlTests
     }
 
     [Theory]
+    [InlineData("footprint.kind == 'AppPath'")]
+    [InlineData("footprint.name LIKE '%chrome%'")]
+    [InlineData("footprint.path LIKE '%Program Files%'")]
+    [InlineData("footprint.scope == 'HKLM'")]
+    [InlineData("footprint.refcount GT 1")]
+    [InlineData("footprint.package LIKE '%Office%'")]
+    [InlineData("kind == 'SharedDll'")]
+    public void Footprints_Accepts_Compile(string text)
+    {
+        using var session = AppMgmtKql.Footprints();
+        var compiled = KqlHelper.Compile(text, session);
+        Assert.True(compiled.Ok, compiled.Error?.Message);
+    }
+
+    [Theory]
     [InlineData("app.size GT 100")]
     [InlineData("feature.state == Enabled")]
     [InlineData("app.IsX86 == app.IsX64")]
@@ -103,6 +121,15 @@ public sealed class AppMgmtKqlTests
     public void Startup_Rejects(string text)
     {
         using var session = AppMgmtKql.Startup();
+        Assert.False(KqlHelper.Compile(text, session).Ok);
+    }
+
+    [Theory]
+    [InlineData("startup.name LIKE '%OneDrive%'")]
+    [InlineData("footprint.missing == true")]
+    public void Footprints_Rejects(string text)
+    {
+        using var session = AppMgmtKql.Footprints();
         Assert.False(KqlHelper.Compile(text, session).Ok);
     }
 
@@ -181,6 +208,14 @@ public sealed class AppMgmtKqlTests
         using var session = AppMgmtKql.Startup();
         var row = StartupAdapter.ToRow(session, new StartupFacts());
         Assert.Equal(true, row.Get("startup.enabled").Raw);
+    }
+
+    [Fact]
+    public void Footprints_Missing_RefCount_Is_Unknown()
+    {
+        using var session = AppMgmtKql.Footprints();
+        var row = FootprintsAdapter.ToRow(session, new FootprintsFacts { Kind = "AppPath" });
+        Assert.True(row.Get("footprint.refcount").IsUnknown);
     }
 
     [Fact]
