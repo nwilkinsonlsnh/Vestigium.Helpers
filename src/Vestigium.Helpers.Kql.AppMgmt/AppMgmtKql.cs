@@ -11,4 +11,6 @@ public static class AppMgmtKql
     public static KqlSession Bloatware() => KqlHelper.Create(BloatwareCatalog.Fields);
 
     public static KqlSession Startup() => KqlHelper.Create(StartupCatalog.Fields);
+
+    public static KqlSession Footprints() => KqlHelper.Create(FootprintsCatalog.Fields);
 }
