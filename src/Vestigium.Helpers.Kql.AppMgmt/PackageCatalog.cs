@@ -21,7 +21,12 @@ public static class PackageCatalog
         F("app.NoModify", KqlType.Boolean, "NoModify"),
         F("app.NoRemove", KqlType.Boolean, "NoRemove"),
         F("app.NoRepair", KqlType.Boolean, "NoRepair"),
-        F("app.HasIcon", KqlType.Boolean, "HasIcon")
+        F("app.HasIcon", KqlType.Boolean, "HasIcon"),
+        F("app.HasModify", KqlType.Boolean, "HasModify"),
+        F("app.HasRepair", KqlType.Boolean, "HasRepair"),
+        F("app.IsOrphan", KqlType.Boolean, "IsOrphan"),
+        F("app.BaselineStatus", KqlType.String, "BaselineStatus"),
+        F("app.PendingReboot", KqlType.Boolean, "PendingReboot")
     ];
 
     private static KqlField F(string canonical, KqlType type, params string[] aliases)
