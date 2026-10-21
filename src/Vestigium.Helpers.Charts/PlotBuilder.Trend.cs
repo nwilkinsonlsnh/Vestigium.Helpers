@@ -18,7 +18,8 @@ internal static partial class PlotBuilder
         var tr = plot.Add.ScatterLine(
             new[] { x0, x1 },
             new[] { fit.Intercept + fit.Slope * x0, fit.Intercept + fit.Slope * x1 });
-        tr.Color = Color.FromHex(Palette.Trend);
+        tr.Color = Color.FromHex(string.IsNullOrWhiteSpace(options.AxisColor) ? "#E6E6E6" : options.AxisColor);
+        tr.LineWidth = 2;
         tr.LegendText = $"trend R\u00b2={fit.RSquared:F3}";
     }
 }
