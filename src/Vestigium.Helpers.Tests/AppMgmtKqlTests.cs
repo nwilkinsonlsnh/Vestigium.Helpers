@@ -17,7 +17,7 @@ public sealed class AppMgmtKqlTests
         Assert.Empty(features.Packs);
         Assert.Empty(startup.Packs);
         Assert.Empty(footprints.Packs);
-        Assert.Equal(18, packages.Fields.Count);
+        Assert.Equal(23, packages.Fields.Count);
         Assert.Equal(5, features.Fields.Count);
         Assert.Equal(8, startup.Fields.Count);
         Assert.Equal(6, footprints.Fields.Count);
