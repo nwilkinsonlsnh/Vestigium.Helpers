@@ -18,12 +18,12 @@ public static class PathTokens
     }
 
     public static bool IsKnown(string body)
-        => Known(body) is not null || IsCounter(body);
+        => Named(body) || IsCounter(body);
 
     private static string Value(string body, long number, long letter, DateTime when)
-        => Known(body) ?? Counter(body, number, letter) ?? "{" + body + "}";
+        => Named(body) ? Resolve(body.ToLowerInvariant(), when) : Counter(body, number, letter) ?? "{" + body + "}";
 
-    private static string? Known(string body)
+    private static bool Named(string body)
         => body.ToLowerInvariant() switch
         {
             "datetime" => "datetime",
@@ -43,17 +43,16 @@ public static class PathTokens
             "public" => "public",
             "username" => "username",
             "computername" => "computername",
-            _ => null
-        } is string name ? Resolve(name) : null;
+            _ => false
+        };
 
-    private static string Resolve(string name)
+    private static string Resolve(string name, DateTime when)
     {
-        var now = DateTime.Now;
         return name switch
         {
-            "datetime" => now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture),
-            "date" => now.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
-            "time" => now.ToString("HHmmss", CultureInfo.InvariantCulture),
+            "datetime" => when.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture),
+            "date" => when.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            "time" => when.ToString("HHmmss", CultureInfo.InvariantCulture),
             "desktop" => Folder(Environment.SpecialFolder.Desktop),
             "favorites" => Folder(Environment.SpecialFolder.Favorites),
             "userprofile" => Folder(Environment.SpecialFolder.UserProfile),
