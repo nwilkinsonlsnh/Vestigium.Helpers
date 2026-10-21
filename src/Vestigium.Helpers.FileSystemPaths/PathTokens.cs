@@ -24,27 +24,10 @@ public static class PathTokens
         => Named(body) ? Resolve(body.ToLowerInvariant(), when) : Counter(body, number, letter) ?? "{" + body + "}";
 
     private static bool Named(string body)
-        => body.ToLowerInvariant() switch
-        {
-            "datetime" => "datetime",
-            "date" => "date",
-            "time" => "time",
-            "desktop" => "desktop",
-            "favorites" => "favorites",
-            "userprofile" => "userprofile",
-            "appdata" => "appdata",
-            "localappdata" => "localappdata",
-            "temp" => "temp",
-            "programfiles" => "programfiles",
-            "programfilesx86" => "programfilesx86",
-            "programdata" => "programdata",
-            "windir" => "windir",
-            "systemdrive" => "systemdrive",
-            "public" => "public",
-            "username" => "username",
-            "computername" => "computername",
-            _ => false
-        };
+        => body.ToLowerInvariant() is "datetime" or "date" or "time"
+            or "desktop" or "favorites" or "userprofile" or "appdata" or "localappdata" or "temp"
+            or "programfiles" or "programfilesx86" or "programdata" or "windir" or "systemdrive" or "public"
+            or "username" or "computername";
 
     private static string Resolve(string name, DateTime when)
     {
