@@ -242,7 +242,8 @@ internal static class KqlBinder
     {
         if (like)
         {
-            if (field.Type != KqlType.String || rhs != KqlType.String)
+            var textField = field.Type is KqlType.String or KqlType.DateTime;
+            if (!textField || rhs != KqlType.String)
                 throw new KqlParseException(line, column, $"field={field.Canonical} type={field.Type} op={op} rhs={rhs}");
             return;
         }
