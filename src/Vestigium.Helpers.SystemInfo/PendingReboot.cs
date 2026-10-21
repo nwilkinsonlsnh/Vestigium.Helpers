@@ -19,8 +19,8 @@ public sealed record PendingRebootState(bool Pending, IReadOnlyList<string> Rena
             }
             else if (value is string text && text.Length > 0)
             {
-                pending = true;
-                renames.AddRange(text.Split(['\r', '\n', '\0'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                var separators = new[] { "\r\n", "\n", "\r", "\0" };
+                renames.AddRange(text.Split(separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
             }
         }
         catch (Exception)
