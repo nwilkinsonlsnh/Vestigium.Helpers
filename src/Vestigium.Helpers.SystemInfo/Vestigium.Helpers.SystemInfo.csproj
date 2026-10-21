@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.SystemInfo</RootNamespace>
     <AssemblyName>Vestigium.Helpers.SystemInfo</AssemblyName>
     <Description>Machine facts and inventory reads. Native readers and CIM doors live here.</Description>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>systeminfo;diagnostics;vestigium</PackageTags>
