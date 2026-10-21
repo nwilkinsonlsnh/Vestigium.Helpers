@@ -2,6 +2,8 @@ namespace Vestigium.Helpers.FileSystemPaths;
 
 public static class PathSanitize
 {
+    private const string Rejected = "<>:\"/\\|?*";
+
     public static string Name(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
@@ -27,5 +29,5 @@ public static class PathSanitize
     }
 
     private static bool IsRejected(char ch)
-        => ch < ' ' || ch is '<' or '>' or ':' or '"' or '/' or '\' or '|' or '?' or '*';
+        => ch < ' ' || Rejected.Contains(ch);
 }
