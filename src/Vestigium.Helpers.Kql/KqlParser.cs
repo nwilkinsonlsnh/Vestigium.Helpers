@@ -126,9 +126,24 @@ internal sealed class KqlParser
             return ParseMethod(field, owner, method);
         if (_current.Kind == KqlTokenKind.LParen)
             return ParseClosedCall(field);
+        if (IsWordOp(_current))
+        {
+            var wordOp = ReadCompareOp();
+            var wordValue = ReadLiteral();
+            return new KqlComparisonExpression
+            {
+                Field = field.Text,
+                Op = wordOp,
+                Value = wordValue,
+                Line = field.Line,
+                Column = field.Column
+            };
+        }
         if (IsLooseValue(_current))
             return ParseLoose(field);
-        if (_current.Kind is KqlTokenKind.Eof or KqlTokenKind.And or KqlTokenKind.Or or KqlTokenKind.RParen)
+        if (_current.Kind == KqlTokenKind.Eof)
+            throw Error(field, "expected operator");
+        if (_current.Kind is KqlTokenKind.And or KqlTokenKind.Or or KqlTokenKind.RParen)
             return BareTrue(field);
 
         switch (_current)
@@ -290,6 +305,11 @@ internal sealed class KqlParser
             or KqlTokenKind.And or KqlTokenKind.Or or KqlTokenKind.Not or KqlTokenKind.Like or KqlTokenKind.In
             or KqlTokenKind.Between or KqlTokenKind.Contains or KqlTokenKind.StartsWith or KqlTokenKind.EndsWith
             or KqlTokenKind.Gt or KqlTokenKind.Lt or KqlTokenKind.Ge or KqlTokenKind.Le or KqlTokenKind.Eq;
+
+    private static bool IsWordOp(KqlToken token)
+        => token.Kind == KqlTokenKind.Ident
+            && (token.Text.Equals("BEGINS", StringComparison.OrdinalIgnoreCase)
+                || token.Text.Equals("ENDS", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsLooseValue(KqlToken token)
         => token.Kind is KqlTokenKind.String or KqlTokenKind.StringValue or KqlTokenKind.Number
