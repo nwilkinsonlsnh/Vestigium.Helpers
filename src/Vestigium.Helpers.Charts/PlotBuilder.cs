@@ -75,6 +75,9 @@ internal static partial class PlotBuilder
     private static Color Primary(ChartOptions options)
         => Color.FromHex(string.IsNullOrWhiteSpace(options.Color) ? Palette.Primary : options.Color);
 
+    private static Color LineColor(ChartOptions options)
+        => Color.FromHex(string.IsNullOrWhiteSpace(options.AxisColor) ? "#E6E6E6" : options.AxisColor);
+
     private static void FillHistogram(Plot plot, ChartSpec spec, ChartOptions options)
     {
         var series = RequireSeries(spec);
@@ -256,7 +259,8 @@ internal static partial class PlotBuilder
             }
 
             var line = plot.Add.ScatterLine(xs, share);
-            line.Color = Color.FromHex(Palette.Trend);
+            line.Color = LineColor(options);
+            line.LineWidth = 2;
             line.LegendText = "cumulative";
             line.Axes.YAxis = plot.Axes.Right;
             plot.Axes.Right.Min = 0;
