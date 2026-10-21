@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.FileSystemPaths</RootNamespace>
     <AssemblyName>Vestigium.Helpers.FileSystemPaths</AssemblyName>
     <Description>Path meaning: resolve, sanitize, tokenize, and long-path handling.</Description>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>paths;filesystem;resolve;tokens;vestigium</PackageTags>
