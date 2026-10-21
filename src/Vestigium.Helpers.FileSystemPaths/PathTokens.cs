@@ -12,16 +12,48 @@ public static class PathTokens
         if (string.IsNullOrEmpty(template))
             return "";
         var clock = when ?? DateTime.Now;
-        return Token.Replace(template, match => Value(match.Groups[1].Value, number, letter, clock));
+        var escaped = template.Replace("{{", "\u0001").Replace("}}", "\u0002");
+        var expanded = Token.Replace(escaped, match => Value(match.Groups[1].Value, number, letter, clock));
+        return expanded.Replace("\u0001", "{").Replace("\u0002", "}");
     }
 
+    public static bool IsKnown(string body)
+        => Known(body) is not null || IsCounter(body);
+
     private static string Value(string body, long number, long letter, DateTime when)
-    {
-        var known = body.ToLowerInvariant() switch
+        => Known(body) ?? Counter(body, number, letter) ?? "{" + body + "}";
+
+    private static string? Known(string body)
+        => body.ToLowerInvariant() switch
         {
-            "datetime" => when.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture),
-            "date" => when.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
-            "time" => when.ToString("HHmmss", CultureInfo.InvariantCulture),
+            "datetime" => "datetime",
+            "date" => "date",
+            "time" => "time",
+            "desktop" => "desktop",
+            "favorites" => "favorites",
+            "userprofile" => "userprofile",
+            "appdata" => "appdata",
+            "localappdata" => "localappdata",
+            "temp" => "temp",
+            "programfiles" => "programfiles",
+            "programfilesx86" => "programfilesx86",
+            "programdata" => "programdata",
+            "windir" => "windir",
+            "systemdrive" => "systemdrive",
+            "public" => "public",
+            "username" => "username",
+            "computername" => "computername",
+            _ => null
+        } is string name ? Resolve(name) : null;
+
+    private static string Resolve(string name)
+    {
+        var now = DateTime.Now;
+        return name switch
+        {
+            "datetime" => now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture),
+            "date" => now.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            "time" => now.ToString("HHmmss", CultureInfo.InvariantCulture),
             "desktop" => Folder(Environment.SpecialFolder.Desktop),
             "favorites" => Folder(Environment.SpecialFolder.Favorites),
             "userprofile" => Folder(Environment.SpecialFolder.UserProfile),
@@ -33,21 +65,44 @@ public static class PathTokens
             "programdata" => Folder(Environment.SpecialFolder.CommonApplicationData),
             "windir" => Folder(Environment.SpecialFolder.Windows),
             "systemdrive" => Path.GetPathRoot(Folder(Environment.SpecialFolder.Windows))?.TrimEnd('\\') ?? "",
-            "public" => Folder(Environment.SpecialFolder.CommonDocuments) is var docs && docs.Length > 0
-                ? Path.GetFullPath(Path.Combine(docs, ".."))
-                : "",
+            "public" => PublicFolder(),
             "username" => Environment.UserName,
             "computername" => Environment.MachineName,
-            _ => null
+            _ => ""
         };
-        return known ?? Counter(body, number, letter) ?? "{" + body + "}";
     }
 
     private static string Folder(Environment.SpecialFolder folder)
         => Environment.GetFolderPath(folder);
 
+    private static string PublicFolder()
+    {
+        var docs = Folder(Environment.SpecialFolder.CommonDocuments);
+        return docs.Length == 0 ? "" : Path.GetFullPath(Path.Combine(docs, ".."));
+    }
+
+    private static bool IsCounter(string body)
+    {
+        var i = 0;
+        if (body.Length > 0 && body[0] is 'A' or 'a')
+        {
+            var mark = body[0];
+            while (i < body.Length && body[i] == mark)
+                i++;
+        }
+        var digits = 0;
+        while (i < body.Length && body[i] == '#')
+        {
+            digits++;
+            i++;
+        }
+        return i == body.Length && (i > 0);
+    }
+
     private static string? Counter(string body, long number, long letter)
     {
+        if (!IsCounter(body))
+            return null;
         var letters = 0;
         var upper = true;
         var i = 0;
@@ -66,9 +121,6 @@ public static class PathTokens
             digits++;
             i++;
         }
-        if (i != body.Length || (letters == 0 && digits == 0))
-            return null;
-
         var letterText = letters == 0 ? "" : Letters(letter, letters, upper);
         var numberText = digits == 0 ? "" : Digits(number, digits);
         return letterText + numberText;
