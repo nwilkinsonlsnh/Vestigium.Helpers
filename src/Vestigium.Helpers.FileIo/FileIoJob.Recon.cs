@@ -11,16 +11,25 @@ public sealed partial class FileIoJob
         {
             if (_sourceIsFile)
             {
-                OfferFile(Source, Path.GetFileName(Source));
+                OfferOne(Source, Path.GetFileName(Source));
                 return;
             }
 
             if (_options is { IncludeEmptyDirectories: true, AuditMode: false } && Verb != FileIoVerb.Delete)
                 Directory.CreateDirectory(Destination);
 
-            var dirs = new ConcurrentQueue<(string Path, int Depth)>();
-            dirs.Enqueue((Source, 0));
-            var walking = new[] { 1 };
+            using var dirs = new BlockingCollection<(string Path, int Depth)>();
+            var seed = new List<(string Path, int Depth)>();
+            var files = new List<WorkItem>();
+            WalkDirectory(Source, 0, seed, files);
+            Offer(files);
+            if (seed.Count == 0 || _cancelled || token.IsCancellationRequested)
+                return;
+
+            var walking = seed.Count;
+            foreach (var node in seed)
+                dirs.Add(node);
+
             var workers = Agents();
             var tasks = new Task[workers];
             for (var i = 0; i < workers; i++)
@@ -29,20 +38,24 @@ public sealed partial class FileIoJob
                 {
                     while (!_cancelled && !token.IsCancellationRequested)
                     {
-                        if (!dirs.TryDequeue(out var node))
-                        {
-                            if (Volatile.Read(ref walking[0]) == 0)
-                                return;
-                            Thread.Sleep(5);
-                            continue;
-                        }
+                        if (!dirs.TryTake(out var node, Timeout.Infinite))
+                            return;
+                        var found = new List<(string Path, int Depth)>();
+                        var batch = new List<WorkItem>();
                         try
                         {
-                            WalkDirectory(node.Path, node.Depth, dirs, walking);
+                            WalkDirectory(node.Path, node.Depth, found, batch);
+                            foreach (var child in found)
+                            {
+                                Interlocked.Increment(ref walking);
+                                dirs.Add(child);
+                            }
+                            Offer(batch);
                         }
                         finally
                         {
-                            Interlocked.Decrement(ref walking[0]);
+                            if (Interlocked.Decrement(ref walking) == 0)
+                                dirs.CompleteAdding();
                         }
                     }
                 }, CancellationToken.None);
@@ -52,6 +65,10 @@ public sealed partial class FileIoJob
         catch (OperationCanceledException)
         {
             /* cancel is a result, not a throw */
+        }
+        catch (InvalidOperationException)
+        {
+            /* queue completed while an agent was finishing */
         }
         finally
         {
@@ -71,12 +88,12 @@ public sealed partial class FileIoJob
         return Math.Clamp(n, 2, 32);
     }
 
-    private void WalkDirectory(string dir, int depth, ConcurrentQueue<(string Path, int Depth)> dirs, int[] walking)
+    private void WalkDirectory(string dir, int depth, List<(string Path, int Depth)> children, List<WorkItem> files)
     {
-        IEnumerable<string> entries;
+        IEnumerable<FileSystemInfo> entries;
         try
         {
-            entries = Directory.EnumerateFileSystemEntries(dir);
+            entries = Directory.EnumerateFileSystemInfos(dir);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -84,22 +101,12 @@ public sealed partial class FileIoJob
             return;
         }
 
-        foreach (var entry in entries)
+        foreach (var info in entries)
         {
             if (_cancelled)
                 return;
-            var name = Path.GetFileName(entry);
-            FileAttributes attr;
-            try
-            {
-                attr = File.GetAttributes(entry);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                continue;
-            }
-
-            if (attr.HasFlag(FileAttributes.Directory))
+            var name = info.Name;
+            if (info.Attributes.HasFlag(FileAttributes.Directory))
             {
                 if (Masked(name, _options.ExcludeDirectoryMasks))
                     continue;
@@ -107,24 +114,25 @@ public sealed partial class FileIoJob
                     continue;
                 if (_options is { IncludeEmptyDirectories: true, AuditMode: false } && Verb != FileIoVerb.Delete)
                 {
-                    var rel = Rel(Source, entry);
+                    var rel = Rel(Source, info.FullName);
                     if (!string.IsNullOrEmpty(rel))
                         Directory.CreateDirectory(Path.Combine(Destination, rel));
                 }
-                Interlocked.Increment(ref walking[0]);
-                dirs.Enqueue((entry, depth + 1));
+                children.Add((info.FullName, depth + 1));
+                continue;
             }
-            else
-            {
-                if (Masked(name, _options.ExcludeFileMasks))
-                    continue;
-                var rel = Rel(Source, entry);
-                OfferFile(entry, rel);
-            }
+
+            if (info is not FileInfo file)
+                continue;
+            if (Masked(name, _options.ExcludeFileMasks))
+                continue;
+            var item = Item(file, Rel(Source, file.FullName));
+            if (item is { } kept)
+                files.Add(kept);
         }
     }
 
-    private void OfferFile(string path, string rel)
+    private void OfferOne(string path, string rel)
     {
         FileInfo info;
         try
@@ -135,30 +143,57 @@ public sealed partial class FileIoJob
         {
             return;
         }
-        if (_options.MinSizeBytes is { } min && info.Length < min)
-            return;
-        if (_options.MaxSizeBytes is { } max && info.Length > max)
-            return;
-        var write = info.LastWriteTimeUtc;
+        var item = Item(info, rel);
+        if (item is { } kept)
+            Offer([kept]);
+    }
+
+    private WorkItem? Item(FileInfo file, string rel)
+    {
+        long size;
+        DateTime write;
+        FileAttributes attr;
+        try
+        {
+            size = file.Length;
+            write = file.LastWriteTimeUtc;
+            attr = file.Attributes;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        if (_options.MinSizeBytes is { } min && size < min)
+            return null;
+        if (_options.MaxSizeBytes is { } max && size > max)
+            return null;
         if (_options.MinAge is { } minAge && write > minAge.CutoffUtc())
-            return;
+            return null;
         if (_options.MaxAge is { } maxAge && write < maxAge.CutoffUtc())
+            return null;
+        return new WorkItem(file.FullName, rel, size, BucketFor(size), write, attr);
+    }
+
+    private void Offer(List<WorkItem> files)
+    {
+        if (files.Count == 0)
             return;
-        var bucket = BucketFor(info.Length);
-        _queues[(int)bucket].Enqueue(new WorkItem(path, rel, info.Length, bucket, write, info.Attributes));
         lock (_gate)
         {
-            var b = Progress.Buckets[(int)bucket];
-            b.Found++;
-            b.Queued++;
-            b.BytesFound += info.Length;
-            Progress.FilesFound++;
-            Progress.BytesFound += info.Length;
-            _walked++;
+            foreach (var item in files)
+            {
+                _queues[(int)item.Bucket].Enqueue(item);
+                var b = Progress.Buckets[(int)item.Bucket];
+                b.Found++;
+                b.Queued++;
+                b.BytesFound += item.Size;
+                Progress.FilesFound++;
+                Progress.BytesFound += item.Size;
+                _walked++;
+            }
             Progress.CertaintyPercent = Math.Min(99, Progress.FilesFound == 0 ? 0 : 50);
         }
-        if (_walked % 8 == 0)
-            Emit();
+        Emit();
     }
 
     private async Task ConsumeAsync(ConcurrentDictionary<string, string> destIndex, CancellationToken token)
