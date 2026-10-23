@@ -48,6 +48,9 @@ public static class FileIoHelper
     public static FileIoJob Delete(string path, FileIoJobOptions? options = null)
         => FileIoJob.Delete(path, options);
 
+    public static FileIoJob Delete(IReadOnlyList<string> paths, FileIoJobOptions? options = null)
+        => FileIoJob.Delete(paths, options);
+
     public static FileIoJob Mirror(string source, string destination, FileIoJobOptions? options = null)
         => FileIoJob.Mirror(source, destination, options);
 
