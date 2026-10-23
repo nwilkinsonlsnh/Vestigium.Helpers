@@ -90,10 +90,21 @@ public sealed partial class FileIoJob
 
     private void WalkDirectory(string dir, int depth, List<(string Path, int Depth)> children, List<WorkItem> files)
     {
+        DirectoryInfo folder;
+        try
+        {
+            folder = new DirectoryInfo(dir);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            FileIoLog.ItemUnauthorized(FileIoLog.Subcategories.Recon, JobId, FileIoLog.Props(("path", dir)));
+            return;
+        }
+
         IEnumerable<FileSystemInfo> entries;
         try
         {
-            entries = Directory.EnumerateFileSystemInfos(dir);
+            entries = folder.EnumerateFileSystemInfos();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
