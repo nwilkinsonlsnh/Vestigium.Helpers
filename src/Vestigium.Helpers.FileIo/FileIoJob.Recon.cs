@@ -296,24 +296,33 @@ public sealed partial class FileIoJob
     private Task DoDeleteAsync(WorkItem item)
     {
         const string sub = FileIoLog.Subcategories.Delete;
-        if (_options.AuditMode)
+        Enter(item);
+        try
         {
-            FileIoLog.Decision(sub, "WouldDelete", JobId, FileIoLog.Props(("path", item.SourcePath), ("size", item.Size.ToString())));
+            if (_options.AuditMode)
+            {
+                FileIoLog.Decision(sub, "WouldDelete", JobId, FileIoLog.Props(("path", item.SourcePath), ("size", item.Size.ToString())));
+                Done(item);
+                Observe(item, "Done");
+                return Task.CompletedTask;
+            }
+            var sw = Stopwatch.StartNew();
+            if (_options.Shred is { } recipe)
+            {
+                FileIoLog.Pending(FileIoLog.Subcategories.SecureDelete, $"Shred path={item.SourcePath} passes={recipe}", JobId);
+                FileIoHelper.SecureDelete(item.SourcePath, recipe);
+            }
+            else if (File.Exists(item.SourcePath))
+                File.Delete(item.SourcePath);
+            NoteBytes(item.RelativePath, item.Size);
+            sw.Stop();
             Done(item);
-            Observe(item, "Done");
+            Observe(item, "Done", sw.Elapsed);
             return Task.CompletedTask;
         }
-        var sw = Stopwatch.StartNew();
-        if (_options.Shred is { } recipe)
+        finally
         {
-            FileIoLog.Pending(FileIoLog.Subcategories.SecureDelete, $"Shred path={item.SourcePath} passes={recipe}", JobId);
-            FileIoHelper.SecureDelete(item.SourcePath, recipe);
+            Leave(item);
         }
-        else if (File.Exists(item.SourcePath))
-            File.Delete(item.SourcePath);
-        sw.Stop();
-        Done(item);
-        Observe(item, "Done", sw.Elapsed);
-        return Task.CompletedTask;
     }
 }
