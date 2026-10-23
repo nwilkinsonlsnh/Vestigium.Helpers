@@ -21,7 +21,15 @@ public sealed partial class FileIoJob
             using var dirs = new BlockingCollection<(string Path, int Depth)>();
             var seed = new List<(string Path, int Depth)>();
             var files = new List<WorkItem>();
-            WalkDirectory(Source, 0, seed, files);
+            foreach (var root in _roots)
+            {
+                if (File.Exists(root))
+                {
+                    OfferOne(root, _roots.Length > 1 ? root : Path.GetFileName(root));
+                    continue;
+                }
+                WalkDirectory(root, 0, seed, files);
+            }
             Offer(files);
             if (seed.Count == 0 || _cancelled || token.IsCancellationRequested)
                 return;
@@ -137,7 +145,7 @@ public sealed partial class FileIoJob
                 continue;
             if (Masked(name, _options.ExcludeFileMasks))
                 continue;
-            var item = Item(file, Rel(Source, file.FullName));
+            var item = Item(file, _roots.Length > 1 ? file.FullName : Rel(Source, file.FullName));
             if (item is { } kept)
                 files.Add(kept);
         }
