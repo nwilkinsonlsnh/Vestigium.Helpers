@@ -26,6 +26,7 @@ public sealed partial class FileIoJob
 
     private readonly FileIoJobOptions _options;
     private readonly bool _sourceIsFile;
+    private readonly string[] _roots;
     private readonly ConcurrentQueue<WorkItem>[] _queues;
     private readonly ConcurrentDictionary<string, byte> _created = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentBag<FileIoTransferObservation> _observations = [];
@@ -41,13 +42,14 @@ public sealed partial class FileIoJob
     private volatile bool _cancelled;
     private int _walked;
 
-    private FileIoJob(FileIoVerb verb, string source, string destination, FileIoJobOptions options, bool sourceIsFile)
+    private FileIoJob(FileIoVerb verb, string source, string destination, FileIoJobOptions options, bool sourceIsFile, string[]? roots = null)
     {
         Verb = verb;
         Source = source;
         Destination = destination;
         _options = options;
-        _sourceIsFile = sourceIsFile;
+        _roots = roots is { Length: > 0 } ? roots : [source];
+        _sourceIsFile = _roots.Length == 1 && sourceIsFile;
         JobId = "fio-" + FileIoLog.NewId();
         Options = options;
         Progress = new FileIoProgress { JobId = JobId };
@@ -72,6 +74,16 @@ public sealed partial class FileIoJob
     public static FileIoJob Delete(string path, FileIoJobOptions? options = null)
         => Create(FileIoVerb.Delete, path, path, options);
 
+    public static FileIoJob Delete(IReadOnlyList<string> paths, FileIoJobOptions? options = null)
+    {
+        var roots = paths.Where(path => !string.IsNullOrWhiteSpace(path)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (roots.Length == 0)
+            throw new ArgumentException("no paths to delete.", nameof(paths));
+        if (roots.Length == 1)
+            return Delete(roots[0], options);
+        return Create(FileIoVerb.Delete, roots[0], roots[0], options, roots);
+    }
+
     public static FileIoJob Mirror(string source, string destination, FileIoJobOptions? options = null)
     {
         var o = options ?? new FileIoJobOptions();
@@ -79,7 +91,7 @@ public sealed partial class FileIoJob
         return Create(FileIoVerb.Mirror, source, destination, o);
     }
 
-    internal static FileIoJob Create(FileIoVerb verb, string source, string destination, FileIoJobOptions? options)
+    internal static FileIoJob Create(FileIoVerb verb, string source, string destination, FileIoJobOptions? options, string[]? roots = null)
     {
         var src = FileIoLog.RequireNotBlank(source, nameof(source));
         var dest = verb == FileIoVerb.Delete ? src : FileIoLog.RequireNotBlank(destination, nameof(destination));
@@ -95,10 +107,13 @@ public sealed partial class FileIoJob
             throw new ArgumentException("requestedBy exceeds 50 characters.", nameof(options));
         if (o.Reason is { Length: > 80 })
             throw new ArgumentException("reason exceeds 80 characters.", nameof(options));
-        var srcIsFile = File.Exists(src);
-        if (!srcIsFile && !Directory.Exists(src))
-            throw new FileNotFoundException("source was not found.", src);
-        return new FileIoJob(verb, src, dest, o, srcIsFile);
+        var all = roots is { Length: > 0 } ? roots : [src];
+        foreach (var path in all)
+        {
+            if (!File.Exists(path) && !Directory.Exists(path))
+                throw new FileNotFoundException("source was not found.", path);
+        }
+        return new FileIoJob(verb, src, dest, o, File.Exists(src), all);
     }
 
     public void Pause()
