@@ -307,6 +307,7 @@ public sealed partial class FileIoJob
                 return Task.CompletedTask;
             }
             var sw = Stopwatch.StartNew();
+            MakeWritable(item.SourcePath);
             if (_options.Shred is { } recipe)
             {
                 FileIoLog.Pending(FileIoLog.Subcategories.SecureDelete, $"Shred path={item.SourcePath} passes={recipe}", JobId);
@@ -323,6 +324,20 @@ public sealed partial class FileIoJob
         finally
         {
             Leave(item);
+        }
+    }
+
+    private static void MakeWritable(string path)
+    {
+        try
+        {
+            var attr = File.GetAttributes(path);
+            if (attr.HasFlag(FileAttributes.ReadOnly))
+                File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            /* delete will report the failure */
         }
     }
 }
