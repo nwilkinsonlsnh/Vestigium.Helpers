@@ -208,7 +208,12 @@ internal static partial class PlotBuilder
         var added = plot.Add.Bars(bars);
         added.Horizontal = horizontal;
         if (labels.Length == ys.Length)
-            plot.Axes.Bottom.SetTicks(xs, labels);
+        {
+            if (horizontal)
+                plot.Axes.Left.SetTicks(xs, labels);
+            else
+                plot.Axes.Bottom.SetTicks(xs, labels);
+        }
         DrawLimitLines(plot, options, spec.Limits);
     }
 
