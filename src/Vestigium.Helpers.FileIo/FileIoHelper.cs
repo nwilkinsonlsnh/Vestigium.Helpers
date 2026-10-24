@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Vestigium.Helpers.Hashing;
 
 namespace Vestigium.Helpers.FileIo;
@@ -182,6 +183,6 @@ public static class FileIoHelper
         if (pass.Equals("Zero", StringComparison.OrdinalIgnoreCase))
             Array.Clear(buffer);
         else
-            Random.Shared.NextBytes(buffer);
+            RandomNumberGenerator.Fill(buffer);
     }
 }
