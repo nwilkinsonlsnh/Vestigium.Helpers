@@ -13,7 +13,8 @@ public readonly record struct FileIoTransferObservation(
     DateTimeOffset At,
     double? DurationMs,
     double? RateBytesPerSec,
-    string Outcome);
+    string Outcome,
+    string Extension);
 
 /// <summary>
 /// Flattened descriptors from a <see cref="NumericSeries"/>. Empty bins have Count = 0
@@ -96,12 +97,20 @@ public sealed class FileIoBucketAnalytics
 /// Analytics snapshot taken at job finalize. FileIo is the host: it accumulates
 /// observations, then constructs NumericSeries. Charting stays in Charts.
 /// </summary>
+public sealed class FileIoExtensionShare
+{
+    public required string Name { get; init; }
+    public int Count { get; init; }
+    public long Bytes { get; init; }
+}
+
 public sealed class FileIoJobStats
 {
     public required FileIoSeriesSnapshot FileSizes { get; init; }
     public required FileIoSeriesSnapshot TransferRates { get; init; }
     public required FileIoSeriesSnapshot Durations { get; init; }
     public required IReadOnlyList<FileIoBucketAnalytics> Buckets { get; init; }
+    public required IReadOnlyList<FileIoExtensionShare> Extensions { get; init; }
     public long JobElapsedMs { get; init; }
     public double JobRateBytesPerSec { get; init; }
     public int ObservationCount { get; init; }
@@ -138,6 +147,7 @@ public sealed class FileIoJobStats
             TransferRates = FileIoSeriesSnapshot.From(Rates(observations), "transfer-rate-Bps", "Bps"),
             Durations = FileIoSeriesSnapshot.From(Durations(observations), "duration-ms", "ms"),
             Buckets = buckets,
+            Extensions = TopExtensions(observations),
             JobElapsedMs = (long)Math.Round(ms),
             JobRateBytesPerSec = jobRate,
             ObservationCount = observations.Count,
@@ -152,6 +162,32 @@ public sealed class FileIoJobStats
 
         static IEnumerable<double> Sizes(IEnumerable<FileIoTransferObservation> rows)
             => rows.Where(r => r.Outcome != "Fail").Select(r => (double)r.SizeBytes);
+
+        static IReadOnlyList<FileIoExtensionShare> TopExtensions(IReadOnlyList<FileIoTransferObservation> rows)
+        {
+            var grouped = rows
+                .Where(r => r.Outcome != "Fail")
+                .GroupBy(r => string.IsNullOrWhiteSpace(r.Extension) ? "(none)" : r.Extension, StringComparer.OrdinalIgnoreCase)
+                .Select(g => new FileIoExtensionShare
+                {
+                    Name = g.Key,
+                    Count = g.Count(),
+                    Bytes = g.Sum(r => r.SizeBytes)
+                })
+                .OrderByDescending(g => g.Count)
+                .ToList();
+            if (grouped.Count <= 8)
+                return grouped;
+            var top = grouped.Take(7).ToList();
+            var rest = grouped.Skip(7).ToList();
+            top.Add(new FileIoExtensionShare
+            {
+                Name = "Other",
+                Count = rest.Sum(g => g.Count),
+                Bytes = rest.Sum(g => g.Bytes)
+            });
+            return top;
+        }
     }
 
     public string FormatLine(string jobId)
