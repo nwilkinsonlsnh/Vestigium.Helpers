@@ -218,7 +218,29 @@ internal static partial class PlotBuilder
         var values = slices.Select(s => s.Value).ToArray();
         var pie = plot.Add.Pie(values);
         for (var i = 0; i < pie.Slices.Count && i < slices.Count; i++)
-            pie.Slices[i].LegendText = $"{slices[i].Label} ({slices[i].Value:G4})";
+            pie.Slices[i].LegendText = Legend(slices[i]);
+        plot.Axes.Frameless();
+        plot.HideGrid();
+        plot.ShowLegend();
+    }
+
+    private static string Legend(ChartSlice slice)
+    {
+        if (slice.Label.Any(char.IsDigit))
+            return slice.Label;
+        return slice.Label + " (" + Nice(slice.Value) + ")";
+    }
+
+    private static string Nice(double value)
+    {
+        var abs = Math.Abs(value);
+        if (abs >= 1_000_000_000d)
+            return (value / 1_000_000_000d).ToString("0.##") + "B";
+        if (abs >= 1_000_000d)
+            return (value / 1_000_000d).ToString("0.##") + "M";
+        if (abs >= 1_000d)
+            return value.ToString("#,##0");
+        return value.ToString("0.##");
     }
 
     private static void FillPareto(Plot plot, ChartSpec spec, ChartOptions options)
