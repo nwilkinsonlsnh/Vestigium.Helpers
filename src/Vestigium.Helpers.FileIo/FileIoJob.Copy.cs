@@ -272,7 +272,16 @@ public sealed partial class FileIoJob
             DateTimeOffset.UtcNow,
             durationMs,
             rate,
-            outcome));
+            outcome,
+            ExtensionOf(item.RelativePath)));
+    }
+
+    private static string ExtensionOf(string path)
+    {
+        var ext = Path.GetExtension(path);
+        if (string.IsNullOrWhiteSpace(ext))
+            return "(none)";
+        return ext.ToLowerInvariant();
     }
 
     private void NoteRate(long bytes)
