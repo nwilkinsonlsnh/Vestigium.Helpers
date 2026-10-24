@@ -188,7 +188,7 @@ public sealed partial class FileIoJob
         }
 
         _reconDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var recon = ReconAsync(token);
+        var recon = Task.Run(() => ReconAsync(token)).Unwrap();
         Progress.Phase = _options.ReconLeadTime > TimeSpan.Zero ? "WaitingLead" : "Transfer";
         Emit();
         if (_options.ReconLeadTime > TimeSpan.Zero)
@@ -199,7 +199,7 @@ public sealed partial class FileIoJob
         FileIoLog.ConsumersReleased(JobId, FileIoLog.Props(("jobId", JobId), ("verb", verbName)));
         Emit();
 
-        var consume = ConsumeAsync(destIndex, token);
+        var consume = Task.Run(() => ConsumeAsync(destIndex, token)).Unwrap();
         await recon.ConfigureAwait(false);
         _reconComplete = true;
         Progress.ReconComplete = true;
