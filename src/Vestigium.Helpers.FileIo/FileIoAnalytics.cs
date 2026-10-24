@@ -176,10 +176,10 @@ public sealed class FileIoJobStats
                 })
                 .OrderByDescending(g => g.Count)
                 .ToList();
-            if (grouped.Count <= 8)
+            if (grouped.Count <= 15)
                 return grouped;
-            var top = grouped.Take(7).ToList();
-            var rest = grouped.Skip(7).ToList();
+            var top = grouped.Take(15).ToList();
+            var rest = grouped.Skip(15).ToList();
             top.Add(new FileIoExtensionShare
             {
                 Name = "Other",
