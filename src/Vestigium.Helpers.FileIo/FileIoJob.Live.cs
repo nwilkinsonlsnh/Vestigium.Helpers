@@ -5,6 +5,7 @@ namespace Vestigium.Helpers.FileIo;
 public sealed partial class FileIoJob
 {
     private readonly ConcurrentDictionary<string, FileIoFileProgress> _live = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentQueue<FileIoFileProgress> _recent = new();
     private DateTimeOffset _lastLive = DateTimeOffset.MinValue;
 
     private void Enter(WorkItem item)
@@ -16,13 +17,20 @@ public sealed partial class FileIoJob
             Size = item.Size,
             Status = "Active"
         };
-        Snapshot(true);
+        Publish();
     }
 
     private void Leave(WorkItem item)
     {
-        _live.TryRemove(item.RelativePath, out _);
-        Snapshot(false);
+        if (_live.TryRemove(item.RelativePath, out var row))
+        {
+            row.BytesDone = item.Size;
+            row.Status = "Done";
+            _recent.Enqueue(row);
+            while (_recent.Count > 20)
+                _recent.TryDequeue(out _);
+        }
+        Publish();
     }
 
     private void Stay(WorkItem item, string reason)
@@ -32,24 +40,26 @@ public sealed partial class FileIoJob
             row.Status = "Failed";
             row.Reason = reason;
         }
-        Snapshot(false);
+        Publish();
     }
 
     private void NoteBytes(string relative, long done)
     {
         if (_live.TryGetValue(relative, out var row))
             row.BytesDone = done;
-        Snapshot(false);
+        Publish();
     }
 
-    private void Snapshot(bool now)
+    private void Publish()
     {
         var stamp = DateTimeOffset.UtcNow;
-        if (!now && stamp - _lastLive < TimeSpan.FromMilliseconds(250))
+        var shown = new List<FileIoFileProgress>(_live.Count + _recent.Count);
+        shown.AddRange(_live.Values);
+        shown.AddRange(_recent);
+        Progress.Active = shown.ToArray();
+        if (stamp - _lastLive < TimeSpan.FromMilliseconds(100))
             return;
         _lastLive = stamp;
-        Progress.Active = _live.Values.ToArray();
-        if (!now)
-            Emit();
+        Emit();
     }
 }
