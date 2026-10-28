@@ -22,4 +22,5 @@ public sealed record TcpConnectResult(
     string? Address,
     TcpConnectStatus Status,
     long ElapsedMs,
-    string? Detail);
+    string? Detail,
+    int? Mss = null);
