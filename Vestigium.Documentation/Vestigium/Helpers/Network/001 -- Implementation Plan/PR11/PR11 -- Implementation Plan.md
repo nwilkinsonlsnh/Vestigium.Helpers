@@ -22,7 +22,7 @@ Build order is the Order column.
 | 2 | PR11-02 | TTL summary helper. Pure function over existing `IcmpEchoReply` list: min/max/mode TTL and **estimated** hop count. Does not call `IcmpTrace` / `Trace`. | Done |
 | 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Done |
 | 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Done |
-| 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Open |
+| 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Done |
 | 6 | PR11-06 | Surface local adapter MTU on `NetworkAdapter` if not already present. Document that remote frame size is existing `PathMtu`. | Open |
 | 7 | PR11-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 54–64 land. Decision 41 does not move. | Open |
 | 8 | PR11-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
@@ -57,6 +57,8 @@ Landed: `TcpConnectOptions.ReadBanner` (default false), `BannerMaxBytes` (defaul
 
 One UDP datagram. One OID. Community is required and is never logged. Result is the `sysDescr` string or a typed status (answered, timed out, error). No GetNext. No bulk. No other OIDs.
 
+Landed: `NetworkHelper.ProbeSnmpSysDescr`, `SnmpSysDescrOptions`, `SnmpSysDescrResult` (`Answered` / `TimedOut` / `Error`). SNMPv2c Get of `1.3.6.1.2.1.1.1.0` only. Community is never written to the log. Tests in `SnmpSysDescrTests`.
+
 ### PR11-06
 
 Check `NetworkAdapter`. If MTU is already there, document it and do nothing. If not, add the field from the existing inventory path. Remote sizing stays `PathMtu`.
@@ -83,4 +85,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-05. Optional one-shot SNMP Get of `sysDescr`.
+PR11-06. Surface local adapter MTU if missing.
