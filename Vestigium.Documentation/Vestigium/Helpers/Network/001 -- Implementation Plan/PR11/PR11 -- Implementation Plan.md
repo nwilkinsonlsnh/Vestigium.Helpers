@@ -21,7 +21,7 @@ Build order is the Order column.
 | 1 | PR11-01 | `InferredDeviceClass` and `InferredVendor` enums. Pure scorer that takes evidence and returns class, vendor, confidence, and the evidence list. No I/O. | Done |
 | 2 | PR11-02 | TTL summary helper. Pure function over existing `IcmpEchoReply` list: min/max/mode TTL and **estimated** hop count. Does not call `IcmpTrace` / `Trace`. | Done |
 | 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Done |
-| 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Open |
+| 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Done |
 | 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Open |
 | 6 | PR11-06 | Surface local adapter MTU on `NetworkAdapter` if not already present. Document that remote frame size is existing `PathMtu`. | Open |
 | 7 | PR11-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 54–64 land. Decision 41 does not move. | Open |
@@ -50,6 +50,8 @@ Landed: `TcpConnectResult.Mss` (`int?`, default null). `TcpMss.TryRead` after a 
 ### PR11-04
 
 New option on the TCP connect options (or a sibling flag). When set, after a successful connect, read up to a fixed byte cap for a fixed time, then return the bytes as text when they are printable. Default remains off. Do not send a protocol-specific request in this slice.
+
+Landed: `TcpConnectOptions.ReadBanner` (default false), `BannerMaxBytes` (default 256, cap 1024), `BannerTimeout` (default 500 ms). `TcpConnectResult.Banner`. `TcpBanner.TryReadAsync` receives only; printable ASCII or null. No protocol conversation. Tests in `TcpBannerTests`.
 
 ### PR11-05
 
@@ -81,4 +83,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-04. Optional banner read on TCP connect.
+PR11-05. Optional one-shot SNMP Get of `sysDescr`.
