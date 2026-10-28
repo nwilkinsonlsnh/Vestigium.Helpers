@@ -20,7 +20,7 @@ Build order is the Order column.
 | ---: | :--- | :--- | :--- |
 | 1 | PR11-01 | `InferredDeviceClass` and `InferredVendor` enums. Pure scorer that takes evidence and returns class, vendor, confidence, and the evidence list. No I/O. | Done |
 | 2 | PR11-02 | TTL summary helper. Pure function over existing `IcmpEchoReply` list: min/max/mode TTL and **estimated** hop count. Does not call `IcmpTrace` / `Trace`. | Done |
-| 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Open |
+| 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Done |
 | 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Open |
 | 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Open |
 | 6 | PR11-06 | Surface local adapter MTU on `NetworkAdapter` if not already present. Document that remote frame size is existing `PathMtu`. | Open |
@@ -44,6 +44,8 @@ Landed: `TtlSummaryResult`, `TtlSummary.FromReplies` / `FromResult`, `NetworkHel
 ### PR11-03
 
 Extend the successful `TcpConnect` path. If the platform socket or the SYN-ACK exposes MSS, store it on the result. If not, null. Do not fail the connect because MSS is missing.
+
+Landed: `TcpConnectResult.Mss` (`int?`, default null). `TcpMss.TryRead` after a successful connect (Windows `SIO_TCP_INFO`, Linux `TCP_INFO`). Miss stays null. Status is unchanged. Tests in `TcpMssTests`.
 
 ### PR11-04
 
@@ -79,4 +81,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-03. TCP MSS on successful `TcpConnect`.
+PR11-04. Optional banner read on TCP connect.
