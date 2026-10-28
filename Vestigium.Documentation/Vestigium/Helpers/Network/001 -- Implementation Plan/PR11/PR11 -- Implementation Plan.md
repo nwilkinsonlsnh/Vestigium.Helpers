@@ -23,7 +23,7 @@ Build order is the Order column.
 | 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Done |
 | 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Done |
 | 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Done |
-| 6 | PR11-06 | Surface local adapter MTU on `NetworkAdapter` if not already present. Document that remote frame size is existing `PathMtu`. | Open |
+| 6 | PR11-06 | Surface local adapter MTU on `NetworkAdapter` if not already present. Document that remote frame size is existing `PathMtu`. | Done |
 | 7 | PR11-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 54–64 land. Decision 41 does not move. | Open |
 | 8 | PR11-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
@@ -63,6 +63,8 @@ Landed: `NetworkHelper.ProbeSnmpSysDescr`, `SnmpSysDescrOptions`, `SnmpSysDescrR
 
 Check `NetworkAdapter`. If MTU is already there, document it and do nothing. If not, add the field from the existing inventory path. Remote sizing stays `PathMtu`.
 
+Landed: already present. `NetworkAdapter.Mtu` is filled from `GetIPv4Properties().Mtu` when the stack exposes it. Documented on the record: local interface MTU is this field; remote frame size is `PathMtuResult.LargestPayload`. Tests in `AdapterMtuTests`.
+
 ### PR11-07
 
 Amend `Requirements_v1.6.md`, `Design_v1.6.md`, `DevelopersGuide_v1.6.md`, and the package README in place. Add decisions 54–64. Leave Decision 41 locked. Do not open a second requirements file.
@@ -85,4 +87,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-06. Surface local adapter MTU if missing.
+PR11-07. Amend SRS, Design, Guide, and the package README.
