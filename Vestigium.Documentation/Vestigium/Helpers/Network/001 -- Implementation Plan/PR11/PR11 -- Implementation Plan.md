@@ -19,7 +19,7 @@ Build order is the Order column.
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | PR11-01 | `InferredDeviceClass` and `InferredVendor` enums. Pure scorer that takes evidence and returns class, vendor, confidence, and the evidence list. No I/O. | Done |
-| 2 | PR11-02 | TTL summary helper. Pure function over existing `IcmpEchoReply` list: min/max/mode TTL and **estimated** hop count. Does not call `IcmpTrace` / `Trace`. | Open |
+| 2 | PR11-02 | TTL summary helper. Pure function over existing `IcmpEchoReply` list: min/max/mode TTL and **estimated** hop count. Does not call `IcmpTrace` / `Trace`. | Done |
 | 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Open |
 | 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Open |
 | 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Open |
@@ -38,6 +38,8 @@ Landed: `InferredDeviceClass`, `InferredVendor`, `InferenceConfidence`, `Inferen
 ### PR11-02
 
 No new probe. Consumes replies the caller already has from `IcmpEcho`. Estimated hops use the conventional initial TTL (128 for many Windows, 64 for many Unix-like) only as a label, not as proof. Does not call `IcmpTrace` / `Trace`. Actual hops stay on the existing trace job.
+
+Landed: `TtlSummaryResult`, `TtlSummary.FromReplies` / `FromResult`, `NetworkHelper.SummarizeTtl`. Conventional initials are 64, 128, 255. Tests in `TtlSummaryTests`.
 
 ### PR11-03
 
@@ -77,4 +79,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-02. TTL summary over existing ICMP replies.
+PR11-03. TCP MSS on successful `TcpConnect`.
