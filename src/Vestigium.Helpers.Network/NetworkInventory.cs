@@ -33,6 +33,10 @@ public sealed record AdapterDriver(
     string? HardwareId,
     string? Service);
 
+/// <summary>
+/// Local inventory row. <see cref="Mtu"/> is the interface MTU from the stack when it exposes one.
+/// Remote frame size is <see cref="PathMtuResult.LargestPayload"/>, not this field.
+/// </summary>
 public sealed record NetworkAdapter(
     string Id,
     string Name,
