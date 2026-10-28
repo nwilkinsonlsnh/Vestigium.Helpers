@@ -1,0 +1,543 @@
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using Vestigium.Helpers;
+
+namespace Vestigium.Helpers.Network;
+
+internal static class IcmpTraceEngine
+{
+    public static NetworkJob<IcmpTraceResult> Create(string target, IcmpTraceOptions? options)
+    {
+        var host = HelperGuard.NotBlank(target, nameof(target)).Trim();
+        var o = options ?? new IcmpTraceOptions();
+        Guard(o);
+        TraceResolve.GuardLiteral(host, o.Family);
+        var jobId = "trace-" + HelperLog.NewId();
+        return new NetworkJob<IcmpTraceResult>(jobId, "icmpTrace", (token, progress) => RunAsync(jobId, host, o, token, progress));
+    }
+
+    private static void Guard(IcmpTraceOptions o)
+    {
+        if (o.MaxHops is < 1 or > 64)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"MaxHops={o.MaxHops}");
+            throw new ArgumentOutOfRangeException(nameof(o.MaxHops), "MaxHops must be between 1 and 64.");
+        }
+
+        if (o.ProbesPerHop is < 1 or > 30)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"ProbesPerHop={o.ProbesPerHop}");
+            throw new ArgumentOutOfRangeException(nameof(o.ProbesPerHop), "ProbesPerHop must be between 1 and 30.");
+        }
+
+        var timeoutMs = o.Timeout.TotalMilliseconds;
+        if (timeoutMs is < IcmpEchoOptions.MinTimeoutMs or > IcmpEchoOptions.MaxTimeoutMs)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"TimeoutMs={timeoutMs:0}");
+            throw new ArgumentOutOfRangeException(nameof(o.Timeout), "Timeout must be between 10 ms and 60 s.");
+        }
+
+        if (o.TcpPort is < 1 or > 65535)
+        {
+            HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Guard), $"TcpPort={o.TcpPort}");
+            throw new ArgumentOutOfRangeException(nameof(o.TcpPort), "TcpPort must be 1–65535.");
+        }
+
+        TraceResolve.Guard(o.Family);
+    }
+
+    private static async Task<ProbeProtocol> DecideAsync(
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        IcmpTraceOptions options,
+        CancellationToken token)
+    {
+        using var ping = new Ping();
+        var icmp = await IcmpProbeAsync(ping, target, buffer, timeoutMs, options.MaxHops, 1, token).ConfigureAwait(false);
+        if (icmp.Status != IcmpEchoStatus.ProtocolForbidden)
+            return ProbeProtocol.Icmp;
+
+        var udp = await UdpProbeAsync(target, timeoutMs, options.MaxHops, 1, token, options.Family, options.InterfaceIndex, options.SourceAddress)
+            .ConfigureAwait(false);
+        if (!IsSilent(udp))
+            return ProbeProtocol.Udp;
+
+        var tcp = await TcpProbeAsync(target, timeoutMs, options.MaxHops, 1, token, options.Family, 443, options.InterfaceIndex, options.SourceAddress)
+            .ConfigureAwait(false);
+        if (IsSilent(tcp))
+            tcp = await TcpProbeAsync(target, timeoutMs, options.MaxHops, 1, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress)
+                .ConfigureAwait(false);
+        return IsSilent(tcp) ? ProbeProtocol.Icmp : ProbeProtocol.Tcp;
+    }
+
+    private static async Task<IReadOnlyList<IcmpTraceHop>> FillSilentAsync(
+        IReadOnlyList<IcmpTraceHop> hops,
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        ProbeProtocol locked,
+        IcmpTraceOptions options,
+        CancellationToken token)
+    {
+        var next = locked == ProbeProtocol.Icmp ? ProbeProtocol.Udp : ProbeProtocol.Tcp;
+        var filled = new List<IcmpTraceHop>(hops.Count);
+        foreach (var hop in hops)
+        {
+            if (!string.IsNullOrWhiteSpace(hop.Address) || token.IsCancellationRequested)
+            {
+                filled.Add(hop);
+                continue;
+            }
+
+            var probe = next == ProbeProtocol.Udp
+                ? await UdpProbeAsync(target, timeoutMs, hop.Ttl, 1, token, options.Family, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false)
+                : await TcpProbeAsync(target, timeoutMs, hop.Ttl, 1, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress).ConfigureAwait(false);
+            if (IsSilent(probe) || string.IsNullOrWhiteSpace(probe.Address))
+            {
+                filled.Add(hop);
+                continue;
+            }
+
+            filled.Add(hop with { Address = probe.Address, Name = next.ToString().ToLowerInvariant(), Probes = [probe] });
+        }
+
+        return filled;
+    }
+
+    internal static bool IsSilent(IcmpTraceProbe row)
+        => row.Address is null && row.Status is IcmpEchoStatus.TimedOut or IcmpEchoStatus.Failed;
+
+    private static async Task<IcmpTraceResult> RunAsync(
+        string jobId,
+        string target,
+        IcmpTraceOptions options,
+        CancellationToken token,
+        IProgress<NetworkProgress>? progress)
+    {
+        NetworkLog.Pending(
+            HelperLog.Subcategories.Icmp,
+            $"trace job={jobId} target={target} maxHops={options.MaxHops} probes={options.ProbesPerHop}");
+
+        var hops = new List<IcmpTraceHop>();
+        var protocol = options.Protocol ?? ProbeProtocol.Icmp;
+        var reached = false;
+        var resolved = IPAddress.TryParse(target, out var parsed) ? parsed.ToString() : null;
+        var probeTarget = target;
+        if (options.Family is RouteFamily.Pv4 or RouteFamily.Pv6)
+        {
+            probeTarget = await TraceResolve.ResolveAsync(target, options.Family, token).ConfigureAwait(false);
+            resolved = IPAddress.TryParse(probeTarget, out _) ? probeTarget : resolved;
+        }
+        var timeoutMs = Math.Clamp((int)options.Timeout.TotalMilliseconds, IcmpEchoOptions.MinTimeoutMs, IcmpEchoOptions.MaxTimeoutMs);
+        var buffer = new byte[Math.Clamp(options.BufferSize, 0, IcmpEchoOptions.MaxBufferSize)];
+        var hybrid = options.Protocol is null && !options.PreferUdp;
+        if (hybrid)
+        {
+            protocol = await DecideAsync(probeTarget, buffer, timeoutMs, options, token).ConfigureAwait(false);
+            options.Protocol = protocol;
+        }
+
+        try
+        {
+            using var ping = new Ping();
+            var width = Math.Clamp(options.ParallelHops < 1 ? 1 : options.ParallelHops, 1, options.MaxHops);
+            var next = 1;
+            var inflight = new List<Task<IcmpTraceHop>>();
+            using var fan = CancellationTokenSource.CreateLinkedTokenSource(token);
+            while ((next <= options.MaxHops || inflight.Count > 0) && !fan.IsCancellationRequested)
+            {
+                while (!reached && inflight.Count < width && next <= options.MaxHops && !fan.IsCancellationRequested)
+                {
+                    var ttl = next++;
+                    inflight.Add(ProbeHopAsync(
+                        jobId, probeTarget, buffer, timeoutMs, ttl, options, () => protocol, p => protocol = p, fan.Token));
+                }
+
+                if (inflight.Count == 0 || fan.IsCancellationRequested)
+                    break;
+
+                var done = await Task.WhenAny(inflight).ConfigureAwait(false);
+                inflight.Remove(done);
+                IcmpTraceHop hop;
+                try
+                {
+                    hop = await done.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    continue;
+                }
+
+                if (hop.Probes.Any(p => p.Status == IcmpEchoStatus.Success))
+                {
+                    reached = true;
+                    if (hops.Any(h => h.Ttl < hop.Ttl && h.Probes.Any(p => p.Status == IcmpEchoStatus.Success)))
+                        continue;
+                    hops.RemoveAll(h => h.Ttl > hop.Ttl);
+                }
+
+                hops.Add(hop);
+
+                progress?.Report(new NetworkProgress
+                {
+                    JobId = jobId,
+                    Phase = "Trace",
+                    Sent = hops.Count,
+                    Received = hops.Count(h => h.Address is not null),
+                    Sequence = hop.Ttl,
+                    LastStatus = hop.Address is null
+                        ? "*"
+                        : hop.Address + "|" + string.Join(",", hop.Probes.Select(p => p.RoundtripTimeMs.ToString())),
+                    LastRoundtripMs = hop.Probes.FirstOrDefault(p => p.Address is not null)?.RoundtripTimeMs
+                });
+            }
+
+            hops.Sort((a, b) => a.Ttl.CompareTo(b.Ttl));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        IReadOnlyList<IcmpTraceHop> named = hops;
+        if (!token.IsCancellationRequested)
+            named = await HopPtr.FillTraceAsync(hops, token).ConfigureAwait(false);
+        if (hybrid && options.SecondPass && !token.IsCancellationRequested)
+            named = await FillSilentAsync(named, probeTarget, buffer, timeoutMs, protocol, options, token).ConfigureAwait(false);
+
+        var status = DecideStatus(token.IsCancellationRequested, reached, named);
+        var line = $"{status} trace job={jobId} target={target} hops={named.Count} reached={reached} protocol={protocol}";
+        var forbidden = named.SelectMany(h => h.Probes).Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden)
+            && named.All(h => h.Address is null);
+        if (forbidden)
+            NetworkLog.IcmpForbidden(line);
+        else
+            IcmpEchoEngine.LogFinished(status, line);
+
+        return new IcmpTraceResult(jobId, target, resolved, status, reached, protocol, named.Count, named);
+    }
+
+    internal static NetworkJobStatus DecideStatus(bool cancelled, bool reached, IReadOnlyList<IcmpTraceHop> hops)
+    {
+        if (cancelled)
+            return NetworkJobStatus.Cancelled;
+        if (reached)
+            return NetworkJobStatus.Success;
+        var probes = hops.SelectMany(h => h.Probes);
+        if (probes.Any(p => p.Status == IcmpEchoStatus.ProtocolForbidden) && hops.All(h => h.Address is null))
+            return NetworkJobStatus.Failed;
+        return NetworkJobStatus.TimedOut;
+    }
+
+    private static async Task<IcmpTraceHop> ProbeHopAsync(
+        string jobId,
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        int ttl,
+        IcmpTraceOptions options,
+        Func<ProbeProtocol> protocol,
+        Action<ProbeProtocol> setProtocol,
+        CancellationToken token)
+    {
+        var probes = new List<IcmpTraceProbe>(Math.Max(1, options.ProbesPerHop));
+        string? hopAddress = null;
+        using var ping = new Ping();
+        for (var probe = 1; probe <= Math.Max(1, options.ProbesPerHop) && !token.IsCancellationRequested; probe++)
+        {
+            var row = await ProbeOnceAsync(ping, jobId, target, buffer, timeoutMs, ttl, probe, options, protocol, setProtocol, token)
+                .ConfigureAwait(false);
+            probes.Add(row);
+            hopAddress ??= row.Address;
+            if (row.Address is null && row.Status is IcmpEchoStatus.TimedOut or IcmpEchoStatus.Failed)
+                break;
+        }
+
+        return new IcmpTraceHop(ttl, hopAddress, probes);
+    }
+
+    private static async Task<IcmpTraceProbe> ProbeOnceAsync(
+        Ping ping,
+        string jobId,
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        int ttl,
+        int probe,
+        IcmpTraceOptions options,
+        Func<ProbeProtocol> protocol,
+        Action<ProbeProtocol> setProtocol,
+        CancellationToken token)
+    {
+        IcmpTraceProbe row;
+        var current = protocol();
+        if (current == ProbeProtocol.Icmp && !options.PreferUdp)
+        {
+            row = await IcmpProbeAsync(ping, target, buffer, timeoutMs, ttl, probe, token).ConfigureAwait(false);
+            if (options.Protocol is null && row.Status == IcmpEchoStatus.ProtocolForbidden)
+            {
+                setProtocol(ProbeProtocol.Udp);
+                NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} ICMP forbidden; UDP fallback");
+                row = await UdpProbeAsync(target, timeoutMs, ttl, probe, token, options.Family, options.InterfaceIndex, options.SourceAddress)
+                    .ConfigureAwait(false);
+            }
+        }
+        else if (current != ProbeProtocol.Tcp)
+        {
+            row = await UdpProbeAsync(target, timeoutMs, ttl, probe, token, options.Family, options.InterfaceIndex, options.SourceAddress)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            row = await TcpProbeAsync(
+                target, timeoutMs, ttl, probe, token, options.Family, options.TcpPort, options.InterfaceIndex, options.SourceAddress)
+                .ConfigureAwait(false);
+        }
+
+        if (options.Protocol is null && protocol() != ProbeProtocol.Tcp && IsSilent(row))
+        {
+            setProtocol(ProbeProtocol.Tcp);
+            NetworkLog.Warning(HelperLog.Subcategories.Icmp, $"trace job={jobId} silent; later hops use TCP port={options.TcpPort}");
+        }
+
+        return row;
+    }
+
+    internal static async Task<IcmpTraceProbe> IcmpProbeAsync(
+        Ping ping,
+        string target,
+        byte[] buffer,
+        int timeoutMs,
+        int ttl,
+        int probe,
+        CancellationToken token)
+    {
+        try
+        {
+            PingReply reply;
+            var options = new PingOptions(ttl, true);
+            var started = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), buffer, options, token)
+                    .ConfigureAwait(false);
+            }
+            catch (PlatformNotSupportedException) when (buffer.Length > 0)
+            {
+                reply = await ping.SendPingAsync(target, TimeSpan.FromMilliseconds(timeoutMs), [], options, token)
+                    .ConfigureAwait(false);
+            }
+
+            var status = MapStatus(reply.Status);
+            var address = MapAddress(reply.Address);
+            var measured = started.Elapsed.TotalMilliseconds;
+            var rtt = reply.RoundtripTime > 0 ? reply.RoundtripTime : (long)Math.Max(1, measured);
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, status, address, rtt, reply.Status.ToString())
+            {
+                RoundtripMs = measured
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Icmp, IcmpEchoStatus.ProtocolForbidden, null, 0, "ICMP not permitted");
+        }
+        catch (PingException ex)
+        {
+            var forbidden = ex.Message.Contains("not permitted", StringComparison.OrdinalIgnoreCase)
+                || ex.InnerException is PlatformNotSupportedException;
+            return new IcmpTraceProbe(
+                ttl,
+                probe,
+                ProbeProtocol.Icmp,
+                forbidden ? IcmpEchoStatus.ProtocolForbidden : IcmpEchoStatus.Failed,
+                null,
+                0,
+                ex.InnerException?.Message ?? ex.Message);
+        }
+    }
+
+    internal static async Task<IcmpTraceProbe> UdpProbeAsync(
+        string target,
+        int timeoutMs,
+        int ttl,
+        int probe,
+        CancellationToken token,
+        RouteFamily family = RouteFamily.All,
+        int interfaceIndex = 0,
+        string? sourceAddress = null)
+    {
+        if (!IPAddress.TryParse(target, out var dest))
+        {
+            try
+            {
+                var pin = TraceResolve.Pin(family);
+                var addrs = pin is { } required
+                    ? await Dns.GetHostAddressesAsync(target, required, token).ConfigureAwait(false)
+                    : await Dns.GetHostAddressesAsync(target, token).ConfigureAwait(false);
+                dest = TraceResolve.Pick(addrs, family);
+            }
+            catch (SocketException)
+            {
+                dest = null;
+            }
+            catch (ArgumentException)
+            {
+                dest = null;
+            }
+        }
+        else if (TraceResolve.Pin(family) is { } required && dest.AddressFamily != required)
+        {
+            dest = null;
+        }
+
+        if (dest is null)
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Udp, IcmpEchoStatus.Failed, null, 0, "unresolved");
+
+        try
+        {
+            using var socket = new Socket(dest.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            EgressBind.Apply(socket, interfaceIndex, sourceAddress);
+            socket.Ttl = (short)ttl;
+            socket.ReceiveTimeout = timeoutMs;
+            var remote = new IPEndPoint(dest, 33434 + ttl);
+            var started = System.Diagnostics.Stopwatch.StartNew();
+            await socket.SendToAsync(new byte[32], SocketFlags.None, remote, token).ConfigureAwait(false);
+            var buffer = new byte[512];
+            try
+            {
+                var received = await socket.ReceiveFromAsync(buffer, new IPEndPoint(
+                    dest.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any, 0))
+                    .WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), token)
+                    .ConfigureAwait(false);
+                var from = received.RemoteEndPoint as IPEndPoint;
+                var address = from?.Address.ToString();
+                var reached = from is not null && from.Address.Equals(dest);
+                return new IcmpTraceProbe(
+                    ttl,
+                    probe,
+                    ProbeProtocol.Udp,
+                    reached ? IcmpEchoStatus.Success : IcmpEchoStatus.TtlExpired,
+                    address,
+                    (long)Math.Max(1, started.Elapsed.TotalMilliseconds),
+                    reached ? "udp-reached" : "udp-hop")
+                {
+                    RoundtripMs = started.Elapsed.TotalMilliseconds
+                };
+            }
+            catch (TimeoutException)
+            {
+                return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Udp, IcmpEchoStatus.TimedOut, null, timeoutMs, "timeout");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (SocketException ex)
+        {
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Udp, IcmpEchoStatus.TimedOut, null, 0, ex.SocketErrorCode.ToString());
+        }
+    }
+
+    internal static async Task<IcmpTraceProbe> TcpProbeAsync(
+        string target,
+        int timeoutMs,
+        int ttl,
+        int probe,
+        CancellationToken token,
+        RouteFamily family,
+        int port,
+        int interfaceIndex,
+        string? sourceAddress)
+    {
+        if (!IPAddress.TryParse(target, out var dest))
+        {
+            try
+            {
+                var pin = TraceResolve.Pin(family);
+                var addrs = pin is { } required
+                    ? await Dns.GetHostAddressesAsync(target, required, token).ConfigureAwait(false)
+                    : await Dns.GetHostAddressesAsync(target, token).ConfigureAwait(false);
+                dest = TraceResolve.Pick(addrs, family);
+            }
+            catch (SocketException)
+            {
+                dest = null;
+            }
+            catch (ArgumentException)
+            {
+                dest = null;
+            }
+        }
+        else if (TraceResolve.Pin(family) is { } required && dest.AddressFamily != required)
+        {
+            dest = null;
+        }
+
+        if (dest is null)
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Failed, null, 0, "unresolved");
+
+        try
+        {
+            using var socket = new Socket(dest.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            EgressBind.Apply(socket, interfaceIndex, sourceAddress);
+            socket.Ttl = (short)Math.Clamp(ttl, 1, 255);
+            socket.NoDelay = true;
+            var started = System.Diagnostics.Stopwatch.StartNew();
+            using var timed = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timed.CancelAfter(timeoutMs);
+            try
+            {
+                await socket.ConnectAsync(dest, port, timed.Token).ConfigureAwait(false);
+                return new IcmpTraceProbe(
+                    ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), (long)Math.Max(1, started.Elapsed.TotalMilliseconds), "tcp-open")
+                {
+                    RoundtripMs = started.Elapsed.TotalMilliseconds
+                };
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.TimedOut, null, timeoutMs, "timeout");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (SocketException ex)
+        {
+            var refused = ex.SocketErrorCode is SocketError.ConnectionRefused or SocketError.ConnectionReset;
+            if (refused)
+            {
+                return new IcmpTraceProbe(
+                    ttl, probe, ProbeProtocol.Tcp, IcmpEchoStatus.Success, dest.ToString(), 0, ex.SocketErrorCode.ToString());
+            }
+
+            var status = ex.SocketErrorCode is SocketError.HostUnreachable or SocketError.NetworkUnreachable
+                ? IcmpEchoStatus.DestinationUnreachable
+                : IcmpEchoStatus.TimedOut;
+            return new IcmpTraceProbe(ttl, probe, ProbeProtocol.Tcp, status, null, 0, ex.SocketErrorCode.ToString());
+        }
+    }
+
+    internal static IcmpEchoStatus MapStatus(IPStatus status) => status switch
+    {
+        IPStatus.Success => IcmpEchoStatus.Success,
+        IPStatus.TimedOut => IcmpEchoStatus.TimedOut,
+        IPStatus.TimeExceeded or IPStatus.TtlExpired or IPStatus.TtlReassemblyTimeExceeded => IcmpEchoStatus.TtlExpired,
+        IPStatus.DestinationNetworkUnreachable
+            or IPStatus.DestinationHostUnreachable
+            or IPStatus.DestinationUnreachable => IcmpEchoStatus.DestinationUnreachable,
+        _ => IcmpEchoStatus.Failed
+    };
+
+    internal static string? MapAddress(IPAddress? address)
+        => address is null || Equals(address, IPAddress.Any) || Equals(address, IPAddress.IPv6Any)
+            ? null
+            : address.ToString();
+}

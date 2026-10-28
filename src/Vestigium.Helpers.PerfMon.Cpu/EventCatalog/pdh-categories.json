@@ -1,0 +1,80 @@
+{
+  "source": "pdh-all.json",
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "allowList": [
+    "Processor",
+    "Processor Information",
+    "Processor Performance"
+  ],
+  "categoryCount": 1,
+  "categories": [
+    {
+      "category": "Processor",
+      "identifier": "Processor",
+      "type": "MultiInstance",
+      "counters": [
+        {
+          "name": "% C1 Time",
+          "identifier": "PercentC1Time"
+        },
+        {
+          "name": "% C2 Time",
+          "identifier": "PercentC2Time"
+        },
+        {
+          "name": "% C3 Time",
+          "identifier": "PercentC3Time"
+        },
+        {
+          "name": "% DPC Time",
+          "identifier": "PercentDPCTime"
+        },
+        {
+          "name": "% Idle Time",
+          "identifier": "PercentIdleTime"
+        },
+        {
+          "name": "% Interrupt Time",
+          "identifier": "PercentInterruptTime"
+        },
+        {
+          "name": "% Privileged Time",
+          "identifier": "PercentPrivilegedTime"
+        },
+        {
+          "name": "% Processor Time",
+          "identifier": "PercentProcessorTime"
+        },
+        {
+          "name": "% User Time",
+          "identifier": "PercentUserTime"
+        },
+        {
+          "name": "C1 Transitions/sec",
+          "identifier": "C1TransitionsPerSec"
+        },
+        {
+          "name": "C2 Transitions/sec",
+          "identifier": "C2TransitionsPerSec"
+        },
+        {
+          "name": "C3 Transitions/sec",
+          "identifier": "C3TransitionsPerSec"
+        },
+        {
+          "name": "DPC Rate",
+          "identifier": "DPCRate"
+        },
+        {
+          "name": "DPCs Queued/sec",
+          "identifier": "DPCsQueuedPerSec"
+        },
+        {
+          "name": "Interrupts/sec",
+          "identifier": "InterruptsPerSec"
+        }
+      ]
+    }
+  ]
+}

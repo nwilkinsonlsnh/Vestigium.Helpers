@@ -1,0 +1,13 @@
+{
+  "app": "WinReg",
+  "category": "Helpers",
+  "block": { "start": 16000, "end": 16499 },
+  "events": [
+    { "eventId": 16000, "name": "ProbeEnter", "severity": "Information", "subcategory": "WinReg", "message": "enter Probe" },
+    { "eventId": 16005, "name": "ProbeComplete", "severity": "Information", "subcategory": "WinReg", "message": "probe complete" },
+    { "eventId": 16010, "name": "OperationEnter", "severity": "Debug", "subcategory": "WinReg", "message": "enter operation" },
+    { "eventId": 16015, "name": "OperationComplete", "severity": "Information", "subcategory": "WinReg", "message": "operation complete" },
+    { "eventId": 16020, "name": "OperationFailed", "severity": "Error", "subcategory": "WinReg", "message": "operation failed" },
+    { "eventId": 16025, "name": "OperationWarning", "severity": "Warning", "subcategory": "WinReg", "message": "operation warning" }
+  ]
+}

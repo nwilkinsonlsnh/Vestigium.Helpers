@@ -1,0 +1,15 @@
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+TestResults/
+*.nupkg
+*.snupkg
+_deps/
+/_Documentation
+
+# Machine PDH dumps (instances, SKU-specific)
+tools/PerfMon/dumps/

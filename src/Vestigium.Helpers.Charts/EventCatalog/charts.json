@@ -1,0 +1,17 @@
+{
+  "app": "Charts",
+  "category": "Helpers",
+  "block": { "start": 16500, "end": 16999 },
+  "events": [
+    { "eventId": 16500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 16505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 16510, "name": "ChartEnter", "severity": "Debug", "subcategory": "Chart", "message": "enter chart" },
+    { "eventId": 16515, "name": "ChartBuilt", "severity": "Information", "subcategory": "Chart", "message": "chart built" },
+    { "eventId": 16520, "name": "ChartSaved", "severity": "Information", "subcategory": "Chart", "message": "chart saved" },
+    { "eventId": 16525, "name": "ChartRejectedEmpty", "severity": "Error", "subcategory": "Chart", "message": "rejected empty chart input" },
+    { "eventId": 16530, "name": "ChartRejectedXy", "severity": "Error", "subcategory": "Chart", "message": "rejected x/y length mismatch" },
+    { "eventId": 16535, "name": "ChartRejectedLimits", "severity": "Error", "subcategory": "Chart", "message": "rejected malformed limits" },
+    { "eventId": 16540, "name": "ChartRejectedBlankPath", "severity": "Error", "subcategory": "Chart", "message": "rejected blank path" },
+    { "eventId": 16545, "name": "ChartThrown", "severity": "Error", "subcategory": "Chart", "message": "unexpected failure" }
+  ]
+}

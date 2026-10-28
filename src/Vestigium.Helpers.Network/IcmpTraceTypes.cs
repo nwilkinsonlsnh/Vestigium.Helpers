@@ -1,0 +1,56 @@
+namespace Vestigium.Helpers.Network;
+
+public enum ProbeProtocol
+{
+    Icmp,
+    Udp,
+    Tcp
+}
+
+public sealed class IcmpTraceOptions
+{
+    public const int DefaultMaxHops = 30;
+    public const int DefaultProbesPerHop = 3;
+    public const int DefaultTcpPort = 80;
+
+    public int MaxHops { get; set; } = DefaultMaxHops;
+    public int ProbesPerHop { get; set; } = DefaultProbesPerHop;
+    public int ParallelHops { get; set; } = 1;
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(4);
+    public int BufferSize { get; set; } = IcmpEchoOptions.DefaultBufferSize;
+    public bool PreferUdp { get; set; }
+    public ProbeProtocol? Protocol { get; set; }
+    public bool SecondPass { get; set; }
+    public int TcpPort { get; set; } = DefaultTcpPort;
+    public int InterfaceIndex { get; set; }
+    public string? SourceAddress { get; set; }
+    public RouteFamily Family { get; set; } = RouteFamily.All;
+}
+
+public sealed record IcmpTraceProbe(
+    int Ttl,
+    int Probe,
+    ProbeProtocol Protocol,
+    IcmpEchoStatus Status,
+    string? Address,
+    long RoundtripTimeMs,
+    string? Detail)
+{
+    public double RoundtripMs { get; init; }
+}
+
+public sealed record IcmpTraceHop(
+    int Ttl,
+    string? Address,
+    IReadOnlyList<IcmpTraceProbe> Probes,
+    string? Name = null);
+
+public sealed record IcmpTraceResult(
+    string JobId,
+    string Target,
+    string? ResolvedAddress,
+    NetworkJobStatus Status,
+    bool Reached,
+    ProbeProtocol ProbeProtocol,
+    int HopCount,
+    IReadOnlyList<IcmpTraceHop> Hops);

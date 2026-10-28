@@ -1,0 +1,30 @@
+{
+  "app": "FileIo",
+  "category": "Helpers",
+  "block": { "start": 12500, "end": 12999 },
+  "events": [
+    { "eventId": 12500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 12505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 12510, "name": "OperationEnter", "severity": "Debug", "subcategory": "Job", "message": "enter operation" },
+    { "eventId": 12515, "name": "OperationComplete", "severity": "Information", "subcategory": "Job", "message": "operation complete" },
+    { "eventId": 12520, "name": "OperationFailed", "severity": "Error", "subcategory": "Job", "message": "operation failed" },
+    { "eventId": 12525, "name": "OperationWarning", "severity": "Warning", "subcategory": "Job", "message": "operation warning" },
+    { "eventId": 12530, "name": "PathRejected", "severity": "Error", "subcategory": "Job", "message": "rejected path" },
+    { "eventId": 12535, "name": "JobStart", "severity": "Information", "subcategory": "Job", "message": "job start" },
+    { "eventId": 12540, "name": "JobComplete", "severity": "Information", "subcategory": "Job", "message": "job complete" },
+    { "eventId": 12545, "name": "JobCancelled", "severity": "Warning", "subcategory": "Job", "message": "job cancelled" },
+    { "eventId": 12550, "name": "ReconStart", "severity": "Debug", "subcategory": "Recon", "message": "recon start" },
+    { "eventId": 12555, "name": "ReconComplete", "severity": "Information", "subcategory": "Recon", "message": "recon complete" },
+    { "eventId": 12560, "name": "ConsumersReleased", "severity": "Information", "subcategory": "Job", "message": "consumers released" },
+    { "eventId": 12565, "name": "Decision", "severity": "Information", "subcategory": "Job", "message": "decision" },
+    { "eventId": 12570, "name": "NameCap", "severity": "Error", "subcategory": "Job", "message": "name cap" },
+    { "eventId": 12575, "name": "ItemInUse", "severity": "Error", "subcategory": "Job", "message": "in use" },
+    { "eventId": 12580, "name": "ItemUnauthorized", "severity": "Error", "subcategory": "Job", "message": "unauthorized" },
+    { "eventId": 12585, "name": "IndexBuilt", "severity": "Information", "subcategory": "Index", "message": "index built" },
+    { "eventId": 12590, "name": "IndexHit", "severity": "Information", "subcategory": "Index", "message": "skip duplicate" },
+    { "eventId": 12595, "name": "ProgressSnapshot", "severity": "Information", "subcategory": "Progress", "message": "progress snapshot" },
+    { "eventId": 12600, "name": "StatsFinalize", "severity": "Information", "subcategory": "Stats", "message": "stats" },
+    { "eventId": 12605, "name": "JobPaused", "severity": "Warning", "subcategory": "Job", "message": "pause" },
+    { "eventId": 12610, "name": "JobResumed", "severity": "Information", "subcategory": "Job", "message": "resume" }
+  ]
+}

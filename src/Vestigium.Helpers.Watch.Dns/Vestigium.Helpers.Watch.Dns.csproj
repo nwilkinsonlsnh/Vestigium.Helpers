@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<RootNamespace>Vestigium.Helpers.Watch.Dns</RootNamespace>
+		<AssemblyName>Vestigium.Helpers.Watch.Dns</AssemblyName>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>1.0.15</Version>
+		<IsPackable>true</IsPackable>
+		<PackageId>Vestigium.Helpers.Watch.Dns</PackageId>
+		<IncludeBuildOutput>true</IncludeBuildOutput>
+		<BuildOutputTargetFolder>tools</BuildOutputTargetFolder>
+		<Authors>Vestigium</Authors>
+		<Company>Wilkinson Business</Company>
+		<Description>Elevated DNS watch. Windowless. Clock 5 to 180 seconds. No console.</Description>
+		<PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
+	    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.15" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="build\Vestigium.Helpers.Watch.Dns.targets" />
+		<None Include="build\Vestigium.Helpers.Watch.Dns.targets" Pack="true" PackagePath="buildTransitive\Vestigium.Helpers.Watch.Dns.targets" />
+	</ItemGroup>
+	<Target Name="PackWatchExe" AfterTargets="_GetPackageFiles">
+		<PropertyGroup>
+			<_WatchToolFolder>tools/$(TargetFramework)$(TargetPlatformVersion)</_WatchToolFolder>
+		</PropertyGroup>
+		<Error Text="Watch exe was not built at $(TargetDir)$(AssemblyName).exe" Condition="!Exists('$(TargetDir)$(AssemblyName).exe')" />
+		<ItemGroup>
+			<_WatchPacked Include="$(TargetDir)$(AssemblyName).exe" />
+			<_WatchPacked Include="$(TargetDir)*.dll" />
+			<_WatchPacked Include="$(TargetDir)$(AssemblyName).runtimeconfig.json" />
+			<_WatchPacked Include="$(TargetDir)$(AssemblyName).deps.json" />
+			<_WatchPacked>
+				<PackagePath>$(_WatchToolFolder)/%(Filename)%(Extension)</PackagePath>
+			</_WatchPacked>
+			<_PackageFiles Include="@(_WatchPacked)" />
+		</ItemGroup>
+		<Message Importance="high" Text="Packing $(AssemblyName).exe and @(_WatchPacked->Count()) files into $(_WatchToolFolder)" />
+	</Target>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+</Project>

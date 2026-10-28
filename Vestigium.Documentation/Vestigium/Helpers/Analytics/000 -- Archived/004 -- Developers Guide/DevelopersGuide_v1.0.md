@@ -1,0 +1,140 @@
+# Vestigium.Helpers.Analytics — Developers Guide
+
+**Document ID:** VEST-HLP-ANALYTICS-DEV-000  
+**Version:** 1.8  
+**Status:** Design companion to SRS v1.6 + Logging catalog 10500+  
+**Date:** 19 September 2026
+
+Open `Vestigium.Helpers.slnx` → `src/Vestigium.Helpers.Analytics/`.
+
+The binding contract is `_Documentation/Requirements_v1.0.md` (document version **1.6**). This page is why it looks like this, and how to call it.
+
+Shipped surface is SRS v1.6. The stabilize plan is **closed**. Next *library* work is `_Documentation/HygieneAndFeaturesPlan_v1.0.md` (S5 = `ControlLimits.Against` and `PercentileRank`). That work stays on `NumericSeries` / `SeriesSlice` / `ControlLimits`. Do not add a host adapter or orchestration type in this project.
+
+## Logging
+
+This library talks to **Vestigium.Logging** directly. It does not use `HelperLog`.
+
+```csharp
+VestigiumLogger.Initialize(cfg =>
+{
+    cfg.AppId = "Analytics"; // or the host APPID
+    AnalyticsCatalog.Register(cfg);
+});
+```
+
+EventIds **10500–10615** (block reserved through 10999). Constants live on `AnalyticsEvents`. The JSON shard is `EventCatalog/analytics.json`. The library never calls `Initialize` and never picks a log folder. Writes no-op when the host has not started Logging; math still runs. Stable MESSAGE; varying values go in PROPERTIES. Inner percentile / histogram loops stay silent.
+
+## Design
+
+**Intent.** One in-process snapshot type for a finite batch of numbers. Hosts accumulate observations, then construct a `NumericSeries`. The library answers “what does this batch look like?”, “where is the slow tail?”, and “how uncertain is the mean?”. It does not draw and it does not persist.
+
+**Locked decisions.**
+
+| Decision | Why |
+|---|---|
+| Instance `NumericSeries`, not a static math bag | A series is a snapshot with identity (`SeriesId`) for the log. |
+| Values stored as `decimal` | Rank statistics and Excel PERCENTILE.INC cross-check without binary float noise. |
+| Snapshot lists are frozen | `Values` / `Sorted` / `Times` are copies. A host cannot mutate them behind the snapshot. |
+| Six slices from full-series fences | Q4 is “the slow group” without a second type. |
+| P95 is a rank cut, γ is an input | Those words are not interchangeable. SRS §3 is binding language. |
+| ControlLimits live here | Charts must not invent UCL/LCL. Mean ± kσ swallows a lone spike on small n; MovingRange exists because of that. |
+| Moving range is Full only | MR needs encounter neighbors. Q1–Q4 / IQR are value filters, not a process. |
+| `TryControlLimits` for band loops | Empty Q4 must not throw. The throwing API stays for “I know this is a process.” |
+| Time is optional metadata | Histogram, P95, and confidence sit on the value axis. `TimeSeriesPoints()` follows the clock. |
+| MathNet behind `QuantileFunctions` | The package stays. `Confidence.cs` does not name it. |
+| No charting NuGet | Sibling `Vestigium.Helpers.Charts` consumes the numbers. This project stays `net10.0`. |
+
+**Shape.**
+
+```
+host buffer  →  NumericSeries.From / FromObservations
+                     ├─ SeriesSlice × 6   (Full, Q1–Q4, IQR)
+                     ├─ FrequencyTable    (exact + FD histogram)
+                     ├─ Confidence(γ)
+                     ├─ ControlLimits / TryControlLimits
+                     └─ ChartPoint views  (ECDF, hist, Pareto, clock-ordered time)
+Callers bind those numbers. This DLL does not reference a host or a drawing library.
+```
+
+## Use (values only)
+
+```csharp
+using Vestigium.Helpers.Analytics;
+
+var series = NumericSeries.From(new[] { 12.4, 11.9, 13.1, 12.0, 18.7, 12.2 }, name: "rtt-ms");
+
+SeriesSlice full = series.Full;
+decimal min = full.Min!.Value;
+decimal p95 = full.Percentile(0.95);          // tail cut — not a confidence level
+var slow = series.Q4;                         // right tail as a group
+var high = full.HighOutliers;
+var highAt = full.HighOutlierIndexes;         // encounter indexes into Full.Values
+
+ConfidenceReport ci = series.Confidence(0.95);
+double? meanLo = ci.Mean.Lower;
+double? meanHi = ci.Mean.Upper;
+
+double? justContains = series.MeanConfidenceLevelContaining(12.0); // 1 − p, not “sample confidence”
+
+if (series.TryControlLimits(out var sigma))           // false when n < 2 or s = 0
+    _ = sigma;
+var thrown = series.ControlLimits();                  // mean ± 3s; throws if undefined
+var mr = series.ControlLimits(ControlLimitMethod.MovingRange); // Full only
+var sla = ControlLimits.FromCaller(center: 12, upper: 30, lower: 0);
+
+foreach (var band in series.Bands)
+{
+    if (band.TryControlLimits(out var bandLimits))
+        _ = bandLimits;                               // empty Q4 returns false
+}
+```
+
+Pass `sigma`, `mr`, or `sla` to `Vestigium.Helpers.Charts`. This library does not draw. Do not call `Q4.ControlLimits(MovingRange)` — that is not a Shewhart individuals chart.
+
+## Use (optional timestamps)
+
+```csharp
+var observations = new[]
+{
+    new Observation(12.4m, at: DateTimeOffset.UtcNow.AddSeconds(-4)),
+    new Observation(11.9m, at: DateTimeOffset.UtcNow.AddSeconds(-3)),
+    new Observation(18.7m, at: DateTimeOffset.UtcNow.AddSeconds(-1)),
+};
+
+var timed = NumericSeries.FromObservations(observations, name: "rtt-ms");
+var lastTwoSeconds = timed.Slice(DateTimeOffset.UtcNow.AddSeconds(-2), DateTimeOffset.UtcNow);
+var line = timed.TimeSeriesPoints(); // sorted by At.UtcTicks, then encounter index
+
+foreach (var point in timed.EcdfPoints())
+{
+    // point.X = value, point.Y = fraction finished — bind in a drawing surface
+    _ = point;
+}
+```
+
+`From(double[])` stays legal. Time is never required. Encounter order remains `SampleOrderPoints()` plus `Times`.
+
+## Demo
+
+`dotnet run --project src/Vestigium.Helpers.Analytics.Demo` opens the WPF gallery. The gallery is a host: it must `VestigiumLogger.Initialize` and `AnalyticsCatalog.Register`. This library still has no ScottPlot reference.
+
+## Roadmap
+
+Shipped surface is SRS v1.6. Stabilize is closed. Next library slice is S5 in `HygieneAndFeaturesPlan_v1.0.md`. Larger items (run rules, percentile interval, `PdfPoints`, two-series) stay parked until S5 is done and we look again.
+
+Never: a host adapter in this project, charting, streaming sketches, time-bucket histograms, Bayesian, OTel.
+
+## Do not
+
+- Add OxyPlot / ScottPlot / LiveCharts to this project.
+- Treat P95 as 95 % confidence.
+- Call `Initialize` on `Vestigium.Logging` from this library.
+- Bin the value histogram by clock time.
+- Recompute UCL/LCL in a host “to make the spike show”. Pass `MovingRange` or `FromCaller` instead.
+- Run moving-range or future run-rules on Q1–Q4 / IQR.
+- Cast `Values` to `List<decimal>` and mutate it. The snapshot is frozen.
+
+## Files
+
+See SRS §15. Tests: `src/Vestigium.Helpers.Tests/NumericSeriesTests.cs`, `ControlLimitsTests.cs`, `AnalyticsLoggingTests.cs`.

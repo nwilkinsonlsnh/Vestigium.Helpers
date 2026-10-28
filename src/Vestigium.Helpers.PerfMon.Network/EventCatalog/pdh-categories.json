@@ -1,0 +1,807 @@
+{
+  "source": "pdh-all.json",
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "allowList": [
+    "Per Processor Network Activity Cycles",
+    "Per Processor Network Interface Card Activity",
+    "TCPIP Performance Diagnostics (Per-CPU)",
+    "Bluetooth Device",
+    "Bluetooth Radio",
+    "DNS64 Global",
+    "Firewall Rules by Profile",
+    "Firewall Rules by Store",
+    "HTTP Service",
+    "HTTP Service Request Queues",
+    "HTTP Service Url Groups",
+    "Hyper-V Virtual Machine Bus Pipes",
+    "ICMP",
+    "ICMPv6",
+    "IPHTTPS Global",
+    "IPHTTPS Session",
+    "IPsec AuthIP IPv4",
+    "IPsec AuthIP IPv6",
+    "IPsec Connections",
+    "IPsec Driver",
+    "IPsec IKEv1 IPv4",
+    "IPsec IKEv1 IPv6",
+    "IPsec IKEv2 IPv4",
+    "IPsec IKEv2 IPv6",
+    "IPv4",
+    "IPv6",
+    "Network Adapter",
+    "Network Interface",
+    "Network QoS Policy",
+    "PacketDirect EC Utilization",
+    "PacketDirect Queue Depth",
+    "PacketDirect Receive Counters",
+    "PacketDirect Receive Filters",
+    "PacketDirect Transmit Counters",
+    "Physical Network Interface Card Activity",
+    "RemoteFX Network",
+    "SMB Client Shares",
+    "SMB Direct",
+    "SMB Server",
+    "SMB Server Sessions",
+    "SMB Server Shares",
+    "TCPIP Extended Performance Diagnostics",
+    "TCPIP Performance Diagnostics",
+    "TCPIP Transport Layer Packet Drop Counters",
+    "TCPv4",
+    "TCPv6",
+    "Teredo Client",
+    "Teredo Relay",
+    "Teredo Server",
+    "UDPv4",
+    "UDPv6",
+    "WFP",
+    "WFP Classify",
+    "WFP Filter Count",
+    "WFP Filter Size",
+    "WFP Reauthorization",
+    "WFPv4",
+    "WFPv6",
+    "WinNAT",
+    "WinNAT ICMP",
+    "WinNAT Instance",
+    "WinNAT TCP",
+    "WinNAT UDP"
+  ],
+  "categoryCount": 10,
+  "categories": [
+    {
+      "category": "Network Adapter",
+      "identifier": "NetworkAdapter",
+      "type": "MultiInstance",
+      "counters": [
+        {
+          "name": "Bytes Received/sec",
+          "identifier": "BytesReceivedPerSec"
+        },
+        {
+          "name": "Bytes Sent/sec",
+          "identifier": "BytesSentPerSec"
+        },
+        {
+          "name": "Bytes Total/sec",
+          "identifier": "BytesTotalPerSec"
+        },
+        {
+          "name": "Current Bandwidth",
+          "identifier": "CurrentBandwidth"
+        },
+        {
+          "name": "Offloaded Connections",
+          "identifier": "OffloadedConnections"
+        },
+        {
+          "name": "Output Queue Length",
+          "identifier": "OutputQueueLength"
+        },
+        {
+          "name": "Packets Outbound Discarded",
+          "identifier": "PacketsOutboundDiscarded"
+        },
+        {
+          "name": "Packets Outbound Errors",
+          "identifier": "PacketsOutboundErrors"
+        },
+        {
+          "name": "Packets Received Discarded",
+          "identifier": "PacketsReceivedDiscarded"
+        },
+        {
+          "name": "Packets Received Errors",
+          "identifier": "PacketsReceivedErrors"
+        },
+        {
+          "name": "Packets Received Non-Unicast/sec",
+          "identifier": "PacketsReceivedNonUnicastPerSec"
+        },
+        {
+          "name": "Packets Received Unicast/sec",
+          "identifier": "PacketsReceivedUnicastPerSec"
+        },
+        {
+          "name": "Packets Received Unknown",
+          "identifier": "PacketsReceivedUnknown"
+        },
+        {
+          "name": "Packets Received/sec",
+          "identifier": "PacketsReceivedPerSec"
+        },
+        {
+          "name": "Packets Sent Non-Unicast/sec",
+          "identifier": "PacketsSentNonUnicastPerSec"
+        },
+        {
+          "name": "Packets Sent Unicast/sec",
+          "identifier": "PacketsSentUnicastPerSec"
+        },
+        {
+          "name": "Packets Sent/sec",
+          "identifier": "PacketsSentPerSec"
+        },
+        {
+          "name": "Packets/sec",
+          "identifier": "PacketsPerSec"
+        },
+        {
+          "name": "TCP Active RSC Connections",
+          "identifier": "TCPActiveRSCConnections"
+        },
+        {
+          "name": "TCP RSC Average Packet Size",
+          "identifier": "TCPRSCAveragePacketSize"
+        },
+        {
+          "name": "TCP RSC Coalesced Packets/sec",
+          "identifier": "TCPRSCCoalescedPacketsPerSec"
+        },
+        {
+          "name": "TCP RSC Exceptions/sec",
+          "identifier": "TCPRSCExceptionsPerSec"
+        }
+      ]
+    },
+    {
+      "category": "Network Interface",
+      "identifier": "NetworkInterface",
+      "type": "MultiInstance",
+      "counters": [
+        {
+          "name": "Bytes Received/sec",
+          "identifier": "BytesReceivedPerSec"
+        },
+        {
+          "name": "Bytes Sent/sec",
+          "identifier": "BytesSentPerSec"
+        },
+        {
+          "name": "Bytes Total/sec",
+          "identifier": "BytesTotalPerSec"
+        },
+        {
+          "name": "Current Bandwidth",
+          "identifier": "CurrentBandwidth"
+        },
+        {
+          "name": "Offloaded Connections",
+          "identifier": "OffloadedConnections"
+        },
+        {
+          "name": "Output Queue Length",
+          "identifier": "OutputQueueLength"
+        },
+        {
+          "name": "Packets Outbound Discarded",
+          "identifier": "PacketsOutboundDiscarded"
+        },
+        {
+          "name": "Packets Outbound Errors",
+          "identifier": "PacketsOutboundErrors"
+        },
+        {
+          "name": "Packets Received Discarded",
+          "identifier": "PacketsReceivedDiscarded"
+        },
+        {
+          "name": "Packets Received Errors",
+          "identifier": "PacketsReceivedErrors"
+        },
+        {
+          "name": "Packets Received Non-Unicast/sec",
+          "identifier": "PacketsReceivedNonUnicastPerSec"
+        },
+        {
+          "name": "Packets Received Unicast/sec",
+          "identifier": "PacketsReceivedUnicastPerSec"
+        },
+        {
+          "name": "Packets Received Unknown",
+          "identifier": "PacketsReceivedUnknown"
+        },
+        {
+          "name": "Packets Received/sec",
+          "identifier": "PacketsReceivedPerSec"
+        },
+        {
+          "name": "Packets Sent Non-Unicast/sec",
+          "identifier": "PacketsSentNonUnicastPerSec"
+        },
+        {
+          "name": "Packets Sent Unicast/sec",
+          "identifier": "PacketsSentUnicastPerSec"
+        },
+        {
+          "name": "Packets Sent/sec",
+          "identifier": "PacketsSentPerSec"
+        },
+        {
+          "name": "Packets/sec",
+          "identifier": "PacketsPerSec"
+        },
+        {
+          "name": "TCP Active RSC Connections",
+          "identifier": "TCPActiveRSCConnections"
+        },
+        {
+          "name": "TCP RSC Average Packet Size",
+          "identifier": "TCPRSCAveragePacketSize"
+        },
+        {
+          "name": "TCP RSC Coalesced Packets/sec",
+          "identifier": "TCPRSCCoalescedPacketsPerSec"
+        },
+        {
+          "name": "TCP RSC Exceptions/sec",
+          "identifier": "TCPRSCExceptionsPerSec"
+        }
+      ]
+    },
+    {
+      "category": "IPv4",
+      "identifier": "IPv4",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Datagrams Forwarded/sec",
+          "identifier": "DatagramsForwardedPerSec"
+        },
+        {
+          "name": "Datagrams Outbound Discarded",
+          "identifier": "DatagramsOutboundDiscarded"
+        },
+        {
+          "name": "Datagrams Outbound No Route",
+          "identifier": "DatagramsOutboundNoRoute"
+        },
+        {
+          "name": "Datagrams Received Address Errors",
+          "identifier": "DatagramsReceivedAddressErrors"
+        },
+        {
+          "name": "Datagrams Received Delivered/sec",
+          "identifier": "DatagramsReceivedDeliveredPerSec"
+        },
+        {
+          "name": "Datagrams Received Discarded",
+          "identifier": "DatagramsReceivedDiscarded"
+        },
+        {
+          "name": "Datagrams Received Header Errors",
+          "identifier": "DatagramsReceivedHeaderErrors"
+        },
+        {
+          "name": "Datagrams Received Unknown Protocol",
+          "identifier": "DatagramsReceivedUnknownProtocol"
+        },
+        {
+          "name": "Datagrams Received/sec",
+          "identifier": "DatagramsReceivedPerSec"
+        },
+        {
+          "name": "Datagrams Sent/sec",
+          "identifier": "DatagramsSentPerSec"
+        },
+        {
+          "name": "Datagrams/sec",
+          "identifier": "DatagramsPerSec"
+        },
+        {
+          "name": "Fragment Re-assembly Failures",
+          "identifier": "FragmentReAssemblyFailures"
+        },
+        {
+          "name": "Fragmentation Failures",
+          "identifier": "FragmentationFailures"
+        },
+        {
+          "name": "Fragmented Datagrams/sec",
+          "identifier": "FragmentedDatagramsPerSec"
+        },
+        {
+          "name": "Fragments Created/sec",
+          "identifier": "FragmentsCreatedPerSec"
+        },
+        {
+          "name": "Fragments Re-assembled/sec",
+          "identifier": "FragmentsReAssembledPerSec"
+        },
+        {
+          "name": "Fragments Received/sec",
+          "identifier": "FragmentsReceivedPerSec"
+        }
+      ]
+    },
+    {
+      "category": "IPv6",
+      "identifier": "IPv6",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Datagrams Forwarded/sec",
+          "identifier": "DatagramsForwardedPerSec"
+        },
+        {
+          "name": "Datagrams Outbound Discarded",
+          "identifier": "DatagramsOutboundDiscarded"
+        },
+        {
+          "name": "Datagrams Outbound No Route",
+          "identifier": "DatagramsOutboundNoRoute"
+        },
+        {
+          "name": "Datagrams Received Address Errors",
+          "identifier": "DatagramsReceivedAddressErrors"
+        },
+        {
+          "name": "Datagrams Received Delivered/sec",
+          "identifier": "DatagramsReceivedDeliveredPerSec"
+        },
+        {
+          "name": "Datagrams Received Discarded",
+          "identifier": "DatagramsReceivedDiscarded"
+        },
+        {
+          "name": "Datagrams Received Header Errors",
+          "identifier": "DatagramsReceivedHeaderErrors"
+        },
+        {
+          "name": "Datagrams Received Unknown Protocol",
+          "identifier": "DatagramsReceivedUnknownProtocol"
+        },
+        {
+          "name": "Datagrams Received/sec",
+          "identifier": "DatagramsReceivedPerSec"
+        },
+        {
+          "name": "Datagrams Sent/sec",
+          "identifier": "DatagramsSentPerSec"
+        },
+        {
+          "name": "Datagrams/sec",
+          "identifier": "DatagramsPerSec"
+        },
+        {
+          "name": "Fragment Re-assembly Failures",
+          "identifier": "FragmentReAssemblyFailures"
+        },
+        {
+          "name": "Fragmentation Failures",
+          "identifier": "FragmentationFailures"
+        },
+        {
+          "name": "Fragmented Datagrams/sec",
+          "identifier": "FragmentedDatagramsPerSec"
+        },
+        {
+          "name": "Fragments Created/sec",
+          "identifier": "FragmentsCreatedPerSec"
+        },
+        {
+          "name": "Fragments Re-assembled/sec",
+          "identifier": "FragmentsReAssembledPerSec"
+        },
+        {
+          "name": "Fragments Received/sec",
+          "identifier": "FragmentsReceivedPerSec"
+        }
+      ]
+    },
+    {
+      "category": "ICMP",
+      "identifier": "ICMP",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Messages Outbound Errors",
+          "identifier": "MessagesOutboundErrors"
+        },
+        {
+          "name": "Messages Received Errors",
+          "identifier": "MessagesReceivedErrors"
+        },
+        {
+          "name": "Messages Received/sec",
+          "identifier": "MessagesReceivedPerSec"
+        },
+        {
+          "name": "Messages Sent/sec",
+          "identifier": "MessagesSentPerSec"
+        },
+        {
+          "name": "Messages/sec",
+          "identifier": "MessagesPerSec"
+        },
+        {
+          "name": "Received Address Mask",
+          "identifier": "ReceivedAddressMask"
+        },
+        {
+          "name": "Received Address Mask Reply",
+          "identifier": "ReceivedAddressMaskReply"
+        },
+        {
+          "name": "Received Dest. Unreachable",
+          "identifier": "ReceivedDestUnreachable"
+        },
+        {
+          "name": "Received Echo Reply/sec",
+          "identifier": "ReceivedEchoReplyPerSec"
+        },
+        {
+          "name": "Received Echo/sec",
+          "identifier": "ReceivedEchoPerSec"
+        },
+        {
+          "name": "Received Parameter Problem",
+          "identifier": "ReceivedParameterProblem"
+        },
+        {
+          "name": "Received Redirect/sec",
+          "identifier": "ReceivedRedirectPerSec"
+        },
+        {
+          "name": "Received Source Quench",
+          "identifier": "ReceivedSourceQuench"
+        },
+        {
+          "name": "Received Time Exceeded",
+          "identifier": "ReceivedTimeExceeded"
+        },
+        {
+          "name": "Received Timestamp Reply/sec",
+          "identifier": "ReceivedTimestampReplyPerSec"
+        },
+        {
+          "name": "Received Timestamp/sec",
+          "identifier": "ReceivedTimestampPerSec"
+        },
+        {
+          "name": "Sent Address Mask",
+          "identifier": "SentAddressMask"
+        },
+        {
+          "name": "Sent Address Mask Reply",
+          "identifier": "SentAddressMaskReply"
+        },
+        {
+          "name": "Sent Destination Unreachable",
+          "identifier": "SentDestinationUnreachable"
+        },
+        {
+          "name": "Sent Echo Reply/sec",
+          "identifier": "SentEchoReplyPerSec"
+        },
+        {
+          "name": "Sent Echo/sec",
+          "identifier": "SentEchoPerSec"
+        },
+        {
+          "name": "Sent Parameter Problem",
+          "identifier": "SentParameterProblem"
+        },
+        {
+          "name": "Sent Redirect/sec",
+          "identifier": "SentRedirectPerSec"
+        },
+        {
+          "name": "Sent Source Quench",
+          "identifier": "SentSourceQuench"
+        },
+        {
+          "name": "Sent Time Exceeded",
+          "identifier": "SentTimeExceeded"
+        },
+        {
+          "name": "Sent Timestamp Reply/sec",
+          "identifier": "SentTimestampReplyPerSec"
+        },
+        {
+          "name": "Sent Timestamp/sec",
+          "identifier": "SentTimestampPerSec"
+        }
+      ]
+    },
+    {
+      "category": "ICMPv6",
+      "identifier": "ICMPv6",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Messages Outbound Errors",
+          "identifier": "MessagesOutboundErrors"
+        },
+        {
+          "name": "Messages Received Errors",
+          "identifier": "MessagesReceivedErrors"
+        },
+        {
+          "name": "Messages Received/sec",
+          "identifier": "MessagesReceivedPerSec"
+        },
+        {
+          "name": "Messages Sent/sec",
+          "identifier": "MessagesSentPerSec"
+        },
+        {
+          "name": "Messages/sec",
+          "identifier": "MessagesPerSec"
+        },
+        {
+          "name": "Received Dest. Unreachable",
+          "identifier": "ReceivedDestUnreachable"
+        },
+        {
+          "name": "Received Echo Reply/sec",
+          "identifier": "ReceivedEchoReplyPerSec"
+        },
+        {
+          "name": "Received Echo/sec",
+          "identifier": "ReceivedEchoPerSec"
+        },
+        {
+          "name": "Received Membership Query",
+          "identifier": "ReceivedMembershipQuery"
+        },
+        {
+          "name": "Received Membership Reduction",
+          "identifier": "ReceivedMembershipReduction"
+        },
+        {
+          "name": "Received Membership Report",
+          "identifier": "ReceivedMembershipReport"
+        },
+        {
+          "name": "Received Neighbor Advert",
+          "identifier": "ReceivedNeighborAdvert"
+        },
+        {
+          "name": "Received Neighbor Solicit",
+          "identifier": "ReceivedNeighborSolicit"
+        },
+        {
+          "name": "Received Packet Too Big",
+          "identifier": "ReceivedPacketTooBig"
+        },
+        {
+          "name": "Received Parameter Problem",
+          "identifier": "ReceivedParameterProblem"
+        },
+        {
+          "name": "Received Redirect/sec",
+          "identifier": "ReceivedRedirectPerSec"
+        },
+        {
+          "name": "Received Router Advert",
+          "identifier": "ReceivedRouterAdvert"
+        },
+        {
+          "name": "Received Router Solicit",
+          "identifier": "ReceivedRouterSolicit"
+        },
+        {
+          "name": "Received Time Exceeded",
+          "identifier": "ReceivedTimeExceeded"
+        },
+        {
+          "name": "Sent Destination Unreachable",
+          "identifier": "SentDestinationUnreachable"
+        },
+        {
+          "name": "Sent Echo Reply/sec",
+          "identifier": "SentEchoReplyPerSec"
+        },
+        {
+          "name": "Sent Echo/sec",
+          "identifier": "SentEchoPerSec"
+        },
+        {
+          "name": "Sent Membership Query",
+          "identifier": "SentMembershipQuery"
+        },
+        {
+          "name": "Sent Membership Reduction",
+          "identifier": "SentMembershipReduction"
+        },
+        {
+          "name": "Sent Membership Report",
+          "identifier": "SentMembershipReport"
+        },
+        {
+          "name": "Sent Neighbor Advert",
+          "identifier": "SentNeighborAdvert"
+        },
+        {
+          "name": "Sent Neighbor Solicit",
+          "identifier": "SentNeighborSolicit"
+        },
+        {
+          "name": "Sent Packet Too Big",
+          "identifier": "SentPacketTooBig"
+        },
+        {
+          "name": "Sent Parameter Problem",
+          "identifier": "SentParameterProblem"
+        },
+        {
+          "name": "Sent Redirect/sec",
+          "identifier": "SentRedirectPerSec"
+        },
+        {
+          "name": "Sent Router Advert",
+          "identifier": "SentRouterAdvert"
+        },
+        {
+          "name": "Sent Router Solicit",
+          "identifier": "SentRouterSolicit"
+        },
+        {
+          "name": "Sent Time Exceeded",
+          "identifier": "SentTimeExceeded"
+        }
+      ]
+    },
+    {
+      "category": "TCPv4",
+      "identifier": "TCPv4",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Connection Failures",
+          "identifier": "ConnectionFailures"
+        },
+        {
+          "name": "Connections Active",
+          "identifier": "ConnectionsActive"
+        },
+        {
+          "name": "Connections Established",
+          "identifier": "ConnectionsEstablished"
+        },
+        {
+          "name": "Connections Passive",
+          "identifier": "ConnectionsPassive"
+        },
+        {
+          "name": "Connections Reset",
+          "identifier": "ConnectionsReset"
+        },
+        {
+          "name": "Segments Received/sec",
+          "identifier": "SegmentsReceivedPerSec"
+        },
+        {
+          "name": "Segments Retransmitted/sec",
+          "identifier": "SegmentsRetransmittedPerSec"
+        },
+        {
+          "name": "Segments Sent/sec",
+          "identifier": "SegmentsSentPerSec"
+        },
+        {
+          "name": "Segments/sec",
+          "identifier": "SegmentsPerSec"
+        }
+      ]
+    },
+    {
+      "category": "TCPv6",
+      "identifier": "TCPv6",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Connection Failures",
+          "identifier": "ConnectionFailures"
+        },
+        {
+          "name": "Connections Active",
+          "identifier": "ConnectionsActive"
+        },
+        {
+          "name": "Connections Established",
+          "identifier": "ConnectionsEstablished"
+        },
+        {
+          "name": "Connections Passive",
+          "identifier": "ConnectionsPassive"
+        },
+        {
+          "name": "Connections Reset",
+          "identifier": "ConnectionsReset"
+        },
+        {
+          "name": "Segments Received/sec",
+          "identifier": "SegmentsReceivedPerSec"
+        },
+        {
+          "name": "Segments Retransmitted/sec",
+          "identifier": "SegmentsRetransmittedPerSec"
+        },
+        {
+          "name": "Segments Sent/sec",
+          "identifier": "SegmentsSentPerSec"
+        },
+        {
+          "name": "Segments/sec",
+          "identifier": "SegmentsPerSec"
+        }
+      ]
+    },
+    {
+      "category": "UDPv4",
+      "identifier": "UDPv4",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Datagrams No Port/sec",
+          "identifier": "DatagramsNoPortPerSec"
+        },
+        {
+          "name": "Datagrams Received Errors",
+          "identifier": "DatagramsReceivedErrors"
+        },
+        {
+          "name": "Datagrams Received/sec",
+          "identifier": "DatagramsReceivedPerSec"
+        },
+        {
+          "name": "Datagrams Sent/sec",
+          "identifier": "DatagramsSentPerSec"
+        },
+        {
+          "name": "Datagrams/sec",
+          "identifier": "DatagramsPerSec"
+        }
+      ]
+    },
+    {
+      "category": "UDPv6",
+      "identifier": "UDPv6",
+      "type": "SingleInstance",
+      "counters": [
+        {
+          "name": "Datagrams No Port/sec",
+          "identifier": "DatagramsNoPortPerSec"
+        },
+        {
+          "name": "Datagrams Received Errors",
+          "identifier": "DatagramsReceivedErrors"
+        },
+        {
+          "name": "Datagrams Received/sec",
+          "identifier": "DatagramsReceivedPerSec"
+        },
+        {
+          "name": "Datagrams Sent/sec",
+          "identifier": "DatagramsSentPerSec"
+        },
+        {
+          "name": "Datagrams/sec",
+          "identifier": "DatagramsPerSec"
+        }
+      ]
+    }
+  ]
+}

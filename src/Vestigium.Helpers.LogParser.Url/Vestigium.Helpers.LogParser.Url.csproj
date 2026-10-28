@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+<Version>1.0.0</Version>
+	</PropertyGroup>
+
+<ItemGroup>
+  <PackageReference Include="Vestigium.Helpers.LogParser" Version="1.0.0" />
+</ItemGroup>
+
+<ItemGroup>
+  <InternalsVisibleTo Include="Vestigium.Helpers.LogParser.Url.Tests" />
+</ItemGroup>
+
+<ItemGroup>
+  <None Include="EventCatalog/url.json" Pack="true" PackagePath="contentFiles/any/any/EventCatalog/" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+
+</Project>

@@ -1,0 +1,332 @@
+namespace Vestigium.Helpers.Kql;
+
+internal static class KqlEvaluator
+{
+    public static KqlTriState Evaluate(KqlExpression expr, IKqlRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        return expr switch
+        {
+            KqlLogicalExpression logical => Combine(logical.Op, Evaluate(logical.Left, row), Evaluate(logical.Right, row)),
+            KqlNotExpression not => Not(Evaluate(not.Operand, row)),
+            KqlComparisonExpression cmp => Compare(cmp, row),
+            KqlInExpression inn => In(inn, row),
+            KqlBetweenExpression between => Between(between, row),
+            _ => KqlTriState.Unknown
+        };
+    }
+
+    private static KqlTriState Combine(KqlLogicalOp op, KqlTriState left, KqlTriState right)
+    {
+        if (op == KqlLogicalOp.And)
+        {
+            if (left == KqlTriState.False || right == KqlTriState.False)
+                return KqlTriState.False;
+            if (left == KqlTriState.Unknown || right == KqlTriState.Unknown)
+                return KqlTriState.Unknown;
+            return KqlTriState.True;
+        }
+
+        if (left == KqlTriState.True || right == KqlTriState.True)
+            return KqlTriState.True;
+        if (left == KqlTriState.Unknown || right == KqlTriState.Unknown)
+            return KqlTriState.Unknown;
+        return KqlTriState.False;
+    }
+
+    private static KqlTriState Not(KqlTriState value) => value switch
+    {
+        KqlTriState.True => KqlTriState.False,
+        KqlTriState.False => KqlTriState.True,
+        _ => KqlTriState.Unknown
+    };
+
+    private static KqlTriState Compare(KqlComparisonExpression cmp, IKqlRow row)
+    {
+        var field = cmp.BoundField ?? throw new InvalidOperationException("comparison is not bound");
+        var left = row.Get(field.Canonical);
+        if (cmp.Op is KqlCompareOp.IsNull or KqlCompareOp.IsNotNull)
+        {
+            var isNull = left.IsUnknown || left.Raw is null || left.Raw is string text && text.Length == 0;
+            var hit = cmp.Op == KqlCompareOp.IsNull ? isNull : !isNull;
+            return hit ? KqlTriState.True : KqlTriState.False;
+        }
+        if (left.IsUnknown)
+            return KqlTriState.Unknown;
+
+        var right = cmp.Value;
+        if (right.Form == KqlLiteralForm.IpAddress)
+            return MatchIp(cmp.Op, left, right.Value as string ?? string.Empty);
+        if (right.Form == KqlLiteralForm.MacAddress)
+            return MatchMac(cmp.Op, left, right.Value as string ?? string.Empty);
+
+        if (cmp.Op is KqlCompareOp.Like or KqlCompareOp.NotLike)
+        {
+            var text = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            var pattern = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            var like = KqlLike.IsMatch(text, pattern);
+            var hit = cmp.Op == KqlCompareOp.Like ? like : !like;
+            return hit ? KqlTriState.True : KqlTriState.False;
+        }
+
+        if (cmp.Op is KqlCompareOp.BeginsWith or KqlCompareOp.EndsWith or KqlCompareOp.Contains)
+            return TextSpan(cmp.Op, left, right);
+
+        var relation = CompareValues(left, right);
+        if (relation is null)
+            return KqlTriState.Unknown;
+
+        var ok = cmp.Op switch
+        {
+            KqlCompareOp.Eq => relation == 0,
+            KqlCompareOp.Ne => relation != 0,
+            KqlCompareOp.Lt => relation < 0,
+            KqlCompareOp.Gt => relation > 0,
+            KqlCompareOp.Le => relation <= 0,
+            KqlCompareOp.Ge => relation >= 0,
+            _ => false
+        };
+        return ok ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState MatchIp(KqlCompareOp op, KqlValue left, string rightText)
+    {
+        var row = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        if (!TryOctets(row, requireQuad: true, out var have) || !TryOctets(rightText, requireQuad: false, out var want))
+            return KqlTriState.Unknown;
+
+        var hit = op switch
+        {
+            KqlCompareOp.Eq or KqlCompareOp.Ne => have.SequenceEqual(want),
+            KqlCompareOp.BeginsWith => StartsWith(have, want),
+            KqlCompareOp.EndsWith => EndsWith(have, want),
+            KqlCompareOp.Contains => Contains(have, want),
+            _ => false
+        };
+        if (op == KqlCompareOp.Ne)
+            hit = !hit;
+        return hit ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState MatchMac(KqlCompareOp op, KqlValue left, string rightText)
+    {
+        var have = NormalizeMac(Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+        var want = NormalizeMac(rightText);
+        if (have.Length != 12 || want.Length == 0)
+            return KqlTriState.Unknown;
+
+        var hit = op switch
+        {
+            KqlCompareOp.Eq or KqlCompareOp.Ne => have.Equals(want, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.BeginsWith => have.StartsWith(want, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.EndsWith => have.EndsWith(want, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.Contains => have.Contains(want, StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+        if (op == KqlCompareOp.Ne)
+            hit = !hit;
+        return hit ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static bool TryOctets(string text, bool requireQuad, out int[] octets)
+    {
+        var parts = text.Split('.');
+        if (parts.Length == 0 || parts.Length > 4 || (requireQuad && parts.Length != 4) || parts.Any(part => part.Length == 0))
+        {
+            octets = [];
+            return false;
+        }
+
+        var parsed = new int[parts.Length];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var octet) || octet is < 0 or > 255)
+            {
+                octets = [];
+                return false;
+            }
+
+            parsed[i] = octet;
+        }
+
+        octets = parsed;
+        return true;
+    }
+
+    private static string NormalizeMac(string text)
+        => new(text.Where(ch => ch is not ':' and not '-' and not ' ').ToArray());
+
+    private static bool StartsWith(int[] have, int[] want)
+        => want.Length <= have.Length && have.Take(want.Length).SequenceEqual(want);
+
+    private static bool EndsWith(int[] have, int[] want)
+        => want.Length <= have.Length && have.Skip(have.Length - want.Length).SequenceEqual(want);
+
+    private static bool Contains(int[] have, int[] want)
+    {
+        if (want.Length == 0 || want.Length > have.Length)
+            return false;
+        for (var i = 0; i <= have.Length - want.Length; i++)
+        {
+            if (have.Skip(i).Take(want.Length).SequenceEqual(want))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static KqlTriState TextSpan(KqlCompareOp op, KqlValue left, KqlLiteral right)
+    {
+        var text = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var pattern = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var hit = op switch
+        {
+            KqlCompareOp.BeginsWith => text.StartsWith(pattern, StringComparison.OrdinalIgnoreCase),
+            KqlCompareOp.EndsWith => text.EndsWith(pattern, StringComparison.OrdinalIgnoreCase),
+            _ => text.Contains(pattern, StringComparison.OrdinalIgnoreCase)
+        };
+        return hit ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState In(KqlInExpression inn, IKqlRow row)
+    {
+        var field = inn.BoundField ?? throw new InvalidOperationException("IN is not bound");
+        var left = row.Get(field.Canonical);
+        if (left.IsUnknown)
+            return KqlTriState.Unknown;
+
+        var hit = false;
+        var anyUnknown = false;
+        foreach (var value in inn.Values)
+        {
+            var relation = CompareValues(left, value);
+            if (relation is null)
+            {
+                anyUnknown = true;
+                continue;
+            }
+
+            if (relation != 0) continue;
+            hit = true;
+            break;
+        }
+
+        if (hit)
+            return inn.Negated ? KqlTriState.False : KqlTriState.True;
+        if (anyUnknown)
+            return KqlTriState.Unknown;
+        return inn.Negated ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static KqlTriState Between(KqlBetweenExpression between, IKqlRow row)
+    {
+        var field = between.BoundField ?? throw new InvalidOperationException("BETWEEN is not bound");
+        var left = row.Get(field.Canonical);
+        if (left.IsUnknown)
+            return KqlTriState.Unknown;
+
+        var low = CompareValues(left, between.Low);
+        var high = CompareValues(left, between.High);
+        if (low is null || high is null)
+            return KqlTriState.Unknown;
+        return low >= 0 && high <= 0 ? KqlTriState.True : KqlTriState.False;
+    }
+
+    private static int? CompareValues(KqlValue left, KqlLiteral right)
+    {
+        if (left.Type is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal
+            || right.Type is KqlType.Integer or KqlType.Long or KqlType.Number or KqlType.Decimal)
+        {
+            if (!TryNumber(left.Raw, out var lv) || !TryNumber(right.Value, out var rv))
+                return null;
+            return lv.CompareTo(rv);
+        }
+
+        if (left.Type == KqlType.DateTime || right.Type == KqlType.DateTime)
+        {
+            if (!TryDate(left.Raw, out var ld) || !TryDate(right.Value, out var rd))
+                return null;
+            return ld.CompareTo(rd);
+        }
+
+        if (left.Type != KqlType.String && right.Type != KqlType.String)
+            return left.Type switch
+            {
+                KqlType.Boolean when BoolOf(right.Value) is bool rb && BoolOf(left.Raw) is bool lb => lb.CompareTo(rb),
+                KqlType.TimeSpan when left.Raw is TimeSpan lt && right.Value is TimeSpan rt => lt.CompareTo(rt),
+                _ => Comparer<object>.Default.Compare(left.Raw, right.Value)
+            };
+        var ls = Convert.ToString(left.Raw, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        var rs = ClosedTail(right);
+        return string.Compare(ls, rs, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ClosedTail(KqlLiteral right)
+    {
+        var text = Convert.ToString(right.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        if (right.Form != KqlLiteralForm.Ident)
+            return text;
+        var first = text.IndexOf('.');
+        var last = text.LastIndexOf('.');
+        return first > 0 && first != last ? text[(last + 1)..] : text;
+    }
+
+    private static bool? BoolOf(object? value)
+    {
+        switch (value)
+        {
+            case bool flag:
+                return flag;
+            case string text when KqlBooleans.TryParse(text, out var parsed):
+                return parsed;
+            case int number when number is 0 or 1:
+                return number == 1;
+            case long number when number is 0 or 1:
+                return number == 1;
+            default:
+                return null;
+        }
+    }
+
+    private static bool TryDate(object? value, out DateTimeOffset date)
+    {
+        switch (value)
+        {
+            case DateTimeOffset offset:
+                date = offset;
+                return true;
+            case DateTime time:
+                date = new DateTimeOffset(time);
+                return true;
+            case string text when KqlDates.TryParse(text, out date):
+                return true;
+            default:
+                date = default;
+                return false;
+        }
+    }
+
+    private static bool TryNumber(object? value, out double number)
+    {
+        switch (value)
+        {
+            case null:
+                number = 0;
+                return false;
+            case IConvertible:
+                try
+                {
+                    number = Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture);
+                    return true;
+                }
+                catch
+                {
+                    number = 0;
+                    return false;
+                }
+            default:
+                number = 0;
+                return false;
+        }
+    }
+}

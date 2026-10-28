@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon",
+  "category": "PerfMon",
+  "block": { "start": 17000, "end": 17499 },
+  "events": [
+    { "eventId": 17000, "name": "JobEnter", "severity": "Debug", "subcategory": "Job", "message": "enter job" },
+    { "eventId": 17005, "name": "JobStarted", "severity": "Information", "subcategory": "Job", "message": "job started" },
+    { "eventId": 17010, "name": "JobTick", "severity": "Debug", "subcategory": "Job", "message": "job tick" },
+    { "eventId": 17015, "name": "JobComplete", "severity": "Information", "subcategory": "Job", "message": "job complete" },
+    { "eventId": 17020, "name": "JobCancelled", "severity": "Information", "subcategory": "Job", "message": "job cancelled" },
+    { "eventId": 17025, "name": "JobRejected", "severity": "Error", "subcategory": "Job", "message": "job rejected" },
+    { "eventId": 17030, "name": "SourceUnavailable", "severity": "Warning", "subcategory": "Source", "message": "category or instance missing" },
+    { "eventId": 17035, "name": "SourceThrown", "severity": "Error", "subcategory": "Source", "message": "unexpected PDH failure" },
+    { "eventId": 17040, "name": "PathRejected", "severity": "Error", "subcategory": "Path", "message": "bad counter path" },
+    { "eventId": 17045, "name": "JobFailed", "severity": "Error", "subcategory": "Job", "message": "job aborted after start" }
+  ]
+}

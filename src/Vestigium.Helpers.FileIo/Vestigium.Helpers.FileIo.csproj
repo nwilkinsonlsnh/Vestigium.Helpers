@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Vestigium.Helpers.FileIo</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.FileIo</AssemblyName>
+    <Description>Validated file jobs: recon, five buckets, UniqueName default, Audit Mode, Pause/Cancel, Analytics sizes/rates, ALCOA+ JSONL. Not robocopy.exe.</Description>
+    <Version>4.1.0</Version>
+    <Authors>Vestigium</Authors>
+    <Company>Wilkinson Business</Company>
+    <PackageTags>fileio;filesystem;robocopy;uniquename;alcoa;vestigium</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Vestigium.Helpers.Hashing" Version="1.4.1" />
+    <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <None Include="EventCatalog\fileio.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

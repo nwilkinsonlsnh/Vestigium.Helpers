@@ -1,0 +1,22 @@
+{
+  "app": "Hashing",
+  "category": "Helpers",
+  "block": { "start": 13000, "end": 13499 },
+  "events": [
+    { "eventId": 13000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Hashing", "message": "enter Probe" },
+    { "eventId": 13005, "name": "ProbeComplete", "severity": "Information", "subcategory": "Hashing", "message": "probe complete" },
+    { "eventId": 13010, "name": "OperationEnter", "severity": "Debug", "subcategory": "Hashing", "message": "enter operation" },
+    { "eventId": 13015, "name": "OperationComplete", "severity": "Information", "subcategory": "Hashing", "message": "operation complete" },
+    { "eventId": 13020, "name": "OperationFailed", "severity": "Error", "subcategory": "Hashing", "message": "operation failed" },
+    { "eventId": 13025, "name": "HashComplete", "severity": "Information", "subcategory": "Hashing", "message": "string or bytes hash complete" },
+    { "eventId": 13030, "name": "HashFileComplete", "severity": "Information", "subcategory": "Hashing", "message": "file hash complete" },
+    { "eventId": 13035, "name": "HmacComplete", "severity": "Information", "subcategory": "Hashing", "message": "HMAC complete" },
+    { "eventId": 13040, "name": "KmacComplete", "severity": "Information", "subcategory": "Hashing", "message": "KMAC complete" },
+    { "eventId": 13045, "name": "ShakeComplete", "severity": "Information", "subcategory": "Hashing", "message": "SHAKE complete" },
+    { "eventId": 13050, "name": "ChecksumComplete", "severity": "Information", "subcategory": "Hashing", "message": "checksum complete" },
+    { "eventId": 13055, "name": "PasswordHashed", "severity": "Information", "subcategory": "Hashing", "message": "password hashed" },
+    { "eventId": 13060, "name": "PasswordVerify", "severity": "Information", "subcategory": "Hashing", "message": "password verify" },
+    { "eventId": 13065, "name": "ConvertComplete", "severity": "Information", "subcategory": "Hashing", "message": "convert complete" },
+    { "eventId": 13070, "name": "Rejected", "severity": "Error", "subcategory": "Hashing", "message": "input rejected" }
+  ]
+}

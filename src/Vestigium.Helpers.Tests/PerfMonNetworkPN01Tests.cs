@@ -1,0 +1,472 @@
+using System.Diagnostics;
+using System.Text.Json;
+using Vestigium.Helpers.PerfMon;
+using Vestigium.Helpers.PerfMon.Gpu;
+using Vestigium.Helpers.PerfMon.Network;
+using Vestigium.Logging;
+
+namespace Vestigium.Helpers.Tests;
+
+[Collection("Logger")]
+public sealed class PerfMonNetworkPn01Tests
+{
+    [Fact]
+    public void PN01_001_catalog_lists_network_objects()
+    {
+        Assert.Equal(63, NetworkObjects.All.Count);
+        Assert.Equal(NetworkObjects.All, NetworkCounterCatalog.Categories);
+        Assert.True(NetworkCounterCatalog.IsKnownCategory("network interface"));
+        Assert.True(NetworkCounterCatalog.IsKnownCategory(NetworkObjects.WinNatUdp));
+        Assert.True(NetworkCounterCatalog.IsKnownCategory(NetworkObjects.TcpipPerformanceDiagnosticsPerCpu));
+        Assert.False(NetworkCounterCatalog.IsKnownCategory("PhysicalDisk"));
+        Assert.Throws<ArgumentException>(() => NetworkCounterCatalog.Counters("PhysicalDisk"));
+    }
+
+    [Fact]
+    public void PN01_001_known_rates_cover_interface()
+    {
+        Assert.Contains("Bytes Total/sec", NetworkCounterCatalog.Counters(NetworkObjects.NetworkInterface));
+        Assert.Contains("Packets Received Errors", NetworkCounterCatalog.Counters(NetworkObjects.NetworkInterface));
+        Assert.Contains("Output Queue Length", NetworkCounterCatalog.Counters(NetworkObjects.NetworkAdapter));
+        Assert.Empty(NetworkCounterCatalog.Counters(NetworkObjects.WinNat));
+    }
+
+    [Fact]
+    public void PN01_001_live_does_not_fake_known_when_missing()
+    {
+        var missing = new ScriptedInventory { Present = false };
+        Assert.False(NetworkCounterCatalog.CategoryPresent(NetworkObjects.NetworkInterface, missing));
+        Assert.Empty(NetworkCounterCatalog.LiveCounters(NetworkObjects.NetworkInterface, "_Total", 256, missing));
+        Assert.False(NetworkCounterCatalog.Snapshot(NetworkObjects.NetworkInterface, inventory: missing).CategoryPresent);
+    }
+
+    [Fact]
+    public void PN01_001_check_and_snapshot_use_live_inventory()
+    {
+        var live = new ScriptedInventory
+        {
+            Present = true,
+            Counters = ["Bytes Total/sec", "Output Queue Length"],
+            Instances = ["_Total", "Ethernet"]
+        };
+        Assert.True(NetworkCounterCatalog.HasCounter(NetworkObjects.NetworkInterface, "Bytes Total/sec", "_Total", live));
+        var snap = NetworkCounterCatalog.Snapshot(NetworkObjects.NetworkInterface, inventory: live);
+        Assert.Equal(["Bytes Total/sec", "Output Queue Length"], snap.Counters);
+        Assert.Equal(["_Total", "Ethernet"], snap.Instances);
+    }
+
+    [Fact]
+    public async Task PN01_001_watch_subscribes()
+    {
+        var inventory = new ScriptedInventory
+        {
+            Present = true,
+            Counters = ["Bytes Total/sec"],
+            Instances = ["_Total"]
+        };
+        var hits = new List<CatalogSnapshot>();
+        await NetworkCounterCatalog.WatchAsync(
+            new CatalogWatchOptions
+            {
+                Category = NetworkObjects.NetworkInterface,
+                Count = 2,
+                Interval = TimeSpan.FromSeconds(1),
+                EmitOnlyOnChange = false,
+                Inventory = inventory,
+                Clock = new ImmediateClock()
+            },
+            hits.Add);
+        Assert.Equal(2, hits.Count);
+    }
+
+    [Fact]
+    public void PN01_002_empty_instance_becomes_total()
+    {
+        Assert.Equal("_Total", NetworkPaths.InstanceOrTotal(""));
+        Assert.Equal("_Total", NetworkPaths.InstanceOrTotal("   "));
+        Assert.Equal("_Total", NetworkPaths.InstanceOrTotal(null));
+        var paths = NetworkPaths.Interface("  ");
+        Assert.All(paths, p => Assert.Equal("_Total", p.Instance));
+        Assert.Equal(NetworkPaths.InterfaceShort.Length, paths.Count);
+    }
+
+    [Fact]
+    public void PN01_002_named_instance_is_kept()
+    {
+        Assert.Equal("Ethernet", NetworkPaths.InstanceOrTotal(" Ethernet "));
+        var paths = NetworkPaths.Interface("Ethernet");
+        Assert.All(paths, p => Assert.Equal("Ethernet", p.Instance));
+    }
+
+    [Fact]
+    public void PN01_002_paths_are_network_interface()
+    {
+        var paths = NetworkPaths.Interface();
+        Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == NetworkObjects.NetworkAdapter);
+        Assert.Equal(NetworkPaths.InterfaceShort, paths.Select(p => p.Counter));
+        Assert.Equal("/sec", paths.First(p => p.Counter == "Bytes Total/sec").Unit);
+        Assert.Equal("count", paths.First(p => p.Counter == "Output Queue Length").Unit);
+    }
+
+    [Fact]
+    public void PN01_003_adapters_respect_cap()
+    {
+        var names = new List<string> { "_Total" };
+        names.AddRange(Enumerable.Range(0, 10).Select(i => $"nic{i}"));
+        var inv = new ScriptedInventory { Present = true, Instances = names };
+        var paths = NetworkPaths.For(new NetworkSampleOptions
+        {
+            IncludeAdapters = true,
+            InstanceCap = 3,
+            Inventory = inv
+        });
+        var adapters = paths
+            .Where(p => p.Counter == "Bytes Total/sec")
+            .Select(p => p.Instance)
+            .ToArray();
+        Assert.Equal(["_Total", "nic0", "nic1", "nic2"], adapters);
+        Assert.Equal(3, NetworkPaths.Adapters(inv, 3).Count);
+        Assert.Empty(NetworkPaths.Adapters(inv, 0));
+    }
+
+    [Fact]
+    public void PN01_003_adapters_omit_total()
+    {
+        var inv = new ScriptedInventory
+        {
+            Present = true,
+            Instances = ["_Total", "_total", "Ethernet", "Wi-Fi"]
+        };
+        var adapters = NetworkPaths.Adapters(inv, 256);
+        Assert.Equal(["Ethernet", "Wi-Fi"], adapters);
+        var paths = NetworkPaths.For(new NetworkSampleOptions { IncludeAdapters = true, Inventory = inv });
+        Assert.Equal(1, paths.Count(p => p.Instance == "_Total" && p.Counter == "Bytes Total/sec"));
+        Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
+    }
+
+    [Fact]
+    public void PN01_004_missing_object_stays_interface()
+    {
+        var missing = new ScriptedInventory { Present = false };
+        var paths = NetworkPaths.For(new NetworkSampleOptions
+        {
+            IncludeAdapters = true,
+            Inventory = missing
+        });
+        Assert.Equal(NetworkObjects.NetworkInterface, NetworkPaths.ObjectName);
+        Assert.All(paths, p => Assert.Equal(NetworkObjects.NetworkInterface, p.Category));
+        Assert.DoesNotContain(paths, p => p.Category == NetworkObjects.NetworkAdapter);
+        Assert.False(NetworkCounterCatalog.CategoryPresent(NetworkObjects.NetworkInterface, missing));
+        Assert.Null(typeof(NetworkSampleOptions).Assembly.GetType("Vestigium.Helpers.Network.NetworkHelpers"));
+        Assert.Null(typeof(NetworkSampleOptions).GetProperty("Ping"));
+    }
+
+    [Fact]
+    public async Task PN01_005_run_uses_shared_job()
+    {
+        var paths = NetworkPaths.Interface("_Total");
+        var fake = new FakeCounterSource();
+        foreach (var path in paths)
+            fake.Seed(path, SampleRecord.Ok(path, 12));
+
+        var result = await NetworkPerf.RunAsync(new NetworkSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        });
+
+        Assert.Equal(SampleStatus.Ok, result.Status);
+        Assert.Equal(paths.Count, result.Samples.Count);
+        Assert.All(result.Samples, s =>
+        {
+            Assert.Equal(NetworkObjects.NetworkInterface, s.Category);
+            Assert.Equal(12, s.Value);
+        });
+    }
+
+    [Fact]
+    public void PN01_005_live_total()
+    {
+        try
+        {
+            if (!PerformanceCounterCategory.Exists(NetworkObjects.NetworkInterface))
+                return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        var path = new CounterPath(NetworkObjects.NetworkInterface, "Bytes Total/sec", "_Total", "/sec");
+        var source = new PerformanceCounterSource();
+        _ = source.Read(path);
+        var row = source.Read(path);
+        if (row.Status != SampleStatus.Ok)
+            return;
+        Assert.NotNull(row.Value);
+    }
+
+    [Fact]
+    public void PN01_006_register_is_host_only()
+    {
+        var register = typeof(NetworkPerfCatalog).GetMethod("Register");
+        Assert.NotNull(register);
+        Assert.Equal(typeof(VestigiumLoggerOptions), register!.GetParameters()[0].ParameterType);
+        Assert.Null(typeof(NetworkPerfCatalog).GetMethod("Initialize"));
+
+        VestigiumLogger.Shutdown();
+        Assert.False(VestigiumLogger.IsInitialized);
+        Assert.Null(Record.Exception(() =>
+            NetworkPerfLog.Information(
+                NetworkPerfEvents.ProbeComplete,
+                VestigiumStatus.Success,
+                NetworkPerfCatalog.Subcategories.Probe,
+                "noop")));
+        Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void PN01_006_writes_noop_until_host_starts()
+    {
+        VestigiumLogger.Shutdown();
+        var fake = new FakeCounterSource();
+        foreach (var path in NetworkPaths.Interface("_Total"))
+            fake.Seed(path, SampleRecord.Ok(path, 1));
+
+        var ex = Record.Exception(() => NetworkPerf.RunAsync(new NetworkSampleOptions
+        {
+            Count = 1,
+            Source = fake,
+            Clock = new ImmediateClock()
+        }).GetAwaiter().GetResult());
+        Assert.Null(ex);
+        Assert.False(VestigiumLogger.IsInitialized);
+    }
+
+    [Fact]
+    public void PN01_007_catalog_matches_constants()
+    {
+        var jsonPath = Path.Combine(
+            Path.GetDirectoryName(typeof(NetworkPerfCatalog).Assembly.Location)!,
+            "EventCatalog",
+            "network.json");
+        Assert.True(File.Exists(jsonPath), jsonPath);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var root = doc.RootElement;
+        Assert.Equal(NetworkPerfCatalog.AppId, root.GetProperty("app").GetString());
+        Assert.Equal(NetworkPerfCatalog.Category, root.GetProperty("category").GetString());
+        Assert.Equal(NetworkPerfEvents.BlockStart, root.GetProperty("block").GetProperty("start").GetInt32());
+        Assert.Equal(NetworkPerfEvents.BlockEnd, root.GetProperty("block").GetProperty("end").GetInt32());
+
+        var events = root.GetProperty("events").EnumerateArray().ToArray();
+        Assert.Equal(NetworkPerfCatalog.Rows.Length, events.Length);
+
+        var constants = typeof(NetworkPerfEvents)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(int) && f.Name is not ("BlockStart" or "BlockEnd"))
+            .ToDictionary(f => f.Name, f => (int)f.GetValue(null)!);
+
+        foreach (var (row, node) in NetworkPerfCatalog.Rows.Zip(events))
+        {
+            Assert.Equal(row.EventId, node.GetProperty("eventId").GetInt32());
+            Assert.Equal(row.Name, node.GetProperty("name").GetString());
+            Assert.Equal(row.Severity, node.GetProperty("severity").GetString());
+            Assert.Equal(row.Subcategory, node.GetProperty("subcategory").GetString());
+            Assert.Equal(0, row.EventId % 5);
+            Assert.InRange(row.EventId, NetworkPerfEvents.BlockStart, NetworkPerfEvents.BlockEnd);
+            Assert.Equal(constants[row.Name], row.EventId);
+        }
+    }
+
+    [Fact]
+    public void PN01_008_probe_references_shared_only()
+    {
+        var text = File.ReadAllText(FindCsproj());
+        Assert.Contains("Vestigium.Helpers.PerfMon\\Vestigium.Helpers.PerfMon.csproj", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Network\\", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Charts", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Analytics", text);
+        Assert.DoesNotContain("Vestigium.Helpers.FileIo", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Processes", text);
+        Assert.DoesNotContain("System.Diagnostics.PerformanceCounter", text);
+        Assert.Null(typeof(NetworkSampleOptions).GetProperty("Ping"));
+        Assert.Null(typeof(NetworkPerf).GetMethod("Initialize"));
+    }
+
+    private static string FindCsproj()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hit = dir.GetFiles("Vestigium.Helpers.PerfMon.Network.csproj", SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+                return hit.FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Vestigium.Helpers.PerfMon.Network.csproj");
+    }
+
+    [Fact]
+    public void PR02c_001_network_shard_is_the_present_ten()
+    {
+        var jsonPath = FindNetworkShard();
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var names = doc.RootElement.GetProperty("categories").EnumerateArray()
+            .Select(c => c.GetProperty("category").GetString())
+            .ToArray();
+        Assert.Equal(
+        [
+            "Network Adapter",
+            "Network Interface",
+            "IPv4",
+            "IPv6",
+            "ICMP",
+            "ICMPv6",
+            "TCPv4",
+            "TCPv6",
+            "UDPv4",
+            "UDPv6"
+        ], names);
+        Assert.Equal(10, doc.RootElement.GetProperty("categoryCount").GetInt32());
+        Assert.DoesNotContain("WinNAT", names);
+        Assert.DoesNotContain(".NET CLR Networking", names);
+        Assert.Contains("WinNAT", doc.RootElement.GetProperty("allowList").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    private static string FindNetworkShard()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hits = dir.GetFiles("pdh-categories.json", SearchOption.AllDirectories)
+                .Where(f => f.FullName.Contains("PerfMon.Network", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (hits.Length > 0)
+                return hits[0].FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("Network pdh-categories.json");
+    }
+
+    [Fact]
+    public void PR02c_002_typed_network_classes_match_shard()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(NetworkPerfCatalog).Assembly,
+            NetworkAdapter.Category,
+            NetworkAdapter.Counters,
+            NetworkCounterCatalog.Counters(NetworkAdapter.Category));
+        PdhCatalogAgreement.AssertMatches(
+            typeof(NetworkPerfCatalog).Assembly,
+            NetworkInterface.Category,
+            NetworkInterface.Counters,
+            NetworkCounterCatalog.Counters(NetworkInterface.Category));
+        Assert.Equal("Bytes Total/sec", NetworkAdapter.BytesTotalPerSec);
+        Assert.Equal("Bytes Total/sec", NetworkInterface.BytesTotalPerSec);
+        Assert.Contains(TCPv4.ConnectionsEstablished, TCPv4.Counters);
+        Assert.Null(typeof(NetworkAdapter).Assembly.GetType("Vestigium.Helpers.PerfMon.Network.WinNAT"));
+    }
+
+    [Fact]
+    public void PR02c_003_paths_use_typed_interface()
+    {
+        Assert.Equal(NetworkInterface.Category, NetworkPaths.ObjectName);
+        Assert.Equal(NetworkInterface.BytesTotalPerSec, NetworkPaths.InterfaceShort[0]);
+        Assert.Equal(NetworkInterface.OutputQueueLength, NetworkPaths.InterfaceShort[^1]);
+        var paths = NetworkPaths.Interface();
+        Assert.All(paths, p => Assert.Equal(NetworkInterface.Category, p.Category));
+        Assert.Contains(paths, p => p.Counter == NetworkInterface.BytesTotalPerSec);
+        Assert.DoesNotContain(paths, p => p.Category == NetworkAdapter.Category);
+    }
+
+    [Fact]
+    public void PR02c_004_missing_categories_stay_name_only()
+    {
+        var network = typeof(NetworkAdapter).Assembly;
+        Assert.Null(network.GetType("Vestigium.Helpers.PerfMon.Network.WinNAT"));
+        Assert.Null(network.GetType("Vestigium.Helpers.PerfMon.Network.WinNat"));
+        Assert.Null(network.GetType("Vestigium.Helpers.PerfMon.Network.IPsecDriver"));
+        Assert.Equal("WinNAT", NetworkObjects.WinNat);
+
+        var gpu = typeof(GpuPerfCatalog).Assembly;
+        Assert.Null(gpu.GetType("Vestigium.Helpers.PerfMon.Gpu.GpuEngine"));
+        Assert.Null(gpu.GetType("Vestigium.Helpers.PerfMon.Gpu.GPUEngine"));
+        Assert.True(typeof(GpuObjects).GetField("Engine") is not null || GpuObjects.Engine == "GPU Engine");
+    }
+
+    [Fact]
+    public void PR02c_005_network_probe_stays_shared_only()
+    {
+        var text = File.ReadAllText(Find("Vestigium.Helpers.PerfMon.Network.csproj"));
+        Assert.Contains("Vestigium.Helpers.PerfMon\\Vestigium.Helpers.PerfMon.csproj", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Network\\", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Charts", text);
+        Assert.DoesNotContain("Vestigium.Helpers.Analytics", text);
+        Assert.Null(typeof(NetworkSampleOptions).GetProperty("Ping"));
+        Assert.NotNull(typeof(NetworkAdapter).GetField("BytesTotalPerSec"));
+    }
+
+    private static string Find(string name)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hit = dir.GetFiles(name, SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+                return hit.FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException(name);
+    }
+
+    private sealed class ScriptedInventory : ICounterInventory
+    {
+        public bool Present { get; set; }
+        public IReadOnlyList<string> Counters { get; set; } = [];
+        public IReadOnlyList<string> Instances { get; set; } = [];
+
+        public bool CategoryPresent(string category) => Present;
+
+        public bool InstancePresent(string category, string instance)
+            => Present && Instances.Contains(instance, StringComparer.OrdinalIgnoreCase);
+
+        public IReadOnlyList<string> LiveCounters(string category, string instance, int cap)
+            => Present ? Counters.Take(cap).ToArray() : [];
+
+        public IReadOnlyList<string> LiveInstances(string category, int cap)
+            => Present ? Instances.Take(cap).ToArray() : [];
+    }
+
+    private sealed class ImmediateClock : TimeProvider
+    {
+        private DateTimeOffset _utc = new(2026, 9, 28, 20, 40, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => _utc;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            if (dueTime != Timeout.InfiniteTimeSpan)
+            {
+                if (dueTime > TimeSpan.Zero)
+                    _utc += dueTime;
+                callback(state);
+            }
+
+            return new DoneTimer();
+        }
+
+        private sealed class DoneTimer : ITimer
+        {
+            public bool Change(TimeSpan dueTime, TimeSpan period) => false;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
+    }
+}

@@ -1,0 +1,385 @@
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using Microsoft.Win32;
+using Vestigium.Helpers;
+
+namespace Vestigium.Helpers.Network;
+
+internal static class NetworkInventoryEngine
+{
+    public static WorkstationNetwork Capture(NetworkAdapterQuery? query = null)
+    {
+        query ??= new NetworkAdapterQuery();
+        var host = Dns.GetHostName();
+        string? domain = null;
+        try
+        {
+            domain = IPGlobalProperties.GetIPGlobalProperties().DomainName;
+            if (string.IsNullOrWhiteSpace(domain))
+                domain = null;
+        }
+        catch (NetworkInformationException)
+        {
+        }
+
+        var adapters = (from nic in NetworkInterface.GetAllNetworkInterfaces() where query.IncludeDown || nic.OperationalStatus == OperationalStatus.Up where Matches(nic, query) select Map(nic)).ToList();
+        var stack = NetworkInventoryWindows.ReadStack();
+        var search = MergeSearch(NetworkInventoryWindows.ReadSearchList(), adapters);
+
+        return new WorkstationNetwork(
+            host,
+            domain,
+            DateTimeOffset.UtcNow,
+            adapters,
+            search,
+            stack);
+    }
+
+    public static NetworkAdapter CaptureOne(string nameOrId)
+    {
+        var key = HelperGuard.NotBlank(nameOrId, nameof(nameOrId)).Trim();
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (string.Equals(nic.Name, key, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(nic.Id, key, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(nic.Description, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return Map(nic);
+            }
+        }
+
+        HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Adapter, nameof(CaptureOne), $"adapter not found name={key}");
+        throw new ArgumentException("Adapter was not found.", nameof(nameOrId));
+    }
+
+    private static bool Matches(NetworkInterface nic, NetworkAdapterQuery query)
+    {
+        if (!string.IsNullOrWhiteSpace(query.Name)
+            && !string.Equals(nic.Name, query.Name, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(nic.Description, query.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return string.IsNullOrWhiteSpace(query.Id) switch
+        {
+            false when !string.Equals(nic.Id, query.Id, StringComparison.OrdinalIgnoreCase) => false,
+            _ => !query.IpEnabledOnly || IsIpEnabled(nic)
+        };
+    }
+
+    private static bool IsIpEnabled(NetworkInterface nic)
+        => Supports(nic, NetworkInterfaceComponent.IPv4) || Supports(nic, NetworkInterfaceComponent.IPv6);
+
+    private static IReadOnlyList<string> MergeSearch(IReadOnlyList<string> hive, IReadOnlyList<NetworkAdapter> adapters)
+    {
+        var list = hive.ToList();
+        foreach (var adapter in adapters)
+        {
+            if (string.IsNullOrWhiteSpace(adapter.DnsSuffix))
+                continue;
+            var suffix = adapter.DnsSuffix.Trim().Trim('.');
+            if (suffix.Length == 0)
+                continue;
+            if (!list.Exists(x => string.Equals(x, suffix, StringComparison.OrdinalIgnoreCase)))
+                list.Add(suffix);
+        }
+
+        return list;
+    }
+
+    private static NetworkAdapter Map(NetworkInterface nic)
+    {
+        IPInterfaceProperties? props = null;
+        try
+        {
+            props = nic.GetIPProperties();
+        }
+        catch (NetworkInformationException)
+        {
+        }
+
+        var unicast = new List<UnicastAddress>();
+        if (props is not null)
+        {
+            foreach (var addr in props.UnicastAddresses)
+            {
+                if (addr.Address.AddressFamily is not AddressFamily.InterNetwork and not AddressFamily.InterNetworkV6)
+                    continue;
+                unicast.Add(MapUnicast(addr));
+            }
+        }
+
+        if (unicast.Count == 0)
+            unicast.AddRange(NetworkInventoryWindows.ReadInterfaceAddresses(nic.Id));
+
+        var gateways = props is null
+            ? Array.Empty<string>()
+            : props.GatewayAddresses
+                .Select(g => g.Address?.ToString())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Cast<string>()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+        var dns = props is null
+            ? Array.Empty<string>()
+            : props.DnsAddresses
+                .Select(a => a.ToString())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+        var wins = ReadWins(props);
+        int? index = null;
+        int? mtu = null;
+        string? suffix = null;
+        bool? dnsReg = null;
+        if (props is not null)
+        {
+            suffix = string.IsNullOrWhiteSpace(props.DnsSuffix) ? null : props.DnsSuffix.Trim();
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                    dnsReg = props.IsDynamicDnsEnabled;
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+
+            try
+            {
+                var v4 = props.GetIPv4Properties();
+                index = v4.Index;
+                mtu = v4.Mtu > 0 ? v4.Mtu : null;
+            }
+            catch (NetworkInformationException)
+            {
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+        }
+
+        NetworkInventoryWindows.ReadInterface(
+            nic,
+            out var metric,
+            out var metricAuto,
+            out var autoconfig,
+            out var leaseObtained,
+            out var leaseExpires);
+        var driver = NetworkInventoryWindows.ReadDriver(nic, out var physical);
+
+        return new NetworkAdapter(
+            nic.Id,
+            nic.Name,
+            nic.Description,
+            nic.NetworkInterfaceType,
+            nic.OperationalStatus,
+            FormatMac(nic),
+            ReadSpeed(nic),
+            nic.SupportsMulticast,
+            unicast,
+            gateways,
+            dns,
+            ReadDhcp(nic, props, leaseObtained, leaseExpires),
+            ReadNetbios(nic),
+            index,
+            metric,
+            metricAuto,
+            autoconfig,
+            mtu,
+            suffix,
+            wins,
+            dnsReg,
+            physical,
+            driver,
+            Supports(nic, NetworkInterfaceComponent.IPv4),
+            Supports(nic, NetworkInterfaceComponent.IPv6));
+    }
+
+    private static bool Supports(NetworkInterface nic, NetworkInterfaceComponent component)
+    {
+        try
+        {
+            return nic.Supports(component);
+        }
+        catch (NetworkInformationException)
+        {
+            return false;
+        }
+    }
+
+    private static UnicastAddress MapUnicast(UnicastIPAddressInformation addr)
+    {
+        var family = addr.Address.AddressFamily;
+        var isDhcp = false;
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                isDhcp = addr.PrefixOrigin == PrefixOrigin.Dhcp;
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+        }
+
+        if (family == AddressFamily.InterNetwork)
+        {
+            int? prefix = null;
+            try
+            {
+                var p = addr.PrefixLength;
+                if (p is >= 0 and <= 32)
+                    prefix = p;
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+
+            IPAddress? mask = null;
+            try
+            {
+                mask = addr.IPv4Mask;
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+
+            Ipv4Prefix.Agree(prefix, mask, out var agreedPrefix, out var dotted);
+            return new UnicastAddress(family, addr.Address.ToString(), agreedPrefix, dotted, isDhcp);
+        }
+
+        var v6Prefix = 0;
+        try
+        {
+            v6Prefix = addr.PrefixLength;
+        }
+        catch (PlatformNotSupportedException)
+        {
+        }
+
+        return new UnicastAddress(family, addr.Address.ToString(), v6Prefix, null, isDhcp);
+    }
+
+    private static IReadOnlyList<string> ReadWins(IPInterfaceProperties? props)
+    {
+        if (!OperatingSystem.IsWindows() || props is null)
+            return [];
+
+        try
+        {
+            return props.WinsServersAddresses
+                .Select(a => a.ToString())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch (NetworkInformationException)
+        {
+            return [];
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return [];
+        }
+    }
+
+    private static DhcpInfo ReadDhcp(
+        NetworkInterface nic,
+        IPInterfaceProperties? props,
+        DateTimeOffset? leaseObtained,
+        DateTimeOffset? leaseExpires)
+    {
+        bool? enabled = null;
+        string? server = null;
+        if (OperatingSystem.IsWindows() && props is not null)
+        {
+            try
+            {
+                var v4 = props.GetIPv4Properties();
+                enabled = v4.IsDhcpEnabled;
+            }
+            catch (NetworkInformationException)
+            {
+            }
+            catch (PlatformNotSupportedException)
+            {
+            }
+
+            try
+            {
+                server = props.DhcpServerAddresses
+                    .Select(a => a.ToString())
+                    .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s) && s != "255.255.255.255");
+            }
+            catch (NetworkInformationException)
+            {
+            }
+        }
+
+        _ = nic;
+        return new DhcpInfo(enabled, server, leaseObtained, leaseExpires);
+    }
+
+    private static NetbiosOverTcp ReadNetbios(NetworkInterface nic)
+    {
+        if (!OperatingSystem.IsWindows())
+            return NetbiosOverTcp.Unknown;
+
+        try
+        {
+            var id = nic.Id.Trim('{', '}');
+            var path = $@"SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_{{{id}}}";
+            using var key = Registry.LocalMachine.OpenSubKey(path);
+            if (key?.GetValue("NetbiosOptions") is int option)
+            {
+                return option switch
+                {
+                    0 => NetbiosOverTcp.Default,
+                    1 => NetbiosOverTcp.Enabled,
+                    2 => NetbiosOverTcp.Disabled,
+                    _ => NetbiosOverTcp.Unknown
+                };
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+        {
+        }
+
+        return NetbiosOverTcp.Unknown;
+    }
+
+    private static string? FormatMac(NetworkInterface nic)
+    {
+        try
+        {
+            var bytes = nic.GetPhysicalAddress().GetAddressBytes();
+            return bytes.Length switch
+            {
+                0 => null,
+                _ => string.Join(":", bytes.Select(b => b.ToString("X2")))
+            };
+        }
+        catch (NetworkInformationException)
+        {
+            return null;
+        }
+    }
+
+    private static long? ReadSpeed(NetworkInterface nic)
+    {
+        try
+        {
+            var speed = nic.Speed;
+            return speed > 0 ? speed : null;
+        }
+        catch (NetworkInformationException)
+        {
+            return null;
+        }
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon.Cpu",
+  "category": "PerfMon",
+  "block": { "start": 18000, "end": 18499 },
+  "events": [
+    { "eventId": 18000, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Cpu", "message": "enter probe" },
+    { "eventId": 18005, "name": "ProbeStarted", "severity": "Information", "subcategory": "Cpu", "message": "probe started" },
+    { "eventId": 18010, "name": "PathsBuilt", "severity": "Debug", "subcategory": "Paths", "message": "paths built" },
+    { "eventId": 18015, "name": "ProbeComplete", "severity": "Information", "subcategory": "Cpu", "message": "probe complete" },
+    { "eventId": 18020, "name": "ProbeCancelled", "severity": "Information", "subcategory": "Cpu", "message": "probe cancelled" },
+    { "eventId": 18025, "name": "ProbeRejected", "severity": "Error", "subcategory": "Cpu", "message": "probe rejected" },
+    { "eventId": 18030, "name": "CategoryFallback", "severity": "Information", "subcategory": "Paths", "message": "Processor Information missing" },
+    { "eventId": 18035, "name": "ParkingSkipped", "severity": "Debug", "subcategory": "Paths", "message": "parking counter absent" },
+    { "eventId": 18040, "name": "CoresCapped", "severity": "Warning", "subcategory": "Paths", "message": "core list truncated" },
+    { "eventId": 18045, "name": "ProbeFailed", "severity": "Error", "subcategory": "Cpu", "message": "probe aborted after start" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "app": "LogParser",
+  "category": "Helpers",
+  "block": { "start": 20500, "end": 20999 },
+  "events": [
+    { "eventId": 20500, "name": "HostRejected", "severity": "Error", "subcategory": "Bag", "message": "rejected host" },
+    { "eventId": 20505, "name": "ResultRejected", "severity": "Error", "subcategory": "Bag", "message": "rejected read result" },
+    { "eventId": 20510, "name": "Thrown", "severity": "Error", "subcategory": "Bag", "message": "unexpected failure" }
+  ]
+}

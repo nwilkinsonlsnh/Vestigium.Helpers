@@ -1,0 +1,31 @@
+{
+  "app": "Analytics",
+  "category": "Helpers",
+  "block": { "start": 10500, "end": 10999 },
+  "events": [
+    { "eventId": 10500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 10505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 10510, "name": "SeriesEnter", "severity": "Debug", "subcategory": "Series", "message": "enter series" },
+    { "eventId": 10515, "name": "SeriesConstructed", "severity": "Information", "subcategory": "Series", "message": "constructed" },
+    { "eventId": 10520, "name": "SeriesRejectedEmpty", "severity": "Error", "subcategory": "Series", "message": "rejected empty series" },
+    { "eventId": 10525, "name": "SeriesRejectedNonFinite", "severity": "Error", "subcategory": "Series", "message": "rejected non-finite value" },
+    { "eventId": 10530, "name": "SeriesRejectedOverflow", "severity": "Error", "subcategory": "Series", "message": "rejected overflow" },
+    { "eventId": 10535, "name": "SeriesRejectedEmptySlice", "severity": "Error", "subcategory": "Series", "message": "rejected empty slice" },
+    { "eventId": 10540, "name": "SeriesRejectedEmptyObservations", "severity": "Error", "subcategory": "Series", "message": "rejected empty observations" },
+    { "eventId": 10545, "name": "SeriesThrown", "severity": "Error", "subcategory": "Series", "message": "unexpected failure" },
+    { "eventId": 10550, "name": "ConfidenceEnter", "severity": "Debug", "subcategory": "Confidence", "message": "enter confidence" },
+    { "eventId": 10555, "name": "ConfidenceComputed", "severity": "Information", "subcategory": "Confidence", "message": "confidence computed" },
+    { "eventId": 10560, "name": "ConfidenceRejectedLevel", "severity": "Error", "subcategory": "Confidence", "message": "rejected confidence level" },
+    { "eventId": 10565, "name": "ConfidenceRejectedPopulation", "severity": "Error", "subcategory": "Confidence", "message": "rejected population size" },
+    { "eventId": 10570, "name": "ConfidenceRejectedMargin", "severity": "Error", "subcategory": "Confidence", "message": "rejected target margin" },
+    { "eventId": 10575, "name": "ConfidenceThrown", "severity": "Error", "subcategory": "Confidence", "message": "unexpected failure" },
+    { "eventId": 10580, "name": "LimitsEnter", "severity": "Debug", "subcategory": "Limits", "message": "enter limits" },
+    { "eventId": 10585, "name": "LimitsComputed", "severity": "Information", "subcategory": "Limits", "message": "limits computed" },
+    { "eventId": 10590, "name": "LimitsCallerSupplied", "severity": "Information", "subcategory": "Limits", "message": "caller-supplied limits" },
+    { "eventId": 10595, "name": "LimitsOutOfControl", "severity": "Warning", "subcategory": "Limits", "message": "out-of-control points" },
+    { "eventId": 10600, "name": "LimitsRejected", "severity": "Error", "subcategory": "Limits", "message": "rejected limits" },
+    { "eventId": 10605, "name": "LimitsThrown", "severity": "Error", "subcategory": "Limits", "message": "unexpected failure" },
+    { "eventId": 10610, "name": "PercentileRejectedEmpty", "severity": "Error", "subcategory": "Series", "message": "rejected empty percentile" },
+    { "eventId": 10615, "name": "PercentileRejectedP", "severity": "Error", "subcategory": "Series", "message": "rejected percentile p" }
+  ]
+}

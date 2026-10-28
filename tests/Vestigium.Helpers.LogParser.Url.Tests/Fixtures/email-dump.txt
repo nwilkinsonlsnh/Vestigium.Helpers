@@ -1,0 +1,9 @@
+SSO dump pasted from mail.
+
+Login page: https://q2prod.idbs-cloud.com:8443/login
+Owner: user@q2valprod.services.idbs-cloud.com
+Bare name: login.microsoftonline.com
+Attachment notes.txt
+See e.g. the ticket.
+Probe 75.2.119.14 if the name fails.
+Local box: localhost

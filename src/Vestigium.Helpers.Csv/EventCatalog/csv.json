@@ -1,0 +1,20 @@
+{
+  "app": "Csv",
+  "category": "Helpers",
+  "block": { "start": 11500, "end": 11999 },
+  "events": [
+    { "eventId": 11500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Probe", "message": "enter Probe" },
+    { "eventId": 11505, "name": "ProbeComplete", "severity": "Information", "subcategory": "Probe", "message": "probe complete" },
+    { "eventId": 11510, "name": "SessionEnter", "severity": "Debug", "subcategory": "Session", "message": "enter session" },
+    { "eventId": 11515, "name": "SessionCreated", "severity": "Information", "subcategory": "Session", "message": "session created" },
+    { "eventId": 11520, "name": "SessionOpened", "severity": "Information", "subcategory": "Session", "message": "session opened" },
+    { "eventId": 11525, "name": "SessionSaved", "severity": "Information", "subcategory": "Session", "message": "session saved" },
+    { "eventId": 11530, "name": "SessionRejected", "severity": "Error", "subcategory": "Session", "message": "rejected session" },
+    { "eventId": 11535, "name": "SessionThrown", "severity": "Error", "subcategory": "Session", "message": "unexpected failure" },
+    { "eventId": 11540, "name": "ParseRejected", "severity": "Error", "subcategory": "Parse", "message": "rejected parse" },
+    { "eventId": 11545, "name": "WriteRejected", "severity": "Error", "subcategory": "Session", "message": "rejected write" },
+    { "eventId": 11550, "name": "CellNeutralized", "severity": "Warning", "subcategory": "Session", "message": "neutralized formula-like text" },
+    { "eventId": 11555, "name": "CellRejectedNonFinite", "severity": "Error", "subcategory": "Session", "message": "rejected non-finite number" },
+    { "eventId": 11560, "name": "WriteSeriesComplete", "severity": "Information", "subcategory": "Series", "message": "series csv written" }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "app": "PerfMon.Disk",
+  "category": "PerfMon",
+  "block": { "start": 19500, "end": 19999 },
+  "events": [
+    { "eventId": 19500, "name": "ProbeEnter", "severity": "Debug", "subcategory": "Disk", "message": "enter probe" },
+    { "eventId": 19505, "name": "ProbeStarted", "severity": "Information", "subcategory": "Disk", "message": "probe started" },
+    { "eventId": 19510, "name": "PathsBuilt", "severity": "Debug", "subcategory": "Paths", "message": "paths built" },
+    { "eventId": 19515, "name": "ProbeComplete", "severity": "Information", "subcategory": "Disk", "message": "probe complete" },
+    { "eventId": 19520, "name": "ProbeCancelled", "severity": "Information", "subcategory": "Disk", "message": "probe cancelled" },
+    { "eventId": 19525, "name": "ProbeRejected", "severity": "Error", "subcategory": "Disk", "message": "probe rejected" },
+    { "eventId": 19530, "name": "ObjectMissing", "severity": "Warning", "subcategory": "Paths", "message": "PhysicalDisk absent" },
+    { "eventId": 19535, "name": "DisksCapped", "severity": "Warning", "subcategory": "Paths", "message": "disk list truncated" },
+    { "eventId": 19540, "name": "CounterOmitted", "severity": "Debug", "subcategory": "Paths", "message": "optional counter absent" },
+    { "eventId": 19545, "name": "ProbeFailed", "severity": "Error", "subcategory": "Disk", "message": "probe aborted after start" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "source": "pdh-all.json",
+  "machine": "USNCDTWIN01",
+  "utc": "2026-09-28T21:47:41.1409935+00:00",
+  "allowList": [
+    "GPU Engine",
+    "GPU Process Memory",
+    "GPU Adapter Memory",
+    "GPU Local Adapter Memory",
+    "GPU Non Local Adapter Memory"
+  ],
+  "categoryCount": 0,
+  "categories": []
+}

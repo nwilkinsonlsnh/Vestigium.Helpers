@@ -1,0 +1,16 @@
+# Vestigium packed OUI snapshot. Not a live IEEE MA-L pull.
+# Format: OUI<tab>Vendor
+# Hosts that need completeness should supply their own file to LoadOuiRegistry.
+00:00:0C	Cisco Systems, Inc
+00:1B:63	Apple, Inc.
+00:1A:11	Google, Inc.
+00:50:56	VMware, Inc.
+00:0C:29	VMware, Inc.
+08:00:27	PCS Systemtechnik GmbH
+B8:27:EB	Raspberry Pi Foundation
+DC:A6:32	Raspberry Pi Trading Ltd
+3C:5A:B4	Google, Inc.
+F0:18:98	Apple, Inc.
+00:15:5D	Microsoft Corporation
+52:54:00	QEMU/KVM
+AC:DE:48	Private

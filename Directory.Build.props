@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <VestigiumLoggingVersion>1.7.1</VestigiumLoggingVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Vestigium.Logging" Version="$(VestigiumLoggingVersion)" />
+  </ItemGroup>
+</Project>

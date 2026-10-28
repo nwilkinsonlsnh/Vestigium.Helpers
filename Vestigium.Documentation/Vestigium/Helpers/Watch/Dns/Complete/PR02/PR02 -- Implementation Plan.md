@@ -1,0 +1,80 @@
+# Vestigium.Helpers.Watch.Dns — PR02 Implementation Plan
+
+**Document ID:** VEST-HELPERS-WATCH-DNS-PR02-PLAN
+**Host:** `Vestigium.Helpers.Watch.Dns`
+**APPID:** `Watch.Dns`
+**Repo:** `nwilkinsonlsnh/Vestigium.Helpers`
+**Status:** Closed. PR02-05 done.
+**Date:** 9 October 2026
+**Binding:** [PR02 -- Requirements.md](PR02%20--%20Requirements.md) wins on this cut. PR01 wins on the clock, the pipe, and the elevation exits. This file wins on order.
+
+**Goal:** A required source, and one normalized query name as one row with a count from each source that was asked to run.
+
+**Not:** A builder. The Event Log. A URL key. A raw outbound capture. The pipe name the tab must know. The DnsIQ tab.
+
+---
+
+## Decision
+
+| Call | Why |
+|---|---|
+| `TryCreate(source, seconds)` | Missing source rejects. `Both` is not inside the type. |
+| Emit on change | The tab is open during the watch. A final snapshot hides the count until stop. |
+| Pid omitted when mixed | The sources are Event and Port. The caller is not a third source. |
+
+---
+
+## Implementation table
+
+| Slice | Id | Work | Status |
+|---|---|---|---|
+| 1 | PR02-01 | `TryCreate` requires `Event`, `Port`, or `Both`. Missing source rejects. `Main` passes `Both` only when the arg is absent. | Done. Reject opens no sensor. |
+| 2 | PR02-02 | Normalize the name. Key is name + type. Scheme or path rejects. | Done. Trailing dot folds. |
+| 3 | PR02-03 | Rollup. Increment the source. Emit the replaced line. Omit pid when mixed. | Done. 100 Event adds are one key. |
+| 4 | PR02-04 | Run the requested sensors. A failure row for the one that throws. Exit 3 only if none remain. | Done. Both keeps the survivor. |
+| 5 | PR02-05 | Unseen line matches the source. `Both` names both holes. | Done. |
+
+---
+
+## Slices
+
+### PR02-01
+
+Done. A missing source rejects. A missing arg in `Main` is `Both`. A bad arg returns 1 before the pipe opens. No builder.
+
+### PR02-02
+
+Done. Trim. Drop one trailing dot. Lower-case is the key. A scheme, a path, or an empty label rejects. `Edge.Example.` and `edge.example` are one key.
+
+### PR02-03
+
+Done. 100 Event adds are one key with resolver count 100. A second pid clears the caller. A URL does not increment. No socket. No ETW. The sensors do not call `Add` yet.
+
+### PR02-04
+
+Done. `Both` keeps the survivor. Event-only still exits 3. Query rows come from the rollup. A port payload that is not a question is not written.
+
+### PR02-05
+
+Done. `Both` names the resolver holes and the bind holes. `Event` and `Port` keep the PR01 sentences.
+
+---
+
+## Files this plan expects to touch
+
+```
+src/Vestigium.Helpers.Watch.Dns/WatchRequest.cs       [NEW]
+src/Vestigium.Helpers.Watch.Dns/QueryName.cs          [NEW]
+src/Vestigium.Helpers.Watch.Dns/WatchRollup.cs        [NEW]
+src/Vestigium.Helpers.Watch.Dns/Program.cs
+src/Vestigium.Helpers.Watch.Dns/Unseen.cs
+tests/Vestigium.Helpers.Watch.Dns.Tests/WatchRollupTests.cs   [NEW]
+```
+
+Do not enable the Operational channel. Do not edit DnsIQ. Do not add a builder.
+
+---
+
+## Next action
+
+None in this repo. DnsIQ PR08 may start. It still does not own the sensor.

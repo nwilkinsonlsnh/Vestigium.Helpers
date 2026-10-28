@@ -1,0 +1,102 @@
+using System.Text.Json;
+using Vestigium.Helpers.PerfMon.PageFile;
+
+namespace Vestigium.Helpers.Tests;
+
+public sealed class PerfMonPr02aTests
+{
+    [Fact]
+    public void PR02a_001_pagefile_shard_is_allow_listed()
+    {
+        var jsonPath = ShardPath();
+        Assert.True(File.Exists(jsonPath), jsonPath);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var root = doc.RootElement;
+        Assert.Equal(1, root.GetProperty("categoryCount").GetInt32());
+        var allow = root.GetProperty("allowList").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(["Paging File"], allow);
+
+        var cats = root.GetProperty("categories").EnumerateArray().ToArray();
+        Assert.Single(cats);
+        var row = cats[0];
+        Assert.Equal("Paging File", row.GetProperty("category").GetString());
+        Assert.Equal("PagingFile", row.GetProperty("identifier").GetString());
+        Assert.False(row.TryGetProperty("instances", out _));
+        Assert.False(row.TryGetProperty("help", out _));
+
+        var counters = row.GetProperty("counters").EnumerateArray().Select(c => (
+            c.GetProperty("name").GetString(),
+            c.GetProperty("identifier").GetString())).ToArray();
+        Assert.Equal(("% Usage", "PercentUsage"), counters[0]);
+        Assert.Equal(("% Usage Peak", "PercentUsagePeak"), counters[1]);
+    }
+
+    [Fact]
+    public void PR02a_001_mini_dump_filter_drops_clr_and_instances()
+    {
+        var mini = FindNamed("pdh-mini.json");
+        using var doc = JsonDocument.Parse(File.ReadAllText(mini));
+        var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Paging File" };
+        var hits = doc.RootElement.GetProperty("categories").EnumerateArray()
+            .Where(c => wanted.Contains(c.GetProperty("category").GetString()!))
+            .ToArray();
+        Assert.Single(hits);
+        Assert.Equal("Paging File", hits[0].GetProperty("category").GetString());
+        Assert.Contains(
+            doc.RootElement.GetProperty("categories").EnumerateArray().Select(c => c.GetProperty("category").GetString()),
+            name => name == ".NET CLR Memory");
+    }
+
+    [Fact]
+    public void PR02a_004_tools_readme_names_the_pipeline()
+    {
+        var dumpScript = FindNamed("Dump-PdhCatalog.ps1");
+        var tools = Path.GetDirectoryName(dumpScript)!;
+        Assert.True(File.Exists(Path.Combine(tools, "Filter-PdhCatalog.ps1")));
+        Assert.True(File.Exists(Path.Combine(tools, "New-PdhCatalogClasses.ps1")));
+        var text = File.ReadAllText(Path.Combine(tools, "README.md"));
+        Assert.Contains("Dump-PdhCatalog.ps1", text);
+        Assert.Contains("Filter-PdhCatalog.ps1", text);
+        Assert.Contains("New-PdhCatalogClasses.ps1", text);
+        Assert.Contains("-Probe PageFile", text);
+    }
+
+    [Fact]
+    public void PR02a_003_shard_class_and_counterset_agree()
+    {
+        PdhCatalogAgreement.AssertMatches(
+            typeof(PageFilePerfCatalog).Assembly,
+            PagingFile.Category,
+            PagingFile.Counters,
+            PageFileCounterCatalog.Counters(PagingFile.Category));
+    }
+
+    [Fact]
+    public void PR02a_002_pagingfile_matches_shard()
+    {
+        Assert.Equal("Paging File", PagingFile.Category);
+        Assert.Equal("% Usage", PagingFile.PercentUsage);
+        Assert.Equal("% Usage Peak", PagingFile.PercentUsagePeak);
+        Assert.Equal(["% Usage", "% Usage Peak"], PagingFile.Counters);
+    }
+
+    private static string ShardPath()
+        => Path.Combine(
+            Path.GetDirectoryName(typeof(PageFilePerfCatalog).Assembly.Location)!,
+            "EventCatalog",
+            "pdh-categories.json");
+
+    private static string FindNamed(string name)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var hit = dir.GetFiles(name, SearchOption.AllDirectories).FirstOrDefault();
+            if (hit is not null)
+                return hit.FullName;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException(name);
+    }
+}
