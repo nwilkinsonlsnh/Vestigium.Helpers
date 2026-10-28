@@ -61,9 +61,12 @@ internal static class TcpConnectEngine
             {
                 await socket.ConnectAsync(dest, port, timed.Token).ConfigureAwait(false);
                 var mss = TcpMss.TryRead(socket);
-                var ok = new TcpConnectResult(jobId, host, port, dest.ToString(), TcpConnectStatus.Connected, started.ElapsedMilliseconds, "connected", mss);
+                var banner = options.ReadBanner
+                    ? await TcpBanner.TryReadAsync(socket, options.BannerMaxBytes, options.BannerTimeout, token).ConfigureAwait(false)
+                    : null;
+                var ok = new TcpConnectResult(jobId, host, port, dest.ToString(), TcpConnectStatus.Connected, started.ElapsedMilliseconds, "connected", mss, banner);
                 progress?.Report(new NetworkProgress { JobId = jobId, Phase = "Connect", LastStatus = "Connected", LastRoundtripMs = ok.ElapsedMs });
-                NetworkLog.Success(HelperLog.Subcategories.Icmp, $"Connected tcpConnect job={jobId} host={host} port={port} ms={ok.ElapsedMs} mss={mss?.ToString() ?? "null"}");
+                NetworkLog.Success(HelperLog.Subcategories.Icmp, $"Connected tcpConnect job={jobId} host={host} port={port} ms={ok.ElapsedMs} mss={mss?.ToString() ?? "null"} banner={(banner is null ? "null" : "set")}");
                 return ok;
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
