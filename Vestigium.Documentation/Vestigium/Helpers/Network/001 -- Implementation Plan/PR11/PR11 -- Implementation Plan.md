@@ -18,7 +18,7 @@ Build order is the Order column.
 
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
-| 1 | PR11-01 | `InferredDeviceClass` and `InferredVendor` enums. Pure scorer that takes evidence and returns class, vendor, confidence, and the evidence list. No I/O. | Open |
+| 1 | PR11-01 | `InferredDeviceClass` and `InferredVendor` enums. Pure scorer that takes evidence and returns class, vendor, confidence, and the evidence list. No I/O. | Done |
 | 2 | PR11-02 | TTL summary helper. Pure function over existing `IcmpEchoReply` list: min/max/mode TTL and **estimated** hop count. Does not call `IcmpTrace` / `Trace`. | Open |
 | 3 | PR11-03 | TCP MSS on successful `TcpConnect`. Capture when the stack exposes the option. Miss is null. Status unchanged. | Open |
 | 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Open |
@@ -32,6 +32,8 @@ Build order is the Order column.
 ### PR11-01
 
 Enums are the locked set. The scorer is a pure function. Inputs are a list of evidence items (port open, OUI match when the caller already has a MAC, banner snippet, SNMP fragment). Output always includes the evidence that contributed. Confidence is derived from independent signals, not from a single port. No network call inside the scorer. No neighbor or MAC lookup.
+
+Landed: `InferredDeviceClass`, `InferredVendor`, `InferenceConfidence`, `InferenceEvidence`, `InferenceResult`, `DeviceInference.Score`, `NetworkHelper.InferDevice`. Tests in `DeviceInferenceTests`.
 
 ### PR11-02
 
@@ -75,4 +77,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-01. Enums and the pure scorer first, so every later probe has a place to feed evidence.
+PR11-02. TTL summary over existing ICMP replies.
