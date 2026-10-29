@@ -73,7 +73,11 @@ Landed: decisions 54–64 in the SRS. Design, Guide, and package README amended 
 
 ### PR11-08
 
-Owner runs the filter on the clone. This agent does not mark the release closed.
+Owner runs the filter on the Windows clone. This agent does not mark the release closed.
+
+Linux clone result (not the gate): 213 passed, 7 failed, 220 total. None of the failures are PR11. Failures are older Linux mismatches: path separator in `PR01_009`, route-write exception type, NetBIOS not throwing, and PerfMon.Network live counters. Charts test files still compile on Linux and were moved aside for this run only.
+
+Banner compile fix landed in the same pass: printable check uses int codes 9 / 10 / 13 so the source does not embed raw control characters.
 
 ## What this release does not do
 
@@ -89,4 +93,8 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-08. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network`.
+PR11-08. Owner runs the filter on the Windows clone:
+
+```powershell
+dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network
+```
