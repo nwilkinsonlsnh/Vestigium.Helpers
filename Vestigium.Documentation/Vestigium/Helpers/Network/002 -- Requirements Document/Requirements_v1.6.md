@@ -2,9 +2,9 @@
 
 **Document ID:** VEST-HLP-NETWORK-SRS-000  
 **Version:** 1.6  
-**Status:** Locked companion to PR01–PR10.  
-**Date:** 24 September 2026  
-**Package:** `Vestigium.Helpers.Network` **1.2.0**  
+**Status:** Locked companion to PR01–PR11.  
+**Date:** 28 October 2026  
+**Package:** `Vestigium.Helpers.Network` **1.7.0**  
 **TFM:** `net10.0` (.NET 10 LTS) — **Windows and Linux are first-class**. Not `net10.0-windows`.  
 **Companion:** [`DevelopersGuide_v1.6.md`](DevelopersGuide_v1.6.md), [`Design_v1.6.md`](Design_v1.6.md)
 
@@ -73,6 +73,17 @@ This library does not plot and will not grow a plot API.
 | 51 | UdpProbe | One host, one port. Replied, unreachable, or timed out. |
 | 52 | ProbeDns | One name, optional server. Answered, refused, or timed out. Not HTTP. |
 | 53 | WatchAdapter | One adapter, one duration. Oper-status and speed. No bill. No plot. |
+| 54 | Inference only | Results are `Inferred*`. Never a definitive OS or device claim. Always return the evidence list. |
+| 55 | Device class enum | `InferredDeviceClass`: `Unknown`, `WindowsHost`, `UnixLikeHost`, `NetworkDevice`, `MobileOrEmbedded`, `PrinterOrAppliance`. |
+| 56 | Vendor enum | `InferredVendor`: `Unknown`, `Cisco`, `Juniper`, `Arista`, `PaloAlto`, `Fortinet`, `Other`. |
+| 57 | Scoring is pure | A function that consumes evidence and returns class, vendor, confidence, and the evidence used. No I/O inside the scorer. |
+| 58 | No port sweep | Decision 41 stands. No range, no CIDR expansion, no caller-supplied port list as a library job. |
+| 59 | Banner read | Optional short read after a successful TCP connect. Cap the length. Cap the time. Do not speak a protocol conversation. Off by default. |
+| 60 | TCP MSS | On a successful `TcpConnect`, capture MSS when the stack exposes it. Miss stays null. Status unchanged. |
+| 61 | TTL summary | Thin helper over existing ICMP replies: min/max/mode observed TTL and an **estimated** hop count. Does not probe. Does not call `IcmpTrace` / `Trace`. |
+| 62 | SNMP sysDescr | Optional one-shot UDP Get of `1.3.6.1.2.1.1.1.0`. Community is a caller parameter and is never logged. No walk. No set. No other OIDs. |
+| 63 | OUI reuse | Scoring may consume an existing OUI lookup result when the caller already has a MAC. This path does not call `ProbeNeighbor` or `GetNeighbors` and does not obtain a MAC. |
+| 64 | Local adapter MTU | `NetworkAdapter.Mtu` is the local interface MTU. Remote frame size is `PathMtu`. |
 
 ---
 
@@ -88,7 +99,7 @@ This library does not plot and will not grow a plot API.
 
 ## 12. Non-goals
 
-Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client. Packet capture. Default-route write. Plotting. Port sweep.
+Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client. Packet capture. Default-route write. Plotting. Port sweep. Actual hop walk from the inference path. Neighbor or MAC resolution from the inference path. SNMP walk or set. OS fingerprinting. Hard OS or vendor detection.
 
 ---
 
@@ -97,14 +108,15 @@ Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client. Packet
 | Version | Item |
 |---|---|
 | PR09 | Package 1.1.0 — **shipped** |
-| PR10 / PR10b | Package 1.2.0 — **this amendment** |
+| PR10 / PR10b | Package 1.2.0 — **shipped** |
+| PR11 | Package 1.7.0 — **this amendment** |
 | later | Scheduler package; macOS as a test gate; repo Linux CI |
 
 ---
 
 ## 15. Acceptance
 
-PR01–PR09 stand. PR10 accepts decisions 46–53 and package **1.2.0**. Decisions 1–45 remain in this file.
+PR01–PR10 stand. PR11 accepts decisions 54–64. Decision 41 remains locked. Decisions 1–53 remain in this file.
 
 ## Document control
 
@@ -113,3 +125,4 @@ PR01–PR09 stand. PR10 accepts decisions 46–53 and package **1.2.0**. Decisio
 | 1.6 + PR09-11 | 24 Sep 2026 | PR09 doors. Package 1.1.0. |
 | 1.6 + PR10-09 | 24 Sep 2026 | PR10 doors. Package 1.2.0. |
 | 1.6 + PR10b-04 | 24 Sep 2026 | Restored decisions 1–45. Kept 46–53. |
+| 1.6 + PR11-07 | 28 Oct 2026 | PR11 doors. Decisions 54–64. Decision 41 locked. Package 1.7.0. |

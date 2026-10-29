@@ -2,8 +2,8 @@
 
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
 **Version:** 1.6  
-**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.2.0**.  
-**Date:** 24 September 2026
+**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.7.0**.  
+**Date:** 28 October 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
 
@@ -11,10 +11,10 @@ Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Ne
 
 A .NET 10 LTS resource library. Hosts subscribe on Windows or Linux. Not a CLI. Not `ping.exe`. Not a plot package. It will not grow a plot API.
 
-One `net10.0` DLL. References: Json 1.0.1, Analytics 1.0.1, FileIo 1.1.1. Logging from repo `$(VestigiumLoggingVersion)`. No plot package.
+One `net10.0` DLL. References: Json 1.0.1, Analytics 1.0.1, FileIo 1.1.2. Logging from repo `$(VestigiumLoggingVersion)`. No plot package.
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.2.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="1.7.0" />
 ```
 
 Route **print** works on both OS, both families. Route **write** is Option C.
@@ -22,6 +22,26 @@ Route **print** works on both OS, both families. Route **write** is Option C.
 Default `0.0.0.0/0` or `::/0` throws `NetworkRouteDenied`. No admin / no `CAP_NET_ADMIN` throws the same.
 
 NetBIOS is Windows-only. `NetworkTestHooks` is internal. This library does not plot.
+
+## PR11 jobs
+
+```csharp
+var inferred = NetworkHelper.InferDevice(evidence);
+var ttl = NetworkHelper.SummarizeTtl(echo.Replies);
+var tcp = await NetworkHelper.TcpConnect("192.0.2.1", 22, new TcpConnectOptions { ReadBanner = true }).RunAsync();
+var snmp = await NetworkHelper.ProbeSnmpSysDescr("192.0.2.1", new SnmpSysDescrOptions { Community = "public" }).RunAsync();
+var nic = NetworkHelper.GetAdapter("Ethernet");
+```
+
+`InferDevice` is pure. It returns class, vendor, confidence, and the evidence used. It does not probe, resolve a MAC, or walk hops.
+
+`SummarizeTtl` is an estimate from successful replies. Conventional initials are 64, 128, 255. It does not call `IcmpTrace`.
+
+`TcpConnect` may carry `Mss` when the stack exposes it, and `Banner` when `ReadBanner` is set. Both miss as null. Status is unchanged. Banner is off by default and does not speak a protocol.
+
+`ProbeSnmpSysDescr` is one Get of `1.3.6.1.2.1.1.1.0`. Community is required and is never logged. No walk. No set.
+
+`NetworkAdapter.Mtu` is the local interface MTU. Remote frame size is `PathMtu`.
 
 ## PR10 jobs
 
@@ -57,7 +77,7 @@ var arp  = NetworkHelper.ProbeNeighbor("192.0.2.1");
 
 ## OUI
 
-The registry is not packed. Completeness is `LookupOuiAsync`.
+The registry is not packed. Completeness is `LookupOuiAsync`. Inference may consume an OUI result the caller already has. It does not obtain a MAC.
 
 ## Share campaigns
 
@@ -73,7 +93,7 @@ Windows `FullyQualifiedName~Network` is the Network gate.
 
 ## What is not next in this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry. Port sweep. Default-route write.
+Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry. Port sweep. Default-route write. Actual hop walk from the inference path. Neighbor or MAC resolution from the inference path. SNMP walk or set. OS fingerprinting.
 
 ## Document control
 
@@ -81,3 +101,4 @@ Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE O
 |---|---|---|
 | 1.6 + PR09-11 | 24 Sep 2026 | Consume 1.1.0. PR09 doors. |
 | 1.6 + PR10-09 | 24 Sep 2026 | Consume 1.2.0. PR10 doors. |
+| 1.6 + PR11-07 | 28 Oct 2026 | Consume 1.7.0. PR11 doors. |
