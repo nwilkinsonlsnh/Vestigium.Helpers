@@ -24,7 +24,7 @@ Build order is the Order column.
 | 4 | PR11-04 | Optional banner read on TCP connect. Short, capped length and time. Off by default. No protocol conversation. | Done |
 | 5 | PR11-05 | Optional one-shot SNMP Get of `sysDescr` (`1.3.6.1.2.1.1.1.0`). Caller supplies community. Typed miss on timeout or error. No walk. No set. | Done |
 | 6 | PR11-06 | Surface local adapter MTU on `NetworkAdapter` if not already present. Document that remote frame size is existing `PathMtu`. | Done |
-| 7 | PR11-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 54–64 land. Decision 41 does not move. | Open |
+| 7 | PR11-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 54–64 land. Decision 41 does not move. | Done |
 | 8 | PR11-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
@@ -69,6 +69,8 @@ Landed: already present. `NetworkAdapter.Mtu` is filled from `GetIPv4Properties(
 
 Amend `Requirements_v1.6.md`, `Design_v1.6.md`, `DevelopersGuide_v1.6.md`, and the package README in place. Add decisions 54–64. Leave Decision 41 locked. Do not open a second requirements file.
 
+Landed: decisions 54–64 in the SRS. Design, Guide, and package README amended in place. Decision 41 remains locked. Consume line is 1.7.0.
+
 ### PR11-08
 
 Owner runs the filter on the clone. This agent does not mark the release closed.
@@ -87,4 +89,4 @@ Owner runs the filter on the clone. This agent does not mark the release closed.
 
 ## Next action
 
-PR11-07. Amend SRS, Design, Guide, and the package README.
+PR11-08. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network`.
