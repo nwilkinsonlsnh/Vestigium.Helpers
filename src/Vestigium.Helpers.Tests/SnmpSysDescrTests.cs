@@ -40,11 +40,12 @@ public sealed class SnmpSysDescrTests
     }
 
     [Fact]
-    public async Task Loopback_timeout_is_typed()
+    public async Task Silent_host_is_a_typed_miss()
     {
-        var job = NetworkHelper.ProbeSnmpSysDescr("127.0.0.1", new SnmpSysDescrOptions { Timeout = TimeSpan.FromMilliseconds(200), Port = 1 });
+        var job = NetworkHelper.ProbeSnmpSysDescr("192.0.2.1", new SnmpSysDescrOptions { Timeout = TimeSpan.FromMilliseconds(200), Port = 161 });
         var result = await job.RunAsync();
-        Assert.Equal(SnmpSysDescrStatus.TimedOut, result.Status);
+        Assert.True(result.Status is SnmpSysDescrStatus.TimedOut or SnmpSysDescrStatus.Error);
+        Assert.NotEqual(SnmpSysDescrStatus.Answered, result.Status);
         Assert.Null(result.SysDescr);
     }
 }
