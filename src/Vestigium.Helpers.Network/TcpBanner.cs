@@ -38,7 +38,8 @@ internal static class TcpBanner
             return null;
         foreach (var ch in text)
         {
-            if (ch is not (9 or 10 or 13) && (ch < 32 || ch > 126))
+            var code = (int)ch;
+            if (code is not (9 or 10 or 13) && (code < 32 || code > 126))
                 return null;
         }
 
