@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.NetworkInformation;
+using System.Runtime.Versioning;
 using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Network;
@@ -115,13 +116,25 @@ internal static class CounterSampleEngine
                 stats.IncomingPacketsWithErrors,
                 stats.OutgoingPacketsWithErrors,
                 stats.IncomingPacketsDiscarded,
-                stats.OutgoingPacketsDiscarded);
+                DiscardsOut(stats));
         }
         catch (NetworkInformationException)
         {
             return new CounterReading(0, 0, 0, 0, 0, 0);
         }
     }
+
+    private static long DiscardsOut(IPInterfaceStatistics stats)
+    {
+        if (OperatingSystem.IsMacOS())
+            return 0;
+        return DiscardsOutCore(stats);
+    }
+
+    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
+    private static long DiscardsOutCore(IPInterfaceStatistics stats)
+        => stats.OutgoingPacketsDiscarded;
 
     internal static NetworkInterface? Find(string nameOrId)
     {

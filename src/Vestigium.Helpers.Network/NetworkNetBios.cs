@@ -1,5 +1,6 @@
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text;
 using Microsoft.Win32;
 
@@ -56,6 +57,31 @@ internal static class NetworkNetBios
 
     public static NetworkNetBiosStats ReadStats()
         => new(0, 0, 0, 0, _fault ?? NodeType());
+
+    private static string? NodeType()
+    {
+        if (!OperatingSystem.IsWindows())
+            return null;
+        return NodeTypeWindows();
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static string? NodeTypeWindows()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\NetBT\Parameters");
+            return key?.GetValue("NodeType") switch
+            {
+                int code => code switch { 1 => "B-node", 2 => "P-node", 4 => "M-node", 8 => "H-node", _ => code.ToString() },
+                _ => null
+            };
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 
     private static IReadOnlyList<byte> Lanas()
     {
@@ -240,23 +266,6 @@ internal static class NetworkNetBios
         return adapters[lana].GetIPProperties().UnicastAddresses
             .Select(row => row.Address.ToString())
             .FirstOrDefault(text => text.Contains('.'));
-    }
-
-    private static string? NodeType()
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\NetBT\Parameters");
-            return key?.GetValue("NodeType") switch
-            {
-                int code => code switch { 1 => "B-node", 2 => "P-node", 4 => "M-node", 8 => "H-node", _ => code.ToString() },
-                _ => null
-            };
-        }
-        catch (Exception)
-        {
-            return null;
-        }
     }
 
     private static string SuffixName(string suffix)

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 using Microsoft.Win32;
 
 namespace Vestigium.Helpers.Network;
@@ -16,7 +17,12 @@ internal static class NetworkInventoryWindows
     {
         if (!OperatingSystem.IsWindows())
             return [];
+        return ReadSearchListWindows();
+    }
 
+    [SupportedOSPlatform("windows")]
+    private static IReadOnlyList<string> ReadSearchListWindows()
+    {
         var found = new List<string>();
         try
         {
@@ -49,7 +55,12 @@ internal static class NetworkInventoryWindows
     {
         if (!OperatingSystem.IsWindows())
             return null;
+        return ReadStackWindows();
+    }
 
+    [SupportedOSPlatform("windows")]
+    private static TcpipStackInfo? ReadStackWindows()
+    {
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(TcpipParameters);
@@ -90,6 +101,23 @@ internal static class NetworkInventoryWindows
         if (!OperatingSystem.IsWindows())
             return;
 
+        ReadInterfaceWindows(nic, out metric, out metricIsAutomatic, out autoconfig, out leaseObtained, out leaseExpires);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void ReadInterfaceWindows(
+        NetworkInterface nic,
+        out int? metric,
+        out bool? metricIsAutomatic,
+        out bool? autoconfig,
+        out DateTimeOffset? leaseObtained,
+        out DateTimeOffset? leaseExpires)
+    {
+        metric = null;
+        metricIsAutomatic = true;
+        autoconfig = null;
+        leaseObtained = null;
+        leaseExpires = null;
         try
         {
             var id = nic.Id.Trim();
@@ -124,7 +152,13 @@ internal static class NetworkInventoryWindows
         physical = null;
         if (!OperatingSystem.IsWindows())
             return null;
+        return ReadDriverWindows(nic, out physical);
+    }
 
+    [SupportedOSPlatform("windows")]
+    private static AdapterDriver? ReadDriverWindows(NetworkInterface nic, out bool? physical)
+    {
+        physical = null;
         try
         {
             var id = nic.Id;
@@ -198,15 +232,18 @@ internal static class NetworkInventoryWindows
             .ToArray();
     }
 
+    [SupportedOSPlatform("windows")]
     private static int? ReadDword(RegistryKey key, string name)
         => key.GetValue(name) is int value ? value : null;
 
+    [SupportedOSPlatform("windows")]
     private static string? Text(RegistryKey key, string name)
     {
         var value = key.GetValue(name) as string;
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
+    [SupportedOSPlatform("windows")]
     private static DateTimeOffset? ReadLeaseTime(RegistryKey key, string name)
     {
         var raw = key.GetValue(name);
@@ -215,7 +252,6 @@ internal static class NetworkInventoryWindows
 
         try
         {
-            // Modern stacks store Unix seconds. Older DHCP client used 1980-01-01.
             if (dword >= 1_500_000_000)
                 return DateTimeOffset.FromUnixTimeSeconds(dword);
             return new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero).AddSeconds(dword);
@@ -252,7 +288,12 @@ internal static class NetworkInventoryWindows
     {
         if (!OperatingSystem.IsWindows() || string.IsNullOrWhiteSpace(id))
             return [];
+        return ReadInterfaceAddressesWindows(id);
+    }
 
+    [SupportedOSPlatform("windows")]
+    private static IReadOnlyList<UnicastAddress> ReadInterfaceAddressesWindows(string id)
+    {
         var found = new List<UnicastAddress>();
         try
         {
@@ -280,6 +321,7 @@ internal static class NetworkInventoryWindows
             .ToArray();
     }
 
+    [SupportedOSPlatform("windows")]
     private static void Add(List<UnicastAddress> found, object? value, AddressFamily family, bool dhcp)
     {
         foreach (var raw in Values(value))
