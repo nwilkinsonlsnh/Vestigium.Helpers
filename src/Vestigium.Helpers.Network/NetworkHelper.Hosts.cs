@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
@@ -28,12 +27,7 @@ public static partial class NetworkHelper
     }
 
     private static BigInteger ToInt(IPAddress address)
-    {
-        var bytes = address.GetAddressBytes();
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(bytes);
-        return new BigInteger(bytes, isUnsigned: true, isBigEndian: true);
-    }
+        => new(address.GetAddressBytes(), isUnsigned: true, isBigEndian: true);
 
     private static IPAddress ToIp(AddressFamily family, BigInteger value)
     {
