@@ -19,7 +19,7 @@ Build order is the Order column.
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | PR14-01 | Stamp 2.1.0 in README, Guide, and Design. | Done |
-| 2 | PR14-02 | Platform attributes. Clear CA1416 on Registry and macOS sites. | Open |
+| 2 | PR14-02 | Platform attributes. Clear CA1416 on Registry and macOS sites. | Done |
 | 3 | PR14-03 | `ResolveMac` on the scan. Opt-in. Miss is null. | Open |
 | 4 | PR14-04 | `HostsFromPrefix` returns IPv6 hosts. Cap 1024. Does not scan. | Open |
 | 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Open |
@@ -36,9 +36,15 @@ No new behavior.
 
 Landed: README, Guide, and Design consume **2.1.0**. Historical 2.0.0 rows stay as history.
 
-### PR14-02 through PR14-07
+### PR14-02
 
-Platform attributes, then the new doors. Banner never hits the audit log.
+No new behavior.
+
+Landed: Registry paths are `[SupportedOSPlatform("windows")]` behind `IsWindows()`. `OutgoingPacketsDiscarded` is skipped on macOS. Pack should no longer warn CA1416 on those sites.
+
+### PR14-03 through PR14-07
+
+The new doors. Banner never hits the audit log.
 
 ### PR14-08
 
@@ -57,4 +63,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR14-02. Platform attributes.
+PR14-03. Opt-in MAC.
