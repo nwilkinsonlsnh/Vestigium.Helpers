@@ -14,6 +14,7 @@ public sealed class UdpProbeOptions
     public string? SourceAddress { get; set; }
     public RouteFamily Family { get; set; } = RouteFamily.All;
     public int PayloadSize { get; set; } = 32;
+    public byte[]? Payload { get; set; }
 }
 
 public sealed record UdpProbeResult(

@@ -24,7 +24,7 @@ internal static class UdpProbeEngine
             throw new ArgumentOutOfRangeException(nameof(o.Timeout), "Timeout must be between 10 ms and 60 s.");
         }
 
-        if (o.PayloadSize is < 0 or > IcmpEchoOptions.MaxBufferSize)
+        if (o.Payload is null && o.PayloadSize is < 0 or > IcmpEchoOptions.MaxBufferSize)
         {
             HelperLog.Reject(HelperLog.AppIds.Network, HelperLog.Subcategories.Icmp, nameof(Create), $"PayloadSize={o.PayloadSize}");
             throw new ArgumentOutOfRangeException(nameof(o.PayloadSize), "PayloadSize must be between 0 and 65500.");
@@ -60,9 +60,9 @@ internal static class UdpProbeEngine
         {
             using var socket = new Socket(dest.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             EgressBind.Apply(socket, options.InterfaceIndex, options.SourceAddress);
-            var payload = new byte[options.PayloadSize];
+            var payload = options.Payload ?? new byte[options.PayloadSize];
             await socket.SendToAsync(payload, SocketFlags.None, new IPEndPoint(dest, port), token).ConfigureAwait(false);
-            var buffer = new byte[Math.Max(512, options.PayloadSize + 64)];
+            var buffer = new byte[Math.Max(512, payload.Length + 64)];
             using var timed = CancellationTokenSource.CreateLinkedTokenSource(token);
             timed.CancelAfter(timeoutMs);
             try
