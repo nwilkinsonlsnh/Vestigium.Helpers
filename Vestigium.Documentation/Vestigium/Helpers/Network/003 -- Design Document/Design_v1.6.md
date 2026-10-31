@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DSN-000  
 **Version:** 1.6  
-**Status:** Locked companion to SRS v1.6 + PR12  
+**Status:** Locked companion to SRS v1.6 + PR13  
 **Date:** 31 October 2026  
 **Binding:** `Requirements_v1.6.md` wins on conflict
 
@@ -20,7 +20,7 @@ host
        ├ Probe / inventory / snapshot / NetBIOS
        ├ IcmpEcho / Ping / IcmpTrace / Pathping
        ├ TcpConnect / UdpProbe / ProbeDns / WatchAdapter
-       ├ ScanPorts / PortSet
+       ├ ScanPorts / PortSet / HostsFromPrefix / PortScanCsv
        ├ PathMtu / SampleCounters / ProbeNeighbor
        ├ InferDevice / SummarizeTtl / ProbeSnmpSysDescr
        ├ LookupAsync (OS or wire)
@@ -42,26 +42,13 @@ This library does not plot and will not grow a plot API.
 
 | Decision | Why |
 |---|---|
-| One façade, internal engines | Hosts cannot reach hooks, wire codecs, or IP Helper structs. |
-| No process spawn | Output of `ping`/`ip`/`netsh`/`pathping` is not an API. |
-| Bound ICMP when bind is set | BCL `Ping` cannot pin the NIC. Unbound jobs may keep Ping. |
-| PMTU timeout is unknown | A dead host is not MTU 1. |
-| ProbeNeighbor is one address | The table dump is a different job. |
-| Pathping samples the settled protocol | ICMP samples of a TCP walk measure a different path. |
-| Recipe persists bind | Open must send on the same NIC Create chose. |
-| UdpProbe / ProbeDns / WatchAdapter | One datagram, one DNS ask, one NIC watch. Not a sweep. Not HTTP. Not a plot. |
-| Default route is not offered | `0.0.0.0/0` and `::/0` must not come from this DLL. |
-| No plot API | Never this library. |
-| TcpConnect / UdpProbe are one port | Decision 41 stands on those doors. `ScanPorts` is the only list or range. |
-| Sweep does not expand a CIDR | The calculator already answers that. A host tool expands and passes hosts. |
-| No SYN | Connect scan only. Raw sockets are a different threat model. |
-| Inference is pure | The scorer consumes evidence the caller already has. It does not probe, resolve a MAC, or walk hops. |
-| TTL summary is an estimate | Conventional initials 64 / 128 / 255. Not a trace. |
-| Banner is a short read | Optional, capped, off by default. No protocol conversation. |
-| Confirm is a short HTTP probe | Known clear-text ports only. No TLS. Off by default. |
-| Known UDP is one datagram | DNS and NTP only. Empty stays the default. |
-| SNMP is one Get | `sysDescr` only. Community is never logged. |
-| Local MTU vs path MTU | `NetworkAdapter.Mtu` is the NIC. `PathMtu` is the path. |
+| Progress has a total | A host can show percent. `Sent` is expected probes after discovery. |
+| OpenOnly is off | Closed and timed-out hits stay unless the caller asks for open only. |
+| ReadBanner is separate from Confirm | Speak-first services need a read. HTTP confirm is a different ask. |
+| Lab sets are names | `windows`, `printers`, `databases`. Still under the cap. |
+| Host list is not a scan | `HostsFromPrefix` uses the calculator and returns strings. The scanner still does not expand a CIDR. |
+| CSV is text | Lab notes need a table. No file write in the library. |
+| No SYN in this DLL | Half-open is `Vestigium.Helpers.Network.RawSocket`. |
 
 ---
 
@@ -69,13 +56,8 @@ This library does not plot and will not grow a plot API.
 
 | File | Role |
 |---|---|
-| `NetworkHelper.cs` | Public façade |
-| `EgressBind.cs` / `BoundIcmpEcho.cs` | Bind pin + bound echo |
-| `PathMtuEngine.cs` | Too-big vs unknown |
-| `NeighborResolve.cs` | One-address resolve |
-| `UdpProbeEngine.cs` / `DnsProbeEngine.cs` / `AdapterWatchEngine.cs` | PR10 jobs |
-| `DeviceInference.cs` / `TtlSummary.cs` / `TcpMss.cs` / `TcpBanner.cs` / `SnmpSysDescrEngine.cs` | PR11 doors |
-| `PortSet.cs` / `PortScanEngine.cs` / `PortScanRollup.cs` / `ServiceConfirm.cs` / `UdpPayloads.cs` | PR12 doors |
+| `NetworkHelper.cs` / `NetworkHelper.Hosts.cs` | Public façade. `HostsFromPrefix`. |
+| `PortSet.cs` / `PortScanEngine.cs` / `PortScanRollup.cs` / `PortScanCsv.cs` | PR12 and PR13 doors |
 | `Vestigium.Helpers.Network.csproj` | Version **2.0.0**. No plot package. |
 
 ---
@@ -84,10 +66,8 @@ This library does not plot and will not grow a plot API.
 
 | Pass | Outcome |
 |---|---|
-| PR09 | Package 1.1.0. |
-| PR10 | Bound ICMP, PMTU status, neighbor resolve, pathping sample protocol, recipe bind, UdpProbe, ProbeDns, WatchAdapter. Package 1.2.0. |
-| PR11 | Inference, TTL summary, TCP MSS, optional banner, SNMP sysDescr, local MTU documented. Package 1.7.0. |
 | PR12 | `ScanPorts`, `PortSet`, rollup, optional discovery, confirm, known UDP. No SYN. No CIDR. Package 2.0.0. |
+| PR13 | Progress total, `OpenOnly`, `ReadBanner` on the scan, lab sets, `HostsFromPrefix`, CSV. SYN stays out. |
 
 ---
 
@@ -101,7 +81,5 @@ Scheduler package. HTTP reachability beyond the short confirm probe. Demo galler
 
 | Version | Date | Change |
 |---|---|---|
-| 1.6 + PR09-11 | 24 Sep 2026 | PR09 doors. Package 1.1.0. |
-| 1.6 + PR10-09 | 24 Sep 2026 | PR10 doors. Package 1.2.0. |
-| 1.6 + PR11-07 | 28 Oct 2026 | PR11 doors. Package 1.7.0. |
 | 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. Decision 41 amended only for `ScanPorts`. No SYN. Package 2.0.0. |
+| 1.6 + PR13-07 | 31 Oct 2026 | PR13 doors. Decisions 76–83. |
