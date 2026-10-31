@@ -18,6 +18,8 @@ internal static class PortScanEngine
             throw new ArgumentException("IncludeTcp or IncludeUdp must be set.", nameof(options));
         if (o.Parallelism is < 1 or > PortScanOptions.MaxParallelism)
             throw new ArgumentOutOfRangeException(nameof(o.Parallelism), "Parallelism must be 1–64.");
+        if (o.DiscoverPort is < 1 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(o.DiscoverPort), "Discover port must be 1–65535.");
 
         var jobId = "scan-" + HelperLog.NewId();
         return new NetworkJob<PortScanResult>(jobId, "portScan", (token, progress) => RunAsync(jobId, names, ports, o, token, progress));
@@ -31,16 +33,20 @@ internal static class PortScanEngine
         CancellationToken token,
         IProgress<NetworkProgress>? progress)
     {
-        NetworkLog.Pending(HelperLog.Subcategories.Icmp, $"portScan job={jobId} hosts={hosts.Length} ports={ports.Ports.Count}");
+        NetworkLog.Pending(HelperLog.Subcategories.Icmp, $"portScan job={jobId} hosts={hosts.Length} ports={ports.Ports.Count} discover={options.Discover}");
         using var overall = CancellationTokenSource.CreateLinkedTokenSource(token);
         overall.CancelAfter(options.OverallTimeout);
+        var (live, skipped) = options.Discover
+            ? await DiscoverAsync(jobId, hosts, options, progress, overall.Token).ConfigureAwait(false)
+            : (hosts, Array.Empty<string>());
+
         var gate = new SemaphoreSlim(options.Parallelism);
-        var hostGates = hosts.ToDictionary(static host => host, static _ => new SemaphoreSlim(1), StringComparer.OrdinalIgnoreCase);
+        var hostGates = live.ToDictionary(static host => host, static _ => new SemaphoreSlim(1), StringComparer.OrdinalIgnoreCase);
         var hits = new ConcurrentBag<PortScanHit>();
         var work = new List<Task>();
         var sequence = 0;
 
-        foreach (var host in hosts)
+        foreach (var host in live)
         {
             foreach (var port in ports.Ports)
             {
@@ -57,11 +63,60 @@ internal static class PortScanEngine
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
-            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.TimedOut, options.Infer);
+            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, skipped, NetworkJobStatus.TimedOut, options.Infer);
         }
 
         token.ThrowIfCancellationRequested();
-        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.Success, options.Infer);
+        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, skipped, NetworkJobStatus.Success, options.Infer);
+    }
+
+    private static async Task<(string[] Live, string[] Skipped)> DiscoverAsync(
+        string jobId,
+        string[] hosts,
+        PortScanOptions options,
+        IProgress<NetworkProgress>? progress,
+        CancellationToken token)
+    {
+        var live = new ConcurrentBag<string>();
+        var skipped = new ConcurrentBag<string>();
+        var work = hosts.Select(async host =>
+        {
+            var up = options.DiscoverPort is int port
+                ? await TcpUpAsync(host, port, options, token).ConfigureAwait(false)
+                : await IcmpUpAsync(host, options, token).ConfigureAwait(false);
+            (up ? live : skipped).Add(host);
+            progress?.Report(new NetworkProgress { JobId = jobId, Phase = $"discover:{host}", LastStatus = up ? "Up" : "Skipped" });
+        });
+        await Task.WhenAll(work).ConfigureAwait(false);
+        return (
+            live.OrderBy(static host => host, StringComparer.OrdinalIgnoreCase).ToArray(),
+            skipped.OrderBy(static host => host, StringComparer.OrdinalIgnoreCase).ToArray());
+    }
+
+    private static async Task<bool> IcmpUpAsync(string host, PortScanOptions options, CancellationToken token)
+    {
+        var job = NetworkHelper.IcmpEcho(host, new IcmpEchoOptions
+        {
+            Count = 1,
+            Timeout = options.ConnectTimeout,
+            InterfaceIndex = options.InterfaceIndex,
+            SourceAddress = options.SourceAddress
+        });
+        var result = await job.RunAsync(token).ConfigureAwait(false);
+        return result.Received > 0;
+    }
+
+    private static async Task<bool> TcpUpAsync(string host, int port, PortScanOptions options, CancellationToken token)
+    {
+        var job = NetworkHelper.TcpConnect(host, port, new TcpConnectOptions
+        {
+            Timeout = options.ConnectTimeout,
+            InterfaceIndex = options.InterfaceIndex,
+            SourceAddress = options.SourceAddress,
+            Family = options.Family
+        });
+        var result = await job.RunAsync(token).ConfigureAwait(false);
+        return result.Status is TcpConnectStatus.Connected or TcpConnectStatus.Refused;
     }
 
     private static async Task ProbeAsync(
@@ -157,12 +212,12 @@ internal static class PortScanEngine
         return new PortScanHit(host, port, PortScanTransport.Udp, status, result.Address, result.ElapsedMs, result.Detail);
     }
 
-    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, NetworkJobStatus status, bool infer)
+    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, IReadOnlyList<string> skipped, NetworkJobStatus status, bool infer)
     {
         var named = PortScanRollup.Name(hits).OrderBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase).ThenBy(static hit => hit.Port).ToArray();
         var rows = PortScanRollup.Hosts(named, infer);
         var open = named.Count(static hit => hit.Status == PortScanStatus.Open);
-        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={named.Length} hosts={rows.Count}");
-        return new PortScanResult(jobId, status, hosts, ports, open, named, rows);
+        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={named.Length} skipped={skipped.Count}");
+        return new PortScanResult(jobId, status, hosts, ports, open, named, rows, skipped);
     }
 }

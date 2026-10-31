@@ -28,6 +28,8 @@ public sealed class PortScanOptions
     public bool IncludeTcp { get; set; } = true;
     public bool IncludeUdp { get; set; }
     public bool Infer { get; set; }
+    public bool Discover { get; set; }
+    public int? DiscoverPort { get; set; }
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
     public RouteFamily Family { get; set; } = RouteFamily.All;
@@ -66,4 +68,5 @@ public sealed record PortScanResult(
     int PortCount,
     int OpenCount,
     IReadOnlyList<PortScanHit> Hits,
-    IReadOnlyList<PortScanHostRow> Hosts);
+    IReadOnlyList<PortScanHostRow> Hosts,
+    IReadOnlyList<string> Skipped);
