@@ -22,7 +22,7 @@ Build order is the Order column.
 | 2 | PR14-02 | Platform attributes. Clear CA1416 on Registry and macOS sites. | Done |
 | 3 | PR14-03 | `ResolveMac` on the scan. Opt-in. Miss is null. | Done |
 | 4 | PR14-04 | `HostsFromPrefix` returns IPv6 hosts. Cap 1024. Does not scan. | Done |
-| 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Open |
+| 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Done |
 | 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Open |
 | 7 | PR14-07 | Library never logs a banner. Document the host rule. | Open |
 | 8 | PR14-08 | Amend SRS, Design, Guide, and the package README. Decisions 89–95 land. | Open |
@@ -30,15 +30,15 @@ Build order is the Order column.
 
 ## Slice notes
 
-### PR14-04
+### PR14-05
 
-Same door. Cap 1024. No scan.
+One handshake. No HTTP.
 
-Landed: `HostsFromPrefix` lists IPv4 usable hosts and IPv6 hosts. Over the cap throws. Tests in `HostsFromPrefixTests`.
+Landed: `ProbeTls`. Returns subject, issuer, expiry, and protocol. Accepts an untrusted certificate so a lab can read it. Tests in `TlsProbeTests`.
 
-### PR14-05 through PR14-07
+### PR14-06 through PR14-07
 
-The remaining doors. Banner never hits the audit log.
+JSON of a scan. Banner never hits the audit log.
 
 ### PR14-08
 
@@ -57,4 +57,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR14-05. TLS probe.
+PR14-06. JSON of a scan.
