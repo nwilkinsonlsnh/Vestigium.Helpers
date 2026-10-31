@@ -40,6 +40,10 @@ internal static class PortScanEngine
             ? await DiscoverAsync(jobId, hosts, options, progress, overall.Token).ConfigureAwait(false)
             : (hosts, Array.Empty<string>());
 
+        var transports = (options.IncludeTcp ? 1 : 0) + (options.IncludeUdp ? 1 : 0);
+        var expected = live.Length * ports.Ports.Count * transports;
+        progress?.Report(new NetworkProgress { JobId = jobId, Phase = "scan", Sent = expected, Received = 0 });
+
         var gate = new SemaphoreSlim(options.Parallelism);
         var hostGates = live.ToDictionary(static host => host, static _ => new SemaphoreSlim(1), StringComparer.OrdinalIgnoreCase);
         var hits = new ConcurrentBag<PortScanHit>();
@@ -51,9 +55,9 @@ internal static class PortScanEngine
             foreach (var port in ports.Ports)
             {
                 if (options.IncludeTcp)
-                    work.Add(ProbeAsync(jobId, host, port, PortScanTransport.Tcp, options, gate, hostGates[host], hits, progress, () => Interlocked.Increment(ref sequence), overall.Token));
+                    work.Add(ProbeAsync(jobId, host, port, PortScanTransport.Tcp, options, expected, gate, hostGates[host], hits, progress, () => Interlocked.Increment(ref sequence), overall.Token));
                 if (options.IncludeUdp)
-                    work.Add(ProbeAsync(jobId, host, port, PortScanTransport.Udp, options, gate, hostGates[host], hits, progress, () => Interlocked.Increment(ref sequence), overall.Token));
+                    work.Add(ProbeAsync(jobId, host, port, PortScanTransport.Udp, options, expected, gate, hostGates[host], hits, progress, () => Interlocked.Increment(ref sequence), overall.Token));
             }
         }
 
@@ -125,6 +129,7 @@ internal static class PortScanEngine
         int port,
         PortScanTransport transport,
         PortScanOptions options,
+        int expected,
         SemaphoreSlim gate,
         SemaphoreSlim hostGate,
         ConcurrentBag<PortScanHit> hits,
@@ -155,6 +160,7 @@ internal static class PortScanEngine
                 JobId = jobId,
                 Phase = $"{host}:{port}/{transport}",
                 Sequence = next(),
+                Sent = expected,
                 LastStatus = hit.Status.ToString(),
                 LastRoundtripMs = hit.ElapsedMs,
                 Received = hits.Count
