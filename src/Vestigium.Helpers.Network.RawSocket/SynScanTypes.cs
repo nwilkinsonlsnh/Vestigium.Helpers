@@ -26,6 +26,8 @@ public sealed class SynScanOptions
     public TimeSpan Timeout { get; set; } = DefaultTimeout;
     public TimeSpan OverallTimeout { get; set; } = DefaultOverallTimeout;
     public int Parallelism { get; set; } = DefaultParallelism;
+    public int InterfaceIndex { get; set; }
+    public string? SourceAddress { get; set; }
 }
 
 public sealed record SynScanHit(
