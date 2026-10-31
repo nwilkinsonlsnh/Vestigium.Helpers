@@ -57,11 +57,11 @@ internal static class PortScanEngine
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
-            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.TimedOut);
+            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.TimedOut, options.Infer);
         }
 
         token.ThrowIfCancellationRequested();
-        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.Success);
+        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.Success, options.Infer);
     }
 
     private static async Task ProbeAsync(
@@ -157,11 +157,12 @@ internal static class PortScanEngine
         return new PortScanHit(host, port, PortScanTransport.Udp, status, result.Address, result.ElapsedMs, result.Detail);
     }
 
-    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, NetworkJobStatus status)
+    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, NetworkJobStatus status, bool infer)
     {
-        var rows = hits.OrderBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase).ThenBy(static hit => hit.Port).ToArray();
-        var open = rows.Count(static hit => hit.Status == PortScanStatus.Open);
-        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={rows.Length}");
-        return new PortScanResult(jobId, status, hosts, ports, open, rows);
+        var named = PortScanRollup.Name(hits).OrderBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase).ThenBy(static hit => hit.Port).ToArray();
+        var rows = PortScanRollup.Hosts(named, infer);
+        var open = named.Count(static hit => hit.Status == PortScanStatus.Open);
+        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={named.Length} hosts={rows.Count}");
+        return new PortScanResult(jobId, status, hosts, ports, open, named, rows);
     }
 }
