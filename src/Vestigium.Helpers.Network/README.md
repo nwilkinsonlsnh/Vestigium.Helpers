@@ -6,8 +6,8 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Network` 2.1.0 |
-| Version rule | `2.1.0` is PR12 plus the PR13 and PR13a lab doors: progress total, `OpenOnly`, `ReadBanner` on the scan, lab port sets, `HostsFromPrefix`, flat open rows, and CSV. Decision 41 stays on the single-port doors. No SYN. Do not republish an older version as if it had these doors. |
+| Package | `Vestigium.Helpers.Network` 2.1.1 |
+| Version rule | `2.1.1` is PR14: opt-in MAC, IPv6 host list, `ProbeTls`, JSON, and the banner-logging rule. `2.1.0` is PR13a. Do not republish an older version as if it had these doors. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14560) |
@@ -20,7 +20,7 @@ Does not plot. OUI completeness is a URL fetched on request. The embedded snapsh
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="2.1.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="2.1.1" />
 ```
 
 ```csharp
@@ -38,6 +38,8 @@ var hosts = NetworkHelper.HostsFromPrefix("192.0.2.0/30");
 var scan = await NetworkHelper.ScanPorts(hosts, NetworkHelper.PortsWellKnown("windows"), new PortScanOptions { OpenOnly = true, ReadBanner = true }).RunAsync();
 var rows = PortScanCsv.Rows(scan);
 var csv = PortScanCsv.Write(scan);
+var json = PortScanJson.Write(scan);
+var tls = await NetworkHelper.ProbeTls("192.0.2.1", 443).RunAsync();
 ```
 
 `Ping` / `Trace` are aliases for `IcmpEcho` / `IcmpTrace`.
@@ -50,7 +52,7 @@ var csv = PortScanCsv.Write(scan);
 | `IcmpEcho` / `IcmpTrace` / `Pathping` | `NetworkJob<T>` | Bind set uses a bound ICMP path. |
 | `SummarizeTtl` | `TtlSummaryResult` | Estimated hops from existing replies. Not a trace. |
 | `TcpConnect` / `UdpProbe` | `NetworkJob<T>` | One host, one port. `Mss` and optional `Banner` on connect. |
-| `ScanPorts` | `NetworkJob<PortScanResult>` | Hosts you supply. List, range, or well-known set. Cap 1024. `Sent` is the expected probe count. |
+| `ScanPorts` | `NetworkJob<PortScanResult>` | Hosts you supply. List, range, or well-known set. Cap 1024. `Sent` is the expected probe count. `ResolveMac` is opt-in. |
 | `PortsFromList` / `PortsFromRange` / `PortsWellKnown` | `PortSet` | Pure. `common`, `catalog`, `windows`, `printers`, `databases`. |
 | `HostsFromPrefix` | host list | Usable IPv4 and IPv6 hosts. Cap 1024. Does not scan. |
 | `PortScanCsv.Rows` | `IReadOnlyList<PortScanOpenRow>` | Flat open ports. Bind a grid. Pure. |
