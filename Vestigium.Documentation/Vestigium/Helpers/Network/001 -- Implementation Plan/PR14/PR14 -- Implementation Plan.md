@@ -20,7 +20,7 @@ Build order is the Order column.
 | ---: | :--- | :--- | :--- |
 | 1 | PR14-01 | Stamp 2.1.0 in README, Guide, and Design. | Done |
 | 2 | PR14-02 | Platform attributes. Clear CA1416 on Registry and macOS sites. | Done |
-| 3 | PR14-03 | `ResolveMac` on the scan. Opt-in. Miss is null. | Open |
+| 3 | PR14-03 | `ResolveMac` on the scan. Opt-in. Miss is null. | Done |
 | 4 | PR14-04 | `HostsFromPrefix` returns IPv6 hosts. Cap 1024. Does not scan. | Open |
 | 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Open |
 | 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Open |
@@ -30,21 +30,15 @@ Build order is the Order column.
 
 ## Slice notes
 
-### PR14-01
+### PR14-03
 
-No new behavior.
+`ResolveMac` asks `ProbeNeighbor` per live host. Default false. Miss stays null.
 
-Landed: README, Guide, and Design consume **2.1.0**. Historical 2.0.0 rows stay as history.
+Landed: `PortScanOptions.ResolveMac`. `PortScanHostRow.Mac`. Off by default. Tests in `PortScanMacTests`.
 
-### PR14-02
+### PR14-04 through PR14-07
 
-No new behavior.
-
-Landed: Registry paths are `[SupportedOSPlatform("windows")]` behind `IsWindows()`. `OutgoingPacketsDiscarded` is skipped on macOS. Pack should no longer warn CA1416 on those sites.
-
-### PR14-03 through PR14-07
-
-The new doors. Banner never hits the audit log.
+The remaining doors. Banner never hits the audit log.
 
 ### PR14-08
 
@@ -63,4 +57,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR14-03. Opt-in MAC.
+PR14-04. IPv6 host list.
