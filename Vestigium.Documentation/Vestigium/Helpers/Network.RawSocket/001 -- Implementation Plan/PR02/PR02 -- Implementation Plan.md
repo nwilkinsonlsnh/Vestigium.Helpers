@@ -19,21 +19,17 @@ Build order is the Order column.
 | 1 | RAW02-01 | Progress. `Sent` expected. `Received` finished. | Done |
 | 2 | RAW02-02 | `SynScanCsv.Rows` and `Write`. Open ports only. | Done |
 | 3 | RAW02-03 | Parallelism. Default 8. Max 32. | Done |
-| 4 | RAW02-04 | Bind pin. `InterfaceIndex` or `SourceAddress`. | Open |
+| 4 | RAW02-04 | Bind pin. `InterfaceIndex` or `SourceAddress`. | Done |
 | 5 | RAW02-05 | Document Windows raw TCP denial. No fallback. Amend README. | Open |
 | 6 | RAW02-06 | `dotnet test` on the RawSocket filter. | Owner |
 
 ## Slice notes
 
-### RAW02-03
-
-Caller sets the cap. Default 8. Over 32 throws.
-
-Landed: `SynScanOptions.Parallelism`. Default 8. Max 32. Each probe has its own raw socket under the gate. Tests in `SynScanParallelismTests`.
-
 ### RAW02-04
 
 Optional pin. Unset keeps today's local-address pick.
+
+Landed: `InterfaceIndex` and `SourceAddress` on `SynScanOptions`. Same validation as Network. Index 0 is not rewritten to 1. Applied on the raw socket and on the local-address probe. Tests in `SynScanBindTests`.
 
 ### RAW02-05
 
@@ -53,4 +49,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-RAW02-04. Bind pin.
+RAW02-05. Document the Windows denial.
