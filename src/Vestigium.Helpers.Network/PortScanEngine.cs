@@ -1,0 +1,167 @@
+using System.Collections.Concurrent;
+using Vestigium.Helpers;
+
+namespace Vestigium.Helpers.Network;
+
+internal static class PortScanEngine
+{
+    public static NetworkJob<PortScanResult> Create(IEnumerable<string>? hosts, PortSet ports, PortScanOptions? options)
+    {
+        var names = (hosts ?? []).Where(static host => !string.IsNullOrWhiteSpace(host)).Select(static host => host.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (names.Length == 0)
+            throw new ArgumentException("At least one host is required.", nameof(hosts));
+        if (ports.Ports.Count == 0)
+            throw new ArgumentException("At least one port is required.", nameof(ports));
+
+        var o = options ?? new PortScanOptions();
+        if (!o.IncludeTcp && !o.IncludeUdp)
+            throw new ArgumentException("IncludeTcp or IncludeUdp must be set.", nameof(options));
+        if (o.Parallelism is < 1 or > PortScanOptions.MaxParallelism)
+            throw new ArgumentOutOfRangeException(nameof(o.Parallelism), "Parallelism must be 1–64.");
+
+        var jobId = "scan-" + HelperLog.NewId();
+        return new NetworkJob<PortScanResult>(jobId, "portScan", (token, progress) => RunAsync(jobId, names, ports, o, token, progress));
+    }
+
+    private static async Task<PortScanResult> RunAsync(
+        string jobId,
+        string[] hosts,
+        PortSet ports,
+        PortScanOptions options,
+        CancellationToken token,
+        IProgress<NetworkProgress>? progress)
+    {
+        NetworkLog.Pending(HelperLog.Subcategories.Icmp, $"portScan job={jobId} hosts={hosts.Length} ports={ports.Ports.Count}");
+        using var overall = CancellationTokenSource.CreateLinkedTokenSource(token);
+        overall.CancelAfter(options.OverallTimeout);
+        var gate = new SemaphoreSlim(options.Parallelism);
+        var hostGates = hosts.ToDictionary(static host => host, static _ => new SemaphoreSlim(1), StringComparer.OrdinalIgnoreCase);
+        var hits = new ConcurrentBag<PortScanHit>();
+        var work = new List<Task>();
+        var sequence = 0;
+
+        foreach (var host in hosts)
+        {
+            foreach (var port in ports.Ports)
+            {
+                if (options.IncludeTcp)
+                    work.Add(ProbeAsync(jobId, host, port, PortScanTransport.Tcp, options, gate, hostGates[host], hits, progress, () => Interlocked.Increment(ref sequence), overall.Token));
+                if (options.IncludeUdp)
+                    work.Add(ProbeAsync(jobId, host, port, PortScanTransport.Udp, options, gate, hostGates[host], hits, progress, () => Interlocked.Increment(ref sequence), overall.Token));
+            }
+        }
+
+        try
+        {
+            await Task.WhenAll(work).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.TimedOut);
+        }
+
+        token.ThrowIfCancellationRequested();
+        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, NetworkJobStatus.Success);
+    }
+
+    private static async Task ProbeAsync(
+        string jobId,
+        string host,
+        int port,
+        PortScanTransport transport,
+        PortScanOptions options,
+        SemaphoreSlim gate,
+        SemaphoreSlim hostGate,
+        ConcurrentBag<PortScanHit> hits,
+        IProgress<NetworkProgress>? progress,
+        Func<int> next,
+        CancellationToken token)
+    {
+        await gate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            await hostGate.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                if (options.PerHostDelay > TimeSpan.Zero)
+                    await Task.Delay(options.PerHostDelay, token).ConfigureAwait(false);
+            }
+            finally
+            {
+                hostGate.Release();
+            }
+
+            var hit = transport == PortScanTransport.Tcp
+                ? await ProbeTcpAsync(host, port, options, token).ConfigureAwait(false)
+                : await ProbeUdpAsync(host, port, options, token).ConfigureAwait(false);
+            hits.Add(hit);
+            progress?.Report(new NetworkProgress
+            {
+                JobId = jobId,
+                Phase = $"{host}:{port}/{transport}",
+                Sequence = next(),
+                LastStatus = hit.Status.ToString(),
+                LastRoundtripMs = hit.ElapsedMs,
+                Received = hits.Count
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            hits.Add(new PortScanHit(host, port, transport, PortScanStatus.Error, null, 0, ex.GetType().Name));
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private static async Task<PortScanHit> ProbeTcpAsync(string host, int port, PortScanOptions options, CancellationToken token)
+    {
+        var job = NetworkHelper.TcpConnect(host, port, new TcpConnectOptions
+        {
+            Timeout = options.ConnectTimeout,
+            InterfaceIndex = options.InterfaceIndex,
+            SourceAddress = options.SourceAddress,
+            Family = options.Family
+        });
+        var result = await job.RunAsync(token).ConfigureAwait(false);
+        var status = result.Status switch
+        {
+            TcpConnectStatus.Connected => PortScanStatus.Open,
+            TcpConnectStatus.Refused => PortScanStatus.Closed,
+            _ => PortScanStatus.TimedOut
+        };
+        return new PortScanHit(host, port, PortScanTransport.Tcp, status, result.Address, result.ElapsedMs, result.Detail, result.Mss, result.Banner);
+    }
+
+    private static async Task<PortScanHit> ProbeUdpAsync(string host, int port, PortScanOptions options, CancellationToken token)
+    {
+        var job = NetworkHelper.UdpProbe(host, port, new UdpProbeOptions
+        {
+            Timeout = options.ConnectTimeout,
+            InterfaceIndex = options.InterfaceIndex,
+            SourceAddress = options.SourceAddress,
+            Family = options.Family
+        });
+        var result = await job.RunAsync(token).ConfigureAwait(false);
+        var status = result.Status switch
+        {
+            UdpProbeStatus.Replied => PortScanStatus.Open,
+            UdpProbeStatus.Unreachable => PortScanStatus.Closed,
+            _ => PortScanStatus.TimedOut
+        };
+        return new PortScanHit(host, port, PortScanTransport.Udp, status, result.Address, result.ElapsedMs, result.Detail);
+    }
+
+    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, NetworkJobStatus status)
+    {
+        var rows = hits.OrderBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase).ThenBy(static hit => hit.Port).ToArray();
+        var open = rows.Count(static hit => hit.Status == PortScanStatus.Open);
+        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={rows.Length}");
+        return new PortScanResult(jobId, status, hosts, ports, open, rows);
+    }
+}
