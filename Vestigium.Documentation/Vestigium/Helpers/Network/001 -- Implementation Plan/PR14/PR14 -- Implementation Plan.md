@@ -6,7 +6,9 @@
 **Requirements:** [`PR14 -- Requirements.md`](PR14%20--%20Requirements.md)  
 **Binding:** Requirements win. Commit: `Network PR14: <step>`.
 
-One-sentence goal: fill the lab gaps and the RawSocket parity gaps, and lock the banner-logging rule.
+One-sentence goal: fill the lab gaps and lock the banner-logging rule.
+
+SYN parity is RawSocket PR02. This paper does not touch that package.
 
 PR14-N is the owner gate on the clone. Test names describe the behavior. They do not use the release id.
 
@@ -23,13 +25,8 @@ Build order is the Order column.
 | 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Open |
 | 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Open |
 | 7 | PR14-07 | Library never logs a banner. Document the host rule. | Open |
-| 8 | PR14-08 | RawSocket progress. `Sent` expected. `Received` finished. | Open |
-| 9 | PR14-09 | `SynScanCsv.Rows` and `Write`. Open ports only. | Open |
-| 10 | PR14-10 | SYN parallelism. Default 8. Max 32. | Open |
-| 11 | PR14-11 | SYN bind. `InterfaceIndex` or `SourceAddress`. | Open |
-| 12 | PR14-12 | Document Windows raw TCP denial. No fallback. | Open |
-| 13 | PR14-13 | Amend SRS, Design, Guide, and both READMEs. Decisions 89–100 land. | Open |
-| 14 | PR14-14 | `dotnet test` on Network and RawSocket filters. | Owner |
+| 8 | PR14-08 | Amend SRS, Design, Guide, and the package README. Decisions 89–95 land. | Open |
+| 9 | PR14-09 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
 
@@ -41,17 +38,13 @@ No new behavior. Stamp the version. Mark platform-specific calls.
 
 Network doors. `ResolveMac` uses `ProbeNeighbor`. `ProbeTls` is one handshake. JSON is text. Banner never hits the audit log.
 
-### PR14-08 through PR14-12
-
-RawSocket parity. Progress, rows, a lower parallelism cap, a bind pin. Windows raw TCP stays a typed denial.
-
-### PR14-13
+### PR14-08
 
 Amend in place. Decision 74 (no SYN in Network) and Decision 58 (no CIDR inside the scan) stay.
 
-### PR14-14
+### PR14-09
 
-Owner runs the filters on the Windows clone. This agent does not mark the release closed.
+Owner runs the filter on the Windows clone. This agent does not mark the release closed.
 
 ## What this release does not do
 
@@ -59,8 +52,6 @@ Owner runs the filters on the Windows clone. This agent does not mark the releas
 - Expand a CIDR inside `ScanPorts`.
 - Capture packets.
 - Walk SNMP.
-- Add WinDivert or Npcap.
-- Fall back from SYN to a connect scan.
 
 ## Next action
 
