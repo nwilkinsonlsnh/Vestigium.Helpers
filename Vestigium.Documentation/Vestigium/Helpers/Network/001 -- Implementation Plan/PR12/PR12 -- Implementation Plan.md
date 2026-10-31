@@ -21,7 +21,7 @@ Build order is the Order column.
 | 1 | PR12-01 | Port set types. Explicit list, begin–end range, and a named well-known set. Expand with a hard cap. Reject over the cap. No I/O. | Done |
 | 2 | PR12-02 | Sweep job. Hosts the caller supplies. Ports from PR12-01. Concurrency cap, per-host delay, overall timeout. Progress per finished port. | Done |
 | 3 | PR12-03 | Rollup. Per host: open TCP, open UDP, catalog name, MSS, banner. Optional inference from evidence the sweep already collected. | Done |
-| 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Open |
+| 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Done |
 | 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Open |
 | 6 | PR12-06 | Optional UDP payloads. Known payload for a small set of UDP ports. Empty payload remains the default. One datagram. | Open |
 | 7 | PR12-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 65–75 land. Decision 74 (no SYN) is explicit. | Open |
@@ -51,6 +51,8 @@ Landed: `PortScanHostRow`, `PortScanOpenPort`, `PortScanRollup`. Catalog name on
 
 Flag on the options. When set, run `IcmpEcho` (or one TCP probe) per host first. Hosts that miss are listed as skipped. When unset, every supplied host is scanned.
 
+Landed: `PortScanOptions.Discover` default false. `DiscoverPort` switches the probe to TCP (connected or refused counts as up). Misses land on `PortScanResult.Skipped` and are not scanned. Tests in `PortScanDiscoverTests`.
+
 ### PR12-05
 
 Flag on the options. When set, after a successful TCP connect to a known port, send one short request (for example an HTTP request line on 80/8080) and read a capped reply. Default remains the PR11 banner read, which sends nothing.
@@ -78,4 +80,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR12-04. Optional host discovery before the sweep.
+PR12-05. Optional service confirmation after a successful TCP connect.
