@@ -4,8 +4,9 @@ namespace Vestigium.Helpers.Network;
 
 /// <summary>
 /// Only logging door for this library. Category Helpers, APPID Network.
-/// Hosts initialize VestigiumLogger. Never packet payloads, WLAN keys, or Exception objects.
+/// Hosts initialize VestigiumLogger. Never packet payloads, WLAN keys, Exception objects, or banner text.
 /// Absolute paths are reduced to a file name on every line.
+/// A banner is returned to the host. It is never written to the audit log.
 /// </summary>
 internal static class NetworkLog
 {
@@ -102,11 +103,14 @@ internal static class NetworkLog
     private static string RedactToken(string token)
     {
         var eq = token.IndexOf('=');
-        if (eq <= 0 || eq >= token.Length - 1) return LooksLikePath(token) ? FileNameOnly(token) : token;
-        var key = token[..(eq + 1)];
-        var value = token[(eq + 1)..];
-        return LooksLikePath(value) ? key + FileNameOnly(value) : token;
+        if (eq <= 0 || eq >= token.Length - 1)
+            return LooksLikePath(token) ? FileNameOnly(token) : token;
 
+        var key = token[..eq];
+        var value = token[(eq + 1)..];
+        if (key.Equals("banner", StringComparison.OrdinalIgnoreCase))
+            return value is "null" or "set" ? token : "banner=set";
+        return LooksLikePath(value) ? key + "=" + FileNameOnly(value) : token;
     }
 
     internal static bool LooksLikePath(string value)
