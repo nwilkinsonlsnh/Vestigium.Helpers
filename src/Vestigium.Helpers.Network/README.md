@@ -7,7 +7,7 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 | Field | Value |
 |---|---|
 | Package | `Vestigium.Helpers.Network` 2.0.0 |
-| Version rule | `2.0.0` is PR12 plus the PR13 lab doors: progress total, `OpenOnly`, `ReadBanner` on the scan, lab port sets, `HostsFromPrefix`, and CSV. Decision 41 stays on the single-port doors. No SYN. Do not republish an older version as if it had these doors. |
+| Version rule | `2.0.0` is PR12 plus the PR13 and PR13a lab doors: progress total, `OpenOnly`, `ReadBanner` on the scan, lab port sets, `HostsFromPrefix`, flat open rows, and CSV. Decision 41 stays on the single-port doors. No SYN. Do not republish an older version as if it had these doors. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14560) |
@@ -36,6 +36,7 @@ var udp  = await NetworkHelper.UdpProbe("192.0.2.1", 53).RunAsync();
 var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
 var hosts = NetworkHelper.HostsFromPrefix("192.0.2.0/30");
 var scan = await NetworkHelper.ScanPorts(hosts, NetworkHelper.PortsWellKnown("windows"), new PortScanOptions { OpenOnly = true, ReadBanner = true }).RunAsync();
+var rows = PortScanCsv.Rows(scan);
 var csv = PortScanCsv.Write(scan);
 ```
 
@@ -52,7 +53,8 @@ var csv = PortScanCsv.Write(scan);
 | `ScanPorts` | `NetworkJob<PortScanResult>` | Hosts you supply. List, range, or well-known set. Cap 1024. `Sent` is the expected probe count. |
 | `PortsFromList` / `PortsFromRange` / `PortsWellKnown` | `PortSet` | Pure. `common`, `catalog`, `windows`, `printers`, `databases`. |
 | `HostsFromPrefix` | host list | Usable IPv4 hosts. Cap 1024. Does not scan. |
-| `PortScanCsv.Write` | text | One row per open port. No file write. |
+| `PortScanCsv.Rows` | `IReadOnlyList<PortScanOpenRow>` | Flat open ports. Bind a grid. Pure. |
+| `PortScanCsv.Write` | text | Same rows as `Rows`. Banner quoted. No file write. |
 | `ProbeDns` | `NetworkJob<DnsProbeResult>` | Answered / refused / timed out. |
 | `ProbeSnmpSysDescr` | `NetworkJob<SnmpSysDescrResult>` | One Get of `sysDescr`. Community never logged. |
 | `InferDevice` | `InferenceResult` | Pure. Evidence in, class / vendor / confidence out. |
@@ -87,3 +89,4 @@ var csv = PortScanCsv.Write(scan);
 - Inference does not obtain a MAC and does not walk hops.
 - `GetNeighbors` index 0 is not rewritten to 1. A name miss stays null.
 - Async print doors do not abort a P/Invoke already inside `iphlpapi`.
+- `Rows` is the grid door. `Write` is the paste door. Neither writes a file.
