@@ -18,7 +18,7 @@ Build order is the Order column.
 
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
-| 1 | PR12-01 | Port set types. Explicit list, begin–end range, and a named well-known set. Expand with a hard cap. Reject over the cap. No I/O. | Open |
+| 1 | PR12-01 | Port set types. Explicit list, begin–end range, and a named well-known set. Expand with a hard cap. Reject over the cap. No I/O. | Done |
 | 2 | PR12-02 | Sweep job. Hosts the caller supplies. Ports from PR12-01. Concurrency cap, per-host delay, overall timeout. Progress per finished port. | Open |
 | 3 | PR12-03 | Rollup. Per host: open TCP, open UDP, catalog name, MSS, banner. Optional inference from evidence the sweep already collected. | Open |
 | 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Open |
@@ -32,6 +32,8 @@ Build order is the Order column.
 ### PR12-01
 
 Pure. `PortSet` expands to a distinct, ordered list of ports. Sources: `FromList`, `FromRange(begin, end)`, `WellKnown`. Cap is a constant (propose 1024). Over the cap throws. No network call.
+
+Landed: `PortSet` (`MaxPorts` 1024), `FromList`, `FromRange`, `WellKnown("common" | "catalog")`. Doors: `NetworkHelper.PortsFromList`, `PortsFromRange`, `PortsWellKnown`. Tests in `PortSetTests`.
 
 ### PR12-02
 
@@ -72,4 +74,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR12-01. Port set types and the expansion cap.
+PR12-02. Sweep job over hosts and a `PortSet`.
