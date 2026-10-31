@@ -61,9 +61,7 @@ internal static class TcpConnectEngine
             {
                 await socket.ConnectAsync(dest, port, timed.Token).ConfigureAwait(false);
                 var mss = TcpMss.TryRead(socket);
-                var banner = options.ReadBanner
-                    ? await TcpBanner.TryReadAsync(socket, options.BannerMaxBytes, options.BannerTimeout, token).ConfigureAwait(false)
-                    : null;
+                var banner = await ReadAsync(socket, port, options, token).ConfigureAwait(false);
                 var ok = new TcpConnectResult(jobId, host, port, dest.ToString(), TcpConnectStatus.Connected, started.ElapsedMilliseconds, "connected", mss, banner);
                 progress?.Report(new NetworkProgress { JobId = jobId, Phase = "Connect", LastStatus = "Connected", LastRoundtripMs = ok.ElapsedMs });
                 NetworkLog.Success(HelperLog.Subcategories.Icmp, $"Connected tcpConnect job={jobId} host={host} port={port} ms={ok.ElapsedMs} mss={mss?.ToString() ?? "null"} banner={(banner is null ? "null" : "set")}");
@@ -92,6 +90,19 @@ internal static class TcpConnectEngine
             NetworkLog.Failed(HelperLog.Subcategories.Icmp, $"TimedOut tcpConnect job={jobId} host={host} port={port} {ex.SocketErrorCode}");
             return to;
         }
+    }
+
+    private static async Task<string?> ReadAsync(Socket socket, int port, TcpConnectOptions options, CancellationToken token)
+    {
+        if (options.ConfirmService && ServiceConfirm.ProbeFor(port) is { } probe)
+        {
+            await socket.SendAsync(probe, SocketFlags.None, token).ConfigureAwait(false);
+            return await TcpBanner.TryReadAsync(socket, options.BannerMaxBytes, options.BannerTimeout, token).ConfigureAwait(false);
+        }
+
+        return options.ReadBanner
+            ? await TcpBanner.TryReadAsync(socket, options.BannerMaxBytes, options.BannerTimeout, token).ConfigureAwait(false)
+            : null;
     }
 
     private static async Task<IPAddress?> ResolveAsync(string host, RouteFamily family, CancellationToken token)

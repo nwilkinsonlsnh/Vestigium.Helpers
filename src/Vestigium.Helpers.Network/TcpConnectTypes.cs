@@ -17,6 +17,7 @@ public sealed class TcpConnectOptions
     public string? SourceAddress { get; set; }
     public RouteFamily Family { get; set; } = RouteFamily.All;
     public bool ReadBanner { get; set; }
+    public bool ConfirmService { get; set; }
     public int BannerMaxBytes { get; set; } = DefaultBannerMaxBytes;
     public TimeSpan BannerTimeout { get; set; } = DefaultBannerTimeout;
 }
