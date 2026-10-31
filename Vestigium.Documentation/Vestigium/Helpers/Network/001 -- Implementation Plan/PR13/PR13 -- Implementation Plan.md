@@ -22,50 +22,16 @@ Build order is the Order column.
 | 4 | PR13-04 | Well-known sets `windows`, `printers`, `databases`. | Done |
 | 5 | PR13-05 | `HostsFromPrefix`. Capped host list from an existing prefix. Does not scan. | Done |
 | 6 | PR13-06 | Pure CSV of a `PortScanResult`. No file write. | Done |
-| 7 | PR13-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 76–83 land. | Open |
+| 7 | PR13-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 76–83 land. | Done |
 | 8 | PR13-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
 
-### PR13-01
-
-Expected count is hosts × ports × transports, after discovery drops skipped hosts. Report `Sent` once the live set is known.
-
-Landed: `Sent` is the expected probe count after discovery. `Received` is finished. Tests in `PortScanProgressTests`.
-
-### PR13-02
-
-Filter in `Finish`. Host rows are unchanged. Default false.
-
-Landed: `PortScanOptions.OpenOnly` default false. When set, `Hits` keeps only open ports. Host rows still come from the full set. Tests in `PortScanOpenOnlyTests`.
-
-### PR13-03
-
-`PortScanOptions.ReadBanner` sets `TcpConnectOptions.ReadBanner`. Confirm stays independent.
-
-Landed: `ReadBanner` default false. Passed through on the TCP probe. `Confirm` is a separate flag. Tests in `PortScanBannerTests`.
-
-### PR13-04
-
-`windows`: 135, 139, 445, 3389, 5985, 5986. `printers`: 515, 631, 9100. `databases`: 1433, 1521, 3306, 5432, 27017. Names stay under the cap.
-
-Landed: `WellKnown` gains those three names. `common` and `catalog` stay. Tests in `PortSetLabTests`.
-
-### PR13-05
-
-Uses the existing prefix math. Returns usable hosts as strings. Cap 1024. Over the cap throws. No call to `ScanPorts`.
-
-Landed: `NetworkHelper.HostsFromPrefix`. Uses `DescribePrefix`. IPv4 usable hosts. Cap 1024. Over the cap throws. Does not scan. Tests in `HostsFromPrefixTests`.
-
-### PR13-06
-
-Header plus one row per open port: host, port, transport, service, mss, banner. Banner is quoted. No file I/O.
-
-Landed: `PortScanCsv.Write`. Pure text. One row per open port. Banner is quoted. No file write. Tests in `PortScanCsvTests`.
-
 ### PR13-07
 
 Amend in place. Decision 74 (no SYN) and Decision 58 (no CIDR inside the scan) stay.
+
+Landed: SRS keeps 1–75 and appends 76–83. Design and Guide keep prior passes and add PR13. Package README updated. Version stays 2.0.0 until the owner bumps it.
 
 ### PR13-08
 
@@ -82,4 +48,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR13-07. Amend SRS, Design, Guide, and the package README.
+PR13-08. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network`.
