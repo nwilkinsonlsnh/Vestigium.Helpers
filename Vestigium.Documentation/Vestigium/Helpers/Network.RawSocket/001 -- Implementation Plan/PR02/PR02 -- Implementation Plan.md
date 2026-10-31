@@ -18,28 +18,18 @@ Build order is the Order column.
 | ---: | :--- | :--- | :--- |
 | 1 | RAW02-01 | Progress. `Sent` expected. `Received` finished. | Done |
 | 2 | RAW02-02 | `SynScanCsv.Rows` and `Write`. Open ports only. | Done |
-| 3 | RAW02-03 | Parallelism. Default 8. Max 32. | Open |
+| 3 | RAW02-03 | Parallelism. Default 8. Max 32. | Done |
 | 4 | RAW02-04 | Bind pin. `InterfaceIndex` or `SourceAddress`. | Open |
 | 5 | RAW02-05 | Document Windows raw TCP denial. No fallback. Amend README. | Open |
 | 6 | RAW02-06 | `dotnet test` on the RawSocket filter. | Owner |
 
 ## Slice notes
 
-### RAW02-01
-
-`Sent` is hosts times ports. `Received` is finished probes.
-
-Landed: `RawSocketJob` reports `NetworkProgress`. `Sent` is hosts times ports before the rights check. `Received` increments per finished probe. Tests in `SynScanProgressTests`.
-
-### RAW02-02
-
-One row per open port. `Write` formats `Rows`. Banner is not a SYN field. No file.
-
-Landed: `SynScanOpenRow` and `SynScanCsv`. Columns are host, port, elapsed, detail. Closed and filtered are dropped. Tests in `SynScanOpenRowTests`.
-
 ### RAW02-03
 
 Caller sets the cap. Default 8. Over 32 throws.
+
+Landed: `SynScanOptions.Parallelism`. Default 8. Max 32. Each probe has its own raw socket under the gate. Tests in `SynScanParallelismTests`.
 
 ### RAW02-04
 
@@ -63,4 +53,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-RAW02-03. Parallelism cap.
+RAW02-04. Bind pin.
