@@ -201,7 +201,9 @@ internal static class PortScanEngine
             Timeout = options.ConnectTimeout,
             InterfaceIndex = options.InterfaceIndex,
             SourceAddress = options.SourceAddress,
-            Family = options.Family
+            Family = options.Family,
+            PayloadSize = 0,
+            Payload = options.KnownUdp ? UdpPayloads.For(port) : null
         });
         var result = await job.RunAsync(token).ConfigureAwait(false);
         var status = result.Status switch
