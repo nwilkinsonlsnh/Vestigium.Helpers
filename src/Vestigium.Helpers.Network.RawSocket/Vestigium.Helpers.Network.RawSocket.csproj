@@ -4,7 +4,7 @@
     <RootNamespace>Vestigium.Helpers.Network.RawSocket</RootNamespace>
     <AssemblyName>Vestigium.Helpers.Network.RawSocket</AssemblyName>
     <Description>Elevated raw-socket probes for diagnostic hosts. SYN scan first. Requires admin on Windows and CAP_NET_RAW on Linux. Vestigium.Helpers.Network stays connect-scan only.</Description>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Authors>Vestigium</Authors>
     <Company>Wilkinson Business</Company>
     <PackageTags>network;raw;syn;socket;vestigium</PackageTags>
