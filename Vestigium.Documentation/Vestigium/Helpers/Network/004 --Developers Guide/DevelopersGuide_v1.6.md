@@ -2,7 +2,7 @@
 
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
 **Version:** 1.6  
-**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.7.0**.  
+**Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **2.0.0**.  
 **Date:** 31 October 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
@@ -14,7 +14,7 @@ A .NET 10 LTS resource library. Hosts subscribe on Windows or Linux. Not a CLI. 
 One `net10.0` DLL. References: Json 1.0.1, Analytics 1.0.1, FileIo 1.1.2. Logging from repo `$(VestigiumLoggingVersion)`. No plot package.
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.7.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="2.0.0" />
 ```
 
 Route **print** works on both OS, both families. Route **write** is Option C.
@@ -128,4 +128,4 @@ Scheduler package. HTTP reachability beyond the short confirm probe. Demo galler
 | 1.6 + PR09-11 | 24 Sep 2026 | Consume 1.1.0. PR09 doors. |
 | 1.6 + PR10-09 | 24 Sep 2026 | Consume 1.2.0. PR10 doors. |
 | 1.6 + PR11-07 | 28 Oct 2026 | Consume 1.7.0. PR11 doors. |
-| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. `ScanPorts`. No SYN. |
+| 1.6 + PR12-07 | 31 Oct 2026 | Consume 2.0.0. PR12 doors. `ScanPorts`. No SYN. |

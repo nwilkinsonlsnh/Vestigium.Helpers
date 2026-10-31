@@ -76,7 +76,7 @@ This library does not plot and will not grow a plot API.
 | `UdpProbeEngine.cs` / `DnsProbeEngine.cs` / `AdapterWatchEngine.cs` | PR10 jobs |
 | `DeviceInference.cs` / `TtlSummary.cs` / `TcpMss.cs` / `TcpBanner.cs` / `SnmpSysDescrEngine.cs` | PR11 doors |
 | `PortSet.cs` / `PortScanEngine.cs` / `PortScanRollup.cs` / `ServiceConfirm.cs` / `UdpPayloads.cs` | PR12 doors |
-| `Vestigium.Helpers.Network.csproj` | Version **1.7.0**. No plot package. |
+| `Vestigium.Helpers.Network.csproj` | Version **2.0.0**. No plot package. |
 
 ---
 
@@ -87,7 +87,7 @@ This library does not plot and will not grow a plot API.
 | PR09 | Package 1.1.0. |
 | PR10 | Bound ICMP, PMTU status, neighbor resolve, pathping sample protocol, recipe bind, UdpProbe, ProbeDns, WatchAdapter. Package 1.2.0. |
 | PR11 | Inference, TTL summary, TCP MSS, optional banner, SNMP sysDescr, local MTU documented. Package 1.7.0. |
-| PR12 | `ScanPorts`, `PortSet`, rollup, optional discovery, confirm, known UDP. No SYN. No CIDR. |
+| PR12 | `ScanPorts`, `PortSet`, rollup, optional discovery, confirm, known UDP. No SYN. No CIDR. Package 2.0.0. |
 
 ---
 
@@ -104,4 +104,4 @@ Scheduler package. HTTP reachability beyond the short confirm probe. Demo galler
 | 1.6 + PR09-11 | 24 Sep 2026 | PR09 doors. Package 1.1.0. |
 | 1.6 + PR10-09 | 24 Sep 2026 | PR10 doors. Package 1.2.0. |
 | 1.6 + PR11-07 | 28 Oct 2026 | PR11 doors. Package 1.7.0. |
-| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. Decision 41 amended only for `ScanPorts`. No SYN. |
+| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. Decision 41 amended only for `ScanPorts`. No SYN. Package 2.0.0. |
