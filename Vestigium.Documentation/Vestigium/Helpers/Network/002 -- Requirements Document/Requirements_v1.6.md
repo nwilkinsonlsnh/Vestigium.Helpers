@@ -4,7 +4,7 @@
 **Version:** 1.6  
 **Status:** Locked companion to PR01–PR12.  
 **Date:** 31 October 2026  
-**Package:** `Vestigium.Helpers.Network` **1.7.0**  
+**Package:** `Vestigium.Helpers.Network` **2.0.0**  
 **TFM:** `net10.0` (.NET 10 LTS) — **Windows and Linux are first-class**. Not `net10.0-windows`.  
 **Companion:** [`DevelopersGuide_v1.6.md`](DevelopersGuide_v1.6.md), [`Design_v1.6.md`](Design_v1.6.md)
 
@@ -121,14 +121,14 @@ Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client beyond 
 | PR09 | Package 1.1.0 — **shipped** |
 | PR10 / PR10b | Package 1.2.0 — **shipped** |
 | PR11 | Package 1.7.0 — **shipped** |
-| PR12 | Sweep, rollup, discovery, confirm, known UDP. This amendment. |
+| PR12 | Package 2.0.0 — **shipped**. Sweep, rollup, discovery, confirm, known UDP. |
 | later | Scheduler package; macOS as a test gate; repo Linux CI |
 
 ---
 
 ## 15. Acceptance
 
-PR01–PR11 stand. PR12 accepts decisions 65–75. Decision 41 is amended only for `ScanPorts`. Decision 74 (no SYN) is explicit. Decisions 1–64 remain in this file except where 41, 31, and 58 are amended above.
+PR01–PR11 stand. PR12 accepts decisions 65–75. Decision 41 is amended only for `ScanPorts`. Decision 74 (no SYN) is explicit. Decisions 1–64 remain in this file except where 41, 31, and 58 are amended above. Owner gate passed. Package 2.0.0 pushed.
 
 ## Document control
 
@@ -138,4 +138,4 @@ PR01–PR11 stand. PR12 accepts decisions 65–75. Decision 41 is amended only f
 | 1.6 + PR10-09 | 24 Sep 2026 | PR10 doors. Package 1.2.0. |
 | 1.6 + PR10b-04 | 24 Sep 2026 | Restored decisions 1–45. Kept 46–53. |
 | 1.6 + PR11-07 | 28 Oct 2026 | PR11 doors. Decisions 54–64. Decision 41 locked. Package 1.7.0. |
-| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. Decisions 65–75. Decision 41 amended only for `ScanPorts`. No SYN. |
+| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. Decisions 65–75. Decision 41 amended only for `ScanPorts`. No SYN. Package 2.0.0. |
