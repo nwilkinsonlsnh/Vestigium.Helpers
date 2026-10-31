@@ -2,8 +2,31 @@ using System.Text;
 
 namespace Vestigium.Helpers.Network;
 
+public sealed record PortScanOpenRow(
+    string Host,
+    int Port,
+    PortScanTransport Transport,
+    string? Service,
+    int? Mss,
+    string? Banner,
+    long ElapsedMs);
+
 public static class PortScanCsv
 {
+    public static IReadOnlyList<PortScanOpenRow> Rows(PortScanResult result)
+    {
+        var rows = new List<PortScanOpenRow>();
+        foreach (var host in result.Hosts)
+        {
+            foreach (var port in host.OpenTcp)
+                rows.Add(new PortScanOpenRow(host.Host, port.Port, port.Transport, port.Service, port.Mss, port.Banner, port.ElapsedMs));
+            foreach (var port in host.OpenUdp)
+                rows.Add(new PortScanOpenRow(host.Host, port.Port, port.Transport, port.Service, port.Mss, port.Banner, port.ElapsedMs));
+        }
+
+        return rows;
+    }
+
     public static string Write(PortScanResult result)
     {
         var text = new StringBuilder();
