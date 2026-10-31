@@ -23,22 +23,22 @@ Build order is the Order column.
 | 3 | PR14-03 | `ResolveMac` on the scan. Opt-in. Miss is null. | Done |
 | 4 | PR14-04 | `HostsFromPrefix` returns IPv6 hosts. Cap 1024. Does not scan. | Done |
 | 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Done |
-| 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Open |
+| 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Done |
 | 7 | PR14-07 | Library never logs a banner. Document the host rule. | Open |
 | 8 | PR14-08 | Amend SRS, Design, Guide, and the package README. Decisions 89–95 land. | Open |
 | 9 | PR14-09 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
 
-### PR14-05
+### PR14-06
 
-One handshake. No HTTP.
+Same open rows as CSV. No file. No log line of the banner.
 
-Landed: `ProbeTls`. Returns subject, issuer, expiry, and protocol. Accepts an untrusted certificate so a lab can read it. Tests in `TlsProbeTests`.
+Landed: `PortScanJson.Write`. Uses `Rows`. Banner is a JSON field. Tests in `PortScanJsonTests`.
 
-### PR14-06 through PR14-07
+### PR14-07
 
-JSON of a scan. Banner never hits the audit log.
+Library never logs a banner. Document the host rule.
 
 ### PR14-08
 
@@ -57,4 +57,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR14-06. JSON of a scan.
+PR14-07. Banner logging rule.
