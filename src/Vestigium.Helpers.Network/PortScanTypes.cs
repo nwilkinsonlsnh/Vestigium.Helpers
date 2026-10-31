@@ -32,6 +32,7 @@ public sealed class PortScanOptions
     public int? DiscoverPort { get; set; }
     public bool Confirm { get; set; }
     public bool KnownUdp { get; set; }
+    public bool OpenOnly { get; set; }
     public int InterfaceIndex { get; set; }
     public string? SourceAddress { get; set; }
     public RouteFamily Family { get; set; } = RouteFamily.All;
