@@ -19,11 +19,14 @@ internal static class SynScanEngine
 
         var o = options ?? new SynScanOptions();
         var jobId = "syn-" + Guid.NewGuid().ToString("N")[..8];
-        return new RawSocketJob<SynScanResult>(jobId, "synScan", token => RunAsync(jobId, names, ports, o, token));
+        return new RawSocketJob<SynScanResult>(jobId, "synScan", (token, progress) => RunAsync(jobId, names, ports, o, token, progress));
     }
 
-    private static async Task<SynScanResult> RunAsync(string jobId, string[] hosts, PortSet ports, SynScanOptions options, CancellationToken token)
+    private static async Task<SynScanResult> RunAsync(string jobId, string[] hosts, PortSet ports, SynScanOptions options, CancellationToken token, IProgress<NetworkProgress>? progress)
     {
+        var expected = hosts.Length * ports.Ports.Count;
+        progress?.Report(new NetworkProgress { JobId = jobId, Phase = "scan", Sent = expected, Received = 0 });
+
         var access = RawSocketRights.Check();
         if (!access.IsGranted)
             return new SynScanResult(jobId, SynScanStatus.Denied, access.Detail, hosts.Length, ports.Ports.Count, 0, []);
@@ -31,6 +34,7 @@ internal static class SynScanEngine
         using var overall = CancellationTokenSource.CreateLinkedTokenSource(token);
         overall.CancelAfter(options.OverallTimeout);
         var hits = new List<SynScanHit>();
+        var finished = 0;
         try
         {
             foreach (var host in hosts)
@@ -39,7 +43,11 @@ internal static class SynScanEngine
                 if (dest is null)
                 {
                     foreach (var port in ports.Ports)
+                    {
                         hits.Add(new SynScanHit(host, port, SynPortStatus.Filtered, 0, "unresolved"));
+                        finished++;
+                        progress?.Report(new NetworkProgress { JobId = jobId, Phase = $"{host}:{port}", Sent = expected, Received = finished, LastStatus = "unresolved" });
+                    }
                     continue;
                 }
 
@@ -51,7 +59,18 @@ internal static class SynScanEngine
                 foreach (var port in ports.Ports)
                 {
                     overall.Token.ThrowIfCancellationRequested();
-                    hits.Add(await ProbeAsync(socket, host, local, dest, port, options, overall.Token).ConfigureAwait(false));
+                    var hit = await ProbeAsync(socket, host, local, dest, port, options, overall.Token).ConfigureAwait(false);
+                    hits.Add(hit);
+                    finished++;
+                    progress?.Report(new NetworkProgress
+                    {
+                        JobId = jobId,
+                        Phase = $"{host}:{port}",
+                        Sent = expected,
+                        Received = finished,
+                        LastStatus = hit.Status.ToString(),
+                        LastRoundtripMs = hit.ElapsedMs
+                    });
                 }
             }
         }
