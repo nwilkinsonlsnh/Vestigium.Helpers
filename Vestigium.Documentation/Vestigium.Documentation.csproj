@@ -128,6 +128,8 @@
     <Content Include="Vestigium\Helpers\Network\001 -- Implementation Plan\PR14\PR14 -- Implementation Plan.md" />
     <Content Include="Vestigium\Helpers\Network.RawSocket\001 -- Implementation Plan\PR01\PR01 -- Requirements.md" />
     <Content Include="Vestigium\Helpers\Network.RawSocket\001 -- Implementation Plan\PR01\PR01 -- Implementation Plan.md" />
+    <Content Include="Vestigium\Helpers\Network.RawSocket\001 -- Implementation Plan\PR02\PR02 -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\Network.RawSocket\001 -- Implementation Plan\PR02\PR02 -- Implementation Plan.md" />
   </ItemGroup>
 
 </Project>
