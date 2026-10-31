@@ -67,11 +67,11 @@ internal static class PortScanEngine
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
-            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, skipped, NetworkJobStatus.TimedOut, options.Infer);
+            return Finish(jobId, hosts.Length, ports.Ports.Count, hits, skipped, NetworkJobStatus.TimedOut, options);
         }
 
         token.ThrowIfCancellationRequested();
-        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, skipped, NetworkJobStatus.Success, options.Infer);
+        return Finish(jobId, hosts.Length, ports.Ports.Count, hits, skipped, NetworkJobStatus.Success, options);
     }
 
     private static async Task<(string[] Live, string[] Skipped)> DiscoverAsync(
@@ -221,12 +221,15 @@ internal static class PortScanEngine
         return new PortScanHit(host, port, PortScanTransport.Udp, status, result.Address, result.ElapsedMs, result.Detail);
     }
 
-    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, IReadOnlyList<string> skipped, NetworkJobStatus status, bool infer)
+    private static PortScanResult Finish(string jobId, int hosts, int ports, IEnumerable<PortScanHit> hits, IReadOnlyList<string> skipped, NetworkJobStatus status, PortScanOptions options)
     {
         var named = PortScanRollup.Name(hits).OrderBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase).ThenBy(static hit => hit.Port).ToArray();
-        var rows = PortScanRollup.Hosts(named, infer);
+        var kept = options.OpenOnly
+            ? named.Where(static hit => hit.Status == PortScanStatus.Open).ToArray()
+            : named;
+        var rows = PortScanRollup.Hosts(named, options.Infer);
         var open = named.Count(static hit => hit.Status == PortScanStatus.Open);
-        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={named.Length} skipped={skipped.Count}");
-        return new PortScanResult(jobId, status, hosts, ports, open, named, rows, skipped);
+        NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={kept.Length} skipped={skipped.Count}");
+        return new PortScanResult(jobId, status, hosts, ports, open, kept, rows, skipped);
     }
 }
