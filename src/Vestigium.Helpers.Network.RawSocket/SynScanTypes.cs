@@ -18,11 +18,14 @@ public enum SynPortStatus
 public sealed class SynScanOptions
 {
     public const int MaxHosts = 64;
+    public const int DefaultParallelism = 8;
+    public const int MaxParallelism = 32;
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(1);
     public static readonly TimeSpan DefaultOverallTimeout = TimeSpan.FromMinutes(2);
 
     public TimeSpan Timeout { get; set; } = DefaultTimeout;
     public TimeSpan OverallTimeout { get; set; } = DefaultOverallTimeout;
+    public int Parallelism { get; set; } = DefaultParallelism;
 }
 
 public sealed record SynScanHit(

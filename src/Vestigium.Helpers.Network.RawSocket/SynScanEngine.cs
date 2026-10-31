@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -18,6 +19,9 @@ internal static class SynScanEngine
             throw new ArgumentException("At least one port is required.", nameof(ports));
 
         var o = options ?? new SynScanOptions();
+        if (o.Parallelism is < 1 or > SynScanOptions.MaxParallelism)
+            throw new ArgumentOutOfRangeException(nameof(o.Parallelism), "Parallelism must be 1–32.");
+
         var jobId = "syn-" + Guid.NewGuid().ToString("N")[..8];
         return new RawSocketJob<SynScanResult>(jobId, "synScan", (token, progress) => RunAsync(jobId, names, ports, o, token, progress));
     }
@@ -33,10 +37,12 @@ internal static class SynScanEngine
 
         using var overall = CancellationTokenSource.CreateLinkedTokenSource(token);
         overall.CancelAfter(options.OverallTimeout);
-        var hits = new List<SynScanHit>();
+        var hits = new ConcurrentBag<SynScanHit>();
         var finished = 0;
+        var gate = new SemaphoreSlim(options.Parallelism);
         try
         {
+            var work = new List<Task>();
             foreach (var host in hosts)
             {
                 var dest = await ResolveAsync(host, overall.Token).ConfigureAwait(false);
@@ -45,42 +51,68 @@ internal static class SynScanEngine
                     foreach (var port in ports.Ports)
                     {
                         hits.Add(new SynScanHit(host, port, SynPortStatus.Filtered, 0, "unresolved"));
-                        finished++;
-                        progress?.Report(new NetworkProgress { JobId = jobId, Phase = $"{host}:{port}", Sent = expected, Received = finished, LastStatus = "unresolved" });
+                        var done = Interlocked.Increment(ref finished);
+                        progress?.Report(new NetworkProgress { JobId = jobId, Phase = $"{host}:{port}", Sent = expected, Received = done, LastStatus = "unresolved" });
                     }
                     continue;
                 }
 
-                using var socket = OpenRaw();
-                if (socket is null)
-                    return new SynScanResult(jobId, SynScanStatus.Denied, "raw-tcp-unavailable", hosts.Length, ports.Ports.Count, 0, []);
-
                 var local = LocalAddress(dest);
                 foreach (var port in ports.Ports)
-                {
-                    overall.Token.ThrowIfCancellationRequested();
-                    var hit = await ProbeAsync(socket, host, local, dest, port, options, overall.Token).ConfigureAwait(false);
-                    hits.Add(hit);
-                    finished++;
-                    progress?.Report(new NetworkProgress
-                    {
-                        JobId = jobId,
-                        Phase = $"{host}:{port}",
-                        Sent = expected,
-                        Received = finished,
-                        LastStatus = hit.Status.ToString(),
-                        LastRoundtripMs = hit.ElapsedMs
-                    });
-                }
+                    work.Add(ProbeGatedAsync(jobId, host, local, dest, port, options, expected, gate, hits, progress, () => Interlocked.Increment(ref finished), overall.Token));
             }
+
+            await Task.WhenAll(work).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
         {
             return Finish(jobId, hosts.Length, ports.Ports.Count, hits, SynScanStatus.TimedOut, "timeout");
         }
+        finally
+        {
+            gate.Dispose();
+        }
 
         token.ThrowIfCancellationRequested();
         return Finish(jobId, hosts.Length, ports.Ports.Count, hits, SynScanStatus.Success, null);
+    }
+
+    private static async Task ProbeGatedAsync(
+        string jobId,
+        string host,
+        IPAddress local,
+        IPAddress dest,
+        int port,
+        SynScanOptions options,
+        int expected,
+        SemaphoreSlim gate,
+        ConcurrentBag<SynScanHit> hits,
+        IProgress<NetworkProgress>? progress,
+        Func<int> next,
+        CancellationToken token)
+    {
+        await gate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            using var socket = OpenRaw();
+            var hit = socket is null
+                ? new SynScanHit(host, port, SynPortStatus.Filtered, 0, "raw-tcp-unavailable")
+                : await ProbeAsync(socket, host, local, dest, port, options, token).ConfigureAwait(false);
+            hits.Add(hit);
+            progress?.Report(new NetworkProgress
+            {
+                JobId = jobId,
+                Phase = $"{host}:{port}",
+                Sent = expected,
+                Received = next(),
+                LastStatus = hit.Status.ToString(),
+                LastRoundtripMs = hit.ElapsedMs
+            });
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     private static Socket? OpenRaw()
@@ -158,9 +190,10 @@ internal static class SynScanEngine
         }
     }
 
-    private static SynScanResult Finish(string jobId, int hosts, int ports, IReadOnlyList<SynScanHit> hits, SynScanStatus status, string? detail)
+    private static SynScanResult Finish(string jobId, int hosts, int ports, IEnumerable<SynScanHit> hits, SynScanStatus status, string? detail)
     {
-        var open = hits.Count(static hit => hit.Status == SynPortStatus.Open);
-        return new SynScanResult(jobId, status, detail, hosts, ports, open, hits);
+        var list = hits.OrderBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase).ThenBy(static hit => hit.Port).ToArray();
+        var open = list.Count(static hit => hit.Status == SynPortStatus.Open);
+        return new SynScanResult(jobId, status, detail, hosts, ports, open, list);
     }
 }
