@@ -16,7 +16,7 @@ Build order is the Order column.
 
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
-| 1 | RAW02-01 | Progress. `Sent` expected. `Received` finished. | Open |
+| 1 | RAW02-01 | Progress. `Sent` expected. `Received` finished. | Done |
 | 2 | RAW02-02 | `SynScanCsv.Rows` and `Write`. Open ports only. | Open |
 | 3 | RAW02-03 | Parallelism. Default 8. Max 32. | Open |
 | 4 | RAW02-04 | Bind pin. `InterfaceIndex` or `SourceAddress`. | Open |
@@ -27,7 +27,9 @@ Build order is the Order column.
 
 ### RAW02-01
 
-`Sent` is hosts times ports after resolve. `Received` is finished probes.
+`Sent` is hosts times ports. `Received` is finished probes.
+
+Landed: `RawSocketJob` reports `NetworkProgress`. `Sent` is hosts times ports before the rights check. `Received` increments per finished probe. Tests in `SynScanProgressTests`.
 
 ### RAW02-02
 
@@ -59,4 +61,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-RAW02-01. Progress total.
+RAW02-02. Rows and CSV.
