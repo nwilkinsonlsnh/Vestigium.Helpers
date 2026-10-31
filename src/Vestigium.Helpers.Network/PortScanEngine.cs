@@ -188,7 +188,8 @@ internal static class PortScanEngine
             InterfaceIndex = options.InterfaceIndex,
             SourceAddress = options.SourceAddress,
             Family = options.Family,
-            ConfirmService = options.Confirm
+            ConfirmService = options.Confirm,
+            ReadBanner = options.ReadBanner
         });
         var result = await job.RunAsync(token).ConfigureAwait(false);
         var status = result.Status switch
