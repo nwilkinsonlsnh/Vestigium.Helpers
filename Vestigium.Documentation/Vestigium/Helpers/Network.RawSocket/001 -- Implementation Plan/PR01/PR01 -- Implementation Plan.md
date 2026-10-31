@@ -17,7 +17,7 @@ Name is locked: `Vestigium.Helpers.Network.RawSocket`.
 | 1 | RAW-01 | New project `src/Vestigium.Helpers.Network.RawSocket`. `net10.0`. No plot package. | Done |
 | 2 | RAW-02 | Privilege check. Typed denial when admin / `CAP_NET_RAW` is missing. | Done |
 | 3 | RAW-03 | `SynScan` job. Hosts supplied. `PortSet`. Cap 1024. Half-open. | Done |
-| 4 | RAW-04 | Amend a short README. State that Network stays connect-scan. | Open |
+| 4 | RAW-04 | Amend a short README. State that Network stays connect-scan. | Done |
 | 5 | RAW-05 | `dotnet test` filter for the new project. | Owner |
 
 ## Slice notes
@@ -36,7 +36,7 @@ Landed: `RawSocketHelper.SynScan`. Hosts supplied, cap 64. `PortSet` cap 1024. H
 
 ### RAW-04
 
-Amend a short README. State that Network stays connect-scan.
+Landed: package README. States the privilege split, the `SynScan` door, and that Network stays connect-scan.
 
 ### RAW-05
 
@@ -52,4 +52,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-RAW-04. Amend the README.
+RAW-05. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~RawSocket`.
