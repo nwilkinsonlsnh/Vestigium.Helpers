@@ -20,7 +20,7 @@ Build order is the Order column.
 | 2 | PR13-02 | `OpenOnly`. Drop closed, timed-out, and error hits. Default false. | Done |
 | 3 | PR13-03 | `ReadBanner` on the scan. Pass through to `TcpConnect`. Off by default. | Done |
 | 4 | PR13-04 | Well-known sets `windows`, `printers`, `databases`. | Done |
-| 5 | PR13-05 | `HostsFromPrefix`. Capped host list from an existing prefix. Does not scan. | Open |
+| 5 | PR13-05 | `HostsFromPrefix`. Capped host list from an existing prefix. Does not scan. | Done |
 | 6 | PR13-06 | Pure CSV of a `PortScanResult`. No file write. | Open |
 | 7 | PR13-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 76–83 land. | Open |
 | 8 | PR13-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
@@ -55,6 +55,8 @@ Landed: `WellKnown` gains those three names. `common` and `catalog` stay. Tests 
 
 Uses the existing prefix math. Returns usable hosts as strings. Cap 1024. Over the cap throws. No call to `ScanPorts`.
 
+Landed: `NetworkHelper.HostsFromPrefix`. Uses `DescribePrefix`. IPv4 usable hosts. Cap 1024. Over the cap throws. Does not scan. Tests in `HostsFromPrefixTests`.
+
 ### PR13-06
 
 Header plus one row per open port: host, port, transport, service, mss, banner. Banner is quoted. No file I/O.
@@ -78,4 +80,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR13-05. `HostsFromPrefix`.
+PR13-06. Pure CSV of a `PortScanResult`.
