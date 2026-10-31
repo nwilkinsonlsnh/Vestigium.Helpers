@@ -36,6 +36,12 @@ public sealed record PortSet(IReadOnlyList<int> Ports)
             return FromList(Common);
         if (key.Equals("catalog", StringComparison.OrdinalIgnoreCase))
             return FromList(NetworkPorts.All.Select(static row => row.Port));
+        if (key.Equals("windows", StringComparison.OrdinalIgnoreCase))
+            return FromList(Windows);
+        if (key.Equals("printers", StringComparison.OrdinalIgnoreCase))
+            return FromList(Printers);
+        if (key.Equals("databases", StringComparison.OrdinalIgnoreCase))
+            return FromList(Databases);
 
         throw new ArgumentException($"Unknown well-known set '{name}'.", nameof(name));
     }
@@ -61,4 +67,8 @@ public sealed record PortSet(IReadOnlyList<int> Ports)
         515, 631, 1433, 1521, 3306, 3389, 5432, 5900, 5985, 5986,
         8080, 8443, 9100
     ];
+
+    private static readonly int[] Windows = [135, 139, 445, 3389, 5985, 5986];
+    private static readonly int[] Printers = [515, 631, 9100];
+    private static readonly int[] Databases = [1433, 1521, 3306, 5432, 27017];
 }
