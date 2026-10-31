@@ -19,7 +19,7 @@ Build order is the Order column.
 | 1 | PR13-01 | Progress total. `Sent` is expected probes. `Received` is finished. | Done |
 | 2 | PR13-02 | `OpenOnly`. Drop closed, timed-out, and error hits. Default false. | Done |
 | 3 | PR13-03 | `ReadBanner` on the scan. Pass through to `TcpConnect`. Off by default. | Done |
-| 4 | PR13-04 | Well-known sets `windows`, `printers`, `databases`. | Open |
+| 4 | PR13-04 | Well-known sets `windows`, `printers`, `databases`. | Done |
 | 5 | PR13-05 | `HostsFromPrefix`. Capped host list from an existing prefix. Does not scan. | Open |
 | 6 | PR13-06 | Pure CSV of a `PortScanResult`. No file write. | Open |
 | 7 | PR13-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 76–83 land. | Open |
@@ -49,6 +49,8 @@ Landed: `ReadBanner` default false. Passed through on the TCP probe. `Confirm` i
 
 `windows`: 135, 139, 445, 3389, 5985, 5986. `printers`: 515, 631, 9100. `databases`: 1433, 1521, 3306, 5432, 27017. Names stay under the cap.
 
+Landed: `WellKnown` gains those three names. `common` and `catalog` stay. Tests in `PortSetLabTests`.
+
 ### PR13-05
 
 Uses the existing prefix math. Returns usable hosts as strings. Cap 1024. Over the cap throws. No call to `ScanPorts`.
@@ -76,4 +78,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR13-04. Well-known sets.
+PR13-05. `HostsFromPrefix`.
