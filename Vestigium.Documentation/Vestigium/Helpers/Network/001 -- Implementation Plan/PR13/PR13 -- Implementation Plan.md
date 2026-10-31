@@ -21,7 +21,7 @@ Build order is the Order column.
 | 3 | PR13-03 | `ReadBanner` on the scan. Pass through to `TcpConnect`. Off by default. | Done |
 | 4 | PR13-04 | Well-known sets `windows`, `printers`, `databases`. | Done |
 | 5 | PR13-05 | `HostsFromPrefix`. Capped host list from an existing prefix. Does not scan. | Done |
-| 6 | PR13-06 | Pure CSV of a `PortScanResult`. No file write. | Open |
+| 6 | PR13-06 | Pure CSV of a `PortScanResult`. No file write. | Done |
 | 7 | PR13-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 76–83 land. | Open |
 | 8 | PR13-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
@@ -61,6 +61,8 @@ Landed: `NetworkHelper.HostsFromPrefix`. Uses `DescribePrefix`. IPv4 usable host
 
 Header plus one row per open port: host, port, transport, service, mss, banner. Banner is quoted. No file I/O.
 
+Landed: `PortScanCsv.Write`. Pure text. One row per open port. Banner is quoted. No file write. Tests in `PortScanCsvTests`.
+
 ### PR13-07
 
 Amend in place. Decision 74 (no SYN) and Decision 58 (no CIDR inside the scan) stay.
@@ -80,4 +82,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR13-06. Pure CSV of a `PortScanResult`.
+PR13-07. Amend SRS, Design, Guide, and the package README.
