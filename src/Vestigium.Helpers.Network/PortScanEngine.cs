@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using Vestigium.Helpers;
 
 namespace Vestigium.Helpers.Network;
@@ -228,9 +229,36 @@ internal static class PortScanEngine
         var kept = options.OpenOnly
             ? named.Where(static hit => hit.Status == PortScanStatus.Open).ToArray()
             : named;
-        var rows = PortScanRollup.Hosts(named, options.Infer);
+        var macs = options.ResolveMac ? ResolveMacs(named) : null;
+        var rows = PortScanRollup.Hosts(named, options.Infer, macs);
         var open = named.Count(static hit => hit.Status == PortScanStatus.Open);
         NetworkLog.Success(HelperLog.Subcategories.Icmp, $"{status} portScan job={jobId} open={open} hits={kept.Length} skipped={skipped.Count}");
         return new PortScanResult(jobId, status, hosts, ports, open, kept, rows, skipped);
+    }
+
+    private static IReadOnlyDictionary<string, string?> ResolveMacs(IReadOnlyList<PortScanHit> hits)
+    {
+        var macs = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in hits.GroupBy(static hit => hit.Host, StringComparer.OrdinalIgnoreCase))
+        {
+            var address = group.Select(static hit => hit.Address).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? group.Key;
+            macs[group.Key] = MacOrNull(address);
+        }
+
+        return macs;
+    }
+
+    private static string? MacOrNull(string address)
+    {
+        if (!IPAddress.TryParse(address, out _))
+            return null;
+        try
+        {
+            return NetworkHelper.ProbeNeighbor(address).Mac;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 }
