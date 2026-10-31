@@ -17,6 +17,15 @@ public sealed class PortScanOpenRowTests
         Assert.Equal(PortScanTransport.Udp, rows[1].Transport);
     }
 
+    [Fact]
+    public void Write_uses_the_same_rows_and_quotes_the_banner()
+    {
+        var csv = PortScanCsv.Write(Sample());
+        Assert.StartsWith("host,port,transport,service,mss,banner", csv);
+        Assert.Contains("192.0.2.1,22,tcp,ssh,1460,\"SSH-2.0-OpenSSH\"", csv);
+        Assert.Contains("192.0.2.1,53,udp,dns,,\"\"", csv);
+    }
+
     private static PortScanResult Sample()
         => new(
             "scan-test",
