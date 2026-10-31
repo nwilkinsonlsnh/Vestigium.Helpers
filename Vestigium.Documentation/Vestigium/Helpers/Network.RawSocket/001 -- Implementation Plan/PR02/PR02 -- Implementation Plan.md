@@ -17,7 +17,7 @@ Build order is the Order column.
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | RAW02-01 | Progress. `Sent` expected. `Received` finished. | Done |
-| 2 | RAW02-02 | `SynScanCsv.Rows` and `Write`. Open ports only. | Open |
+| 2 | RAW02-02 | `SynScanCsv.Rows` and `Write`. Open ports only. | Done |
 | 3 | RAW02-03 | Parallelism. Default 8. Max 32. | Open |
 | 4 | RAW02-04 | Bind pin. `InterfaceIndex` or `SourceAddress`. | Open |
 | 5 | RAW02-05 | Document Windows raw TCP denial. No fallback. Amend README. | Open |
@@ -34,6 +34,8 @@ Landed: `RawSocketJob` reports `NetworkProgress`. `Sent` is hosts times ports be
 ### RAW02-02
 
 One row per open port. `Write` formats `Rows`. Banner is not a SYN field. No file.
+
+Landed: `SynScanOpenRow` and `SynScanCsv`. Columns are host, port, elapsed, detail. Closed and filtered are dropped. Tests in `SynScanOpenRowTests`.
 
 ### RAW02-03
 
@@ -61,4 +63,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-RAW02-02. Rows and CSV.
+RAW02-03. Parallelism cap.
