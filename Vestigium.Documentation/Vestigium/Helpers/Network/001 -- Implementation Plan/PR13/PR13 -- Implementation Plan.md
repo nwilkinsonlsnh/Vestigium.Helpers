@@ -18,7 +18,7 @@ Build order is the Order column.
 | ---: | :--- | :--- | :--- |
 | 1 | PR13-01 | Progress total. `Sent` is expected probes. `Received` is finished. | Done |
 | 2 | PR13-02 | `OpenOnly`. Drop closed, timed-out, and error hits. Default false. | Done |
-| 3 | PR13-03 | `ReadBanner` on the scan. Pass through to `TcpConnect`. Off by default. | Open |
+| 3 | PR13-03 | `ReadBanner` on the scan. Pass through to `TcpConnect`. Off by default. | Done |
 | 4 | PR13-04 | Well-known sets `windows`, `printers`, `databases`. | Open |
 | 5 | PR13-05 | `HostsFromPrefix`. Capped host list from an existing prefix. Does not scan. | Open |
 | 6 | PR13-06 | Pure CSV of a `PortScanResult`. No file write. | Open |
@@ -42,6 +42,8 @@ Landed: `PortScanOptions.OpenOnly` default false. When set, `Hits` keeps only op
 ### PR13-03
 
 `PortScanOptions.ReadBanner` sets `TcpConnectOptions.ReadBanner`. Confirm stays independent.
+
+Landed: `ReadBanner` default false. Passed through on the TCP probe. `Confirm` is a separate flag. Tests in `PortScanBannerTests`.
 
 ### PR13-04
 
@@ -74,4 +76,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR13-03. `ReadBanner` on the scan.
+PR13-04. Well-known sets.
