@@ -18,7 +18,7 @@ Build order is the Order column.
 | ---: | :--- | :--- | :--- |
 | 1 | PR13A-01 | `PortScanOpenRow` and `PortScanCsv.Rows`. Pure. No I/O. | Done |
 | 2 | PR13A-02 | `Write` uses `Rows`. Same CSV. Banner quoted. | Done |
-| 3 | PR13A-03 | Amend SRS, Design, Guide, and the package README in place. Decisions 84–88 land. | Open |
+| 3 | PR13A-03 | Amend SRS, Design, Guide, and the package README in place. Decisions 84–88 land. | Done |
 | 4 | PR13A-04 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
@@ -39,6 +39,8 @@ Landed: `Write` formats `Rows`. Banner quoted. No file write. Tests in `PortScan
 
 Amend in place. Decision 74 (no SYN) and Decision 58 (no CIDR inside the scan) stay.
 
+Landed: SRS keeps 1–83 and appends 84–88. Design and Guide keep prior passes and add PR13a. Package README lists `Rows` as the grid door.
+
 ### PR13A-04
 
 Owner runs the filter on the Windows clone. This agent does not mark the release closed.
@@ -53,4 +55,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR13A-03. Amend SRS, Design, Guide, and the package README.
+PR13A-04. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network`.
