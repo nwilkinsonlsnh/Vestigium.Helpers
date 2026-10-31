@@ -1,8 +1,8 @@
 # Vestigium.Helpers.Network — PR12 Implementation Plan
 
 **Document ID:** VEST-HLP-NETWORK-PLAN-PR12  
-**Status:** Open  
-**Date:** 28 October 2026  
+**Status:** Closed  
+**Date:** 31 October 2026  
 **Requirements:** [`PR12 -- Requirements.md`](PR12%20--%20Requirements.md)  
 **Binding:** Requirements win. Commit: `Network PR12: <step>`.
 
@@ -25,55 +25,41 @@ Build order is the Order column.
 | 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Done |
 | 6 | PR12-06 | Optional UDP payloads. Known payload for a small set of UDP ports. Empty payload remains the default. One datagram. | Done |
 | 7 | PR12-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 65–75 land. Decision 74 (no SYN) is explicit. | Done |
-| 8 | PR12-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
+| 8 | PR12-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Done |
 
 ## Slice notes
 
 ### PR12-01
 
-Pure. `PortSet` expands to a distinct, ordered list of ports. Sources: `FromList`, `FromRange(begin, end)`, `WellKnown`. Cap is a constant (propose 1024). Over the cap throws. No network call.
-
 Landed: `PortSet` (`MaxPorts` 1024), `FromList`, `FromRange`, `WellKnown("common" | "catalog")`. Doors: `NetworkHelper.PortsFromList`, `PortsFromRange`, `PortsWellKnown`. Tests in `PortSetTests`.
 
 ### PR12-02
-
-`NetworkHelper.ScanPorts(hosts, ports, options)`. Uses existing `TcpConnect` and `UdpProbe`. Does not reimplement connect. Parallelism default is small (propose 16). Overall timeout cancels the job. Progress phase names the host and port.
 
 Landed: `ScanPorts`, `PortScanOptions` (parallelism 16, max 64, connect timeout, overall timeout, per-host delay), `PortScanHit`, `PortScanResult`. TCP on by default. UDP off by default. Progress phase is `host:port/transport`. Tests in `PortScanTests`.
 
 ### PR12-03
 
-`PortScanResult` holds host rows. Each row holds the ports that answered and the evidence collected. Inference is optional and uses the existing pure scorer. The sweep does not call `ProbeNeighbor` or `IcmpTrace`.
-
 Landed: `PortScanHostRow`, `PortScanOpenPort`, `PortScanRollup`. Catalog name on each hit. `PortScanOptions.Infer` default false. Inference uses open ports and banners only. Tests in `PortScanRollupTests`.
 
 ### PR12-04
-
-Flag on the options. When set, run `IcmpEcho` (or one TCP probe) per host first. Hosts that miss are listed as skipped. When unset, every supplied host is scanned.
 
 Landed: `PortScanOptions.Discover` default false. `DiscoverPort` switches the probe to TCP (connected or refused counts as up). Misses land on `PortScanResult.Skipped` and are not scanned. Tests in `PortScanDiscoverTests`.
 
 ### PR12-05
 
-Flag on the options. When set, after a successful TCP connect to a known port, send one short request (for example an HTTP request line on 80/8080) and read a capped reply. Default remains the PR11 banner read, which sends nothing.
-
 Landed: `PortScanOptions.Confirm` default false. `TcpConnectOptions.ConfirmService`. `ServiceConfirm.ProbeFor` sends `GET / HTTP/1.0` on 80/8000/8008/8080/8081/8888 only. Reply lands in `Banner`. No TLS. Tests in `ServiceConfirmTests`.
 
 ### PR12-06
-
-Flag on the options. When set, UDP probes for a small known set use a fixed payload (for example DNS on 53, NTP on 123). Other UDP ports stay empty. No second datagram.
 
 Landed: `PortScanOptions.KnownUdp` default false. `UdpProbeOptions.Payload`. `UdpPayloads.For` is a DNS query on 53 and an NTP client request on 123. Other ports stay empty. One datagram. Tests in `UdpPayloadTests`.
 
 ### PR12-07
 
-Amend `Requirements_v1.6.md`, `Design_v1.6.md`, `DevelopersGuide_v1.6.md`, and the package README in place. Add decisions 65–75. State that Decision 41 is amended only for `ScanPorts`. Leave SYN out.
-
 Landed: decisions 65–75 in the SRS. Decision 41 amended only for `ScanPorts`. Decision 74 (no SYN) is explicit. Design, Guide, and package README amended in place.
 
 ### PR12-08
 
-Owner runs the filter on the Windows clone. This agent does not mark the release closed.
+Owner ran the filter on the Windows clone. All tests passed. Package `Vestigium.Helpers.Network` **2.0.0** pushed to NuGet on 31 October 2026.
 
 ## What this release does not do
 
@@ -84,6 +70,6 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 - Neighbor or MAC resolution from the sweep.
 - Plot API, packed IEEE OUI, default-route write, packet capture, or process spawn.
 
-## Next action
+## Closed
 
-PR12-08. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network`.
+PR12 is closed. Package 2.0.0 is the line.

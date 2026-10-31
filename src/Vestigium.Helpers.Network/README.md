@@ -6,8 +6,8 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 
 | Field | Value |
 |---|---|
-| Package | `Vestigium.Helpers.Network` 1.7.0 |
-| Version rule | `1.7.0` is PR11. PR12 adds `ScanPorts` on the same package line. Decision 41 is amended only for `ScanPorts`. No SYN. Do not republish an older version as if it had these doors. |
+| Package | `Vestigium.Helpers.Network` 2.0.0 |
+| Version rule | `2.0.0` is PR12: `ScanPorts`, rollup, optional discovery, confirm, known UDP. Decision 41 is amended only for `ScanPorts`. No SYN. Do not republish an older version as if it had these doors. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14560) |
@@ -20,7 +20,7 @@ Does not plot. OUI completeness is a URL fetched on request. The embedded snapsh
 ## Consume
 
 ```xml
-<PackageReference Include="Vestigium.Helpers.Network" Version="1.7.0" />
+<PackageReference Include="Vestigium.Helpers.Network" Version="2.0.0" />
 ```
 
 ```csharp
