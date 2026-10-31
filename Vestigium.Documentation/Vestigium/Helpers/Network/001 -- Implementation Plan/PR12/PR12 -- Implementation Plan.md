@@ -22,7 +22,7 @@ Build order is the Order column.
 | 2 | PR12-02 | Sweep job. Hosts the caller supplies. Ports from PR12-01. Concurrency cap, per-host delay, overall timeout. Progress per finished port. | Done |
 | 3 | PR12-03 | Rollup. Per host: open TCP, open UDP, catalog name, MSS, banner. Optional inference from evidence the sweep already collected. | Done |
 | 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Done |
-| 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Open |
+| 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Done |
 | 6 | PR12-06 | Optional UDP payloads. Known payload for a small set of UDP ports. Empty payload remains the default. One datagram. | Open |
 | 7 | PR12-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 65–75 land. Decision 74 (no SYN) is explicit. | Open |
 | 8 | PR12-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
@@ -57,6 +57,8 @@ Landed: `PortScanOptions.Discover` default false. `DiscoverPort` switches the pr
 
 Flag on the options. When set, after a successful TCP connect to a known port, send one short request (for example an HTTP request line on 80/8080) and read a capped reply. Default remains the PR11 banner read, which sends nothing.
 
+Landed: `PortScanOptions.Confirm` default false. `TcpConnectOptions.ConfirmService`. `ServiceConfirm.ProbeFor` sends `GET / HTTP/1.0` on 80/8000/8008/8080/8081/8888 only. Reply lands in `Banner`. No TLS. Tests in `ServiceConfirmTests`.
+
 ### PR12-06
 
 Flag on the options. When set, UDP probes for a small known set use a fixed payload (for example DNS on 53, NTP on 123). Other UDP ports stay empty. No second datagram.
@@ -80,4 +82,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR12-05. Optional service confirmation after a successful TCP connect.
+PR12-06. Optional UDP payloads for a small known set.
