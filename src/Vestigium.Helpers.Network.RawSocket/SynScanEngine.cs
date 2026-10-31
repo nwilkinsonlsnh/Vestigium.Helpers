@@ -21,6 +21,7 @@ internal static class SynScanEngine
         var o = options ?? new SynScanOptions();
         if (o.Parallelism is < 1 or > SynScanOptions.MaxParallelism)
             throw new ArgumentOutOfRangeException(nameof(o.Parallelism), "Parallelism must be 1–32.");
+        EgressBind.Validate(o.InterfaceIndex, o.SourceAddress);
 
         var jobId = "syn-" + Guid.NewGuid().ToString("N")[..8];
         return new RawSocketJob<SynScanResult>(jobId, "synScan", (token, progress) => RunAsync(jobId, names, ports, o, token, progress));
@@ -57,7 +58,7 @@ internal static class SynScanEngine
                     continue;
                 }
 
-                var local = LocalAddress(dest);
+                var local = LocalAddress(dest, options);
                 foreach (var port in ports.Ports)
                     work.Add(ProbeGatedAsync(jobId, host, local, dest, port, options, expected, gate, hits, progress, () => Interlocked.Increment(ref finished), overall.Token));
             }
@@ -94,7 +95,7 @@ internal static class SynScanEngine
         await gate.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            using var socket = OpenRaw();
+            using var socket = OpenRaw(options);
             var hit = socket is null
                 ? new SynScanHit(host, port, SynPortStatus.Filtered, 0, "raw-tcp-unavailable")
                 : await ProbeAsync(socket, host, local, dest, port, options, token).ConfigureAwait(false);
@@ -115,12 +116,13 @@ internal static class SynScanEngine
         }
     }
 
-    private static Socket? OpenRaw()
+    private static Socket? OpenRaw(SynScanOptions options)
     {
         try
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Raw, ProtocolType.Tcp);
             socket.ReceiveTimeout = 1000;
+            EgressBind.Apply(socket, options.InterfaceIndex, options.SourceAddress);
             return socket;
         }
         catch (SocketException)
@@ -168,9 +170,13 @@ internal static class SynScanEngine
         return socket.SendToAsync(rst, SocketFlags.None, new IPEndPoint(dest, port), token).AsTask();
     }
 
-    private static IPAddress LocalAddress(IPAddress dest)
+    private static IPAddress LocalAddress(IPAddress dest, SynScanOptions options)
     {
+        if (!string.IsNullOrWhiteSpace(options.SourceAddress) && IPAddress.TryParse(options.SourceAddress.Trim(), out var pinned))
+            return pinned;
+
         using var probe = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        EgressBind.Apply(probe, options.InterfaceIndex, options.SourceAddress);
         probe.Connect(new IPEndPoint(dest, 9));
         return ((IPEndPoint)probe.LocalEndPoint!).Address;
     }

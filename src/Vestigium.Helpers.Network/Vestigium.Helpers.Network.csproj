@@ -1,2 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Vestigium.Helpers.Network</RootNamespace>
+    <AssemblyName>Vestigium.Helpers.Network</AssemblyName>
+    <Description>Workstation inventory and protocol jobs for diagnostic hosts. Logging via Vestigium.Logging. Campaign stats via Vestigium.Helpers.Json. P95 via Analytics. Share probes via FileIo. OUI lookup is a caller URL. The embedded snapshot is a stub.</Description>
+    <!-- 1.4.10 adds the common-port catalog. Forward by port, reverse by name. -->
+    <Version>2.1.0</Version>
+    <Authors>Vestigium</Authors>
+    <Company>Wilkinson Business</Company>
+    <PackageTags>network;icmp;dns;share;oui;netbios;lmhosts;ports;vestigium</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nwilkinsonlsnh/Vestigium.Helpers</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable>true</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Vestigium.Helpers.Tests" />
     <InternalsVisibleTo Include="Vestigium.Helpers.Network.RawSocket" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Vestigium.Helpers.Json" Version="1.0.1" />
+    <PackageReference Include="Vestigium.Helpers.Analytics" Version="1.0.1" />
+    <PackageReference Include="Vestigium.Helpers.FileIo" Version="1.1.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <None Include="EventCatalog\network.json" Pack="true" PackagePath="contentFiles\any\any\EventCatalog\" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="_Data\oui-snapshot.txt" Pack="true" PackagePath="contentFiles\any\any\NetworkData\" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="_Data\oui-snapshot.txt" LogicalName="Vestigium.Helpers.Network.Data.oui-snapshot.txt" />
+  </ItemGroup>
+</Project>
