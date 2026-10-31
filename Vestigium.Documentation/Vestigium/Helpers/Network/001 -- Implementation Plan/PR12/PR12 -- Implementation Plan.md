@@ -19,7 +19,7 @@ Build order is the Order column.
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
 | 1 | PR12-01 | Port set types. Explicit list, begin–end range, and a named well-known set. Expand with a hard cap. Reject over the cap. No I/O. | Done |
-| 2 | PR12-02 | Sweep job. Hosts the caller supplies. Ports from PR12-01. Concurrency cap, per-host delay, overall timeout. Progress per finished port. | Open |
+| 2 | PR12-02 | Sweep job. Hosts the caller supplies. Ports from PR12-01. Concurrency cap, per-host delay, overall timeout. Progress per finished port. | Done |
 | 3 | PR12-03 | Rollup. Per host: open TCP, open UDP, catalog name, MSS, banner. Optional inference from evidence the sweep already collected. | Open |
 | 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Open |
 | 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Open |
@@ -38,6 +38,8 @@ Landed: `PortSet` (`MaxPorts` 1024), `FromList`, `FromRange`, `WellKnown("common
 ### PR12-02
 
 `NetworkHelper.ScanPorts(hosts, ports, options)`. Uses existing `TcpConnect` and `UdpProbe`. Does not reimplement connect. Parallelism default is small (propose 16). Overall timeout cancels the job. Progress phase names the host and port.
+
+Landed: `ScanPorts`, `PortScanOptions` (parallelism 16, max 64, connect timeout, overall timeout, per-host delay), `PortScanHit`, `PortScanResult`. TCP on by default. UDP off by default. Progress phase is `host:port/transport`. Tests in `PortScanTests`.
 
 ### PR12-03
 
@@ -74,4 +76,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR12-02. Sweep job over hosts and a `PortSet`.
+PR12-03. Rollup with catalog name and optional inference.
