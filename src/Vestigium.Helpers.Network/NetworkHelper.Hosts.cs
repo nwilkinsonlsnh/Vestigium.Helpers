@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 
 namespace Vestigium.Helpers.Network;
 
@@ -11,30 +12,42 @@ public static partial class NetworkHelper
     public static IReadOnlyList<string> HostsFromPrefix(string cidr)
     {
         var block = DescribePrefix(cidr);
-        if (block.Family != AddressFamily.InterNetwork)
-            throw new ArgumentException("HostsFromPrefix is IPv4. IPv6 prefixes are not listed.", nameof(cidr));
         if (block.FirstUsable is null || block.LastUsable is null)
             return [];
 
-        var start = ToUint(IPAddress.Parse(block.FirstUsable));
-        var end = ToUint(IPAddress.Parse(block.LastUsable));
-        var count = (long)end - start + 1;
+        var start = ToInt(IPAddress.Parse(block.FirstUsable));
+        var end = ToInt(IPAddress.Parse(block.LastUsable));
+        var count = end - start + 1;
         if (count > HostListCap)
             throw new ArgumentOutOfRangeException(nameof(cidr), $"Prefix expands to {count} hosts. Cap is {HostListCap}.");
 
-        var hosts = new string[count];
-        for (var i = 0; i < count; i++)
-            hosts[i] = FromUint(start + (uint)i).ToString();
+        var hosts = new string[(int)count];
+        for (var i = 0; i < hosts.Length; i++)
+            hosts[i] = ToIp(block.Family, start + i).ToString();
         return hosts;
     }
 
-    private static uint ToUint(IPAddress address)
-        => BinaryPrimitives.ReadUInt32BigEndian(address.GetAddressBytes());
-
-    private static IPAddress FromUint(uint value)
+    private static BigInteger ToInt(IPAddress address)
     {
-        Span<byte> bytes = stackalloc byte[4];
-        BinaryPrimitives.WriteUInt32BigEndian(bytes, value);
+        var bytes = address.GetAddressBytes();
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);
+        return new BigInteger(bytes, isUnsigned: true, isBigEndian: true);
+    }
+
+    private static IPAddress ToIp(AddressFamily family, BigInteger value)
+    {
+        var width = family == AddressFamily.InterNetwork ? 4 : 16;
+        var bytes = value.ToByteArray(isUnsigned: true, isBigEndian: true);
+        if (bytes.Length > width)
+            bytes = bytes[^width..];
+        else if (bytes.Length < width)
+        {
+            var padded = new byte[width];
+            bytes.CopyTo(padded.AsSpan(width - bytes.Length));
+            bytes = padded;
+        }
+
         return new IPAddress(bytes);
     }
 }

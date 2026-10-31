@@ -22,4 +22,22 @@ public sealed class HostsFromPrefixTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => NetworkHelper.HostsFromPrefix("10.0.0.0/21"));
     }
+
+    [Fact]
+    public void Ipv6_slash_127_returns_the_two_hosts()
+    {
+        Assert.Equal(["2001:db8::", "2001:db8::1"], NetworkHelper.HostsFromPrefix("2001:db8::/127"));
+    }
+
+    [Fact]
+    public void Ipv6_slash_128_returns_the_one_host()
+    {
+        Assert.Equal(["2001:db8::1"], NetworkHelper.HostsFromPrefix("2001:db8::1/128"));
+    }
+
+    [Fact]
+    public void Ipv6_over_the_cap_throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => NetworkHelper.HostsFromPrefix("2001:db8::/117"));
+    }
 }
