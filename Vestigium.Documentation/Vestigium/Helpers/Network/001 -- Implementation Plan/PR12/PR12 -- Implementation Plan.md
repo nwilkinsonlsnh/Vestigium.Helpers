@@ -24,7 +24,7 @@ Build order is the Order column.
 | 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Done |
 | 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Done |
 | 6 | PR12-06 | Optional UDP payloads. Known payload for a small set of UDP ports. Empty payload remains the default. One datagram. | Done |
-| 7 | PR12-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 65–75 land. Decision 74 (no SYN) is explicit. | Open |
+| 7 | PR12-07 | Amend SRS, Design, Guide, and the package README in place. Decisions 65–75 land. Decision 74 (no SYN) is explicit. | Done |
 | 8 | PR12-08 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
@@ -69,6 +69,8 @@ Landed: `PortScanOptions.KnownUdp` default false. `UdpProbeOptions.Payload`. `Ud
 
 Amend `Requirements_v1.6.md`, `Design_v1.6.md`, `DevelopersGuide_v1.6.md`, and the package README in place. Add decisions 65–75. State that Decision 41 is amended only for `ScanPorts`. Leave SYN out.
 
+Landed: decisions 65–75 in the SRS. Decision 41 amended only for `ScanPorts`. Decision 74 (no SYN) is explicit. Design, Guide, and package README amended in place.
+
 ### PR12-08
 
 Owner runs the filter on the Windows clone. This agent does not mark the release closed.
@@ -84,4 +86,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR12-07. Amend SRS, Design, Guide, and the package README.
+PR12-08. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network`.
