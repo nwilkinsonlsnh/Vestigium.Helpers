@@ -1,7 +1,7 @@
 # Vestigium.Helpers.Network — PR14 Implementation Plan
 
 **Document ID:** VEST-HLP-NETWORK-PLAN-PR14  
-**Status:** Open  
+**Status:** Closed  
 **Date:** 31 October 2026  
 **Requirements:** [`PR14 -- Requirements.md`](PR14%20--%20Requirements.md)  
 **Binding:** Requirements win. Commit: `Network PR14: <step>`.
@@ -10,11 +10,7 @@ One-sentence goal: fill the lab gaps and lock the banner-logging rule.
 
 SYN parity is RawSocket PR02. This paper does not touch that package.
 
-PR14-N is the owner gate on the clone. Test names describe the behavior. They do not use the release id.
-
 ## Implementation table
-
-Build order is the Order column.
 
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
@@ -26,27 +22,6 @@ Build order is the Order column.
 | 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Done |
 | 7 | PR14-07 | Library never logs a banner. Document the host rule. | Done |
 | 8 | PR14-08 | Amend SRS, Design, Guide, and the package README. Decisions 89–95 land. | Done |
-| 9 | PR14-09 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
+| 9 | PR14-09 | Owner gate. Package 2.1.1 listed. | Done |
 
-## Slice notes
-
-### PR14-08
-
-Amend in place. Decision 74 (no SYN in Network) and Decision 58 (no CIDR inside the scan) stay.
-
-Landed: SRS decisions 89–95. Design and Guide carry the doors. README already states the banner rule and the new doors.
-
-### PR14-09
-
-Owner runs the filter on the Windows clone. This agent does not mark the release closed.
-
-## What this release does not do
-
-- Put SYN in `Vestigium.Helpers.Network`.
-- Expand a CIDR inside `ScanPorts`.
-- Capture packets.
-- Walk SNMP.
-
-## Next action
-
-PR14-09. Owner gate on the clone.
+Shipped as `Vestigium.Helpers.Network` **2.1.1**.
