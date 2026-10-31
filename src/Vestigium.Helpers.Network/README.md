@@ -7,7 +7,7 @@ Workstation inventory and protocol jobs for diagnostic hosts. Not a CLI. Not `pi
 | Field | Value |
 |---|---|
 | Package | `Vestigium.Helpers.Network` 1.7.0 |
-| Version rule | `1.7.0` is PR11: inference, TTL summary, TCP MSS, optional banner, SNMP sysDescr. Decision 41 stays locked. Do not republish an older version as if it had these doors. |
+| Version rule | `1.7.0` is PR11. PR12 adds `ScanPorts` on the same package line. Decision 41 is amended only for `ScanPorts`. No SYN. Do not republish an older version as if it had these doors. |
 | TFM | `net10.0` |
 | APPID | `Network` (`NetworkCatalog.AppId`) |
 | EVENTID | Reserved 14500–14999 (used through 14560) |
@@ -34,6 +34,7 @@ var path = await NetworkHelper.Pathping("192.0.2.1").RunAsync();
 var tcp  = await NetworkHelper.TcpConnect("192.0.2.1", 443).RunAsync();
 var udp  = await NetworkHelper.UdpProbe("192.0.2.1", 53).RunAsync();
 var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
+var scan = await NetworkHelper.ScanPorts("192.0.2.1", NetworkHelper.PortsWellKnown("common")).RunAsync();
 ```
 
 `Ping` / `Trace` are aliases for `IcmpEcho` / `IcmpTrace`.
@@ -46,6 +47,8 @@ var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
 | `IcmpEcho` / `IcmpTrace` / `Pathping` | `NetworkJob<T>` | Bind set uses a bound ICMP path. |
 | `SummarizeTtl` | `TtlSummaryResult` | Estimated hops from existing replies. Not a trace. |
 | `TcpConnect` / `UdpProbe` | `NetworkJob<T>` | One host, one port. `Mss` and optional `Banner` on connect. |
+| `ScanPorts` | `NetworkJob<PortScanResult>` | Hosts you supply. List, range, or well-known set. Cap 1024. |
+| `PortsFromList` / `PortsFromRange` / `PortsWellKnown` | `PortSet` | Pure. No I/O. |
 | `ProbeDns` | `NetworkJob<DnsProbeResult>` | Answered / refused / timed out. |
 | `ProbeSnmpSysDescr` | `NetworkJob<SnmpSysDescrResult>` | One Get of `sysDescr`. Community never logged. |
 | `InferDevice` | `InferenceResult` | Pure. Evidence in, class / vendor / confidence out. |
@@ -60,7 +63,7 @@ var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
 | `ProbeNeighbor` | `NeighborProbeResult` | One-address resolve. Not called by inference. |
 | `AddRoute` / `ChangeRoute` / `RemoveRoute` | void | Defaults throw `NetworkRouteDenied`. |
 | `CreateEchoCampaign` / `CreateShareCampaign` | campaign | Recipe persists bind when set. |
-| `ClassifyAddress` / `DescribePrefix` / `PlanByHosts` | prefix math | |
+| `ClassifyAddress` / `DescribePrefix` / `PlanByHosts` | prefix math | Scanner does not call these. |
 | `ParseMac` / `LookupOuiAsync` / `LookupOuiPacked` | MAC / OUI | Live lookup is the URL. Packed is a stub. |
 | `Bandwidth` / `BillP95` / `BillPercentile` | amounts | No plot. |
 | `NetworkCatalog.Register(cfg)` | void | Host-only. |
@@ -74,7 +77,8 @@ var ask  = await NetworkHelper.ProbeDns("example.com").RunAsync();
 - Never log credentials. SNMP community is never logged.
 - The library never calls `VestigiumLogger.Initialize`.
 - `InterfaceIndex` 0 is not rewritten to 1.
-- No port sweep. Decision 41 stands.
+- `TcpConnect` and `UdpProbe` stay one host, one port. `ScanPorts` is the only list or range.
+- No CIDR expansion inside the scanner. No SYN.
 - Inference does not obtain a MAC and does not walk hops.
 - `GetNeighbors` index 0 is not rewritten to 1. A name miss stays null.
 - Async print doors do not abort a P/Invoke already inside `iphlpapi`.

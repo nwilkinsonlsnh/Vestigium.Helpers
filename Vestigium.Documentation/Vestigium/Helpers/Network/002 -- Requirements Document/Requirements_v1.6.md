@@ -2,8 +2,8 @@
 
 **Document ID:** VEST-HLP-NETWORK-SRS-000  
 **Version:** 1.6  
-**Status:** Locked companion to PR01–PR11.  
-**Date:** 28 October 2026  
+**Status:** Locked companion to PR01–PR12.  
+**Date:** 31 October 2026  
 **Package:** `Vestigium.Helpers.Network` **1.7.0**  
 **TFM:** `net10.0` (.NET 10 LTS) — **Windows and Linux are first-class**. Not `net10.0-windows`.  
 **Companion:** [`DevelopersGuide_v1.6.md`](DevelopersGuide_v1.6.md), [`Design_v1.6.md`](Design_v1.6.md)
@@ -50,7 +50,7 @@ This library does not plot and will not grow a plot API.
 | 28 | DNS wire peer | UDP accepted only from the queried server IP + port. |
 | 29 | Route interface | No guessed IfIndex `1`. Omit or `0` leaves the stack to choose. Never rewrite `0` to `1`. |
 | 30 | Campaign paths | Recipe and results must resolve under the campaign root. |
-| 31 | HTTP | Never this library except the constrained OUI GET. |
+| 31 | HTTP | Never this library except the constrained OUI GET and the short `Confirm` probe on known HTTP ports. No TLS conversation. |
 | 32 | Share campaigns | Shipped. No password field. |
 | 33 | Plotting | Never this library. |
 | 34 | Default route | `0.0.0.0/0` and `::/0` write → `NetworkRouteDenied`. |
@@ -60,7 +60,7 @@ This library does not plot and will not grow a plot API.
 | 38 | Pathping | Walk then sample. Link loss is never a negative gain. |
 | 39 | PTR | Optional name on each hop. Miss stays empty. |
 | 40 | TCP probe | Third trace probe. Refused connect names the hop. |
-| 41 | TcpConnect | One host, one port. No port loop. No HTTP. |
+| 41 | TcpConnect | One host, one port. No port loop on this door. `ScanPorts` is the only list or range job (decision 75). |
 | 42 | Counter sample | One adapter, one duration. Does not bill. Does not plot. |
 | 43 | Window duration | `EchoWindow` may carry `Duration`. First limit wins. |
 | 44 | PMTU | Largest don't-fragment echo that passed. Timeout is unknown, not smaller. |
@@ -77,13 +77,24 @@ This library does not plot and will not grow a plot API.
 | 55 | Device class enum | `InferredDeviceClass`: `Unknown`, `WindowsHost`, `UnixLikeHost`, `NetworkDevice`, `MobileOrEmbedded`, `PrinterOrAppliance`. |
 | 56 | Vendor enum | `InferredVendor`: `Unknown`, `Cisco`, `Juniper`, `Arista`, `PaloAlto`, `Fortinet`, `Other`. |
 | 57 | Scoring is pure | A function that consumes evidence and returns class, vendor, confidence, and the evidence used. No I/O inside the scorer. |
-| 58 | No port sweep | Decision 41 stands. No range, no CIDR expansion, no caller-supplied port list as a library job. |
+| 58 | No CIDR sweep | `ScanPorts` is the only sweep. It does not expand a CIDR. The calculator stays a separate door. |
 | 59 | Banner read | Optional short read after a successful TCP connect. Cap the length. Cap the time. Do not speak a protocol conversation. Off by default. |
 | 60 | TCP MSS | On a successful `TcpConnect`, capture MSS when the stack exposes it. Miss stays null. Status unchanged. |
 | 61 | TTL summary | Thin helper over existing ICMP replies: min/max/mode observed TTL and an **estimated** hop count. Does not probe. Does not call `IcmpTrace` / `Trace`. |
 | 62 | SNMP sysDescr | Optional one-shot UDP Get of `1.3.6.1.2.1.1.1.0`. Community is a caller parameter and is never logged. No walk. No set. No other OIDs. |
 | 63 | OUI reuse | Scoring may consume an existing OUI lookup result when the caller already has a MAC. This path does not call `ProbeNeighbor` or `GetNeighbors` and does not obtain a MAC. |
 | 64 | Local adapter MTU | `NetworkAdapter.Mtu` is the local interface MTU. Remote frame size is `PathMtu`. |
+| 65 | Sweep is a job | `NetworkHelper.ScanPorts` takes hosts and a `PortSet` and returns `NetworkJob<PortScanResult>`. Progress is `IProgress<NetworkProgress>`. |
+| 66 | Hosts are supplied | One host, or a small explicit list. No CIDR. No subnet expansion inside the job. |
+| 67 | Ports are supplied | Explicit list, begin–end range, or a named well-known set. Cap is 1024. Over the cap throws. |
+| 68 | Concurrency | Caller sets a parallelism cap. Default is 16. Max is 64. |
+| 69 | Rate and timing | Per-host delay and an overall timeout. Defaults are polite. |
+| 70 | Host discovery | Optional. ICMP, or a TCP probe when `DiscoverPort` is set. Off by default. Misses are skipped and recorded. |
+| 71 | Rollup | One result: per host, open TCP, open UDP, catalog name, MSS, banner, optional inference. |
+| 72 | Service confirmation | Optional short HTTP probe on known clear-text ports. Off by default. No TLS conversation. |
+| 73 | UDP payloads | Optional known payload for DNS (53) and NTP (123). Empty remains the default. One datagram. |
+| 74 | SYN scan | Out. No raw sockets. No half-open. Connect scan only. |
+| 75 | Decision 41 amended | Single-port `TcpConnect` / `UdpProbe` stay. `ScanPorts` is the only place a list or range is allowed. |
 
 ---
 
@@ -99,7 +110,7 @@ This library does not plot and will not grow a plot API.
 
 ## 12. Non-goals
 
-Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client. Packet capture. Default-route write. Plotting. Port sweep. Actual hop walk from the inference path. Neighbor or MAC resolution from the inference path. SNMP walk or set. OS fingerprinting. Hard OS or vendor detection.
+Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client beyond the short confirm probe. Packet capture. Default-route write. Plotting. CIDR expansion inside the scanner. SYN or half-open scan. Actual hop walk from the inference path. Neighbor or MAC resolution from the inference path. SNMP walk or set. OS fingerprinting. Hard OS or vendor detection.
 
 ---
 
@@ -109,14 +120,15 @@ Spawn CLI tools. Install cron/schtasks/systemd. HTTP reachability client. Packet
 |---|---|
 | PR09 | Package 1.1.0 — **shipped** |
 | PR10 / PR10b | Package 1.2.0 — **shipped** |
-| PR11 | Package 1.7.0 — **this amendment** |
+| PR11 | Package 1.7.0 — **shipped** |
+| PR12 | Sweep, rollup, discovery, confirm, known UDP. This amendment. |
 | later | Scheduler package; macOS as a test gate; repo Linux CI |
 
 ---
 
 ## 15. Acceptance
 
-PR01–PR10 stand. PR11 accepts decisions 54–64. Decision 41 remains locked. Decisions 1–53 remain in this file.
+PR01–PR11 stand. PR12 accepts decisions 65–75. Decision 41 is amended only for `ScanPorts`. Decision 74 (no SYN) is explicit. Decisions 1–64 remain in this file except where 41, 31, and 58 are amended above.
 
 ## Document control
 
@@ -126,3 +138,4 @@ PR01–PR10 stand. PR11 accepts decisions 54–64. Decision 41 remains locked. D
 | 1.6 + PR10-09 | 24 Sep 2026 | PR10 doors. Package 1.2.0. |
 | 1.6 + PR10b-04 | 24 Sep 2026 | Restored decisions 1–45. Kept 46–53. |
 | 1.6 + PR11-07 | 28 Oct 2026 | PR11 doors. Decisions 54–64. Decision 41 locked. Package 1.7.0. |
+| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. Decisions 65–75. Decision 41 amended only for `ScanPorts`. No SYN. |

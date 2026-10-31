@@ -3,7 +3,7 @@
 **Document ID:** VEST-HLP-NETWORK-DEV-000  
 **Version:** 1.6  
 **Status:** Current call surface. Contract is [`Requirements_v1.6.md`](Requirements_v1.6.md). Shape is [`Design_v1.6.md`](Design_v1.6.md). Consume package **1.7.0**.  
-**Date:** 28 October 2026
+**Date:** 31 October 2026
 
 Open `Vestigium.Helpers.slnx`. Implementation lives in `src/Vestigium.Helpers.Network/`.
 
@@ -22,6 +22,32 @@ Route **print** works on both OS, both families. Route **write** is Option C.
 Default `0.0.0.0/0` or `::/0` throws `NetworkRouteDenied`. No admin / no `CAP_NET_ADMIN` throws the same.
 
 NetBIOS is Windows-only. `NetworkTestHooks` is internal. This library does not plot.
+
+## PR12 jobs
+
+```csharp
+var ports = NetworkHelper.PortsWellKnown("common");
+var scan = await NetworkHelper.ScanPorts("192.0.2.1", ports, new PortScanOptions
+{
+    Discover = true,
+    Confirm = true,
+    Infer = true
+}).RunAsync();
+```
+
+`ScanPorts` is the only list or range job. `TcpConnect` and `UdpProbe` stay one host, one port.
+
+Hosts are supplied. The scanner does not expand a CIDR. Use `DescribePrefix` and pass the hosts you chose.
+
+`PortSet` is a list, a begin–end range, or `"common"` / `"catalog"`. Cap is 1024.
+
+Discovery is off by default. When on, ICMP (or a TCP probe if `DiscoverPort` is set) runs first. Misses land on `Skipped`.
+
+`Confirm` sends `GET / HTTP/1.0` on known clear-text HTTP ports only. No TLS. Off by default.
+
+`KnownUdp` sends a DNS query on 53 and an NTP request on 123. Other UDP ports stay empty. One datagram.
+
+No SYN. Connect scan only.
 
 ## PR11 jobs
 
@@ -93,7 +119,7 @@ Windows `FullyQualifiedName~Network` is the Network gate.
 
 ## What is not next in this DLL
 
-Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE OUI registry. Port sweep. Default-route write. Actual hop walk from the inference path. Neighbor or MAC resolution from the inference path. SNMP walk or set. OS fingerprinting.
+Scheduler package. HTTP reachability beyond the short confirm probe. Demo gallery. Plot API. Packing the IEEE OUI registry. CIDR expansion inside the scanner. SYN or half-open scan. Default-route write. Actual hop walk from the inference path. Neighbor or MAC resolution from the inference path. SNMP walk or set. OS fingerprinting.
 
 ## Document control
 
@@ -102,3 +128,4 @@ Scheduler package. HTTP reachability. Demo gallery. Plot API. Packing the IEEE O
 | 1.6 + PR09-11 | 24 Sep 2026 | Consume 1.1.0. PR09 doors. |
 | 1.6 + PR10-09 | 24 Sep 2026 | Consume 1.2.0. PR10 doors. |
 | 1.6 + PR11-07 | 28 Oct 2026 | Consume 1.7.0. PR11 doors. |
+| 1.6 + PR12-07 | 31 Oct 2026 | PR12 doors. `ScanPorts`. No SYN. |
