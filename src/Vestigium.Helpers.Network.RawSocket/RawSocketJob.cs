@@ -33,7 +33,7 @@ public sealed class RawSocketJob<TResult>
             throw new InvalidOperationException("This RawSocketJob has already been started.");
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _cts.Token);
-        var progress = new Progress<NetworkProgress>(p =>
+        var progress = new SyncProgress(p =>
         {
             Progress.Phase = p.Phase;
             Progress.Sent = p.Sent;
@@ -44,5 +44,14 @@ public sealed class RawSocketJob<TResult>
             ProgressChanged?.Invoke(this, Progress);
         });
         return await _run(linked.Token, progress).ConfigureAwait(false);
+    }
+
+    private sealed class SyncProgress : IProgress<NetworkProgress>
+    {
+        private readonly Action<NetworkProgress> _handler;
+
+        public SyncProgress(Action<NetworkProgress> handler) => _handler = handler;
+
+        public void Report(NetworkProgress value) => _handler(value);
     }
 }
