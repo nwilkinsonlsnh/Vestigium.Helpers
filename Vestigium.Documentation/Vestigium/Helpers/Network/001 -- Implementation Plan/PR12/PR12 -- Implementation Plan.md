@@ -20,7 +20,7 @@ Build order is the Order column.
 | ---: | :--- | :--- | :--- |
 | 1 | PR12-01 | Port set types. Explicit list, begin–end range, and a named well-known set. Expand with a hard cap. Reject over the cap. No I/O. | Done |
 | 2 | PR12-02 | Sweep job. Hosts the caller supplies. Ports from PR12-01. Concurrency cap, per-host delay, overall timeout. Progress per finished port. | Done |
-| 3 | PR12-03 | Rollup. Per host: open TCP, open UDP, catalog name, MSS, banner. Optional inference from evidence the sweep already collected. | Open |
+| 3 | PR12-03 | Rollup. Per host: open TCP, open UDP, catalog name, MSS, banner. Optional inference from evidence the sweep already collected. | Done |
 | 4 | PR12-04 | Optional host discovery. ICMP (or a short TCP probe) before the sweep. Off by default. Missed hosts are skipped and recorded. | Open |
 | 5 | PR12-05 | Optional service confirmation. Short known probe after a successful TCP connect for a small set. Off by default. No TLS conversation. | Open |
 | 6 | PR12-06 | Optional UDP payloads. Known payload for a small set of UDP ports. Empty payload remains the default. One datagram. | Open |
@@ -44,6 +44,8 @@ Landed: `ScanPorts`, `PortScanOptions` (parallelism 16, max 64, connect timeout,
 ### PR12-03
 
 `PortScanResult` holds host rows. Each row holds the ports that answered and the evidence collected. Inference is optional and uses the existing pure scorer. The sweep does not call `ProbeNeighbor` or `IcmpTrace`.
+
+Landed: `PortScanHostRow`, `PortScanOpenPort`, `PortScanRollup`. Catalog name on each hit. `PortScanOptions.Infer` default false. Inference uses open ports and banners only. Tests in `PortScanRollupTests`.
 
 ### PR12-04
 
@@ -76,4 +78,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR12-03. Rollup with catalog name and optional inference.
+PR12-04. Optional host discovery before the sweep.
