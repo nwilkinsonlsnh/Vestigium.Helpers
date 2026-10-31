@@ -24,21 +24,17 @@ Build order is the Order column.
 | 4 | PR14-04 | `HostsFromPrefix` returns IPv6 hosts. Cap 1024. Does not scan. | Done |
 | 5 | PR14-05 | `ProbeTls`. Subject, issuer, expiry, protocol. No HTTP. | Done |
 | 6 | PR14-06 | `PortScanJson.Write`. Pure. Banner is a field, not a log line. | Done |
-| 7 | PR14-07 | Library never logs a banner. Document the host rule. | Open |
+| 7 | PR14-07 | Library never logs a banner. Document the host rule. | Done |
 | 8 | PR14-08 | Amend SRS, Design, Guide, and the package README. Decisions 89–95 land. | Open |
 | 9 | PR14-09 | `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~Network` | Owner |
 
 ## Slice notes
 
-### PR14-06
-
-Same open rows as CSV. No file. No log line of the banner.
-
-Landed: `PortScanJson.Write`. Uses `Rows`. Banner is a JSON field. Tests in `PortScanJsonTests`.
-
 ### PR14-07
 
-Library never logs a banner. Document the host rule.
+The result still carries the banner. The audit log does not.
+
+Landed: `NetworkLog` reduces `banner=<text>` to `banner=set`. `banner=null` stays. README states the host rule. Tests in `BannerLogRuleTests`.
 
 ### PR14-08
 
@@ -57,4 +53,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR14-07. Banner logging rule.
+PR14-08. Amend the papers.
