@@ -1,7 +1,7 @@
 # Vestigium.Helpers.Network.RawSocket — PR01 Implementation Plan
 
 **Document ID:** VEST-HLP-NETWORK-RAWSOCKET-PLAN-PR01  
-**Status:** Open  
+**Status:** Closed  
 **Date:** 31 October 2026  
 **Requirements:** [`PR01 -- Requirements.md`](PR01%20--%20Requirements.md)  
 **Binding:** Requirements win. Commit: `Network.RawSocket PR01: <step>`.
@@ -18,7 +18,7 @@ Name is locked: `Vestigium.Helpers.Network.RawSocket`.
 | 2 | RAW-02 | Privilege check. Typed denial when admin / `CAP_NET_RAW` is missing. | Done |
 | 3 | RAW-03 | `SynScan` job. Hosts supplied. `PortSet`. Cap 1024. Half-open. | Done |
 | 4 | RAW-04 | Amend a short README. State that Network stays connect-scan. | Done |
-| 5 | RAW-05 | `dotnet test` filter for the new project. | Owner |
+| 5 | RAW-05 | `dotnet test` filter for the new project. | Done |
 
 ## Slice notes
 
@@ -40,7 +40,7 @@ Landed: package README. States the privilege split, the `SynScan` door, and that
 
 ### RAW-05
 
-Owner runs the filter on the Windows clone. This agent does not mark the release closed.
+Owner ran the filter on the Windows clone. Package `Vestigium.Helpers.Network.RawSocket` **1.0.0** pushed to NuGet on 31 October 2026.
 
 ## What this release does not do
 
@@ -50,6 +50,6 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 - Speak TLS or HTTP.
 - Spawn a process.
 
-## Next action
+## Closed
 
-RAW-05. Owner runs `dotnet test src/Vestigium.Helpers.Tests --filter FullyQualifiedName~RawSocket`.
+PR01 is closed. Package 1.0.0 is the line.
