@@ -181,7 +181,8 @@ internal static class PortScanEngine
             Timeout = options.ConnectTimeout,
             InterfaceIndex = options.InterfaceIndex,
             SourceAddress = options.SourceAddress,
-            Family = options.Family
+            Family = options.Family,
+            ConfirmService = options.Confirm
         });
         var result = await job.RunAsync(token).ConfigureAwait(false);
         var status = result.Status switch
