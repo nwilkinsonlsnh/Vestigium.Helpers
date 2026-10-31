@@ -122,6 +122,8 @@
     <Content Include="Vestigium\Helpers\LogParser.Url\PR02 -- Implementation Plan.md" />
     <Content Include="Vestigium\Helpers\Network\001 -- Implementation Plan\PR13\PR13 -- Requirements.md" />
     <Content Include="Vestigium\Helpers\Network\001 -- Implementation Plan\PR13\PR13 -- Implementation Plan.md" />
+    <Content Include="Vestigium\Helpers\Network\001 -- Implementation Plan\PR13a\PR13a -- Requirements.md" />
+    <Content Include="Vestigium\Helpers\Network\001 -- Implementation Plan\PR13a\PR13a -- Implementation Plan.md" />
     <Content Include="Vestigium\Helpers\Network.RawSocket\001 -- Implementation Plan\PR01\PR01 -- Requirements.md" />
     <Content Include="Vestigium\Helpers\Network.RawSocket\001 -- Implementation Plan\PR01\PR01 -- Implementation Plan.md" />
   </ItemGroup>
