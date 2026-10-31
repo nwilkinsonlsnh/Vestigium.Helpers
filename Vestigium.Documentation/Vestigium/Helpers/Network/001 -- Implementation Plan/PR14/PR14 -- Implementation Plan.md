@@ -18,7 +18,7 @@ Build order is the Order column.
 
 | Order | ID | Do | State |
 | ---: | :--- | :--- | :--- |
-| 1 | PR14-01 | Stamp 2.1.0 in README, Guide, and Design. | Open |
+| 1 | PR14-01 | Stamp 2.1.0 in README, Guide, and Design. | Done |
 | 2 | PR14-02 | Platform attributes. Clear CA1416 on Registry and macOS sites. | Open |
 | 3 | PR14-03 | `ResolveMac` on the scan. Opt-in. Miss is null. | Open |
 | 4 | PR14-04 | `HostsFromPrefix` returns IPv6 hosts. Cap 1024. Does not scan. | Open |
@@ -30,13 +30,15 @@ Build order is the Order column.
 
 ## Slice notes
 
-### PR14-01 through PR14-02
+### PR14-01
 
-No new behavior. Stamp the version. Mark platform-specific calls.
+No new behavior.
 
-### PR14-03 through PR14-07
+Landed: README, Guide, and Design consume **2.1.0**. Historical 2.0.0 rows stay as history.
 
-Network doors. `ResolveMac` uses `ProbeNeighbor`. `ProbeTls` is one handshake. JSON is text. Banner never hits the audit log.
+### PR14-02 through PR14-07
+
+Platform attributes, then the new doors. Banner never hits the audit log.
 
 ### PR14-08
 
@@ -55,4 +57,4 @@ Owner runs the filter on the Windows clone. This agent does not mark the release
 
 ## Next action
 
-PR14-01. Stamp 2.1.0.
+PR14-02. Platform attributes.
