@@ -1,13 +1,13 @@
 # Vestigium.Helpers
 
-**This repository has moved.**
+This repository has moved.
 
-The helper libraries now live in the Vestigium monorepo:
+The libraries in this repo now live in the public Vestigium monorepo:
 
-**https://github.com/nwilkinsonlsnh/Vestigium**
+https://github.com/nwilkinsonlsnh/Vestigium
 
-Path: `Helpers/`
+Path in that repo: `Helpers/`
 
-This repo is archived. It is read-only. History stays. Do not open issues or pull requests here. New work goes in `Vestigium`.
+This repository is archived. It is read-only. The history stays. Do not open issues or pull requests here. New work goes in Vestigium.
 
-Published NuGet packages are unchanged. Package source of truth for the next release is the monorepo.
+NuGet packages already published from this repo are unchanged. The source of truth for the next release is the monorepo.
